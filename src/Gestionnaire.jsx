@@ -1,6 +1,6 @@
 import { useState } from "react";
 var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",pop:"#3CAF6E",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",purple:"#6B3FA0",purpleL:"#F3EEFF"};
-var fmt=function(n){if(!n&&n!==0)return"â";return Math.abs(n).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
+var fmt=function(n){if(!n&&n!==0)return"—";return Math.abs(n).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
 var today=function(){return new Date().toISOString().slice(0,10);};
 var daysLeft=function(d){return d?Math.ceil((new Date(d)-new Date())/86400000):9999;};
 var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
@@ -113,7 +113,7 @@ var UNITES0=[
 // ===== HELPERS =====
 function expSt(d){
   var j=daysLeft(d);
-  if(!d)return{c:T.muted,bg:"transparent",l:"â"};
+  if(!d)return{c:T.muted,bg:"transparent",l:"—"};
   if(j<0)return{c:T.red,bg:T.redL,l:"EXPIRE"};
   if(j<=30)return{c:T.red,bg:T.redL,l:j+"j"};
   if(j<=90)return{c:T.amber,bg:T.amberL,l:j+"j"};
@@ -246,23 +246,6 @@ function TabBord(p){
 // ===== TAB FINANCES =====
 function TabFinances(p){
   var s0=useState("budget");var sub=s0[0];var setSub=s0[1];
-  // Sync factures from Comptabilite (via localStorage)
-  useState(function(){
-    try{
-      var stored=localStorage.getItem("predictek_factures_ca");
-      if(stored){
-        var fromCompta=JSON.parse(stored);
-        if(fromCompta&&fromCompta.length>0){
-          p.setFact(function(prev){
-            var existingIds=prev.map(function(f){return f.id;});
-            var newOnes=fromCompta.filter(function(f){return !existingIds.includes(f.id);});
-            return newOnes.length>0?prev.concat(newOnes):prev;
-          });
-        }
-      }
-    }catch(e){}
-    return null;
-  });
   var s1=useState(false);var showF=s1[0];var setShowF=s1[1];
   var s2=useState(false);var showP=s2[0];var setShowP=s2[1];
   var s3=useState({});var ff=s3[0];var setFf=s3[1];
@@ -282,7 +265,7 @@ function TabFinances(p){
       {sub==="budget"&&(
         <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",borderBottom:"1px solid "+T.border}}>
-            <b style={{fontSize:13,color:T.navy}}>Budget 2025-2026 â 6 mois</b>
+            <b style={{fontSize:13,color:T.navy}}>Budget 2025-2026 — 6 mois</b>
             <div style={{display:"flex",gap:8}}>
               <Bdg bg={T.blueL} c={T.blue}>{Math.round(totR/totB*100)}% utilise</Bdg>
               <Btn sm bg={T.navy} onClick={function(){pdfPrint("Budget 2025-2026 - Syndicat Piedmont",[{k:"cat",l:"Cat"},{k:"poste",l:"Poste"},{k:"budgetF",l:"Budget"},{k:"reelF",l:"Reel 6 mois"},{k:"pct",l:"% utilise"}],BUDGET.map(function(b){return Object.assign({},b,{budgetF:fmt(b.budget),reelF:fmt(b.reel),pct:Math.round(b.reel/b.budget*100)+"%"});}));}}>PDF</Btn>
@@ -336,7 +319,7 @@ function TabFinances(p){
                     <td style={{padding:"8px 10px",color:T.text,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.desc}</td>
                     <td style={{padding:"8px 10px",color:T.muted}}>{f.ref}</td>
                     <td style={{padding:"8px 10px",textAlign:"right",fontWeight:700}}>{fmt(f.mnt)}</td>
-                    <td style={{padding:"8px 10px"}}><div style={{display:"flex",gap:4,flexWrap:"wrap"}}><Bdg bg={f.statut==="approuvee"?T.accentL:T.amberL} c={f.statut==="approuvee"?T.accent:T.amber}>{f.statut==="approuvee"?"Approuvee":"En attente"}</Bdg>{f.id&&String(f.id).startsWith("PRED-")&&<Bdg bg={T.purpleL} c={T.purple}>Predictek</Bdg>}</div></td>
+                    <td style={{padding:"8px 10px"}}><Bdg bg={f.statut==="approuvee"?T.accentL:T.amberL} c={f.statut==="approuvee"?T.accent:T.amber}>{f.statut==="approuvee"?"Approuvee":"En attente"}</Bdg></td>
                     <td style={{padding:"8px 10px"}}>
                       {f.statut==="attente"&&<Btn sm onClick={function(){p.setFact(function(prev){return prev.map(function(x){return x.id===f.id?Object.assign({},x,{statut:"approuvee",par:"J-F Laroche",dateA:today()}):x;});});}}> Approuver</Btn>}
                       {f.statut!=="attente"&&<span style={{fontSize:10,color:T.muted}}>{f.par}</span>}
@@ -439,10 +422,10 @@ function TabReunions(p){
           <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
               <div>
-                <div style={{fontSize:15,fontWeight:800,color:T.navy}}>{selR.type} â {selR.date}</div>
+                <div style={{fontSize:15,fontWeight:800,color:T.navy}}>{selR.type} — {selR.date}</div>
                 <div style={{fontSize:11,color:T.muted,marginTop:2}}>{selR.heure} | {selR.lieu}</div>
               </div>
-              <Btn sm bg={T.navy} onClick={function(){pdfPrint("PV "+selR.type+" du "+selR.date+" â Syndicat Piedmont",[{k:"n",l:"No"},{k:"item",l:"Point ordre du jour"}],selR.ordre.map(function(o,i){return {n:i+1,item:o};}),selR.pv?"Proces-verbal: "+selR.pv:"");}}>Imprimer PV</Btn>
+              <Btn sm bg={T.navy} onClick={function(){pdfPrint("PV "+selR.type+" du "+selR.date+" — Syndicat Piedmont",[{k:"n",l:"No"},{k:"item",l:"Point ordre du jour"}],selR.ordre.map(function(o,i){return {n:i+1,item:o};}),selR.pv?"Proces-verbal: "+selR.pv:"");}}>Imprimer PV</Btn>
             </div>
             <Lbl l="Ordre du jour"/>
             {selR.ordre.map(function(o,i){return(
@@ -497,7 +480,7 @@ function TabCarnet(p){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div>
-          <b style={{fontSize:13,color:T.navy,display:"block"}}>Carnet entretien â Loi 16</b>
+          <b style={{fontSize:13,color:T.navy,display:"block"}}>Carnet entretien — Loi 16</b>
           <span style={{fontSize:11,color:T.muted}}>{p.carnet.length} composantes | {fmt(totCout)} | {alts} alerte(s)</span>
         </div>
         <div style={{display:"flex",gap:6}}>
@@ -530,7 +513,7 @@ function TabCarnet(p){
                   </div>
                 </td>
                 <td style={{padding:"8px 10px"}}><Bdg bg={st.bg} c={st.c}>{st.l}</Bdg></td>
-                <td style={{padding:"8px 10px",fontSize:11,color:T.muted}}>{c.entretien||"â"}</td>
+                <td style={{padding:"8px 10px",fontSize:11,color:T.muted}}>{c.entretien||"—"}</td>
               </tr>
             );})}
           </tbody>
@@ -589,8 +572,8 @@ function TabUnites(){
     var ALL_COLS=[{k:"u",l:"Unite"},{k:"nom",l:"Proprietaire"},{k:"fraction",l:"Fraction %"},{k:"cot",l:"Cotisation"},{k:"papL",l:"PAP"},{k:"ce",l:"CE expiry"},{k:"ass",l:"Ass. expiry"},{k:"locL",l:"Location"},{k:"animaux",l:"Animaux"}];
     var cols=ALL_COLS.filter(function(c){return expCols[c.k]!==false;});
     var rows=unites.map(function(u){return Object.assign({},u,{papL:u.pap?"Oui":"Non",locL:u.loc?"Oui":"Non"});});
-    if(expFmt==="csv"){csvDL(cols,rows,"registre-copropriÃ©taires-"+today());}
-    else{pdfPrint("Registre coproprietaires â Syndicat Piedmont",cols,rows,"36 unites | "+today());}
+    if(expFmt==="csv"){csvDL(cols,rows,"registre-copropriétaires-"+today());}
+    else{pdfPrint("Registre coproprietaires — Syndicat Piedmont",cols,rows,"36 unites | "+today());}
     setShowExport(false);
   }
 
@@ -687,8 +670,8 @@ function TabUnites(){
                         <td style={{padding:"7px 8px",textAlign:"center"}}><span style={{display:"inline-block",width:16,height:16,borderRadius:"50%",background:u.pap?T.accent:T.red,color:"#fff",fontSize:8,fontWeight:700,lineHeight:"16px",textAlign:"center"}}>{u.pap?"V":"!"}</span></td>
                         <td style={{padding:"7px 8px",textAlign:"center"}}><span style={{fontSize:10,fontWeight:600,color:ceS.c,background:ceS.bg,padding:"1px 6px",borderRadius:10}}>{ceS.l}</span></td>
                         <td style={{padding:"7px 8px",textAlign:"center"}}><span style={{fontSize:10,fontWeight:600,color:aS.c,background:aS.bg,padding:"1px 6px",borderRadius:10}}>{aS.l}</span></td>
-                        <td style={{padding:"7px 8px",textAlign:"center"}}>{u.loc?<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:8,background:T.amberL,color:T.amber}}>Loue</span>:<span style={{color:T.muted,fontSize:10}}>â</span>}</td>
-                        <td style={{padding:"7px 8px",textAlign:"center"}}>{u.animaux>0?<span style={{fontSize:11}}>{u.animaux}</span>:<span style={{color:T.muted,fontSize:10}}>â</span>}</td>
+                        <td style={{padding:"7px 8px",textAlign:"center"}}>{u.loc?<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:8,background:T.amberL,color:T.amber}}>Loue</span>:<span style={{color:T.muted,fontSize:10}}>—</span>}</td>
+                        <td style={{padding:"7px 8px",textAlign:"center"}}>{u.animaux>0?<span style={{fontSize:11}}>{u.animaux}</span>:<span style={{color:T.muted,fontSize:10}}>—</span>}</td>
                         <td style={{padding:"7px 8px",textAlign:"center"}}>{alts>0?<span style={{fontSize:10,fontWeight:700,color:"#fff",background:T.red,padding:"1px 6px",borderRadius:10}}>{alts}</span>:<span style={{fontSize:10,color:T.accent}}>ok</span>}</td>
                       </tr>
                     );
@@ -764,7 +747,7 @@ function TabUnites(){
   );
 }
 
-// ===== EXPORT COPROPRIÃTAIRES =====
+// ===== EXPORT COPROPRIÉTAIRES =====
 function ExportCopros(p){
   var s0=useState({u:true,nom:true,fraction:true,cot:true,pap:true,ce:true,ass:true,loc:true});var cols=s0[0];var setCols=s0[1];
   var s1=useState("csv");var fmt2=s1[0];var setFmt2=s1[1];
@@ -772,8 +755,8 @@ function ExportCopros(p){
   var selCols=ALL.filter(function(c){return cols[c.k]!==false;});
   function doExport(){
     var rows=UNITES0.map(function(u){return Object.assign({},u,{papL:u.pap?"Oui":"Non",locL:u.loc?"Oui":"Non"});});
-    if(fmt2==="csv"){csvDL(selCols,rows,"registre-copropriÃ©taires-"+today());}
-    else{pdfPrint("Registre coproprietaires â Syndicat Piedmont",selCols,rows,"36 unites | "+today());}
+    if(fmt2==="csv"){csvDL(selCols,rows,"registre-copropriétaires-"+today());}
+    else{pdfPrint("Registre coproprietaires — Syndicat Piedmont",selCols,rows,"36 unites | "+today());}
     p.onClose();
   }
   return(
@@ -821,13 +804,8 @@ var COPROS_INIT=[
   {id:15,u:"543",nom:"Salvas",prenom:"Michel",tel:"",courriel:"",fraction:2.133,cot:292.06,pap:true,ce:"2027-05-30",ass:"2026-05-31",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
 ];
 var TICKETS_COPRO={
-  "531":[
-    {id:1,titre:"Fuite sous evier",date:"2026-04-20",statut:"en_cours",cat:"plomberie"},
-    {id:2,titre:"Ampoule hall entree",date:"2026-04-05",statut:"ferme",cat:"electricite"},
-  ],
-  "539":[
-    {id:3,titre:"Bruit chauffage",date:"2026-04-24",statut:"nouveau",cat:"chauffage"},
-  ],
+  "531":[{id:1,titre:"Fuite sous evier",date:"2026-04-20",statut:"en_cours",cat:"plomberie"},{id:2,titre:"Ampoule hall entree",date:"2026-04-05",statut:"ferme",cat:"electricite"}],
+  "539":[{id:3,titre:"Bruit chauffage",date:"2026-04-24",statut:"nouveau",cat:"chauffage"}],
 };
 function genCode(){return Math.floor(1000+Math.random()*9000).toString();}
 function TabCopros(){
@@ -858,12 +836,7 @@ function TabCopros(){
   return(
     <div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
-        {[
-          {l:"Total",v:copros.length,c:T.navy,bg:T.blueL},
-          {l:"Portail actif",v:nAcces,c:T.accent,bg:T.accentL},
-          {l:"Sans courriel",v:nSansCourriel,c:nSansCourriel>0?T.amber:T.accent,bg:nSansCourriel>0?T.amberL:T.accentL},
-          {l:"Alertes",v:nAlertes,c:nAlertes>0?T.red:T.accent,bg:nAlertes>0?T.redL:T.accentL},
-        ].map(function(s,i){return(
+        {[{l:"Total",v:copros.length,c:T.navy,bg:T.blueL},{l:"Portail actif",v:nAcces,c:T.accent,bg:T.accentL},{l:"Sans courriel",v:nSansCourriel,c:nSansCourriel>0?T.amber:T.accent,bg:nSansCourriel>0?T.amberL:T.accentL},{l:"Alertes",v:nAlertes,c:nAlertes>0?T.red:T.accent,bg:nAlertes>0?T.redL:T.accentL}].map(function(s,i){return(
           <div key={i} style={{background:s.bg,borderRadius:10,padding:"11px 13px",border:"1px solid "+s.c+"33"}}>
             <div style={{fontSize:9,color:s.c,fontWeight:700,marginBottom:3,textTransform:"uppercase"}}>{s.l}</div>
             <div style={{fontSize:18,fontWeight:800,color:s.c}}>{s.v}</div>
@@ -880,46 +853,38 @@ function TabCopros(){
       <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <thead>
-              <tr style={{background:T.navy}}>
-                {["Unite","Nom","Courriel","Tel","Cotisation","PAP","CE","Ass.","Portail","Actions"].map(function(h){return <th key={h} style={{padding:"7px 9px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>;})}
-              </tr>
-            </thead>
+            <thead><tr style={{background:T.navy}}>{["Unite","Nom","Courriel","Tel","Cotisation","PAP","CE","Ass.","Portail","Actions"].map(function(h){return <th key={h} style={{padding:"7px 9px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>;})}</tr></thead>
             <tbody>
-              {liste.map(function(c){
-                var ceS=expSt(c.ce);var aS=expSt(c.ass);
-                var alts=(ceS.c===T.red?1:0)+(aS.c===T.red?1:0)+(!c.pap?1:0);
-                return(
-                  <tr key={c.id} style={{borderBottom:"1px solid "+T.border,background:alts>=2?T.redL:alts>=1?"#FFFBF0":T.surface,cursor:"pointer"}} onClick={function(){setSel(c.id);setShowFiche(true);}}>
-                    <td style={{padding:"7px 9px",fontWeight:700,color:T.navy,fontSize:12}}>{c.u}</td>
-                    <td style={{padding:"7px 9px",fontSize:12,color:T.text,whiteSpace:"nowrap"}}>{c.prenom} {c.nom}</td>
-                    <td style={{padding:"7px 9px",fontSize:11,color:c.courriel?T.muted:T.red,fontStyle:c.courriel?"normal":"italic"}}>{c.courriel||"Manquant"}</td>
-                    <td style={{padding:"7px 9px",fontSize:11,color:T.muted}}>{c.tel||"â"}</td>
-                    <td style={{padding:"7px 9px",fontSize:11,fontWeight:600}}>{Math.round(c.cot*100)/100} $</td>
-                    <td style={{padding:"7px 9px",textAlign:"center"}}><span style={{width:14,height:14,borderRadius:"50%",background:c.pap?T.accent:T.red,display:"inline-block",fontSize:8,color:"#fff",lineHeight:"14px",textAlign:"center",fontWeight:700}}>{c.pap?"V":"!"}</span></td>
-                    <td style={{padding:"7px 9px"}}><span style={{fontSize:9,fontWeight:700,color:ceS.c,background:ceS.bg,padding:"1px 5px",borderRadius:9}}>{ceS.l}</span></td>
-                    <td style={{padding:"7px 9px"}}><span style={{fontSize:9,fontWeight:700,color:aS.c,background:aS.bg,padding:"1px 5px",borderRadius:9}}>{aS.l}</span></td>
-                    <td style={{padding:"7px 9px",textAlign:"center"}}><Bdg bg={c.acces?T.accentL:T.alt} c={c.acces?T.accent:T.muted}>{c.acces?"Actif":"Inactif"}</Bdg></td>
-                    <td style={{padding:"7px 9px"}} onClick={function(e){e.stopPropagation();}}>
-                      <div style={{display:"flex",gap:4}}>
-                        {!c.acces&&c.courriel&&<Btn sm onClick={function(){activerAcces(c.id);}}>Activer</Btn>}
-                        {c.acces&&<Btn sm bg={T.amber} onClick={function(){reinitCode(c.id);}}>Code</Btn>}
-                        {c.acces&&<Btn sm bg={T.red} onClick={function(){desactiverAcces(c.id);}}>Off</Btn>}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+              {liste.map(function(c){var ceS=expSt(c.ce);var aS=expSt(c.ass);var alts=(ceS.c===T.red?1:0)+(aS.c===T.red?1:0)+(!c.pap?1:0);return(
+                <tr key={c.id} style={{borderBottom:"1px solid "+T.border,background:alts>=2?T.redL:alts>=1?"#FFFBF0":T.surface,cursor:"pointer"}} onClick={function(){setSel(c.id);setShowFiche(true);}}>
+                  <td style={{padding:"7px 9px",fontWeight:700,color:T.navy,fontSize:12}}>{c.u}</td>
+                  <td style={{padding:"7px 9px",fontSize:12,color:T.text,whiteSpace:"nowrap"}}>{c.prenom} {c.nom}</td>
+                  <td style={{padding:"7px 9px",fontSize:11,color:c.courriel?T.muted:T.red,fontStyle:c.courriel?"normal":"italic"}}>{c.courriel||"Manquant"}</td>
+                  <td style={{padding:"7px 9px",fontSize:11,color:T.muted}}>{c.tel||"—"}</td>
+                  <td style={{padding:"7px 9px",fontSize:11,fontWeight:600}}>{Math.round(c.cot*100)/100} $</td>
+                  <td style={{padding:"7px 9px",textAlign:"center"}}><span style={{width:14,height:14,borderRadius:"50%",background:c.pap?T.accent:T.red,display:"inline-block",fontSize:8,color:"#fff",lineHeight:"14px",textAlign:"center",fontWeight:700}}>{c.pap?"V":"!"}</span></td>
+                  <td style={{padding:"7px 9px"}}><span style={{fontSize:9,fontWeight:700,color:ceS.c,background:ceS.bg,padding:"1px 5px",borderRadius:9}}>{ceS.l}</span></td>
+                  <td style={{padding:"7px 9px"}}><span style={{fontSize:9,fontWeight:700,color:aS.c,background:aS.bg,padding:"1px 5px",borderRadius:9}}>{aS.l}</span></td>
+                  <td style={{padding:"7px 9px",textAlign:"center"}}><Bdg bg={c.acces?T.accentL:T.alt} c={c.acces?T.accent:T.muted}>{c.acces?"Actif":"Inactif"}</Bdg></td>
+                  <td style={{padding:"7px 9px"}} onClick={function(e){e.stopPropagation();}}>
+                    <div style={{display:"flex",gap:4}}>
+                      {!c.acces&&c.courriel&&<Btn sm onClick={function(){activerAcces(c.id);}}>Activer</Btn>}
+                      {c.acces&&<Btn sm bg={T.amber} onClick={function(){reinitCode(c.id);}}>Code</Btn>}
+                      {c.acces&&<Btn sm bg={T.red} onClick={function(){desactiverAcces(c.id);}}>Off</Btn>}
+                    </div>
+                  </td>
+                </tr>
+              );})}
             </tbody>
           </table>
         </div>
         <div style={{padding:"7px 12px",background:T.alt,fontSize:10,color:T.muted,borderTop:"1px solid "+T.border}}>{liste.length} coproprietaire(s) sur {copros.length}</div>
       </div>
-      <Modal show={showFiche} onClose={function(){setShowFiche(false);setSel(null);}} title={"Fiche â Unite "+(selC?selC.u:"")} w={520}>
+      <Modal show={showFiche} onClose={function(){setShowFiche(false);setSel(null);}} title={"Fiche — Unite "+(selC?selC.u:"")} w={520}>
         {selC&&(
           <div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-              {[{l:"Nom",v:selC.prenom+" "+selC.nom},{l:"Unite",v:selC.u},{l:"Tel",v:selC.tel||"â"},{l:"Courriel",v:selC.courriel||"Non enregistre"},{l:"Fraction",v:selC.fraction.toFixed(3)+"%"},{l:"Cotisation",v:selC.cot+" $/mois"}].map(function(item,i){return(
+              {[{l:"Nom",v:selC.prenom+" "+selC.nom},{l:"Unite",v:selC.u},{l:"Tel",v:selC.tel||"—"},{l:"Courriel",v:selC.courriel||"Non enregistre"},{l:"Fraction",v:selC.fraction.toFixed(3)+"%"},{l:"Cotisation",v:selC.cot+" $/mois"}].map(function(item,i){return(
                 <div key={i} style={{background:T.alt,borderRadius:8,padding:"9px 11px"}}>
                   <div style={{fontSize:9,color:T.muted,fontWeight:600,textTransform:"uppercase",marginBottom:3}}>{item.l}</div>
                   <div style={{fontSize:13,fontWeight:600,color:T.text}}>{item.v}</div>
@@ -982,9 +947,8 @@ var BONS_CA_INIT=[
 function TabFournisseursCA(){
   var s0=useState(BONS_CA_INIT);var bons=s0[0];var setBons=s0[1];
   var s1=useState("bons");var ong=s1[0];var setOng=s1[1];
-  var s2=useState(null);var sel=s2[0];var setSel=s2[1];
-  var s3=useState(false);var showN=s3[0];var setShowN=s3[1];
-  var s4=useState({});var nf=s4[0];var setNf=s4[1];
+  var s2=useState(false);var showN=s2[0];var setShowN=s2[1];
+  var s3=useState({});var nf=s3[0];var setNf=s3[1];
   function snf(k,v){setNf(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
   var BON_ST={nouveau:{c:T.blue,bg:T.blueL,l:"Nouveau"},approuve:{c:T.amber,bg:T.amberL,l:"Approuve"},complete:{c:T.accent,bg:T.accentL,l:"Complete"}};
   var PRIO_ST={urgence:{c:T.red,bg:T.redL},haute:{c:T.amber,bg:T.amberL},normale:{c:T.accent,bg:T.accentL}};
@@ -992,11 +956,7 @@ function TabFournisseursCA(){
   return(
     <div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
-        {[
-          {l:"Fournisseurs assignes",v:FOURNISSEURS_CA.length,c:T.navy,bg:T.blueL},
-          {l:"Bons en cours",v:bons.filter(function(b){return b.statut!=="complete";}).length,c:T.amber,bg:T.amberL},
-          {l:"Total bons 2026",v:fmt(mntTotal),c:T.navy,bg:T.blueL},
-        ].map(function(st,i){return(
+        {[{l:"Fournisseurs assignes",v:FOURNISSEURS_CA.length,c:T.navy,bg:T.blueL},{l:"Bons en cours",v:bons.filter(function(b){return b.statut!=="complete";}).length,c:T.amber,bg:T.amberL},{l:"Total bons 2026",v:fmt(mntTotal),c:T.navy,bg:T.blueL}].map(function(st,i){return(
           <div key={i} style={{background:st.bg,borderRadius:10,padding:"11px 13px",border:"1px solid "+st.c+"33"}}>
             <div style={{fontSize:9,color:st.c,fontWeight:700,marginBottom:3,textTransform:"uppercase"}}>{st.l}</div>
             <div style={{fontSize:17,fontWeight:800,color:st.c}}>{st.v}</div>
@@ -1007,9 +967,7 @@ function TabFournisseursCA(){
         {[["bons","Bons de travail"],["fournisseurs","Nos fournisseurs"]].map(function(t){var a=ong===t[0];return(
           <button key={t[0]} onClick={function(){setOng(t[0]);}} style={{background:a?T.navy:"transparent",border:"none",borderRadius:7,padding:"6px 14px",color:a?"#fff":T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400}}>{t[1]}</button>
         );})}
-        <div style={{marginLeft:"auto"}}>
-          <Btn sm onClick={function(){setNf({four:FOURNISSEURS_CA[0].nom,cat:"Plomberie",unite:"",desc:"",date:today(),mnt:"",prio:"normale"});setShowN(true);}}>+ Bon de travail</Btn>
-        </div>
+        <div style={{marginLeft:"auto"}}><Btn sm onClick={function(){setNf({four:FOURNISSEURS_CA[0].nom,cat:"Plomberie",unite:"",desc:"",date:today(),mnt:"",prio:"normale"});setShowN(true);}}>+ Bon de travail</Btn></div>
       </div>
       {ong==="bons"&&(
         <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
@@ -1040,14 +998,8 @@ function TabFournisseursCA(){
           {FOURNISSEURS_CA.map(function(f){return(
             <div key={f.id} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                <div>
-                  <div style={{fontSize:13,fontWeight:700,color:T.text,marginBottom:4}}>{f.nom}</div>
-                  <Bdg bg={T.alt} c={T.muted}>{f.cat}</Bdg>
-                </div>
-                <div style={{textAlign:"center"}}>
-                  <div style={{fontSize:18,fontWeight:800,color:f.note>=4.5?T.accent:T.amber}}>{f.note}</div>
-                  <div style={{fontSize:8,color:T.muted}}>sur 5</div>
-                </div>
+                <div><div style={{fontSize:13,fontWeight:700,color:T.text,marginBottom:4}}>{f.nom}</div><Bdg bg={T.alt} c={T.muted}>{f.cat}</Bdg></div>
+                <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:f.note>=4.5?T.accent:T.amber}}>{f.note}</div><div style={{fontSize:8,color:T.muted}}>sur 5</div></div>
               </div>
               <div style={{fontSize:11,color:T.muted,marginBottom:3}}>{f.contact}</div>
               <div style={{fontSize:11,color:T.blue,marginBottom:8}}>{f.tel}</div>
@@ -1077,7 +1029,14 @@ function TabFournisseursCA(){
 // ===== MODULE PRINCIPAL =====
 export default function Gestionnaire(){
   var s0=useState("bord");var ong=s0[0];var setOng=s0[1];
-  var s1=useState(FACT0);var fact=s1[0];var setFact=s1[1];
+  var s1=useState(function(){
+    var base=FACT0.slice();
+    try{
+      var ext=JSON.parse(localStorage.getItem("predictek_factures_syndicats")||"[]");
+      ext.forEach(function(e){if(!base.find(function(b){return b.ref===e.ref;}))base.push(e);});
+    }catch(ex){}
+    return base;
+  });var fact=s1[0];var setFact=s1[1];
   var s2=useState(PREV0);var prev=s2[0];var setPrev=s2[1];
   var s3=useState(REUN0);var reun=s3[0];var setReun=s3[1];
   var s4=useState(CARNET0);var carnet=s4[0];var setCarnet=s4[1];
