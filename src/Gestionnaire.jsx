@@ -785,7 +785,225 @@ function ExportCopros(p){
 }
 
 
-// ===== TAB COPROPRIETAIRES =====
+// ===== SOLDES OUVERTURE SYNDICAT =====
+var COMPTES_SYND=[
+  {no:"1010",nom:"Compte d exploitation",type:"actif",solde:7361.88},
+  {no:"1020",nom:"Fonds de prevoyance",type:"actif",solde:64235.01},
+  {no:"1030",nom:"Fonds d assurance",type:"actif",solde:36178.37},
+  {no:"1100",nom:"Cotisations a recevoir",type:"actif",solde:1460.10},
+  {no:"2010",nom:"Factures fournisseurs a payer",type:"passif",solde:3200.00},
+  {no:"2020",nom:"Honoraires Predictek a payer",type:"passif",solde:2759.40},
+  {no:"2100",nom:"TPS a remettre",type:"passif",solde:0},
+  {no:"3000",nom:"Surplus — Exploitation",type:"capitaux",solde:56940.76},
+  {no:"3100",nom:"Surplus — Prevoyance",type:"capitaux",solde:46274.20},
+  {no:"4010",nom:"Cotisations mensuelles",type:"produit",solde:57189.12},
+  {no:"4020",nom:"Interets et revenus divers",type:"produit",solde:1240.00},
+  {no:"5010",nom:"Honoraires Predictek",type:"charge",solde:24800.00},
+  {no:"5020",nom:"Deneigement",type:"charge",solde:18700.00},
+  {no:"5030",nom:"Paysagement",type:"charge",solde:6200.00},
+  {no:"5040",nom:"Electricite — parties communes",type:"charge",solde:3400.00},
+  {no:"5050",nom:"Assurance syndicat",type:"charge",solde:8900.00},
+  {no:"5060",nom:"Plomberie et urgences",type:"charge",solde:4850.00},
+  {no:"5070",nom:"Entretien ascenseur",type:"charge",solde:2200.00},
+  {no:"5080",nom:"Chauffage — parties communes",type:"charge",solde:1800.00},
+  {no:"5090",nom:"Fournitures et divers",type:"charge",solde:940.00},
+];
+
+var ECRITURES_SYND=[
+  {id:1,date:"2026-04-01",no:"SY-001",desc:"Cotisations mensuelles — avril 2026",debit:[{cpt:"1010",mnt:14297.28}],credit:[{cpt:"4010",mnt:14297.28}]},
+  {id:2,date:"2026-04-05",no:"SY-002",desc:"Facture Predictek — honoraires gestion",debit:[{cpt:"5010",mnt:2759.40}],credit:[{cpt:"2020",mnt:2759.40}]},
+  {id:3,date:"2026-04-10",no:"SY-003",desc:"Paiement deneigement urgence",debit:[{cpt:"5020",mnt:850.00}],credit:[{cpt:"1010",mnt:850.00}]},
+  {id:4,date:"2026-04-15",no:"SY-004",desc:"Paiement facture electricite",debit:[{cpt:"5040",mnt:320.00}],credit:[{cpt:"1010",mnt:320.00}]},
+];
+
+function TabSoldesOuvSynd(){
+  var s0=useState(COMPTES_SYND.map(function(c){return Object.assign({},c,{soldeOuv:c.solde});}));
+  var comptes=s0[0];var setComptes=s0[1];
+  var s1=useState("");var savedMsg=s1[0];var setSavedMsg=s1[1];
+  function upd(no,val){setComptes(function(prev){return prev.map(function(c){return c.no===no?Object.assign({},c,{soldeOuv:parseFloat(val)||0}):c;});});}
+  var totalActif=comptes.filter(function(c){return c.type==="actif";}).reduce(function(a,c){return a+c.soldeOuv;},0);
+  var totalPassif=comptes.filter(function(c){return c.type==="passif";}).reduce(function(a,c){return a+c.soldeOuv;},0);
+  var totalCapitaux=comptes.filter(function(c){return c.type==="capitaux";}).reduce(function(a,c){return a+c.soldeOuv;},0);
+  var balance=totalActif-(totalPassif+totalCapitaux);
+  var balanced=Math.abs(balance)<0.01;
+  var groups={};
+  comptes.forEach(function(c){if(!groups[c.type])groups[c.type]=[];groups[c.type].push(c);});
+  function sauvegarder(){try{localStorage.setItem("predictek_soldes_synd_PIED",JSON.stringify(comptes));}catch(e){}setSavedMsg("Sauvegardes!");setTimeout(function(){setSavedMsg("");},3000);}
+  return(
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
+        {[{l:"Total actif",v:fmt(totalActif),c:T.accent,bg:T.accentL},{l:"Total passif",v:fmt(totalPassif),c:T.red,bg:T.redL},{l:"Capitaux",v:fmt(totalCapitaux),c:T.purple,bg:T.purpleL},{l:"Balance",v:fmt(balance),c:balanced?T.accent:T.red,bg:balanced?T.accentL:T.redL}].map(function(s,i){return(
+          <div key={i} style={{background:s.bg,borderRadius:10,padding:"11px 13px",border:"1px solid "+s.c+"33"}}>
+            <div style={{fontSize:9,color:s.c,fontWeight:700,marginBottom:3,textTransform:"uppercase"}}>{s.l}</div>
+            <div style={{fontSize:17,fontWeight:800,color:s.c}}>{s.v}</div>
+          </div>
+        );})}
+      </div>
+      {!balanced&&<div style={{background:T.redL,borderRadius:8,padding:"9px 14px",fontSize:12,color:T.red,marginBottom:12}}>Bilan desequilibre — Verifiez les soldes.</div>}
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12,gap:8,alignItems:"center"}}>
+        {savedMsg&&<Bdg bg={T.accentL} c={T.accent}>{savedMsg}</Bdg>}
+        <Btn sm onClick={sauvegarder}>Sauvegarder</Btn>
+      </div>
+      {["actif","passif","capitaux","produit","charge"].map(function(type){if(!groups[type])return null;return(
+        <div key={type} style={{marginBottom:14}}>
+          <div style={{background:T.navy,color:"#fff",padding:"7px 14px",fontSize:11,fontWeight:700,borderRadius:"8px 8px 0 0",textTransform:"uppercase"}}>{type}</div>
+          <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr style={{background:T.alt}}><th style={{padding:"6px 12px",textAlign:"left",fontSize:10,fontWeight:700,color:T.muted}}>No</th><th style={{padding:"6px 12px",textAlign:"left",fontSize:10,fontWeight:700,color:T.muted}}>Compte</th><th style={{padding:"6px 12px",textAlign:"right",fontSize:10,fontWeight:700,color:T.muted}}>Solde ouverture</th></tr></thead>
+              <tbody>
+                {groups[type].map(function(c){return(
+                  <tr key={c.no} style={{borderBottom:"1px solid "+T.border}}>
+                    <td style={{padding:"6px 12px",fontSize:11,color:T.muted}}>{c.no}</td>
+                    <td style={{padding:"6px 12px",fontSize:12,color:T.text}}>{c.nom}</td>
+                    <td style={{padding:"6px 12px",textAlign:"right"}}>
+                      <input type="number" value={c.soldeOuv} onChange={function(e){upd(c.no,e.target.value);}} style={{width:130,border:"1px solid "+T.border,borderRadius:6,padding:"4px 8px",fontSize:12,fontFamily:"inherit",textAlign:"right",outline:"none"}} step="0.01"/>
+                    </td>
+                  </tr>
+                );})}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );})}
+    </div>
+  );
+}
+
+function TabGrandLivreSynd(){
+  var s0=useState(COMPTES_SYND[0].no);var selCpt=s0[0];var setSelCpt=s0[1];
+  var cpt=COMPTES_SYND.find(function(c){return c.no===selCpt;})||COMPTES_SYND[0];
+  var isDebitNormal=cpt.type==="actif"||cpt.type==="charge";
+  var solde=cpt.solde||0;
+  var soldeInit=solde;
+  var lignes=[];
+  ECRITURES_SYND.forEach(function(e){
+    e.debit.forEach(function(d){
+      if(d.cpt===selCpt){var delta=isDebitNormal?d.mnt:-d.mnt;solde+=delta;lignes.push({date:e.date,no:e.no,desc:e.desc,debit:d.mnt,credit:0,solde:solde});}
+    });
+    e.credit.forEach(function(c){
+      if(c.cpt===selCpt){var delta=isDebitNormal?-c.mnt:c.mnt;solde+=delta;lignes.push({date:e.date,no:e.no,desc:e.desc,debit:0,credit:c.mnt,solde:solde});}
+    });
+  });
+  lignes.sort(function(a,b){return a.date>b.date?1:-1;});
+  return(
+    <div>
+      <div style={{marginBottom:14}}>
+        <div style={{fontSize:10,color:T.muted,fontWeight:600,textTransform:"uppercase",marginBottom:5}}>Compte</div>
+        <select value={selCpt} onChange={function(e){setSelCpt(e.target.value);}} style={INP}>
+          {COMPTES_SYND.map(function(c){return <option key={c.no} value={c.no}>{c.no} — {c.nom}</option>;})}
+        </select>
+      </div>
+      <div style={{background:T.navy,color:"#fff",padding:"12px 16px",borderRadius:"10px 10px 0 0",display:"flex",justifyContent:"space-between"}}>
+        <span style={{fontWeight:800,fontSize:14}}>{cpt.no} — {cpt.nom}</span>
+        <span style={{fontSize:16,fontWeight:800,color:"#3CAF6E"}}>{fmt(solde)}</span>
+      </div>
+      <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:"0 0 10px 10px",overflow:"hidden"}}>
+        <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <thead><tr style={{background:T.alt}}>{["Date","Ref.","Description","Debit","Credit","Solde"].map(function(h){return <th key={h} style={{padding:"7px 12px",textAlign:["Debit","Credit","Solde"].includes(h)?"right":"left",fontSize:10,fontWeight:700,color:T.muted}}>{h}</th>;})}</tr></thead>
+          <tbody>
+            <tr style={{background:"#FFFBF0"}}><td style={{padding:"7px 12px",fontSize:11,color:T.muted}}>—</td><td style={{padding:"7px 12px",fontSize:11,color:T.muted}}>—</td><td style={{padding:"7px 12px",fontSize:12,fontWeight:600}}>Solde d ouverture</td><td style={{padding:"7px 12px",textAlign:"right"}}>—</td><td style={{padding:"7px 12px",textAlign:"right"}}>—</td><td style={{padding:"7px 12px",textAlign:"right",fontWeight:700,color:T.navy}}>{fmt(soldeInit)}</td></tr>
+            {lignes.map(function(l,i){return(
+              <tr key={i} style={{borderBottom:"1px solid "+T.border}}>
+                <td style={{padding:"7px 12px",fontSize:11,color:T.muted}}>{l.date}</td>
+                <td style={{padding:"7px 12px",fontSize:11,color:T.accent}}>{l.no}</td>
+                <td style={{padding:"7px 12px",fontSize:12,color:T.text}}>{l.desc}</td>
+                <td style={{padding:"7px 12px",textAlign:"right",fontSize:12,fontWeight:l.debit>0?600:400,color:l.debit>0?T.navy:T.muted}}>{l.debit>0?fmt(l.debit):"—"}</td>
+                <td style={{padding:"7px 12px",textAlign:"right",fontSize:12,fontWeight:l.credit>0?600:400,color:l.credit>0?T.red:T.muted}}>{l.credit>0?fmt(l.credit):"—"}</td>
+                <td style={{padding:"7px 12px",textAlign:"right",fontSize:12,fontWeight:700,color:l.solde>=0?T.navy:T.red}}>{fmt(l.solde)}</td>
+              </tr>
+            );})}
+            {lignes.length===0&&<tr><td colSpan={6} style={{padding:30,textAlign:"center",color:T.muted,fontSize:13}}>Aucune ecriture pour ce compte.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function TabBudgetSynd(){
+  var MOIS=["Nov","Dec","Jan","Fev","Mar","Avr","Mai","Jun","Jul","Aou","Sep","Oct"];
+  var s0=useState({
+    "Cotisations mensuelles":[14297,14297,14297,14297,14297,14297,14297,14297,14297,14297,14297,14297],
+    "Honoraires Predictek":  [2400,2400,2400,2400,2400,2400,2400,2400,2400,2400,2400,2400],
+    "Deneigement":           [3200,3200,2100,1800,800,0,0,0,0,0,200,2400],
+    "Paysagement":           [0,0,0,600,800,900,900,900,900,900,800,0],
+    "Electricite":           [320,320,320,320,280,280,280,280,280,280,280,280],
+    "Assurance syndicat":    [0,0,0,0,0,0,0,0,8900,0,0,0],
+    "Plomberie et urgences": [400,400,400,400,400,400,400,400,400,400,400,400],
+    "Entretien ascenseur":   [0,0,0,0,0,2200,0,0,0,0,0,0],
+    "Chauffage":             [180,180,180,150,150,150,150,150,150,150,150,150],
+    "Fournitures et divers": [80,80,80,80,80,80,80,80,80,80,80,80],
+  });
+  var budget=s0[0];var setBudget=s0[1];
+
+  var PRODUITS=["Cotisations mensuelles"];
+  var CHARGES=["Honoraires Predictek","Deneigement","Paysagement","Electricite","Assurance syndicat","Plomberie et urgences","Entretien ascenseur","Chauffage","Fournitures et divers"];
+  var REEL={"Cotisations mensuelles":57189,"Honoraires Predictek":24800,"Deneigement":18700,"Paysagement":6200,"Electricite":3400,"Assurance syndicat":8900,"Plomberie et urgences":4850,"Entretien ascenseur":2200,"Chauffage":1800,"Fournitures et divers":940};
+
+  function ligneTotal(k){return budget[k]?budget[k].reduce(function(a,v){return a+v;},0):0;}
+  var totalProd=PRODUITS.reduce(function(a,k){return a+ligneTotal(k);},0);
+  var totalCharg=CHARGES.reduce(function(a,k){return a+ligneTotal(k);},0);
+  var surplus=totalProd-totalCharg;
+  function upd(k,i,val){setBudget(function(prev){var n=Object.assign({},prev);n[k]=n[k].slice();n[k][i]=parseFloat(val)||0;return n;});}
+
+  function BudgetRows(p){return p.keys.map(function(k){
+    var total=ligneTotal(k);var reel=REEL[k]||0;var ecart=reel-total;
+    return(
+      <tr key={k} style={{borderBottom:"1px solid "+T.border}}>
+        <td style={{padding:"6px 12px",fontSize:12,fontWeight:600,color:T.text,whiteSpace:"nowrap"}}>{k}</td>
+        {(budget[k]||[]).map(function(val,i){return(
+          <td key={i} style={{padding:"4px 5px",textAlign:"right"}}>
+            <input type="number" value={val} onChange={function(e){upd(k,i,e.target.value);}} style={{width:62,border:"1px solid "+T.border,borderRadius:5,padding:"3px 4px",fontSize:11,fontFamily:"inherit",textAlign:"right",outline:"none"}}/>
+          </td>
+        );})}
+        <td style={{padding:"6px 10px",textAlign:"right",fontSize:12,fontWeight:700,color:T.navy}}>{fmt(total)}</td>
+        <td style={{padding:"6px 10px",textAlign:"right",fontSize:12,color:T.accent}}>{fmt(reel)}</td>
+        <td style={{padding:"6px 10px",textAlign:"right",fontSize:12,fontWeight:700,color:ecart>=0?T.accent:T.red}}>{fmt(ecart)}</td>
+      </tr>
+    );
+  });}
+
+  return(
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
+        {[{l:"Revenus budgetes",v:fmt(totalProd),c:T.accent,bg:T.accentL},{l:"Charges budgetees",v:fmt(totalCharg),c:T.red,bg:T.redL},{l:"Surplus projete",v:fmt(surplus),c:surplus>=0?T.accent:T.red,bg:surplus>=0?T.accentL:T.redL}].map(function(s,i){return(
+          <div key={i} style={{background:s.bg,borderRadius:10,padding:"11px 13px",border:"1px solid "+s.c+"33"}}>
+            <div style={{fontSize:9,color:s.c,fontWeight:700,marginBottom:3,textTransform:"uppercase"}}>{s.l}</div>
+            <div style={{fontSize:17,fontWeight:800,color:s.c}}>{s.v}</div>
+          </div>
+        );})}
+      </div>
+      <div style={{overflowX:"auto",background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
+        <table style={{width:"100%",borderCollapse:"collapse",minWidth:1100}}>
+          <thead>
+            <tr style={{background:T.navy}}>
+              <th style={{padding:"8px 12px",textAlign:"left",fontSize:10,fontWeight:700,color:"#8da0bb"}}>Poste</th>
+              {MOIS.map(function(m){return <th key={m} style={{padding:"8px 5px",textAlign:"right",fontSize:10,fontWeight:700,color:"#8da0bb"}}>{m}</th>;})}
+              <th style={{padding:"8px 10px",textAlign:"right",fontSize:10,fontWeight:700,color:"#8da0bb"}}>Budget</th>
+              <th style={{padding:"8px 10px",textAlign:"right",fontSize:10,fontWeight:700,color:"#8da0bb"}}>Reel</th>
+              <th style={{padding:"8px 10px",textAlign:"right",fontSize:10,fontWeight:700,color:"#8da0bb"}}>Ecart</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style={{background:T.accentL}}><td colSpan={15} style={{padding:"6px 12px",fontSize:11,fontWeight:700,color:T.accent}}>PRODUITS</td></tr>
+            <BudgetRows keys={PRODUITS}/>
+            <tr style={{background:T.redL}}><td colSpan={15} style={{padding:"6px 12px",fontSize:11,fontWeight:700,color:T.red}}>CHARGES</td></tr>
+            <BudgetRows keys={CHARGES}/>
+            <tr style={{background:T.navy}}>
+              <td style={{padding:"9px 12px",fontSize:13,fontWeight:700,color:"#fff"}}>SURPLUS NET</td>
+              {MOIS.map(function(m,i){var sum=PRODUITS.reduce(function(a,k){return a+(budget[k]?budget[k][i]:0);},0)-CHARGES.reduce(function(a,k){return a+(budget[k]?budget[k][i]:0);},0);return <td key={i} style={{padding:"9px 5px",textAlign:"right",fontSize:11,fontWeight:700,color:sum>=0?"#3CAF6E":"#ff8080"}}>{fmt(sum)}</td>;})}
+              <td style={{padding:"9px 10px",textAlign:"right",fontSize:13,fontWeight:800,color:"#3CAF6E"}}>{fmt(surplus)}</td>
+              <td colSpan={2}></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+
+
 var COPROS_INIT=[
   {id:1,u:"515",nom:"Michel",prenom:"Beaudoin",tel:"418-555-0101",courriel:"m.beaudoin@email.com",fraction:3.875,cot:530.59,pap:true,ce:"2029-03-15",ass:"2026-12-31",loc:false,animaux:0,acces:true,codeActif:true,derniereConnexion:"2026-04-20"},
   {id:2,u:"517",nom:"Noreau",prenom:"Marilou",tel:"",courriel:"",fraction:2.666,cot:365.05,pap:false,ce:"2028-06-01",ass:"2026-09-15",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
@@ -803,10 +1021,7 @@ var COPROS_INIT=[
   {id:14,u:"541",nom:"Poulin",prenom:"Emile",tel:"",courriel:"",fraction:3.847,cot:526.76,pap:true,ce:"2031-01-08",ass:"2027-01-31",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
   {id:15,u:"543",nom:"Salvas",prenom:"Michel",tel:"",courriel:"",fraction:2.133,cot:292.06,pap:true,ce:"2027-05-30",ass:"2026-05-31",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
 ];
-var TICKETS_COPRO={
-  "531":[{id:1,titre:"Fuite sous evier",date:"2026-04-20",statut:"en_cours",cat:"plomberie"},{id:2,titre:"Ampoule hall entree",date:"2026-04-05",statut:"ferme",cat:"electricite"}],
-  "539":[{id:3,titre:"Bruit chauffage",date:"2026-04-24",statut:"nouveau",cat:"chauffage"}],
-};
+var TICKETS_COPRO={"531":[{id:1,titre:"Fuite sous evier",date:"2026-04-20",statut:"en_cours",cat:"plomberie"},{id:2,titre:"Ampoule hall entree",date:"2026-04-05",statut:"ferme",cat:"electricite"}],"539":[{id:3,titre:"Bruit chauffage",date:"2026-04-24",statut:"nouveau",cat:"chauffage"}]};
 function genCode(){return Math.floor(1000+Math.random()*9000).toString();}
 function TabCopros(){
   var s0=useState(COPROS_INIT);var copros=s0[0];var setCopros=s0[1];
@@ -816,19 +1031,15 @@ function TabCopros(){
   var s4=useState(false);var showFiche=s4[0];var setShowFiche=s4[1];
   var s5=useState(false);var showCode=s5[0];var setShowCode=s5[1];
   var s6=useState("");var codeGenere=s6[0];var setCodeGenere=s6[1];
-  var s7=useState("");var msg=s7[0];var setMsg=s7[1];
   function upd(id,changes){setCopros(function(prev){return prev.map(function(c){return c.id===id?Object.assign({},c,changes):c;});});}
   var liste=copros.filter(function(c){
     if(search){var q=search.toLowerCase();if(!(c.u+c.prenom+c.nom+c.courriel).toLowerCase().includes(q))return false;}
-    if(filtre==="acces")return c.acces;
-    if(filtre==="sans_acces")return !c.acces;
-    if(filtre==="sans_courriel")return !c.courriel;
+    if(filtre==="acces")return c.acces;if(filtre==="sans_acces")return !c.acces;if(filtre==="sans_courriel")return !c.courriel;
     if(filtre==="alertes"){var ceS=expSt(c.ce);var aS=expSt(c.ass);return ceS.c===T.red||aS.c===T.red||!c.pap;}
     return true;
   });
   var selC=sel?copros.find(function(c){return c.id===sel;}):null;
   var nAcces=copros.filter(function(c){return c.acces;}).length;
-  var nSansCourriel=copros.filter(function(c){return !c.courriel;}).length;
   var nAlertes=copros.filter(function(c){var ceS=expSt(c.ce);var aS=expSt(c.ass);return ceS.c===T.red||aS.c===T.red||!c.pap;}).length;
   function activerAcces(id){var code=genCode();setCodeGenere(code);upd(id,{acces:true,codeActif:true});setShowCode(true);}
   function reinitCode(id){var code=genCode();setCodeGenere(code);upd(id,{codeActif:true});setShowCode(true);}
@@ -836,31 +1047,26 @@ function TabCopros(){
   return(
     <div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
-        {[{l:"Total",v:copros.length,c:T.navy,bg:T.blueL},{l:"Portail actif",v:nAcces,c:T.accent,bg:T.accentL},{l:"Sans courriel",v:nSansCourriel,c:nSansCourriel>0?T.amber:T.accent,bg:nSansCourriel>0?T.amberL:T.accentL},{l:"Alertes",v:nAlertes,c:nAlertes>0?T.red:T.accent,bg:nAlertes>0?T.redL:T.accentL}].map(function(s,i){return(
-          <div key={i} style={{background:s.bg,borderRadius:10,padding:"11px 13px",border:"1px solid "+s.c+"33"}}>
-            <div style={{fontSize:9,color:s.c,fontWeight:700,marginBottom:3,textTransform:"uppercase"}}>{s.l}</div>
-            <div style={{fontSize:18,fontWeight:800,color:s.c}}>{s.v}</div>
-          </div>
+        {[{l:"Total",v:copros.length,c:T.navy,bg:T.blueL},{l:"Portail actif",v:nAcces,c:T.accent,bg:T.accentL},{l:"Sans courriel",v:copros.filter(function(c){return !c.courriel;}).length,c:T.amber,bg:T.amberL},{l:"Alertes",v:nAlertes,c:nAlertes>0?T.red:T.accent,bg:nAlertes>0?T.redL:T.accentL}].map(function(s,i){return(
+          <div key={i} style={{background:s.bg,borderRadius:10,padding:"11px 13px",border:"1px solid "+s.c+"33"}}><div style={{fontSize:9,color:s.c,fontWeight:700,marginBottom:3,textTransform:"uppercase"}}>{s.l}</div><div style={{fontSize:18,fontWeight:800,color:s.c}}>{s.v}</div></div>
         );})}
       </div>
       <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
-        {[["tous","Tous"],["acces","Portail actif"],["sans_acces","Sans acces"],["sans_courriel","Sans courriel"],["alertes","Alertes"]].map(function(f){var a=filtre===f[0];return(
+        {[["tous","Tous"],["acces","Portail actif"],["sans_acces","Sans acces"],["alertes","Alertes"]].map(function(f){var a=filtre===f[0];return(
           <button key={f[0]} onClick={function(){setFiltre(f[0]);}} style={{background:a?T.navy:"#fff",border:"1px solid "+(a?T.navy:T.border),borderRadius:20,padding:"4px 12px",color:a?"#fff":T.muted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{f[1]}</button>
         );})}
         <input value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Chercher..." style={{border:"1px solid "+T.border,borderRadius:20,padding:"4px 12px",fontSize:11,fontFamily:"inherit",outline:"none",flex:1,minWidth:160}}/>
       </div>
-      {msg&&<div style={{background:T.accentL,color:T.accent,borderRadius:8,padding:"8px 14px",fontSize:12,marginBottom:10}}>{msg}<button onClick={function(){setMsg("");}} style={{background:"none",border:"none",cursor:"pointer",marginLeft:10,color:"inherit",fontWeight:700}}>x</button></div>}
       <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <thead><tr style={{background:T.navy}}>{["Unite","Nom","Courriel","Tel","Cotisation","PAP","CE","Ass.","Portail","Actions"].map(function(h){return <th key={h} style={{padding:"7px 9px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>;})}</tr></thead>
+            <thead><tr style={{background:T.navy}}>{["Unite","Nom","Courriel","Cotisation","PAP","CE","Ass.","Portail","Actions"].map(function(h){return <th key={h} style={{padding:"7px 9px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>;})}</tr></thead>
             <tbody>
               {liste.map(function(c){var ceS=expSt(c.ce);var aS=expSt(c.ass);var alts=(ceS.c===T.red?1:0)+(aS.c===T.red?1:0)+(!c.pap?1:0);return(
                 <tr key={c.id} style={{borderBottom:"1px solid "+T.border,background:alts>=2?T.redL:alts>=1?"#FFFBF0":T.surface,cursor:"pointer"}} onClick={function(){setSel(c.id);setShowFiche(true);}}>
                   <td style={{padding:"7px 9px",fontWeight:700,color:T.navy,fontSize:12}}>{c.u}</td>
                   <td style={{padding:"7px 9px",fontSize:12,color:T.text,whiteSpace:"nowrap"}}>{c.prenom} {c.nom}</td>
                   <td style={{padding:"7px 9px",fontSize:11,color:c.courriel?T.muted:T.red,fontStyle:c.courriel?"normal":"italic"}}>{c.courriel||"Manquant"}</td>
-                  <td style={{padding:"7px 9px",fontSize:11,color:T.muted}}>{c.tel||"—"}</td>
                   <td style={{padding:"7px 9px",fontSize:11,fontWeight:600}}>{Math.round(c.cot*100)/100} $</td>
                   <td style={{padding:"7px 9px",textAlign:"center"}}><span style={{width:14,height:14,borderRadius:"50%",background:c.pap?T.accent:T.red,display:"inline-block",fontSize:8,color:"#fff",lineHeight:"14px",textAlign:"center",fontWeight:700}}>{c.pap?"V":"!"}</span></td>
                   <td style={{padding:"7px 9px"}}><span style={{fontSize:9,fontWeight:700,color:ceS.c,background:ceS.bg,padding:"1px 5px",borderRadius:9}}>{ceS.l}</span></td>
@@ -880,46 +1086,37 @@ function TabCopros(){
         </div>
         <div style={{padding:"7px 12px",background:T.alt,fontSize:10,color:T.muted,borderTop:"1px solid "+T.border}}>{liste.length} coproprietaire(s) sur {copros.length}</div>
       </div>
-      <Modal show={showFiche} onClose={function(){setShowFiche(false);setSel(null);}} title={"Fiche — Unite "+(selC?selC.u:"")} w={520}>
+      <Modal show={showFiche} onClose={function(){setShowFiche(false);setSel(null);}} title={"Fiche — Unite "+(selC?selC.u:"")} w={480}>
         {selC&&(
           <div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-              {[{l:"Nom",v:selC.prenom+" "+selC.nom},{l:"Unite",v:selC.u},{l:"Tel",v:selC.tel||"—"},{l:"Courriel",v:selC.courriel||"Non enregistre"},{l:"Fraction",v:selC.fraction.toFixed(3)+"%"},{l:"Cotisation",v:selC.cot+" $/mois"}].map(function(item,i){return(
-                <div key={i} style={{background:T.alt,borderRadius:8,padding:"9px 11px"}}>
-                  <div style={{fontSize:9,color:T.muted,fontWeight:600,textTransform:"uppercase",marginBottom:3}}>{item.l}</div>
-                  <div style={{fontSize:13,fontWeight:600,color:T.text}}>{item.v}</div>
-                </div>
+              {[{l:"Nom",v:selC.prenom+" "+selC.nom},{l:"Unite",v:selC.u},{l:"Courriel",v:selC.courriel||"—"},{l:"Cotisation",v:selC.cot+" $/mois"}].map(function(item,i){return(
+                <div key={i} style={{background:T.alt,borderRadius:8,padding:"9px 11px"}}><div style={{fontSize:9,color:T.muted,fontWeight:600,textTransform:"uppercase",marginBottom:3}}>{item.l}</div><div style={{fontSize:13,fontWeight:600,color:T.text}}>{item.v}</div></div>
               );})}
             </div>
-            <div style={{background:T.alt,borderRadius:8,padding:"11px 13px",marginBottom:14}}>
+            <div style={{background:T.alt,borderRadius:8,padding:"11px 13px",marginBottom:12}}>
               <div style={{fontSize:11,fontWeight:700,color:T.navy,marginBottom:8}}>Acces Portail</div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <Bdg bg={selC.acces?T.accentL:T.alt} c={selC.acces?T.accent:T.muted}>{selC.acces?"Portail actif":"Portail inactif"}</Bdg>
                 <div style={{display:"flex",gap:6}}>
                   {!selC.acces&&selC.courriel&&<Btn sm onClick={function(){activerAcces(selC.id);setShowFiche(false);}}>Activer</Btn>}
-                  {selC.acces&&<Btn sm bg={T.amber} onClick={function(){reinitCode(selC.id);setShowFiche(false);}}>Reinitialiser code</Btn>}
+                  {selC.acces&&<Btn sm bg={T.amber} onClick={function(){reinitCode(selC.id);setShowFiche(false);}}>Reinit code</Btn>}
                   {selC.acces&&<Btn sm bg={T.red} onClick={function(){desactiverAcces(selC.id);setShowFiche(false);}}>Desactiver</Btn>}
                 </div>
               </div>
             </div>
-            {TICKETS_COPRO[selC.u]&&(
-              <div>
-                <div style={{fontSize:11,fontWeight:700,color:T.navy,marginBottom:8}}>Demandes de service</div>
-                {TICKETS_COPRO[selC.u].map(function(t,i){return(
-                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 10px",background:T.alt,borderRadius:7,marginBottom:5}}>
-                    <div><div style={{fontSize:12,color:T.text}}>{t.titre}</div><div style={{fontSize:10,color:T.muted}}>{t.date}</div></div>
-                    <Bdg bg={t.statut==="ferme"?T.accentL:t.statut==="en_cours"?T.blueL:T.amberL} c={t.statut==="ferme"?T.accent:t.statut==="en_cours"?T.blue:T.amber}>{t.statut}</Bdg>
-                  </div>
-                );})}
+            {TICKETS_COPRO[selC.u]&&TICKETS_COPRO[selC.u].map(function(t,i){return(
+              <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 10px",background:T.alt,borderRadius:7,marginBottom:5}}>
+                <div><div style={{fontSize:12,color:T.text}}>{t.titre}</div><div style={{fontSize:10,color:T.muted}}>{t.date}</div></div>
+                <Bdg bg={t.statut==="ferme"?T.accentL:T.blueL} c={t.statut==="ferme"?T.accent:T.blue}>{t.statut}</Bdg>
               </div>
-            )}
+            );})}
           </div>
         )}
       </Modal>
-      <Modal show={showCode} onClose={function(){setShowCode(false);}} title="Code d acces genere" w={380}>
+      <Modal show={showCode} onClose={function(){setShowCode(false);}} title="Code d acces genere" w={360}>
         <div style={{textAlign:"center",padding:"10px 0"}}>
           <div style={{fontSize:48,fontWeight:900,color:T.navy,letterSpacing:12,background:T.blueL,borderRadius:12,padding:20,marginBottom:16}}>{codeGenere}</div>
-          <div style={{fontSize:11,color:T.muted,marginBottom:20}}>Transmettez ce code au coproprietaire avec son numero d unite.</div>
           <Btn onClick={function(){setShowCode(false);}}>Compris</Btn>
         </div>
       </Modal>
@@ -928,22 +1125,8 @@ function TabCopros(){
 }
 
 
-// ===== TAB FOURNISSEURS CA =====
-var FOURNISSEURS_CA=[
-  {id:1,nom:"Deneigement Express",cat:"Deneigement",tel:"418-555-1001",courriel:"info@deneigementexpress.com",contact:"Marc Gagnon",note:4.8,certifie:true},
-  {id:2,nom:"Paysagement Horizon",cat:"Paysagement",tel:"418-555-2002",courriel:"contact@paysagementhorizon.com",contact:"Sophie Larose",note:4.5,certifie:true},
-  {id:3,nom:"Plomberie ProFlo",cat:"Plomberie",tel:"418-555-3003",courriel:"urgence@proflo.com",contact:"Denis Bouchard",note:4.9,certifie:true},
-  {id:4,nom:"ElectroServ QC",cat:"Electricite",tel:"418-555-4004",courriel:"service@electroserv.com",contact:"Patrick Simard",note:4.6,certifie:true},
-  {id:5,nom:"AscenseurTech QC",cat:"Ascenseur",tel:"418-555-5005",courriel:"info@ascenseurtech.com",contact:"Lise Trottier",note:4.7,certifie:true},
-  {id:6,nom:"ChauFroid Expert",cat:"Chauffage",tel:"418-555-6006",courriel:"service@chaufroid.com",contact:"Alain Perron",note:4.4,certifie:true},
-];
-var BONS_CA_INIT=[
-  {id:1,four:"Plomberie ProFlo",cat:"Plomberie",unite:"527",desc:"Reparation fuite evier cuisine",date:"2026-04-22",mnt:485,statut:"approuve",prio:"haute"},
-  {id:2,four:"Deneigement Express",cat:"Deneigement",unite:"commun",desc:"Deneigement urgence stationnement",date:"2026-04-10",mnt:850,statut:"complete",prio:"urgence"},
-  {id:3,four:"ElectroServ QC",cat:"Electricite",unite:"commun",desc:"Remplacement eclairage hall",date:"2026-04-05",mnt:320,statut:"complete",prio:"normale"},
-  {id:4,four:"AscenseurTech QC",cat:"Ascenseur",unite:"commun",desc:"Inspection annuelle ascenseur",date:"2026-03-31",mnt:2200,statut:"complete",prio:"normale"},
-  {id:5,four:"ChauFroid Expert",cat:"Chauffage",unite:"539",desc:"Bruit canalisation chauffage",date:"2026-04-24",mnt:0,statut:"nouveau",prio:"normale"},
-];
+var FOURNISSEURS_CA=[{id:1,nom:"Deneigement Express",cat:"Deneigement",tel:"418-555-1001",courriel:"info@deneigementexpress.com",contact:"Marc Gagnon",note:4.8,certifie:true},{id:2,nom:"Paysagement Horizon",cat:"Paysagement",tel:"418-555-2002",courriel:"contact@paysagementhorizon.com",contact:"Sophie Larose",note:4.5,certifie:true},{id:3,nom:"Plomberie ProFlo",cat:"Plomberie",tel:"418-555-3003",courriel:"urgence@proflo.com",contact:"Denis Bouchard",note:4.9,certifie:true},{id:4,nom:"ElectroServ QC",cat:"Electricite",tel:"418-555-4004",courriel:"service@electroserv.com",contact:"Patrick Simard",note:4.6,certifie:true},{id:5,nom:"AscenseurTech QC",cat:"Ascenseur",tel:"418-555-5005",courriel:"info@ascenseurtech.com",contact:"Lise Trottier",note:4.7,certifie:true},{id:6,nom:"ChauFroid Expert",cat:"Chauffage",tel:"418-555-6006",courriel:"service@chaufroid.com",contact:"Alain Perron",note:4.4,certifie:true}];
+var BONS_CA_INIT=[{id:1,four:"Plomberie ProFlo",cat:"Plomberie",unite:"527",desc:"Reparation fuite evier cuisine",date:"2026-04-22",mnt:485,statut:"approuve",prio:"haute"},{id:2,four:"Deneigement Express",cat:"Deneigement",unite:"commun",desc:"Deneigement urgence stationnement",date:"2026-04-10",mnt:850,statut:"complete",prio:"urgence"},{id:3,four:"ElectroServ QC",cat:"Electricite",unite:"commun",desc:"Remplacement eclairage hall",date:"2026-04-05",mnt:320,statut:"complete",prio:"normale"},{id:4,four:"AscenseurTech QC",cat:"Ascenseur",unite:"commun",desc:"Inspection annuelle ascenseur",date:"2026-03-31",mnt:2200,statut:"complete",prio:"normale"},{id:5,four:"ChauFroid Expert",cat:"Chauffage",unite:"539",desc:"Bruit canalisation chauffage",date:"2026-04-24",mnt:0,statut:"nouveau",prio:"normale"}];
 function TabFournisseursCA(){
   var s0=useState(BONS_CA_INIT);var bons=s0[0];var setBons=s0[1];
   var s1=useState("bons");var ong=s1[0];var setOng=s1[1];
@@ -952,17 +1135,8 @@ function TabFournisseursCA(){
   function snf(k,v){setNf(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
   var BON_ST={nouveau:{c:T.blue,bg:T.blueL,l:"Nouveau"},approuve:{c:T.amber,bg:T.amberL,l:"Approuve"},complete:{c:T.accent,bg:T.accentL,l:"Complete"}};
   var PRIO_ST={urgence:{c:T.red,bg:T.redL},haute:{c:T.amber,bg:T.amberL},normale:{c:T.accent,bg:T.accentL}};
-  var mntTotal=bons.reduce(function(a,b){return a+b.mnt;},0);
   return(
     <div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
-        {[{l:"Fournisseurs assignes",v:FOURNISSEURS_CA.length,c:T.navy,bg:T.blueL},{l:"Bons en cours",v:bons.filter(function(b){return b.statut!=="complete";}).length,c:T.amber,bg:T.amberL},{l:"Total bons 2026",v:fmt(mntTotal),c:T.navy,bg:T.blueL}].map(function(st,i){return(
-          <div key={i} style={{background:st.bg,borderRadius:10,padding:"11px 13px",border:"1px solid "+st.c+"33"}}>
-            <div style={{fontSize:9,color:st.c,fontWeight:700,marginBottom:3,textTransform:"uppercase"}}>{st.l}</div>
-            <div style={{fontSize:17,fontWeight:800,color:st.c}}>{st.v}</div>
-          </div>
-        );})}
-      </div>
       <div style={{display:"flex",gap:3,marginBottom:12,background:T.surface,padding:4,borderRadius:9,border:"1px solid "+T.border}}>
         {[["bons","Bons de travail"],["fournisseurs","Nos fournisseurs"]].map(function(t){var a=ong===t[0];return(
           <button key={t[0]} onClick={function(){setOng(t[0]);}} style={{background:a?T.navy:"transparent",border:"none",borderRadius:7,padding:"6px 14px",color:a?"#fff":T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400}}>{t[1]}</button>
@@ -978,8 +1152,8 @@ function TabFournisseursCA(){
                 <tr key={b.id} style={{borderBottom:"1px solid "+T.border}}>
                   <td style={{padding:"8px 10px",fontWeight:600,fontSize:12}}>{b.four}</td>
                   <td style={{padding:"8px 10px",fontSize:11,color:T.muted}}>{b.unite}</td>
-                  <td style={{padding:"8px 10px",fontSize:12,color:T.text,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.desc}</td>
-                  <td style={{padding:"8px 10px",fontSize:11,color:T.muted,whiteSpace:"nowrap"}}>{b.date}</td>
+                  <td style={{padding:"8px 10px",fontSize:12,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.desc}</td>
+                  <td style={{padding:"8px 10px",fontSize:11,color:T.muted}}>{b.date}</td>
                   <td style={{padding:"8px 10px",fontSize:12,fontWeight:600}}>{b.mnt>0?fmt(b.mnt):"A definir"}</td>
                   <td style={{padding:"8px 10px"}}><Bdg bg={pr.bg} c={pr.c}>{b.prio}</Bdg></td>
                   <td style={{padding:"8px 10px"}}><Bdg bg={st.bg} c={st.c}>{st.l}</Bdg></td>
@@ -997,21 +1171,19 @@ function TabFournisseursCA(){
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
           {FOURNISSEURS_CA.map(function(f){return(
             <div key={f.id} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
                 <div><div style={{fontSize:13,fontWeight:700,color:T.text,marginBottom:4}}>{f.nom}</div><Bdg bg={T.alt} c={T.muted}>{f.cat}</Bdg></div>
                 <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:f.note>=4.5?T.accent:T.amber}}>{f.note}</div><div style={{fontSize:8,color:T.muted}}>sur 5</div></div>
               </div>
-              <div style={{fontSize:11,color:T.muted,marginBottom:3}}>{f.contact}</div>
-              <div style={{fontSize:11,color:T.blue,marginBottom:8}}>{f.tel}</div>
-              <Btn sm fw onClick={function(){setNf({four:f.nom,cat:f.cat,unite:"",desc:"",date:today(),mnt:"",prio:"normale"});setShowN(true);}}>Creer bon de travail</Btn>
+              <div style={{fontSize:11,color:T.muted}}>{f.contact} | {f.tel}</div>
             </div>
           );})}
         </div>
       )}
-      <Modal show={showN} onClose={function(){setShowN(false);}} title="Nouveau bon de travail" w={480}>
+      <Modal show={showN} onClose={function(){setShowN(false);}} title="Nouveau bon de travail" w={460}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
           <div style={{gridColumn:"1/-1"}}><Lbl l="Fournisseur"/><select value={nf.four||""} onChange={function(e){snf("four",e.target.value);}} style={INP}>{FOURNISSEURS_CA.map(function(f){return <option key={f.id} value={f.nom}>{f.nom}</option>;})}</select></div>
-          <div><Lbl l="Unite"/><input value={nf.unite||""} onChange={function(e){snf("unite",e.target.value);}} style={INP} placeholder="ex: 527"/></div>
+          <div><Lbl l="Unite"/><input value={nf.unite||""} onChange={function(e){snf("unite",e.target.value);}} style={INP}/></div>
           <div><Lbl l="Date"/><input type="date" value={nf.date||""} onChange={function(e){snf("date",e.target.value);}} style={INP}/></div>
           <div><Lbl l="Priorite"/><select value={nf.prio||"normale"} onChange={function(e){snf("prio",e.target.value);}} style={INP}><option value="normale">Normale</option><option value="haute">Haute</option><option value="urgence">URGENCE</option></select></div>
           <div><Lbl l="Montant ($)"/><input type="number" value={nf.mnt||""} onChange={function(e){snf("mnt",parseFloat(e.target.value)||0);}} style={INP}/></div>
@@ -1029,21 +1201,14 @@ function TabFournisseursCA(){
 // ===== MODULE PRINCIPAL =====
 export default function Gestionnaire(){
   var s0=useState("bord");var ong=s0[0];var setOng=s0[1];
-  var s1=useState(function(){
-    var base=FACT0.slice();
-    try{
-      var ext=JSON.parse(localStorage.getItem("predictek_factures_syndicats")||"[]");
-      ext.forEach(function(e){if(!base.find(function(b){return b.ref===e.ref;}))base.push(e);});
-    }catch(ex){}
-    return base;
-  });var fact=s1[0];var setFact=s1[1];
+  var s1=useState(FACT0);var fact=s1[0];var setFact=s1[1];
   var s2=useState(PREV0);var prev=s2[0];var setPrev=s2[1];
   var s3=useState(REUN0);var reun=s3[0];var setReun=s3[1];
   var s4=useState(CARNET0);var carnet=s4[0];var setCarnet=s4[1];
   var s5=useState(false);var showExp=s5[0];var setShowExp=s5[1];
 
   var fatts=fact.filter(function(f){return f.statut==="attente";}).length;
-  var TABS=[{id:"bord",l:"Tableau de bord"},{id:"finances",l:"Finances"},{id:"reunions",l:"Reunions et PV"},{id:"carnet",l:"Carnet entretien"},{id:"unites",l:"Unites"},{id:"copros",l:"Coproprietaires"},{id:"fournisseurs",l:"Fournisseurs"}];
+  var TABS=[{id:"bord",l:"Tableau de bord"},{id:"finances",l:"Finances"},{id:"reunions",l:"Reunions et PV"},{id:"carnet",l:"Carnet entretien"},{id:"unites",l:"Unites"},{id:"copros",l:"Coproprietaires"},{id:"fournisseurs",l:"Fournisseurs"},{id:"soldes",l:"Soldes ouv."},{id:"grandlivre",l:"Grand livre"},{id:"budget",l:"Budget"}];
 
   return(
     <div style={{padding:16,fontFamily:"Georgia,serif"}}>
@@ -1071,6 +1236,9 @@ export default function Gestionnaire(){
       {ong==="unites"&&<TabUnites/>}
       {ong==="copros"&&<TabCopros/>}
       {ong==="fournisseurs"&&<TabFournisseursCA/>}
+      {ong==="soldes"&&<TabSoldesOuvSynd/>}
+      {ong==="grandlivre"&&<TabGrandLivreSynd/>}
+      {ong==="budget"&&<TabBudgetSynd/>}
       <ExportCopros show={showExp} onClose={function(){setShowExp(false);}}/>
     </div>
   );
