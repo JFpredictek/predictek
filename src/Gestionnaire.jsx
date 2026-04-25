@@ -1,6 +1,6 @@
 import { useState } from "react";
 var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",pop:"#3CAF6E",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",purple:"#6B3FA0",purpleL:"#F3EEFF"};
-var fmt=function(n){if(!n&&n!==0)return"—";return Math.abs(n).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
+var fmt=function(n){if(!n&&n!==0)return"â";return Math.abs(n).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
 var today=function(){return new Date().toISOString().slice(0,10);};
 var daysLeft=function(d){return d?Math.ceil((new Date(d)-new Date())/86400000):9999;};
 var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
@@ -113,7 +113,7 @@ var UNITES0=[
 // ===== HELPERS =====
 function expSt(d){
   var j=daysLeft(d);
-  if(!d)return{c:T.muted,bg:"transparent",l:"—"};
+  if(!d)return{c:T.muted,bg:"transparent",l:"â"};
   if(j<0)return{c:T.red,bg:T.redL,l:"EXPIRE"};
   if(j<=30)return{c:T.red,bg:T.redL,l:j+"j"};
   if(j<=90)return{c:T.amber,bg:T.amberL,l:j+"j"};
@@ -265,7 +265,7 @@ function TabFinances(p){
       {sub==="budget"&&(
         <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",borderBottom:"1px solid "+T.border}}>
-            <b style={{fontSize:13,color:T.navy}}>Budget 2025-2026 — 6 mois</b>
+            <b style={{fontSize:13,color:T.navy}}>Budget 2025-2026 â 6 mois</b>
             <div style={{display:"flex",gap:8}}>
               <Bdg bg={T.blueL} c={T.blue}>{Math.round(totR/totB*100)}% utilise</Bdg>
               <Btn sm bg={T.navy} onClick={function(){pdfPrint("Budget 2025-2026 - Syndicat Piedmont",[{k:"cat",l:"Cat"},{k:"poste",l:"Poste"},{k:"budgetF",l:"Budget"},{k:"reelF",l:"Reel 6 mois"},{k:"pct",l:"% utilise"}],BUDGET.map(function(b){return Object.assign({},b,{budgetF:fmt(b.budget),reelF:fmt(b.reel),pct:Math.round(b.reel/b.budget*100)+"%"});}));}}>PDF</Btn>
@@ -422,10 +422,10 @@ function TabReunions(p){
           <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
               <div>
-                <div style={{fontSize:15,fontWeight:800,color:T.navy}}>{selR.type} — {selR.date}</div>
+                <div style={{fontSize:15,fontWeight:800,color:T.navy}}>{selR.type} â {selR.date}</div>
                 <div style={{fontSize:11,color:T.muted,marginTop:2}}>{selR.heure} | {selR.lieu}</div>
               </div>
-              <Btn sm bg={T.navy} onClick={function(){pdfPrint("PV "+selR.type+" du "+selR.date+" — Syndicat Piedmont",[{k:"n",l:"No"},{k:"item",l:"Point ordre du jour"}],selR.ordre.map(function(o,i){return {n:i+1,item:o};}),selR.pv?"Proces-verbal: "+selR.pv:"");}}>Imprimer PV</Btn>
+              <Btn sm bg={T.navy} onClick={function(){pdfPrint("PV "+selR.type+" du "+selR.date+" â Syndicat Piedmont",[{k:"n",l:"No"},{k:"item",l:"Point ordre du jour"}],selR.ordre.map(function(o,i){return {n:i+1,item:o};}),selR.pv?"Proces-verbal: "+selR.pv:"");}}>Imprimer PV</Btn>
             </div>
             <Lbl l="Ordre du jour"/>
             {selR.ordre.map(function(o,i){return(
@@ -480,7 +480,7 @@ function TabCarnet(p){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div>
-          <b style={{fontSize:13,color:T.navy,display:"block"}}>Carnet entretien — Loi 16</b>
+          <b style={{fontSize:13,color:T.navy,display:"block"}}>Carnet entretien â Loi 16</b>
           <span style={{fontSize:11,color:T.muted}}>{p.carnet.length} composantes | {fmt(totCout)} | {alts} alerte(s)</span>
         </div>
         <div style={{display:"flex",gap:6}}>
@@ -513,7 +513,7 @@ function TabCarnet(p){
                   </div>
                 </td>
                 <td style={{padding:"8px 10px"}}><Bdg bg={st.bg} c={st.c}>{st.l}</Bdg></td>
-                <td style={{padding:"8px 10px",fontSize:11,color:T.muted}}>{c.entretien||"—"}</td>
+                <td style={{padding:"8px 10px",fontSize:11,color:T.muted}}>{c.entretien||"â"}</td>
               </tr>
             );})}
           </tbody>
@@ -572,8 +572,8 @@ function TabUnites(){
     var ALL_COLS=[{k:"u",l:"Unite"},{k:"nom",l:"Proprietaire"},{k:"fraction",l:"Fraction %"},{k:"cot",l:"Cotisation"},{k:"papL",l:"PAP"},{k:"ce",l:"CE expiry"},{k:"ass",l:"Ass. expiry"},{k:"locL",l:"Location"},{k:"animaux",l:"Animaux"}];
     var cols=ALL_COLS.filter(function(c){return expCols[c.k]!==false;});
     var rows=unites.map(function(u){return Object.assign({},u,{papL:u.pap?"Oui":"Non",locL:u.loc?"Oui":"Non"});});
-    if(expFmt==="csv"){csvDL(cols,rows,"registre-copropriétaires-"+today());}
-    else{pdfPrint("Registre coproprietaires — Syndicat Piedmont",cols,rows,"36 unites | "+today());}
+    if(expFmt==="csv"){csvDL(cols,rows,"registre-copropriÃ©taires-"+today());}
+    else{pdfPrint("Registre coproprietaires â Syndicat Piedmont",cols,rows,"36 unites | "+today());}
     setShowExport(false);
   }
 
@@ -670,8 +670,8 @@ function TabUnites(){
                         <td style={{padding:"7px 8px",textAlign:"center"}}><span style={{display:"inline-block",width:16,height:16,borderRadius:"50%",background:u.pap?T.accent:T.red,color:"#fff",fontSize:8,fontWeight:700,lineHeight:"16px",textAlign:"center"}}>{u.pap?"V":"!"}</span></td>
                         <td style={{padding:"7px 8px",textAlign:"center"}}><span style={{fontSize:10,fontWeight:600,color:ceS.c,background:ceS.bg,padding:"1px 6px",borderRadius:10}}>{ceS.l}</span></td>
                         <td style={{padding:"7px 8px",textAlign:"center"}}><span style={{fontSize:10,fontWeight:600,color:aS.c,background:aS.bg,padding:"1px 6px",borderRadius:10}}>{aS.l}</span></td>
-                        <td style={{padding:"7px 8px",textAlign:"center"}}>{u.loc?<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:8,background:T.amberL,color:T.amber}}>Loue</span>:<span style={{color:T.muted,fontSize:10}}>—</span>}</td>
-                        <td style={{padding:"7px 8px",textAlign:"center"}}>{u.animaux>0?<span style={{fontSize:11}}>{u.animaux}</span>:<span style={{color:T.muted,fontSize:10}}>—</span>}</td>
+                        <td style={{padding:"7px 8px",textAlign:"center"}}>{u.loc?<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:8,background:T.amberL,color:T.amber}}>Loue</span>:<span style={{color:T.muted,fontSize:10}}>â</span>}</td>
+                        <td style={{padding:"7px 8px",textAlign:"center"}}>{u.animaux>0?<span style={{fontSize:11}}>{u.animaux}</span>:<span style={{color:T.muted,fontSize:10}}>â</span>}</td>
                         <td style={{padding:"7px 8px",textAlign:"center"}}>{alts>0?<span style={{fontSize:10,fontWeight:700,color:"#fff",background:T.red,padding:"1px 6px",borderRadius:10}}>{alts}</span>:<span style={{fontSize:10,color:T.accent}}>ok</span>}</td>
                       </tr>
                     );
@@ -747,7 +747,7 @@ function TabUnites(){
   );
 }
 
-// ===== EXPORT COPROPRIÉTAIRES =====
+// ===== EXPORT COPROPRIÃTAIRES =====
 function ExportCopros(p){
   var s0=useState({u:true,nom:true,fraction:true,cot:true,pap:true,ce:true,ass:true,loc:true});var cols=s0[0];var setCols=s0[1];
   var s1=useState("csv");var fmt2=s1[0];var setFmt2=s1[1];
@@ -755,8 +755,8 @@ function ExportCopros(p){
   var selCols=ALL.filter(function(c){return cols[c.k]!==false;});
   function doExport(){
     var rows=UNITES0.map(function(u){return Object.assign({},u,{papL:u.pap?"Oui":"Non",locL:u.loc?"Oui":"Non"});});
-    if(fmt2==="csv"){csvDL(selCols,rows,"registre-copropriétaires-"+today());}
-    else{pdfPrint("Registre coproprietaires — Syndicat Piedmont",selCols,rows,"36 unites | "+today());}
+    if(fmt2==="csv"){csvDL(selCols,rows,"registre-copropriÃ©taires-"+today());}
+    else{pdfPrint("Registre coproprietaires â Syndicat Piedmont",selCols,rows,"36 unites | "+today());}
     p.onClose();
   }
   return(
@@ -784,6 +784,7 @@ function ExportCopros(p){
   );
 }
 
+var TICKETS_COPRO={
   "531":[
     {id:1,titre:"Fuite sous evier",date:"2026-04-20",statut:"en_cours",cat:"plomberie"},
     {id:2,titre:"Ampoule hall entree",date:"2026-04-05",statut:"ferme",cat:"electricite"},
@@ -796,7 +797,7 @@ function ExportCopros(p){
 function daysLeft(d){return d?Math.ceil((new Date(d)-new Date())/86400000):9999;}
 function expSt(d){
   var j=daysLeft(d);
-  if(!d)return{c:T.muted,bg:"transparent",l:"—"};
+  if(!d)return{c:T.muted,bg:"transparent",l:"â"};
   if(j<0)return{c:T.red,bg:T.redL,l:"EXPIRE"};
   if(j<=30)return{c:T.red,bg:T.redL,l:j+"j"};
   if(j<=90)return{c:T.amber,bg:T.amberL,l:j+"j"};
@@ -863,7 +864,7 @@ function TabCopros(){
     setShowCode(true);
     setMsg("Nouveau code genere. Transmettez-le au coproprietaire.");
   }
-  function désactiverAcces(id){
+  function dÃ©sactiverAcces(id){
     upd(id,{acces:false,codeActif:false,derniereConnexion:""});
   }
 
@@ -960,18 +961,18 @@ function TabCopros(){
                         <td style={{padding:"7px 9px",fontWeight:700,color:T.navy,fontSize:12}}>{c.u}</td>
                         <td style={{padding:"7px 9px",fontSize:12,color:T.text,whiteSpace:"nowrap"}}>{c.prenom} {c.nom}{c.role?<span style={{fontSize:9,color:T.purple,marginLeft:4,fontWeight:600}}>{c.role}</span>:null}</td>
                         <td style={{padding:"7px 9px",fontSize:11,color:c.courriel?T.text:T.red,fontStyle:c.courriel?"normal":"italic"}}>{c.courriel||"Manquant"}</td>
-                        <td style={{padding:"7px 9px",fontSize:11,color:T.muted}}>{c.tel||"—"}</td>
+                        <td style={{padding:"7px 9px",fontSize:11,color:T.muted}}>{c.tel||"â"}</td>
                         <td style={{padding:"7px 9px",fontSize:11,fontWeight:600}}>{Math.round(c.cot*100)/100} $</td>
                         <td style={{padding:"7px 9px",textAlign:"center"}}><span style={{width:14,height:14,borderRadius:"50%",background:c.pap?T.accent:T.red,display:"inline-block",fontSize:8,color:"#fff",lineHeight:"14px",textAlign:"center",fontWeight:700}}>{c.pap?"V":"!"}</span></td>
                         <td style={{padding:"7px 9px"}}><span style={{fontSize:9,fontWeight:700,color:ceS.c,background:ceS.bg,padding:"1px 5px",borderRadius:9}}>{ceS.l}</span></td>
                         <td style={{padding:"7px 9px"}}><span style={{fontSize:9,fontWeight:700,color:aS.c,background:aS.bg,padding:"1px 5px",borderRadius:9}}>{aS.l}</span></td>
                         <td style={{padding:"7px 9px",textAlign:"center"}}><Bdg bg={c.acces?T.accentL:T.alt} c={c.acces?T.accent:T.muted}>{c.acces?"Actif":"Inactif"}</Bdg></td>
-                        <td style={{padding:"7px 9px",fontSize:10,color:T.muted}}>{c.derniereConnexion||"—"}</td>
+                        <td style={{padding:"7px 9px",fontSize:10,color:T.muted}}>{c.derniereConnexion||"â"}</td>
                         <td style={{padding:"7px 9px"}} onClick={function(e){e.stopPropagation();}}>
                           <div style={{display:"flex",gap:4}}>
                             {!c.acces&&c.courriel&&<Btn sm bg={T.accent} onClick={function(){activerAcces(c.id);}}>Activer</Btn>}
                             {c.acces&&<Btn sm bg={T.amber} onClick={function(){reinitCode(c.id);}}>Reinit.</Btn>}
-                            {c.acces&&<Btn sm bg={T.red} onClick={function(){désactiverAcces(c.id);}}>Desact.</Btn>}
+                            {c.acces&&<Btn sm bg={T.red} onClick={function(){dÃ©sactiverAcces(c.id);}}>Desact.</Btn>}
                           </div>
                         </td>
                       </tr>
@@ -985,14 +986,14 @@ function TabCopros(){
         </div>
       </div>
 
-      <Modal show={showFiche} onClose={function(){setShowFiche(false);setSel(null);}} title={"Fiche — Unite "+(selC?selC.u:"")} w={560}>
+      <Modal show={showFiche} onClose={function(){setShowFiche(false);setSel(null);}} title={"Fiche â Unite "+(selC?selC.u:"")} w={560}>
         {selC&&(
           <div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
               {[
                 {l:"Nom",v:selC.prenom+" "+selC.nom},
                 {l:"Unite",v:selC.u},
-                {l:"Telephone",v:selC.tel||"—"},
+                {l:"Telephone",v:selC.tel||"â"},
                 {l:"Courriel",v:selC.courriel||"Non enregistre"},
                 {l:"Fraction",v:selC.fraction.toFixed(3)+"%"},
                 {l:"Cotisation",v:Math.round(selC.cot*100)/100+" $/mois"},
@@ -1030,7 +1031,7 @@ function TabCopros(){
                 <div style={{display:"flex",gap:6}}>
                   {!selC.acces&&selC.courriel&&<Btn sm onClick={function(){activerAcces(selC.id);setShowFiche(false);}}>Activer acces</Btn>}
                   {selC.acces&&<Btn sm bg={T.amber} onClick={function(){reinitCode(selC.id);setShowFiche(false);}}>Reinitialiser code</Btn>}
-                  {selC.acces&&<Btn sm bg={T.red} onClick={function(){désactiverAcces(selC.id);setShowFiche(false);}}>Desactiver</Btn>}
+                  {selC.acces&&<Btn sm bg={T.red} onClick={function(){dÃ©sactiverAcces(selC.id);setShowFiche(false);}}>Desactiver</Btn>}
                 </div>
               </div>
             </div>
@@ -1056,7 +1057,7 @@ function TabCopros(){
         <div style={{textAlign:"center",padding:"10px 0"}}>
           <div style={{fontSize:12,color:T.muted,marginBottom:12}}>{msg}</div>
           <div style={{fontSize:48,fontWeight:900,color:T.navy,letterSpacing:12,background:T.blueL,borderRadius:12,padding:"20px",marginBottom:16}}>{codeGenere}</div>
-          <div style={{fontSize:11,color:T.muted,marginBottom:20}}>Unite {selC?selC.u:""} — {selC?selC.prenom+" "+selC.nom:""}<br/>Transmettez ce code par courriel ou en personne.<br/>Le coproprietaire l utilisera avec son numero d unite.</div>
+          <div style={{fontSize:11,color:T.muted,marginBottom:20}}>Unite {selC?selC.u:""} â {selC?selC.prenom+" "+selC.nom:""}<br/>Transmettez ce code par courriel ou en personne.<br/>Le coproprietaire l utilisera avec son numero d unite.</div>
           <Btn onClick={function(){setShowCode(false);}}>Compris</Btn>
         </div>
       </Modal>
@@ -1122,7 +1123,7 @@ function TabCopros(){
     <div style={{padding:16,fontFamily:"Georgia,serif"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
         <div>
-          <div style={{fontSize:16,fontWeight:800,color:T.navy}}>Fournisseurs — Syndicat Piedmont</div>
+          <div style={{fontSize:16,fontWeight:800,color:T.navy}}>Fournisseurs â Syndicat Piedmont</div>
           <div style={{fontSize:11,color:T.muted}}>Gestion locale des fournisseurs et bons de travail</div>
         </div>
         <div style={{display:"flex",gap:8}}>
@@ -1303,7 +1304,7 @@ function TabCopros(){
 
       <Modal show={showSoum} onClose={function(){setShowSoum(false);}} title="Appel d offres" w={480}>
         <div style={{background:T.blueL,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.blue,marginBottom:14}}>
-          Creez un appel d offres pour recevoir des soumissions de plusieurs fournisseurs. L IA analysera les soumissions et recommandera la meilleure option (fonctionnalite IA — prochaine version).
+          Creez un appel d offres pour recevoir des soumissions de plusieurs fournisseurs. L IA analysera les soumissions et recommandera la meilleure option (fonctionnalite IA â prochaine version).
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
           <FRow l="Type de travaux" full>
