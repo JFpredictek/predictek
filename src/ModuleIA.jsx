@@ -307,9 +307,9 @@ function TabChatbot(){
   var s0=useState([]);var msgs=s0[0];var setMsgs=s0[1];
   var s1=useState("");var input=s1[0];var setInput=s1[1];
   var s2=useState(false);var loading=s2[0];var setLoading=s2[1];
-  var s3=useState("531");var unite=s3[0];var setUnite=s3[1];
+  var s3=useState("531");var unite=s3[0];
 
-  var SYSTEM="Tu es l assistant virtuel du Syndicat Piedmont, un syndicat de 36 unites a Stoneham QC. Tu aides les coproprietaires avec leurs questions sur la copropriete, les regles de l immeuble, les procedures et leurs droits et obligations selon la Loi sur la copropriete divise (CCQ). Tu es professionnel, courtois et precis. Tu reponds en francais. Pour les urgences (fuite, feu, bris), tu diriges vers le numero d urgence: 819-479-4203. Pour les problemes techniques, tu crees une demande de service. Ne fournis pas de conseils juridiques specifiques, mais oriente vers les ressources appropriees. Informations utiles: Cotisation mensuelle: varie par unite (fraction). President: Jean-Francois Laroche. Gestionnaire: Predictek. Regles importantes: animaux max 2, heures silencieuses 22h-8h, stationnement visiteurs max 48h.";
+  var SYSTEM="Tu es l assistant virtuel du Syndicat Piedmont, un syndicat de copropriete de 36 unites situe au Chemin du Hibou, Stoneham-et-Tewkesbury QC G3C 1T1. Tu aides UNIQUEMENT le coproprietaire de l UNITE 531 (Jean-Francois Laroche) avec ses questions. Tu es professionnel, courtois, precis et concis. Tu reponds en francais. REGLES ET INFORMATIONS DU SYNDICAT: Heures de silence: 22h a 8h. Animaux: maximum 2 par unite. Stationnement visiteurs: maximum 48h. Modifications: approbation CA requise pour tout travail modifiant les parties communes ou la structure. Assurance: responsabilite civile minimale de 2 000 000$ requise pour chaque unite. Chauffe-eau: remplacement obligatoire apres 10 ans par le coproprietaire. ADMINISTRATION: President CA: Jean-Francois Laroche (unite 531). Gestionnaire: Predictek (app.predictek.ca). Cotisation mensuelle unite 531: 292.06$/mois (fraction: 2.133%). Fonds de prevoyance: 64 235$. Compte exploitation: 7 361$. Prochain exercice: 1 nov 2026 au 31 oct 2027. CONTACTS: Urgences 24/7: 819-479-4203. CA: ca@syndicatpiedmont.com. PROCEDURES: Pour une demande de reparation, le coproprietaire soumet via son portail. Pour une urgence (fuite, feu, bris): appeler immediatement le 819-479-4203. Pour les questions juridiques specifiques, orienter vers un notaire ou avocat. Ne fournis JAMAIS d informations sur les autres unites ou coproprietaires.";
 
   async function envoyer(){
     if(!input.trim())return;
@@ -322,7 +322,7 @@ function TabChatbot(){
       var resp=await fetch("https://api.anthropic.com/v1/messages",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,system:SYSTEM+"\n\nCoproprietaire connecte: Unite "+unite,messages:newMsgs})
+        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,system:SYSTEM,messages:newMsgs})
       });
       var data=await resp.json();
       var reply=data.content&&data.content[0]?data.content[0].text:"Desolee, je n ai pas pu traiter votre demande.";
@@ -346,9 +346,7 @@ function TabChatbot(){
           </div>
           <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
             <span style={{fontSize:10,color:"#8da0bb"}}>Unite:</span>
-            <select value={unite} onChange={function(e){setUnite(e.target.value);}} style={{background:"#ffffff20",border:"1px solid #ffffff30",borderRadius:6,padding:"2px 6px",color:"#fff",fontSize:11,fontFamily:"inherit"}}>
-              {["515","517","519","521","523","525","527","529","531","533","535","537","539","541","543"].map(function(u){return <option key={u} value={u}>{u}</option>;})}
-            </select>
+            <div style={{background:"#ffffff20",border:"1px solid #ffffff30",borderRadius:6,padding:"2px 10px",color:"#fff",fontSize:11,fontFamily:"inherit",fontWeight:700}}>Unite 531</div>
           </div>
         </div>
         <div style={{flex:1,overflowY:"auto",padding:12,background:T.alt,display:"flex",flexDirection:"column",gap:10}}>
