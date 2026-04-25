@@ -1,6 +1,6 @@
 import { useState } from "react";
 const T={bg:"#F5F3EE",surface:"#FFF",surfaceAlt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentMid:"#2D8653",accentLight:"#E8F2EC",accentPop:"#3CAF6E",gold:"#B8943A",goldLight:"#FAF3E0",red:"#B83232",redLight:"#FDECEA",amber:"#B86020",amberLight:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueLight:"#EFF6FF",purple:"#6B3FA0",purpleLight:"#F3EEFF"};
-var money=function(n){if(!n&&n!==0)return"â";return(n<0?"-":"")+Math.abs(n).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
+var money=function(n){if(!n&&n!==0)return"Ã¢ÂÂ";return(n<0?"-":"")+Math.abs(n).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
 var td=function(){return new Date().toISOString().slice(0,10);};
 function Badge(p){return <span style={{fontSize:p.sz||10,fontWeight:600,padding:"2px 7px",borderRadius:20,background:p.bg||T.accentLight,color:p.c||T.accent,whiteSpace:"nowrap",display:"inline-block"}}>{p.children}</span>;}
 function Btn(p){return <button onClick={p.onClick} style={Object.assign({background:p.bg||T.accent,border:p.border||"none",borderRadius:7,padding:p.sm?"4px 10px":"8px 16px",color:p.tc||"#fff",fontSize:p.sm?10:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"},p.s||{})}>{p.children}</button>;}
@@ -70,7 +70,7 @@ const CARNET_INIT=[
   {id:10,composante:"Amenagement paysager",installation:"2014-05-01",dureeVie:15,cout:22000,notes:"Renovation partielle prevue 2027",dernierEntretien:"2025-09-15"},
 ];
 
-// COPROPRIÃTAIRES pour export
+// COPROPRIÃÂTAIRES pour export
 const COPROS_EXPORT=[
   {u:"515",nom:"Michel Beaudoin",tel:"418-555-0101",courriel:"m.beaudoin@email.com",fraction:3.875,cotisation:530.59,statut:"Proprietaire"},
   {u:"517",nom:"Marilou Noreau",tel:"",courriel:"",fraction:2.666,cotisation:365.05,statut:"Proprietaire"},
@@ -112,12 +112,13 @@ const COPROS_EXPORT=[
 
 // ========== EXPORT FUNCTIONS ==========
 function exportCSV(cols, data, filename) {
+  var q = String.fromCharCode(34);
   var headers = cols.map(function(c){return c.label;}).join(",");
   var rows = data.map(function(row){
     return cols.map(function(c){
-      var val = row[c.key] !== undefined ? row[c.key] : "";
-      var s = String(val).replace(/"/g,"""");
-      return s.includes(",") || s.includes(""") || s.includes("\n") ? """+s+""" : s;
+      var val = row[c.key] !== undefined ? String(row[c.key]) : "";
+      var s = val.replace(new RegExp(q,"g"), q+q);
+      return s.indexOf(",")>=0||s.indexOf(q)>=0||s.indexOf("\n")>=0 ? q+s+q : s;
     }).join(",");
   });
   var csv = [headers].concat(rows).join("\n");
@@ -175,7 +176,7 @@ function ExportModal(p) {
     var title = "Registre des coproprietaires - Syndicat Piedmont";
     var subtitle = "36 unites | Exercice 2025-2026 | Total cotisations: "+money(data.reduce(function(a,r){return a+r.cotisation;},0))+"/mois";
     if(fmt==="csv") {
-      exportCSV(selCols, data, "registre-copropriÃ©taires-piedmont-"+td());
+      exportCSV(selCols, data, "registre-copropriÃÂ©taires-piedmont-"+td());
     } else {
       exportPDF(title, selCols.map(function(c){return {key:c.key,label:c.label};}), data.map(function(r){
         var row = {};
@@ -264,7 +265,7 @@ function TabBord(p){
             {factEnAttente.length===0&&<div style={{color:T.muted,fontSize:12}}>Aucune facture en attente</div>}
             {factEnAttente.map(function(f){return(
               <div key={f.id} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid "+T.border}}>
-                <div><div style={{fontSize:12,fontWeight:600,color:T.text}}>{f.fournisseur}</div><div style={{fontSize:10,color:T.muted}}>{f.date} â {f.desc.substring(0,30)}</div></div>
+                <div><div style={{fontSize:12,fontWeight:600,color:T.text}}>{f.fournisseur}</div><div style={{fontSize:10,color:T.muted}}>{f.date} Ã¢ÂÂ {f.desc.substring(0,30)}</div></div>
                 <div style={{fontSize:13,fontWeight:700,color:T.amber}}>{money(f.montant)}</div>
               </div>
             );})}
@@ -310,7 +311,7 @@ function TabFinances(p){
       {sousOng==="budget"&&(
         <Card>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-            <b style={{fontSize:14,color:T.navy}}>Budget 2025-2026 â 6 mois</b>
+            <b style={{fontSize:14,color:T.navy}}>Budget 2025-2026 Ã¢ÂÂ 6 mois</b>
             <div style={{display:"flex",gap:8}}>
               <Badge bg={T.blueLight} c={T.blue}>{Math.round(totalR/totalB*100)}% utilise</Badge>
               <Btn sm onClick={function(){exportCSV([{key:"cat",label:"Categorie"},{key:"sous",label:"Poste"},{key:"budget",label:"Budget"},{key:"reel",label:"Reel 6 mois"}],BUDGET_INIT,"budget-piedmont-"+td());}}>Export CSV</Btn>
@@ -450,7 +451,7 @@ function TabReunions(p){
             </div>
             <div style={{fontSize:13,fontWeight:600,color:T.text}}>{r.date} a {r.heure}</div>
             <div style={{fontSize:11,color:T.muted}}>{r.lieu}</div>
-            <div style={{fontSize:11,color:T.muted,marginTop:4}}>{r.ordre.length} pts{r.pv?" â¢ PV disponible":""}</div>
+            <div style={{fontSize:11,color:T.muted,marginTop:4}}>{r.ordre.length} pts{r.pv?" Ã¢ÂÂ¢ PV disponible":""}</div>
           </div>
         );})}
       </div>
@@ -460,7 +461,7 @@ function TabReunions(p){
           <Card>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
               <div>
-                <div style={{fontSize:16,fontWeight:800,color:T.navy}}>{selR.type} â {selR.date}</div>
+                <div style={{fontSize:16,fontWeight:800,color:T.navy}}>{selR.type} Ã¢ÂÂ {selR.date}</div>
                 <div style={{fontSize:12,color:T.muted,marginTop:2}}>{selR.heure} | {selR.lieu}</div>
               </div>
               <div style={{display:"flex",gap:6}}>
@@ -514,7 +515,7 @@ function TabCarnet(p){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div>
-          <b style={{fontSize:14,color:T.navy,display:"block"}}>Carnet d entretien â Loi 16</b>
+          <b style={{fontSize:14,color:T.navy,display:"block"}}>Carnet d entretien Ã¢ÂÂ Loi 16</b>
           <span style={{fontSize:11,color:T.muted}}>{p.carnet.length} composantes | {money(coutTotal)} | {alertes} alerte(s)</span>
         </div>
         <div style={{display:"flex",gap:8}}>
@@ -543,7 +544,7 @@ function TabCarnet(p){
                   </div>
                 </td>
                 <td style={{padding:"9px 10px"}}><Badge bg={st.bg} c={st.c}>{st.l}</Badge></td>
-                <td style={{padding:"9px 10px",color:T.muted,fontSize:11}}>{c.dernierEntretien||"â"}</td>
+                <td style={{padding:"9px 10px",color:T.muted,fontSize:11}}>{c.dernierEntretien||"Ã¢ÂÂ"}</td>
               </tr>
             );})}
           </tbody>
@@ -575,10 +576,10 @@ export default function Gestionnaire(){
   var s6=useState(false); var showExport=s6[0]; var setShowExport=s6[1];
 
   var TABS=[
-    {id:"bord",l:"Tableau de bord",icon:"ð"},
-    {id:"finances",l:"Finances",icon:"ð°"},
-    {id:"reunions",l:"Reunions & PV",icon:"ð"},
-    {id:"carnet",l:"Carnet entretien",icon:"ð"},
+    {id:"bord",l:"Tableau de bord",icon:"Ã°ÂÂÂ"},
+    {id:"finances",l:"Finances",icon:"Ã°ÂÂÂ°"},
+    {id:"reunions",l:"Reunions & PV",icon:"Ã°ÂÂÂ"},
+    {id:"carnet",l:"Carnet entretien",icon:"Ã°ÂÂÂ"},
   ];
   var factEnAttente=factures.filter(function(f){return f.statut==="en_attente";}).length;
 
@@ -591,7 +592,7 @@ export default function Gestionnaire(){
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           {factEnAttente>0&&<Badge bg={T.amberLight} c={T.amber}>{factEnAttente} facture(s) a approuver</Badge>}
-          <Btn onClick={function(){setShowExport(true);}} bg={T.navy}>Liste copropriÃ©taires</Btn>
+          <Btn onClick={function(){setShowExport(true);}} bg={T.navy}>Liste copropriÃÂ©taires</Btn>
         </div>
       </div>
       <div style={{display:"flex",gap:4,marginBottom:16,flexWrap:"wrap",background:T.surface,padding:6,borderRadius:10,border:"1px solid "+T.border}}>
