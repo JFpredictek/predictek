@@ -69,17 +69,9 @@ var FOURNISSEURS_CAT={
   "autre":"Predictek Support"
 };
 
-var TICKETS_INIT=[
-  {id:1,unite:"531",titre:"Fuite sous l evier cuisine",cat:"plomberie",prio:"haute",statut:"en_cours",date:"2026-04-20",fournisseur:"Plomberie ProFlo",desc:"Fuite visible sous l evier, tache sur le plancher.",updates:[{date:"2026-04-20",msg:"Ticket recu et assigne a Plomberie ProFlo"},{date:"2026-04-21",msg:"Technicien planifie pour le 23 avril 14h00"}]},
-  {id:2,unite:"531",titre:"Ampoule brulee hall entree",cat:"electricite",prio:"normale",statut:"ferme",date:"2026-04-05",fournisseur:"ElectroServ QC",desc:"Ampoule brulee au plafond du hall d entree commun.",updates:[{date:"2026-04-05",msg:"Ticket recu"},{date:"2026-04-07",msg:"Reparation effectuee. Ticket ferme."}]},
-  {id:3,unite:"539",titre:"Bruit dans systeme chauffage",cat:"chauffage",prio:"normale",statut:"nouveau",date:"2026-04-24",fournisseur:"ChauFroid Expert",desc:"Bruit de claquement dans la canalisation de chauffage la nuit.",updates:[{date:"2026-04-24",msg:"Ticket recu et assigne a ChauFroid Expert"}]},
-];
+var TICKETS_INIT=[];
 
-var AVIS_INIT=[
-  {id:1,date:"2026-04-15",titre:"Travaux deneigement - stationnement B",type:"info",corps:"Les travaux de scarification du stationnement B auront lieu le 28 avril de 7h a 17h. Merci de deplacer vos vehicules."},
-  {id:2,date:"2026-04-01",titre:"Convocation - Reunion CA 15 mai 2026",type:"reunion",corps:"Vous etes convoques a la reunion du CA le 15 mai 2026 a 19h00 a la salle communautaire Piedmont. Ordre du jour disponible sur demande."},
-  {id:3,date:"2026-03-20",titre:"Rappel - Renouvellement assurance",type:"urgent",corps:"Plusieurs unites doivent renouveler leur attestation d assurance responsabilite civile avant le 1er mai. Veuillez transmettre votre nouvelle attestation a votre gestionnaire."},
-];
+var AVIS_INIT=[];
 
 // ===== ECRAN LOGIN =====
 function LoginScreen(p){
@@ -124,17 +116,7 @@ function SoumettreDemande(p){
   var s2=useState(false); var envoye=s2[0]; var setEnvoye=s2[1];
   function sf(k,v){setForm(function(prev){var n=Object.assign({},prev);n[k]=v;return n;});}
   var inp={width:"100%",border:"1px solid "+T.border,borderRadius:8,padding:"9px 12px",fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"};
-  var CATS=[
-    ["plomberie","Plomberie (fuite, tuyau, robinet)"],
-    ["electricite","Electricite (panne, ampoule, prise)"],
-    ["chauffage","Chauffage / Climatisation"],
-    ["serrurerie","Serrurerie (cle, serrure, acces)"],
-    ["urgence_eau","URGENCE - Degat d eau"],
-    ["ascenseur","Ascenseur"],
-    ["nettoyage","Nettoyage parties communes"],
-    ["paysagement","Paysagement / Exterieur"],
-    ["autre","Autre / General"],
-  ];
+  var CATS=[];
   function soumettre(){
     if(!form.titre||!form.desc){return;}
     var fournisseur=FOURNISSEURS_CAT[form.cat]||"Predictek Support";
@@ -393,13 +375,7 @@ export default function PortailCopro(){
   var ticketsOuverts=mesTickets.filter(function(t){return t.statut!=="ferme";}).length;
   var urgences=mesTickets.filter(function(t){return t.statut==="urgent";}).length;
 
-  var TABS=[
-    {id:"accueil",l:"Accueil"},
-    {id:"demandes",l:"Mes demandes"+(ticketsOuverts>0?" ("+ticketsOuverts+")":"")},
-    {id:"compte",l:"Mon compte"},
-    {id:"documents",l:"Documents"},
-    {id:"avis",l:"Avis"},
-  ];
+  var TABS=[];
 
   function onAjouter(ticket){
     setTickets(function(prev){return prev.concat([ticket]);});
