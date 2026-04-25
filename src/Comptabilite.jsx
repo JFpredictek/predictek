@@ -318,8 +318,8 @@ function TabPaie(){
       <Modal show={showN} onClose={function(){setShowN(false);}} title="Generer un bulletin de paie" w={500}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
           <FRow l="Employe" full>
-            <select value={sim.employe||""} onChange={function(e){setSelEmp(e.target.value);setSim(function(o){return Object.assign({},o,{employe:e.target.value});});}} style={INP}>
-              {EMPLOYES.map(function(e){return <option key={e.id}>{e.nom}</option>;})}
+            <select value={sim.employe||""} onChange={function(e){setSim(function(o){return Object.assign({},o,{employe:e.target.value});}); }}} style={INP}>
+              {EMPLOYES.length>0?EMPLOYES.map(function(e){return <option key={e.id}>{e.nom}</option>;}): <option value="">Aucun employe</option>}
             </select>
           </FRow>
           <FRow l="Salaire brut ($)">
@@ -735,9 +735,7 @@ var ECRITURES_INIT=[];
 
 // ===== TAB SOLDES OUVERTURE =====
 function TabSoldesOuverture(){
-  var s0=useState(function(){
-    return COMPTES.map(function(c){return Object.assign({},c,{soldeOuv:c.solde});});
-  });var comptes=s0[0];var setComptes=s0[1];
+  var s0=useState(COMPTES_PLAN.map(function(c){return Object.assign({},c,{soldeOuv:c.solde});}));var comptes=s0[0];var setComptes=s0[1];
   var s1=useState("");var filterType=s1[0];var setFilterType=s1[1];
   var s2=useState("");var savedMsg=s2[0];var setSavedMsg=s2[1];
 
@@ -913,18 +911,7 @@ function TabGrandLivre(){
 // ===== TAB BUDGET PREDICTEK =====
 function TabBudget(){
   var MOIS=["Jan","Fev","Mar","Avr","Mai","Jun","Jul","Aou","Sep","Oct","Nov","Dec"];
-  var s0=useState({
-    "Honoraires de gestion":     [7200,7200,7200,7200,7200,7200,7200,7200,7200,7200,7200,7200],
-    "Services additionnels":     [600,600,800,800,700,700,700,700,700,700,700,600],
-    "Salaires gestionnaires":    [4000,4000,4000,4000,4000,4000,4000,4000,4000,4000,4000,4000],
-    "Salaires terrain":          [1833,1833,1833,1833,1833,1833,1833,1833,1833,1833,1833,1833],
-    "Charges sociales":          [900,900,900,900,900,900,900,900,900,900,900,900],
-    "Loyer bureau":              [600,600,600,600,600,600,600,600,600,600,600,600],
-    "Telecommunications":        [150,150,150,150,150,150,150,150,150,150,150,150],
-    "Logiciels et abonnements":  [300,300,300,300,300,300,300,300,300,300,300,300],
-    "Assurance entreprise":      [200,200,200,200,200,200,200,200,200,200,200,200],
-    "Honoraires professionnels": [300,300,300,300,300,300,300,300,300,300,300,300],
-  });
+  var s0=useState({});;
   var budget=s0[0];var setBudget=s0[1];
   var s1=useState("produits");var section=s1[0];var setSection=s1[1];
 
