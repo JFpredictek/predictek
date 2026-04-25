@@ -36,32 +36,32 @@ function StatCard(p){return(
 var COMPTES_PLAN=[
   // ACTIF
   {no:"1010",nom:"Caisse",type:"actif",cat:"Actif a court terme",solde:8450.00},
-  {no:"1020",nom:"Banque — Compte operations",type:"actif",cat:"Actif a court terme",solde:42380.75},
-  {no:"1100",nom:"Comptes clients — Syndicats",type:"actif",cat:"Actif a court terme",solde:18200.00},
+  {no:"1020",nom:"Banque â Compte operations",type:"actif",cat:"Actif a court terme",solde:42380.75},
+  {no:"1100",nom:"Comptes clients â Syndicats",type:"actif",cat:"Actif a court terme",solde:18200.00},
   {no:"1110",nom:"TPS a recevoir",type:"actif",cat:"Actif a court terme",solde:910.00},
   {no:"1111",nom:"TVQ a recevoir",type:"actif",cat:"Actif a court terme",solde:1816.28},
   {no:"1200",nom:"Fournitures de bureau",type:"actif",cat:"Actif a court terme",solde:340.00},
   {no:"1500",nom:"Equipement informatique",type:"actif",cat:"Actif a long terme",solde:12000.00},
-  {no:"1510",nom:"Amortissement cumule — Equipement",type:"actif",cat:"Actif a long terme",solde:-2400.00},
+  {no:"1510",nom:"Amortissement cumule â Equipement",type:"actif",cat:"Actif a long terme",solde:-2400.00},
   // PASSIF
   {no:"2010",nom:"Comptes fournisseurs",type:"passif",cat:"Passif a court terme",solde:3200.00},
   {no:"2100",nom:"TPS a remettre",type:"passif",cat:"Passif a court terme",solde:2100.00},
   {no:"2101",nom:"TVQ a remettre",type:"passif",cat:"Passif a court terme",solde:4190.25},
   {no:"2200",nom:"Salaires a payer",type:"passif",cat:"Passif a court terme",solde:4800.00},
-  {no:"2210",nom:"DAS a remettre — Federal",type:"passif",cat:"Passif a court terme",solde:1840.00},
-  {no:"2211",nom:"DAS a remettre — Provincial",type:"passif",cat:"Passif a court terme",solde:1120.00},
+  {no:"2210",nom:"DAS a remettre â Federal",type:"passif",cat:"Passif a court terme",solde:1840.00},
+  {no:"2211",nom:"DAS a remettre â Provincial",type:"passif",cat:"Passif a court terme",solde:1120.00},
   {no:"2220",nom:"RQAP a remettre",type:"passif",cat:"Passif a court terme",solde:210.00},
   {no:"2230",nom:"RRQ a remettre",type:"passif",cat:"Passif a court terme",solde:680.00},
   {no:"2240",nom:"CNESST a remettre",type:"passif",cat:"Passif a court terme",solde:180.00},
-  {no:"3000",nom:"Capital — Jean-Francois Laroche",type:"capitaux",cat:"Capitaux propres",solde:25000.00},
+  {no:"3000",nom:"Capital â Jean-Francois Laroche",type:"capitaux",cat:"Capitaux propres",solde:25000.00},
   {no:"3100",nom:"Benefices non repartis",type:"capitaux",cat:"Capitaux propres",solde:38157.78},
   // PRODUITS
-  {no:"4010",nom:"Honoraires de gestion — Syndicats",type:"produit",cat:"Produits d exploitation",solde:86400.00},
+  {no:"4010",nom:"Honoraires de gestion â Syndicats",type:"produit",cat:"Produits d exploitation",solde:86400.00},
   {no:"4020",nom:"Services additionnels",type:"produit",cat:"Produits d exploitation",solde:8200.00},
   {no:"4030",nom:"Frais administratifs facturas",type:"produit",cat:"Produits d exploitation",solde:2400.00},
   // CHARGES
-  {no:"5010",nom:"Salaires — Gestionnaires",type:"charge",cat:"Charges d exploitation",solde:48000.00},
-  {no:"5011",nom:"Salaires — Terrain",type:"charge",cat:"Charges d exploitation",solde:22000.00},
+  {no:"5010",nom:"Salaires â Gestionnaires",type:"charge",cat:"Charges d exploitation",solde:48000.00},
+  {no:"5011",nom:"Salaires â Terrain",type:"charge",cat:"Charges d exploitation",solde:22000.00},
   {no:"5020",nom:"Charges sociales patronales",type:"charge",cat:"Charges d exploitation",solde:10800.00},
   {no:"5030",nom:"Loyer bureau",type:"charge",cat:"Charges d exploitation",solde:7200.00},
   {no:"5040",nom:"Telecommunications",type:"charge",cat:"Charges d exploitation",solde:1800.00},
@@ -71,15 +71,15 @@ var COMPTES_PLAN=[
   {no:"5080",nom:"Formation et developpement",type:"charge",cat:"Charges d exploitation",solde:1200.00},
   {no:"5090",nom:"Assurance entreprise",type:"charge",cat:"Charges d exploitation",solde:2400.00},
   {no:"5100",nom:"Honoraires professionnels",type:"charge",cat:"Charges d exploitation",solde:3600.00},
-  {no:"5200",nom:"Amortissement — Equipement",type:"charge",cat:"Charges d exploitation",solde:2400.00},
+  {no:"5200",nom:"Amortissement â Equipement",type:"charge",cat:"Charges d exploitation",solde:2400.00},
 ];
 
 // ===== FACTURES CLIENTS =====
 var FACTURES_CLIENTS=[
-  {id:1,no:"FC-2026-001",client:"Syndicat Piedmont",date:"2026-04-01",echeance:"2026-04-30",desc:"Honoraires gestion — avril 2026",mntHT:2400.00,tps:120.00,tvq:239.40,mntTTC:2759.40,statut:"paye",datePmt:"2026-04-05"},
-  {id:2,no:"FC-2026-002",client:"Syndicat Les Erables",date:"2026-04-01",echeance:"2026-04-30",desc:"Honoraires gestion — avril 2026",mntHT:2000.00,tps:100.00,tvq:199.50,mntTTC:2299.50,statut:"paye",datePmt:"2026-04-08"},
-  {id:3,no:"FC-2026-003",client:"Syndicat Belvedere",date:"2026-04-01",echeance:"2026-04-30",desc:"Honoraires gestion — avril 2026",mntHT:1800.00,tps:90.00,tvq:179.55,mntTTC:2069.55,statut:"envoye",datePmt:""},
-  {id:4,no:"FC-2026-004",client:"Syndicat Piedmont",date:"2026-04-15",echeance:"2026-05-15",desc:"Services additionnels — AGO preparation",mntHT:800.00,tps:40.00,tvq:79.80,mntTTC:919.80,statut:"envoye",datePmt:""},
+  {id:1,no:"FC-2026-001",client:"Syndicat Piedmont",date:"2026-04-01",echeance:"2026-04-30",desc:"Honoraires gestion â avril 2026",mntHT:2400.00,tps:120.00,tvq:239.40,mntTTC:2759.40,statut:"paye",datePmt:"2026-04-05"},
+  {id:2,no:"FC-2026-002",client:"Syndicat Les Erables",date:"2026-04-01",echeance:"2026-04-30",desc:"Honoraires gestion â avril 2026",mntHT:2000.00,tps:100.00,tvq:199.50,mntTTC:2299.50,statut:"paye",datePmt:"2026-04-08"},
+  {id:3,no:"FC-2026-003",client:"Syndicat Belvedere",date:"2026-04-01",echeance:"2026-04-30",desc:"Honoraires gestion â avril 2026",mntHT:1800.00,tps:90.00,tvq:179.55,mntTTC:2069.55,statut:"envoye",datePmt:""},
+  {id:4,no:"FC-2026-004",client:"Syndicat Piedmont",date:"2026-04-15",echeance:"2026-05-15",desc:"Services additionnels â AGO preparation",mntHT:800.00,tps:40.00,tvq:79.80,mntTTC:919.80,statut:"envoye",datePmt:""},
   {id:5,no:"FC-2026-005",client:"Syndicat Les Erables",date:"2026-04-20",echeance:"2026-05-20",desc:"Visite inspection urgence",mntHT:350.00,tps:17.50,tvq:34.91,mntTTC:402.41,statut:"brouillon",datePmt:""},
 ];
 
@@ -101,10 +101,10 @@ var PAIES_INIT=[
 
 // ===== JOURNAL =====
 var JOURNAL_INIT=[
-  {id:1,date:"2026-04-01",no:"JG-001",desc:"Honoraires gestion Piedmont — avril",debit:[{cpt:"1100",mnt:2759.40}],credit:[{cpt:"4010",mnt:2400.00},{cpt:"2100",mnt:120.00},{cpt:"2101",mnt:239.40}]},
+  {id:1,date:"2026-04-01",no:"JG-001",desc:"Honoraires gestion Piedmont â avril",debit:[{cpt:"1100",mnt:2759.40}],credit:[{cpt:"4010",mnt:2400.00},{cpt:"2100",mnt:120.00},{cpt:"2101",mnt:239.40}]},
   {id:2,date:"2026-04-05",no:"JG-002",desc:"Encaissement FC-2026-001 Piedmont",debit:[{cpt:"1020",mnt:2759.40}],credit:[{cpt:"1100",mnt:2759.40}]},
-  {id:3,date:"2026-04-15",no:"JG-003",desc:"Paie bimensuelle — 1ere quinzaine avril",debit:[{cpt:"5010",mnt:4083.34},{cpt:"5020",mnt:979.96}],credit:[{cpt:"2200",mnt:4097.97},{cpt:"2210",mnt:650.00},{cpt:"2211",mnt:700.00},{cpt:"2220",mnt:127.50},{cpt:"2230",mnt:412.50}]},
-  {id:4,date:"2026-04-01",no:"JG-004",desc:"Loyer bureau — avril 2026",debit:[{cpt:"5030",mnt:600.00}],credit:[{cpt:"1020",mnt:600.00}]},
+  {id:3,date:"2026-04-15",no:"JG-003",desc:"Paie bimensuelle â 1ere quinzaine avril",debit:[{cpt:"5010",mnt:4083.34},{cpt:"5020",mnt:979.96}],credit:[{cpt:"2200",mnt:4097.97},{cpt:"2210",mnt:650.00},{cpt:"2211",mnt:700.00},{cpt:"2220",mnt:127.50},{cpt:"2230",mnt:412.50}]},
+  {id:4,date:"2026-04-01",no:"JG-004",desc:"Loyer bureau â avril 2026",debit:[{cpt:"5030",mnt:600.00}],credit:[{cpt:"1020",mnt:600.00}]},
 ];
 
 // ===== TAB FACTURATION =====
@@ -163,8 +163,8 @@ function TabFacturation(){
     <div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:18}}>
         <StatCard l="Revenus HT (2026)" v={money(totalHT)} c={T.accent} bg={T.accentL}/>
-        <StatCard l="TPS perçue" v={money(totalTPS)} c={T.blue} bg={T.blueL}/>
-        <StatCard l="TVQ perçue" v={money(totalTVQ)} c={T.purple} bg={T.purpleL}/>
+        <StatCard l="TPS perÃ§ue" v={money(totalTPS)} c={T.blue} bg={T.blueL}/>
+        <StatCard l="TVQ perÃ§ue" v={money(totalTVQ)} c={T.purple} bg={T.purpleL}/>
         <StatCard l="En attente paiement" v={money(enAttente)} c={T.amber} bg={T.amberL}/>
       </div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
@@ -190,7 +190,7 @@ function TabFacturation(){
                 <Td>
                   <div style={{display:"flex",gap:4}}>
                     <Btn sm bg={T.navy} onClick={function(){printFacture(f);}}>PDF</Btn>
-                    {f.statut==="brouillon"&&<Btn sm onClick={function(){setFactures(function(prev){return prev.map(function(x){return x.id===f.id?Object.assign({},x,{statut:"envoye"}):x;});});}}> Envoyer</Btn>}
+                    {f.statut==="brouillon"&&<Btn sm onClick={function(){setFactures(function(prev){var updated=prev.map(function(x){return x.id===f.id?Object.assign({},x,{statut:"envoye"}):x;});try{var toCA=updated.filter(function(x){return x.statut==="envoye";}).map(function(x){return{id:"PRED-"+x.no,four:"Predictek — "+x.desc,date:x.date,mnt:x.mntTTC,desc:x.no+": "+x.desc+" (TPS:"+x.tps.toFixed(2)+" TVQ:"+x.tvq.toFixed(2)+")",statut:"attente",ref:x.no,par:"",dateA:"",syndicat:x.client};});localStorage.setItem("predictek_factures_ca",JSON.stringify(toCA));}catch(e){}return updated;});}}> Envoyer</Btn>}
                     {f.statut==="envoye"&&<Btn sm bg={T.accent} onClick={function(){setFactures(function(prev){return prev.map(function(x){return x.id===f.id?Object.assign({},x,{statut:"paye",datePmt:today()}):x;});});}}> Paye</Btn>}
                   </div>
                 </Td>
@@ -391,7 +391,7 @@ function TabJournal(){
   var totalDebit=ecritures.reduce(function(a,e){return a+e.debit.reduce(function(b,d){return b+d.mnt;},0);},0);
   var totalCredit=ecritures.reduce(function(a,e){return a+e.credit.reduce(function(b,c){return b+c.mnt;},0);},0);
 
-  function getCptNom(no){var c=COMPTES_PLAN.find(function(x){return x.no===no;});return c?no+" — "+c.nom:no;}
+  function getCptNom(no){var c=COMPTES_PLAN.find(function(x){return x.no===no;});return c?no+" â "+c.nom:no;}
 
   return(
     <div>
@@ -416,8 +416,8 @@ function TabJournal(){
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead><tr style={{background:T.alt}}><Th>Compte</Th><Th r>Debit</Th><Th r>Credit</Th></tr></thead>
             <tbody>
-              {e.debit.map(function(d,i){return(<tr key={"d"+i}><Td>{getCptNom(d.cpt)}</Td><Td r bold c={T.navy}>{money(d.mnt)}</Td><Td r>—</Td></tr>);})}
-              {e.credit.map(function(c,i){return(<tr key={"c"+i}><Td><span style={{paddingLeft:24}}>{getCptNom(c.cpt)}</span></Td><Td r>—</Td><Td r bold c={T.accent}>{money(c.mnt)}</Td></tr>);})}
+              {e.debit.map(function(d,i){return(<tr key={"d"+i}><Td>{getCptNom(d.cpt)}</Td><Td r bold c={T.navy}>{money(d.mnt)}</Td><Td r>â</Td></tr>);})}
+              {e.credit.map(function(c,i){return(<tr key={"c"+i}><Td><span style={{paddingLeft:24}}>{getCptNom(c.cpt)}</span></Td><Td r>â</Td><Td r bold c={T.accent}>{money(c.mnt)}</Td></tr>);})}
             </tbody>
           </table>
         </div>
@@ -432,7 +432,7 @@ function TabJournal(){
           <div key={i} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:8,marginBottom:8}}>
             <select value={l.cpt} onChange={function(e){setNf(function(o){var ls=[...o.lignes];ls[i]=Object.assign({},ls[i],{cpt:e.target.value});return Object.assign({},o,{lignes:ls});});}} style={INP}>
               <option value="">-- Choisir un compte --</option>
-              {COMPTES_PLAN.map(function(c){return <option key={c.no} value={c.no}>{c.no} — {c.nom}</option>;})}
+              {COMPTES_PLAN.map(function(c){return <option key={c.no} value={c.no}>{c.no} â {c.nom}</option>;})}
             </select>
             <input type="number" placeholder="Montant" value={l.mnt} onChange={function(e){setNf(function(o){var ls=[...o.lignes];ls[i]=Object.assign({},ls[i],{mnt:parseFloat(e.target.value)||0});return Object.assign({},o,{lignes:ls});});}} style={INP}/>
             <select value={l.sens} onChange={function(e){setNf(function(o){var ls=[...o.lignes];ls[i]=Object.assign({},ls[i],{sens:e.target.value});return Object.assign({},o,{lignes:ls});});}} style={INP}>
@@ -517,7 +517,7 @@ function TabEtats(){
       {ong==="resultats"&&(
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-            <b style={{fontSize:14,color:T.navy}}>Etat des resultats — Exercice 2025-2026</b>
+            <b style={{fontSize:14,color:T.navy}}>Etat des resultats â Exercice 2025-2026</b>
             <Btn sm bg={T.navy} onClick={function(){
               var html='<table><thead><tr><th>No</th><th>Compte</th><th style="text-align:right">Montant</th></tr></thead><tbody>';
               html+='<tr class="section"><td colspan="3">PRODUITS</td></tr>';
@@ -528,7 +528,7 @@ function TabEtats(){
               html+='<tr class="total"><td colspan="2">Total charges</td><td style="text-align:right">'+money(totalCharges)+'</td></tr>';
               html+='<tr class="total"><td colspan="2">BENEFICE NET</td><td style="text-align:right;color:#1B5E3B">'+money(beneficeNet)+'</td></tr>';
               html+='</tbody></table>';
-              printEtat("Etat des resultats — Predictek",html);
+              printEtat("Etat des resultats â Predictek",html);
             }}>Imprimer PDF</Btn>
           </div>
           <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
@@ -554,7 +554,7 @@ function TabEtats(){
       {ong==="bilan"&&(
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-            <b style={{fontSize:14,color:T.navy}}>Bilan — Au 30 avril 2026</b>
+            <b style={{fontSize:14,color:T.navy}}>Bilan â Au 30 avril 2026</b>
             <Btn sm bg={T.navy} onClick={function(){alert("Impression PDF bilan - a venir");}}>Imprimer PDF</Btn>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
@@ -593,7 +593,7 @@ function TabEtats(){
                 </table>
               </div>
               {Math.abs(totalActif-(totalPassif+totalCapitaux+beneficeNet))>0.01&&(
-                <div style={{background:T.redL,borderRadius:8,padding:"9px 14px",fontSize:11,color:T.red,marginTop:10}}>Bilan desequilibre — Verifier les ecritures</div>
+                <div style={{background:T.redL,borderRadius:8,padding:"9px 14px",fontSize:11,color:T.red,marginTop:10}}>Bilan desequilibre â Verifier les ecritures</div>
               )}
               {Math.abs(totalActif-(totalPassif+totalCapitaux+beneficeNet))<=0.01&&(
                 <div style={{background:T.accentL,borderRadius:8,padding:"9px 14px",fontSize:11,color:T.accent,marginTop:10}}>Bilan equilibre</div>
@@ -606,7 +606,7 @@ function TabEtats(){
       {ong==="balance"&&(
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-            <b style={{fontSize:14,color:T.navy}}>Balance de verification — 30 avril 2026</b>
+            <b style={{fontSize:14,color:T.navy}}>Balance de verification â 30 avril 2026</b>
             <Btn sm bg={T.navy} onClick={function(){alert("PDF balance de verification - a venir");}}>Imprimer PDF</Btn>
           </div>
           <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
@@ -631,8 +631,8 @@ function TabEtats(){
                       <Td>{c.no}</Td>
                       <Td>{c.nom}</Td>
                       <Td><Bdg bg={T.alt} c={T.muted}>{c.type}</Bdg></Td>
-                      <Td r bold={debit>0} c={debit>0?T.navy:T.muted}>{debit>0?money(debit):"—"}</Td>
-                      <Td r bold={credit>0} c={credit>0?T.accent:T.muted}>{credit>0?money(credit):"—"}</Td>
+                      <Td r bold={debit>0} c={debit>0?T.navy:T.muted}>{debit>0?money(debit):"â"}</Td>
+                      <Td r bold={credit>0} c={credit>0?T.accent:T.muted}>{credit>0?money(credit):"â"}</Td>
                     </tr>
                   );
                 })}
@@ -650,12 +650,12 @@ function TabEtats(){
       {ong==="tps"&&(
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-            <b style={{fontSize:14,color:T.navy}}>Rapport TPS/TVQ — Periode avril 2026</b>
+            <b style={{fontSize:14,color:T.navy}}>Rapport TPS/TVQ â Periode avril 2026</b>
             <Btn sm bg={T.navy} onClick={function(){alert("Rapport TPS/TVQ PDF - a venir");}}>Imprimer</Btn>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
             <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
-              <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:14}}>TPS — Agence du revenu Canada</div>
+              <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:14}}>TPS â Agence du revenu Canada</div>
               {[
                 {l:"TPS percue sur ventes",v:FACTURES_CLIENTS.reduce(function(a,f){return a+f.tps;},0),c:T.accent},
                 {l:"TPS payee sur achats (ITCs)",v:910.00,c:T.red},
@@ -671,7 +671,7 @@ function TabEtats(){
               </div>
             </div>
             <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
-              <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:14}}>TVQ — Revenu Quebec</div>
+              <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:14}}>TVQ â Revenu Quebec</div>
               {[
                 {l:"TVQ percue sur ventes",v:FACTURES_CLIENTS.reduce(function(a,f){return a+f.tvq;},0),c:T.accent},
                 {l:"TVQ payee sur achats (ITRs)",v:1816.28,c:T.red},
@@ -691,9 +691,9 @@ function TabEtats(){
             <div style={{fontSize:13,fontWeight:700,color:T.amber,marginBottom:6}}>Remises a effectuer</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
               {[
-                {l:"TPS — ARC",v:money(FACTURES_CLIENTS.reduce(function(a,f){return a+f.tps;},0)-910),date:"2026-05-31"},
-                {l:"TVQ — Revenu Quebec",v:money(FACTURES_CLIENTS.reduce(function(a,f){return a+f.tvq;},0)-1816.28),date:"2026-05-31"},
-                {l:"DAS — Federal/Provincial",v:money(5000),date:"2026-04-25"},
+                {l:"TPS â ARC",v:money(FACTURES_CLIENTS.reduce(function(a,f){return a+f.tps;},0)-910),date:"2026-05-31"},
+                {l:"TVQ â Revenu Quebec",v:money(FACTURES_CLIENTS.reduce(function(a,f){return a+f.tvq;},0)-1816.28),date:"2026-05-31"},
+                {l:"DAS â Federal/Provincial",v:money(5000),date:"2026-04-25"},
               ].map(function(item,i){return(
                 <div key={i} style={{background:"#fff",borderRadius:8,padding:"10px 14px"}}>
                   <div style={{fontSize:10,color:T.amber,fontWeight:700,marginBottom:4}}>{item.l}</div>
@@ -723,7 +723,7 @@ export default function Comptabilite(){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <div>
           <div style={{fontSize:18,fontWeight:800,color:T.navy}}>Comptabilite Predictek</div>
-          <div style={{fontSize:11,color:T.muted}}>Module interne — Facturation, paie, taxes et etats financiers</div>
+          <div style={{fontSize:11,color:T.muted}}>Module interne â Facturation, paie, taxes et etats financiers</div>
         </div>
         <div style={{display:"flex",gap:8}}>
           <Bdg bg={T.accentL} c={T.accent}>Exercice 2025-2026</Bdg>
