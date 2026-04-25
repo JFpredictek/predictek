@@ -1175,6 +1175,479 @@ function TabEmployes(){
 
 
 
+
+var MOIS_NOM=["Janvier","Fevrier","Mars","Avril","Mai","Juin","Juillet","Aout","Septembre","Octobre","Novembre","Decembre"];
+
+var EXERCICES_INIT=[
+  {id:1,code:"EX-2024-2025",debut:"2024-11-01",fin:"2025-10-31",statut:"ferme",dateClot:"2025-11-30",approuvePar:"Jean-Francois Laroche",dateApprob:"2025-12-01",notes:"Exercice ferme et approuve en AGO du 1er decembre 2025."},
+  {id:2,code:"EX-2025-2026",debut:"2025-11-01",fin:"2026-10-31",statut:"ouvert",dateClot:"",approuvePar:"",dateApprob:"",notes:"Exercice en cours."},
+];
+
+var PERIODES_INIT=[
+  {mois:"2025-11",nom:"Novembre 2025",statut:"ferme",dateClot:"2025-12-05",closePar:"Marie Tremblay"},
+  {mois:"2025-12",nom:"Decembre 2025",statut:"ferme",dateClot:"2026-01-07",closePar:"Marie Tremblay"},
+  {mois:"2026-01",nom:"Janvier 2026",statut:"ferme",dateClot:"2026-02-04",closePar:"Marie Tremblay"},
+  {mois:"2026-02",nom:"Fevrier 2026",statut:"ferme",dateClot:"2026-03-05",closePar:"Marie Tremblay"},
+  {mois:"2026-03",nom:"Mars 2026",statut:"ferme",dateClot:"2026-04-03",closePar:"Marie Tremblay"},
+  {mois:"2026-04",nom:"Avril 2026",statut:"ouvert",dateClot:"",closePar:""},
+  {mois:"2026-05",nom:"Mai 2026",statut:"futur",dateClot:"",closePar:""},
+  {mois:"2026-06",nom:"Juin 2026",statut:"futur",dateClot:"",closePar:""},
+  {mois:"2026-07",nom:"Juillet 2026",statut:"futur",dateClot:"",closePar:""},
+  {mois:"2026-08",nom:"Aout 2026",statut:"futur",dateClot:"",closePar:""},
+  {mois:"2026-09",nom:"Septembre 2026",statut:"futur",dateClot:"",closePar:""},
+  {mois:"2026-10",nom:"Octobre 2026",statut:"futur",dateClot:"",closePar:""},
+];
+
+var BUDGETS_INIT=[
+  {
+    id:1,exercice:"EX-2025-2026",version:"v1.0",titre:"Budget annuel 2025-2026",
+    statut:"approuve",
+    creePar:"Marie Tremblay",dateCree:"2025-10-15",
+    soumisA:"Jean-Francois Laroche",dateSoumis:"2025-10-20",
+    approuvePar:"Jean-Francois Laroche",dateApprob:"2025-10-25",
+    notes:"Budget approuve en reunion CA du 25 octobre 2025.",
+    totalRevenus:117400,totalCharges:102000,surplus:15400,
+  },
+  {
+    id:2,exercice:"EX-2025-2026",version:"v1.1",titre:"Budget revisite Q2 2025-2026",
+    statut:"brouillon",
+    creePar:"Marie Tremblay",dateCree:"2026-04-01",
+    soumisA:"",dateSoumis:"",
+    approuvePar:"",dateApprob:"",
+    notes:"Revision suite a hausse assurances.",
+    totalRevenus:117400,totalCharges:105500,surplus:11900,
+  },
+];
+
+
+// ===== STATUS CONFIG =====
+var EX_ST={
+  ouvert:{c:T.accent,bg:T.accentL,l:"Ouvert",icon:"O"},
+  ferme:{c:T.muted,bg:T.alt,l:"Ferme",icon:"F"},
+};
+var PER_ST={
+  ferme:{c:T.muted,bg:T.alt,l:"Fermee"},
+  ouvert:{c:T.accent,bg:T.accentL,l:"Ouverte"},
+  futur:{c:T.blue,bg:T.blueL,l:"A venir"},
+};
+var BUD_ST={
+  brouillon:{c:T.muted,bg:T.alt,l:"Brouillon",step:1},
+  soumis:{c:T.amber,bg:T.amberL,l:"Soumis",step:2},
+  approuve:{c:T.accent,bg:T.accentL,l:"Approuve",step:3},
+  ferme:{c:T.navy,bg:T.blueL,l:"Ferme",step:4},
+};
+
+// ===== PANEL EXERCICES =====
+function PanelExercices(p){
+  var s0=useState(false);var showN=s0[0];var setShowN=s0[1];
+  var s1=useState(false);var showClot=s1[0];var setShowClot=s1[1];
+  var s2=useState(null);var selId=s2[0];var setSelId=s2[1];
+  var s3=useState({});var nf=s3[0];var setNf=s3[1];
+  var s4=useState("");var clotNotes=s4[0];var setClotNotes=s4[1];
+  var s5=useState("");var clotPar=s5[0];var setClotPar=s5[1];
+
+  var exCourant=p.exercices.find(function(e){return e.statut==="ouvert";});
+
+  function fermerExercice(){
+    p.setExercices(function(prev){return prev.map(function(e){
+      return e.id===selId?Object.assign({},e,{statut:"ferme",dateClot:today(),approuvePar:clotPar,dateApprob:today(),notes:clotNotes}):e;
+    });});
+    setShowClot(false);setClotNotes("");setClotPar("");setSelId(null);
+  }
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <div>
+          <div style={{fontSize:15,fontWeight:700,color:T.navy}}>Exercices financiers</div>
+          <div style={{fontSize:11,color:T.muted}}>Gestion des periodes comptables annuelles</div>
+        </div>
+        <Btn sm onClick={function(){setNf({code:"EX-2026-2027",debut:"2026-11-01",fin:"2027-10-31",notes:""});setShowN(true);}}>+ Nouvel exercice</Btn>
+      </div>
+
+      {exCourant&&(
+        <div style={{background:"linear-gradient(135deg,"+T.navy+",#1e3a5f)",borderRadius:12,padding:20,marginBottom:16,color:"#fff"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div>
+              <div style={{fontSize:10,color:"#8da0bb",fontWeight:600,textTransform:"uppercase",marginBottom:4}}>Exercice en cours</div>
+              <div style={{fontSize:20,fontWeight:800}}>{exCourant.code}</div>
+              <div style={{fontSize:13,color:"#8da0bb",marginTop:4}}>{exCourant.debut} au {exCourant.fin}</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <Bdg bg={"#ffffff20"} c={"#3CAF6E"}>Ouvert</Bdg>
+              <div style={{fontSize:11,color:"#8da0bb",marginTop:8}}>Mois courus:</div>
+              <div style={{fontSize:18,fontWeight:800,color:"#3CAF6E"}}>
+                {Math.max(0,Math.ceil((new Date()-new Date(exCourant.debut))/2592000000))} / 12
+              </div>
+            </div>
+          </div>
+          <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid #ffffff20",display:"flex",gap:10}}>
+            <Btn sm bg={"#B83232"} onClick={function(){setSelId(exCourant.id);setShowClot(true);}}>Fermer l exercice</Btn>
+          </div>
+        </div>
+      )}
+
+      <div style={{display:"grid",gap:10}}>
+        {p.exercices.map(function(ex){var st=EX_ST[ex.statut]||EX_ST.ferme;return(
+          <Card key={ex.id} bc={ex.statut==="ouvert"?T.accent:T.border} p={16}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                <div style={{width:48,height:48,borderRadius:10,background:st.bg,display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+st.c}}>
+                  <span style={{fontSize:11,fontWeight:800,color:st.c}}>{st.icon}</span>
+                </div>
+                <div>
+                  <div style={{fontSize:14,fontWeight:700,color:T.navy}}>{ex.code}</div>
+                  <div style={{fontSize:12,color:T.muted}}>{ex.debut} — {ex.fin}</div>
+                  {ex.statut==="ferme"&&<div style={{fontSize:11,color:T.muted,marginTop:2}}>Cloture: {ex.dateClot} | Approuve par: {ex.approuvePar}</div>}
+                </div>
+              </div>
+              <Bdg bg={st.bg} c={st.c}>{st.l}</Bdg>
+            </div>
+            {ex.notes&&<div style={{marginTop:10,background:T.alt,borderRadius:7,padding:"8px 11px",fontSize:11,color:T.muted}}>{ex.notes}</div>}
+          </Card>
+        );})}
+      </div>
+
+      <Modal show={showN} onClose={function(){setShowN(false);}} title="Nouvel exercice financier" w={460}>
+        <div style={{display:"grid",gap:12,marginBottom:16}}>
+          <div><Lbl l="Code de l exercice"/><input value={nf.code||""} onChange={function(e){setNf(function(o){return Object.assign({},o,{code:e.target.value});});}} style={INP}/></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><Lbl l="Date debut"/><input type="date" value={nf.debut||""} onChange={function(e){setNf(function(o){return Object.assign({},o,{debut:e.target.value});});}} style={INP}/></div>
+            <div><Lbl l="Date fin"/><input type="date" value={nf.fin||""} onChange={function(e){setNf(function(o){return Object.assign({},o,{fin:e.target.value});});}} style={INP}/></div>
+          </div>
+          <div><Lbl l="Notes"/><textarea value={nf.notes||""} onChange={function(e){setNf(function(o){return Object.assign({},o,{notes:e.target.value});});}} rows={2} style={Object.assign({},INP,{resize:"vertical"})}/></div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <Btn onClick={function(){p.setExercices(function(prev){return prev.concat([Object.assign({},nf,{id:Date.now(),statut:"ouvert",dateClot:"",approuvePar:"",dateApprob:""})]);});setShowN(false);}}>Creer l exercice</Btn>
+          <Btn onClick={function(){setShowN(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
+        </div>
+      </Modal>
+
+      <Modal show={showClot} onClose={function(){setShowClot(false);}} title="Fermeture de l exercice financier" w={520} noClose={false}>
+        <div style={{background:T.redL,borderRadius:10,padding:"12px 16px",marginBottom:16,border:"1px solid "+T.red+"44"}}>
+          <div style={{fontSize:13,fontWeight:700,color:T.red,marginBottom:6}}>Action irreversible</div>
+          <div style={{fontSize:12,color:T.red,lineHeight:1.6}}>
+            La fermeture de l exercice va:<br/>
+            1. Bloquer toutes les ecritures de la periode<br/>
+            2. Generer les ecritures de cloture automatiques<br/>
+            3. Reporter les soldes au prochain exercice<br/>
+            4. Marquer toutes les periodes du mois comme fermees
+          </div>
+        </div>
+        <div style={{display:"grid",gap:12,marginBottom:16}}>
+          <div><Lbl l="Approuve et cloture par"/><input value={clotPar} onChange={function(e){setClotPar(e.target.value);}} placeholder="Nom du responsable" style={INP}/></div>
+          <div><Lbl l="Notes de cloture"/><textarea value={clotNotes} onChange={function(e){setClotNotes(e.target.value);}} rows={3} placeholder="Resolution CA, date AGO, etc." style={Object.assign({},INP,{resize:"vertical"})}/></div>
+        </div>
+        <div style={{background:T.amberL,borderRadius:8,padding:"9px 12px",fontSize:11,color:T.amber,marginBottom:16}}>
+          Une ecriture de fermeture sera creee pour vider les comptes de produits et charges vers les benefices non repartis.
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <Btn bg={T.red} dis={!clotPar} onClick={fermerExercice}>Confirmer la fermeture</Btn>
+          <Btn onClick={function(){setShowClot(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+// ===== PANEL PERIODES =====
+function PanelPeriodes(p){
+  var s0=useState(false);var showClot=s0[0];var setShowClot=s0[1];
+  var s1=useState(null);var selM=s1[0];var setSelM=s1[1];
+  var s2=useState("");var closePar=s2[0];var setClosePar=s2[1];
+
+  var selPer=selM?p.periodes.find(function(x){return x.mois===selM;}):null;
+  var periodeOuverte=p.periodes.find(function(x){return x.statut==="ouvert";});
+
+  function fermerPeriode(){
+    p.setPeriodes(function(prev){return prev.map(function(x){
+      return x.mois===selM?Object.assign({},x,{statut:"ferme",dateClot:today(),closePar:closePar}):x;
+    });});
+    setShowClot(false);setClosePar("");setSelM(null);
+  }
+
+  var cols=["Periode","Statut","Date cloture","Ferme par","Action"];
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div>
+          <div style={{fontSize:15,fontWeight:700,color:T.navy}}>Fermeture de periodes</div>
+          <div style={{fontSize:11,color:T.muted}}>Fermeture mensuelle des periodes comptables</div>
+        </div>
+        {periodeOuverte&&(
+          <div style={{background:T.accentL,borderRadius:8,padding:"8px 14px",fontSize:12,color:T.accent,fontWeight:600}}>
+            Periode courante: {periodeOuverte.nom}
+          </div>
+        )}
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
+        {[
+          {l:"Periodes fermees",v:p.periodes.filter(function(x){return x.statut==="ferme";}).length,c:T.muted,bg:T.alt},
+          {l:"Periode ouverte",v:periodeOuverte?periodeOuverte.nom:"—",c:T.accent,bg:T.accentL},
+          {l:"Periodes a venir",v:p.periodes.filter(function(x){return x.statut==="futur";}).length,c:T.blue,bg:T.blueL},
+        ].map(function(s,i){return(
+          <div key={i} style={{background:s.bg,borderRadius:10,padding:"11px 14px",border:"1px solid "+s.c+"33"}}>
+            <div style={{fontSize:9,color:s.c,fontWeight:700,marginBottom:3,textTransform:"uppercase"}}>{s.l}</div>
+            <div style={{fontSize:15,fontWeight:800,color:s.c}}>{s.v}</div>
+          </div>
+        );})}
+      </div>
+
+      <Card p={0}>
+        <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <thead>
+            <tr style={{background:T.navy}}>
+              {cols.map(function(h){return <th key={h} style={{padding:"9px 14px",fontSize:10,fontWeight:700,color:"#8da0bb",textAlign:"left"}}>{h}</th>;})}
+            </tr>
+          </thead>
+          <tbody>
+            {p.periodes.map(function(per){var st=PER_ST[per.statut]||PER_ST.futur;var isOuvert=per.statut==="ouvert";return(
+              <tr key={per.mois} style={{borderBottom:"1px solid "+T.border,background:isOuvert?"#FFFBF0":T.surface}}>
+                <td style={{padding:"11px 14px",fontWeight:600,color:T.text,fontSize:13}}>{per.nom}</td>
+                <td style={{padding:"11px 14px"}}><Bdg bg={st.bg} c={st.c}>{st.l}</Bdg></td>
+                <td style={{padding:"11px 14px",fontSize:12,color:T.muted}}>{per.dateClot||"—"}</td>
+                <td style={{padding:"11px 14px",fontSize:12,color:T.muted}}>{per.closePar||"—"}</td>
+                <td style={{padding:"11px 14px"}}>
+                  {isOuvert&&(
+                    <Btn sm bg={T.amber} onClick={function(){setSelM(per.mois);setShowClot(true);}}>Fermer la periode</Btn>
+                  )}
+                  {per.statut==="ferme"&&<span style={{fontSize:11,color:T.muted}}>Fermee</span>}
+                  {per.statut==="futur"&&<span style={{fontSize:11,color:T.muted}}>—</span>}
+                </td>
+              </tr>
+            );})}
+          </tbody>
+        </table>
+      </Card>
+
+      <div style={{background:T.blueL,borderRadius:8,padding:"10px 14px",fontSize:11,color:T.blue,marginTop:14}}>
+        Une periode fermee ne peut plus recevoir de nouvelles ecritures. Les ajustements doivent etre faits dans la periode courante avec une date d ecriture correspondante.
+      </div>
+
+      <Modal show={showClot} onClose={function(){setShowClot(false);}} title={"Fermer la periode — "+(selPer?selPer.nom:"")} w={480}>
+        <div style={{background:T.amberL,borderRadius:9,padding:"11px 14px",marginBottom:14,border:"1px solid "+T.amber+"44"}}>
+          <div style={{fontSize:12,color:T.amber,fontWeight:600,marginBottom:4}}>Avant de fermer cette periode, assurez-vous que:</div>
+          <div style={{fontSize:11,color:T.amber,lineHeight:1.8}}>
+            ✓ Toutes les factures fournisseurs ont ete saisies<br/>
+            ✓ Toutes les cotisations ont ete enregistrees<br/>
+            ✓ Le rapprochement bancaire est complete<br/>
+            ✓ Les ecritures de regularisation sont faites
+          </div>
+        </div>
+        <div style={{marginBottom:14}}>
+          <Lbl l="Ferme par"/>
+          <input value={closePar} onChange={function(e){setClosePar(e.target.value);}} placeholder="Votre nom" style={INP}/>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <Btn bg={T.amber} dis={!closePar} onClick={fermerPeriode}>Confirmer la fermeture</Btn>
+          <Btn onClick={function(){setShowClot(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+// ===== PANEL BUDGETS =====
+function PanelBudgets(p){
+  var s0=useState(null);var sel=s0[0];var setSel=s0[1];
+  var s1=useState(false);var showWorkflow=s1[0];var setShowWorkflow=s1[1];
+  var s2=useState(false);var showN=s2[0];var setShowN=s2[1];
+  var s3=useState({});var nf=s3[0];var setNf=s3[1];
+  var s4=useState("");var approuvePar=s4[0];var setApprouvePar=s4[1];
+  var s5=useState("");var approuveNotes=s5[0];var setApprouveNotes=s5[1];
+
+  var selB=sel?p.budgets.find(function(b){return b.id===sel;}):null;
+
+  function avancerStatut(action){
+    p.setBudgets(function(prev){return prev.map(function(b){
+      if(b.id!==sel)return b;
+      if(action==="soumettre")return Object.assign({},b,{statut:"soumis",dateSoumis:today()});
+      if(action==="approuver")return Object.assign({},b,{statut:"approuve",approuvePar:approuvePar,dateApprob:today(),notes:approuveNotes||b.notes});
+      if(action==="fermer")return Object.assign({},b,{statut:"ferme"});
+      if(action==="rejeter")return Object.assign({},b,{statut:"brouillon",dateSoumis:"",notes:(b.notes||"")+" [Rejete le "+today()+"]"});
+      return b;
+    });});
+    setShowWorkflow(false);setApprouvePar("");setApprouveNotes("");
+  }
+
+  var STEPS=["Brouillon","Soumis au CA","Approuve","Ferme"];
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <div>
+          <div style={{fontSize:15,fontWeight:700,color:T.navy}}>Budgets et approbations</div>
+          <div style={{fontSize:11,color:T.muted}}>Workflow de preparation, approbation et fermeture des budgets</div>
+        </div>
+        <Btn sm onClick={function(){setNf({titre:"",exercice:"EX-2025-2026",version:"v1.0",totalRevenus:"",totalCharges:"",notes:""});setShowN(true);}}>+ Nouveau budget</Btn>
+      </div>
+
+      <div style={{display:"flex",gap:14}}>
+        <div style={{flex:1}}>
+          {p.budgets.map(function(b){var st=BUD_ST[b.statut]||BUD_ST.brouillon;var isSel=sel===b.id;return(
+            <div key={b.id} onClick={function(){setSel(b.id);}} style={{background:isSel?T.accentL:T.surface,border:"1px solid "+(isSel?T.accent:T.border),borderRadius:11,padding:16,marginBottom:10,cursor:"pointer"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                <div>
+                  <div style={{fontSize:14,fontWeight:700,color:T.navy}}>{b.titre}</div>
+                  <div style={{fontSize:11,color:T.muted}}>{b.exercice} | {b.version}</div>
+                </div>
+                <Bdg bg={st.bg} c={st.c}>{st.l}</Bdg>
+              </div>
+              <div style={{display:"flex",gap:0,marginBottom:10}}>
+                {STEPS.map(function(step,i){var done=st.step>i+1;var current=st.step===i+1;return(
+                  <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",position:"relative"}}>
+                    <div style={{width:22,height:22,borderRadius:"50%",background:done?T.accent:current?T.amber:T.border,display:"flex",alignItems:"center",justifyContent:"center",zIndex:1,border:"2px solid "+(done?T.accent:current?T.amber:T.border)}}>
+                      <span style={{fontSize:9,fontWeight:800,color:"#fff"}}>{done?"V":i+1}</span>
+                    </div>
+                    {i<3&&<div style={{position:"absolute",top:10,left:"50%",width:"100%",height:2,background:done?T.accent:T.border,zIndex:0}}/>}
+                    <div style={{fontSize:8,color:done?T.accent:current?T.amber:T.muted,marginTop:4,textAlign:"center",fontWeight:current?700:400}}>{step}</div>
+                  </div>
+                );})}
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.muted}}>
+                <span>Revenus: {money(b.totalRevenus)}</span>
+                <span>Charges: {money(b.totalCharges)}</span>
+                <span style={{color:b.surplus>=0?T.accent:T.red,fontWeight:600}}>Surplus: {money(b.surplus)}</span>
+              </div>
+            </div>
+          );})}
+        </div>
+
+        {selB&&(
+          <div style={{width:300,flexShrink:0}}>
+            <Card bc={T.border}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
+                <b style={{fontSize:13,color:T.navy}}>Detail du budget</b>
+                <button onClick={function(){setSel(null);}} style={{background:"none",border:"none",cursor:"pointer",color:T.muted,fontSize:16}}>x</button>
+              </div>
+              {[
+                {l:"Titre",v:selB.titre},
+                {l:"Exercice",v:selB.exercice},
+                {l:"Version",v:selB.version},
+                {l:"Cree par",v:selB.creePar},
+                {l:"Date creation",v:selB.dateCree},
+                {l:"Soumis a",v:selB.soumisA||"—"},
+                {l:"Date soumission",v:selB.dateSoumis||"—"},
+                {l:"Approuve par",v:selB.approuvePar||"—"},
+                {l:"Date approbation",v:selB.dateApprob||"—"},
+              ].map(function(item,i){return(
+                <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid "+T.border}}>
+                  <span style={{fontSize:10,color:T.muted}}>{item.l}</span>
+                  <span style={{fontSize:11,fontWeight:500,color:T.text,textAlign:"right",maxWidth:160}}>{item.v}</span>
+                </div>
+              );})}
+              {selB.notes&&<div style={{marginTop:10,background:T.alt,borderRadius:7,padding:"8px 10px",fontSize:11,color:T.muted}}>{selB.notes}</div>}
+              <div style={{marginTop:14,display:"grid",gap:6}}>
+                {selB.statut==="brouillon"&&<Btn fw onClick={function(){setShowWorkflow(true);}}>Soumettre pour approbation</Btn>}
+                {selB.statut==="soumis"&&<Btn fw bg={T.accent} onClick={function(){setShowWorkflow(true);}}>Approuver le budget</Btn>}
+                {selB.statut==="soumis"&&<Btn fw bg={T.red} onClick={function(){avancerStatut("rejeter");}}>Rejeter — retour brouillon</Btn>}
+                {selB.statut==="approuve"&&<Btn fw bg={T.navy} onClick={function(){avancerStatut("fermer");}}>Fermer le budget</Btn>}
+              </div>
+            </Card>
+          </div>
+        )}
+      </div>
+
+      <Modal show={showWorkflow} onClose={function(){setShowWorkflow(false);}} title={selB&&selB.statut==="brouillon"?"Soumettre le budget":"Approuver le budget"} w={480}>
+        {selB&&selB.statut==="brouillon"&&(
+          <div>
+            <div style={{background:T.blueL,borderRadius:9,padding:"11px 14px",marginBottom:14,fontSize:12,color:T.blue}}>
+              Le budget sera envoye pour approbation au conseil d administration. Une fois soumis, les chiffres ne peuvent plus etre modifies.
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <Btn onClick={function(){avancerStatut("soumettre");}}>Confirmer la soumission</Btn>
+              <Btn onClick={function(){setShowWorkflow(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
+            </div>
+          </div>
+        )}
+        {selB&&selB.statut==="soumis"&&(
+          <div>
+            <div style={{background:T.accentL,borderRadius:9,padding:"11px 14px",marginBottom:14,fontSize:12,color:T.accent}}>
+              L approbation du budget par le CA officialise les montants pour l exercice. Le budget approuve ne peut plus etre modifie.
+            </div>
+            <div style={{marginBottom:12}}>
+              <Lbl l="Approuve par"/>
+              <input value={approuvePar} onChange={function(e){setApprouvePar(e.target.value);}} placeholder="Nom du president ou responsable CA" style={INP}/>
+            </div>
+            <div style={{marginBottom:14}}>
+              <Lbl l="Notes d approbation"/>
+              <textarea value={approuveNotes} onChange={function(e){setApprouveNotes(e.target.value);}} rows={3} placeholder="Resolution CA, numero de resolution, etc." style={Object.assign({},INP,{resize:"vertical"})}/>
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <Btn dis={!approuvePar} onClick={function(){avancerStatut("approuver");}}>Approuver le budget</Btn>
+              <Btn onClick={function(){setShowWorkflow(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal show={showN} onClose={function(){setShowN(false);}} title="Nouveau budget" w={480}>
+        <div style={{display:"grid",gap:10,marginBottom:14}}>
+          <div><Lbl l="Titre du budget"/><input value={nf.titre||""} onChange={function(e){setNf(function(o){return Object.assign({},o,{titre:e.target.value});});}} style={INP} placeholder="ex: Budget annuel 2026-2027"/></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><Lbl l="Exercice"/><select value={nf.exercice||""} onChange={function(e){setNf(function(o){return Object.assign({},o,{exercice:e.target.value});});}} style={INP}><option value="EX-2025-2026">EX-2025-2026</option><option value="EX-2026-2027">EX-2026-2027</option></select></div>
+            <div><Lbl l="Version"/><input value={nf.version||""} onChange={function(e){setNf(function(o){return Object.assign({},o,{version:e.target.value});});}} style={INP} placeholder="v1.0"/></div>
+            <div><Lbl l="Revenus prevus ($)"/><input type="number" value={nf.totalRevenus||""} onChange={function(e){setNf(function(o){return Object.assign({},o,{totalRevenus:parseFloat(e.target.value)||0,surplus:(parseFloat(e.target.value)||0)-(o.totalCharges||0)});});}} style={INP}/></div>
+            <div><Lbl l="Charges prevues ($)"/><input type="number" value={nf.totalCharges||""} onChange={function(e){setNf(function(o){return Object.assign({},o,{totalCharges:parseFloat(e.target.value)||0,surplus:(o.totalRevenus||0)-(parseFloat(e.target.value)||0)});});}} style={INP}/></div>
+          </div>
+          <div><Lbl l="Notes"/><textarea value={nf.notes||""} onChange={function(e){setNf(function(o){return Object.assign({},o,{notes:e.target.value});});}} rows={2} style={Object.assign({},INP,{resize:"vertical"})}/></div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <Btn onClick={function(){if(!nf.titre)return;p.setBudgets(function(prev){return prev.concat([Object.assign({},nf,{id:Date.now(),statut:"brouillon",creePar:"Marie Tremblay",dateCree:today(),soumisA:"",dateSoumis:"",approuvePar:"",dateApprob:""})]);});setShowN(false);}}>Creer le budget</Btn>
+          <Btn onClick={function(){setShowN(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+// ===== MODULE PRINCIPAL =====
+function ExerciceFinancier(){
+  var s0=useState("exercices");var ong=s0[0];var setOng=s0[1];
+  var s1=useState(EXERCICES_INIT);var exercices=s1[0];var setExercices=s1[1];
+  var s2=useState(PERIODES_INIT);var periodes=s2[0];var setPeriodes=s2[1];
+  var s3=useState(BUDGETS_INIT);var budgets=s3[0];var setBudgets=s3[1];
+
+  var exCourant=exercices.find(function(e){return e.statut==="ouvert";});
+  var periodeOuverte=periodes.find(function(x){return x.statut==="ouvert";});
+  var budgetsEnAttente=budgets.filter(function(b){return b.statut==="soumis";}).length;
+
+  var TABS=[
+    {id:"exercices",l:"Exercices financiers"},
+    {id:"periodes",l:"Fermeture de periodes"},
+    {id:"budgets",l:"Budgets"+( budgetsEnAttente>0?" ("+budgetsEnAttente+")":"")},
+  ];
+
+  return(
+    <div style={{padding:16,fontFamily:"Georgia,serif"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <div>
+          <div style={{fontSize:18,fontWeight:800,color:T.navy}}>Gestion des exercices et budgets</div>
+          <div style={{fontSize:11,color:T.muted}}>Periodes comptables, fermetures et approbations</div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          {exCourant&&<Bdg bg={T.accentL} c={T.accent}>{exCourant.code} — Ouvert</Bdg>}
+          {periodeOuverte&&<Bdg bg={T.amberL} c={T.amber}>Periode: {periodeOuverte.nom}</Bdg>}
+          {budgetsEnAttente>0&&<Bdg bg={T.redL} c={T.red}>{budgetsEnAttente} budget(s) a approuver</Bdg>}
+        </div>
+      </div>
+
+      <div style={{display:"flex",gap:3,marginBottom:16,background:T.surface,padding:5,borderRadius:10,border:"1px solid "+T.border}}>
+        {TABS.map(function(t){var a=ong===t.id;return(
+          <button key={t.id} onClick={function(){setOng(t.id);}} style={{background:a?T.navy:"transparent",border:"none",borderRadius:7,padding:"8px 16px",color:a?"#fff":T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400,whiteSpace:"nowrap"}}>{t.l}</button>
+        );})}
+      </div>
+
+      {ong==="exercices"&&<PanelExercices exercices={exercices} setExercices={setExercices}/>}
+      {ong==="periodes"&&<PanelPeriodes periodes={periodes} setPeriodes={setPeriodes}/>}
+      {ong==="budgets"&&<PanelBudgets budgets={budgets} setBudgets={setBudgets}/>}
+    </div>
+  );
+}
+
+
 // ===== MODULE PRINCIPAL =====
 export default function Comptabilite(){
   var s0=useState("facturation");var ong=s0[0];var setOng=s0[1];
@@ -1186,7 +1659,7 @@ export default function Comptabilite(){
     {id:"soldes",l:"Soldes d ouverture"},
     {id:"grandlivre",l:"Grand livre"},
     {id:"budget",l:"Budget"},
-    {id:"etats",l:"Etats financiers"},
+    {id:"etats",l:"Etats financiers"},{id:"exercices",l:"Exercices et budgets"},
   ];
   return(
     <div style={{padding:16,fontFamily:"Georgia,serif"}}>
@@ -1214,6 +1687,7 @@ export default function Comptabilite(){
       {ong==="grandlivre"&&<TabGrandLivre/>}
       {ong==="budget"&&<TabBudget/>}
       {ong==="etats"&&<TabEtats/>}
+      {ong==="exercices"&&<ExerciceFinancier/>}
     </div>
   );
 }
