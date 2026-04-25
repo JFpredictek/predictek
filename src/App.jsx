@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import Hub from "./Hub";
 import CRM from "./CRM";
-import Fournisseurs from "./Fournisseurs";
 import Gestionnaire from "./Gestionnaire";
 import PortailCopro from "./PortailCopro";
 import Notifications from "./Notifications";
+import FournisseursAdmin from "./FournisseursAdmin";
 
 var MODS=[
   {id:"hub",label:"Administration",icon:"H",desc:"Syndicats, usagers, fournisseurs"},
   {id:"crm",label:"CRM Support",icon:"C",desc:"Tickets, IA, bons de travail"},
-  {id:"fournisseurs",label:"Fournisseurs",icon:"F",desc:"Vue globale tous syndicats"},
+  {id:"fournisseurs",label:"Fournisseurs",icon:"F",desc:"Vue globale Predictek"},
   {id:"gestionnaire",label:"Portail du CA",icon:"CA",desc:"Finances, reunions, unites"},
   {id:"copro",label:"Portail Coproprietaire",icon:"CO",desc:"Acces coproprietaire"},
   {id:"notif",label:"Notifications",icon:"N",desc:"Alertes et communications"},
@@ -81,7 +81,7 @@ export default function App(){
       <div style={{flex:1,background:"#F5F3EE",overflow:"auto"}}>
         {active==="hub"&&<Hub/>}
         {active==="crm"&&<CRM/>}
-        {active==="fournisseurs"&&<Fournisseurs/>}
+        {active==="fournisseurs"&&<FournisseursAdmin/>}
         {active==="gestionnaire"&&<Gestionnaire/>}
         {active==="copro"&&<PortailCopro/>}
         {active==="notif"&&<Notifications/>}
