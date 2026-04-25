@@ -211,7 +211,7 @@ function DetailSyndicat(p){
           <div style={{fontSize:18,fontWeight:800,color:T.navy}}>{s.nom}</div>
           <div style={{fontSize:12,color:T.muted}}>{s.adr}</div>
         </div>
-        <Btn sm bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={p.onRetour}>Retour</Btn>
+        <div style={{display:"flex",gap:8}}><Btn sm bg={T.purple} tc={"#fff"} onClick={p.onParams}>Parametres</Btn><Btn sm bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={p.onRetour}>Retour</Btn></div>
       </div>
 
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
@@ -505,6 +505,344 @@ function GestionUsagers(p){
   );
 }
 
+function CardTitle(p){return <div style={{fontSize:14,fontWeight:700,color:T.navy,marginBottom:4}}>{p.children}</div>;}
+function CardSub(p){return <div style={{fontSize:11,color:T.muted,marginBottom:16}}>{p.children}</div>;}
+function Tag(p){return <span style={{display:"inline-flex",alignItems:"center",gap:6,background:T.alt,borderRadius:20,padding:"3px 10px",fontSize:11,color:T.text,margin:"2px"}}>{p.children}<button onClick={p.onRemove} style={{background:"none",border:"none",cursor:"pointer",color:T.muted,fontSize:13,lineHeight:1,padding:0}}>x</button></span>;}
+function Toggle(p){return(
+  <button onClick={p.onClick} style={{width:44,height:24,borderRadius:12,background:p.on?T.accent:T.border,border:"none",cursor:"pointer",position:"relative",flexShrink:0,transition:"background 0.2s"}}>
+    <div style={{width:18,height:18,borderRadius:"50%",background:"#fff",position:"absolute",top:3,left:p.on?23:3,transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
+  </button>
+);}
+
+var PARAMS_DEFAUT={
+  // Identite
+  nom:"Syndicat Piedmont",
+  adr:"Chemin du Hibou",
+  ville:"Stoneham-et-Tewkesbury",
+  province:"QC",
+  codePostal:"G3C 1T1",
+  immat:"1144524577",
+  exercice:"1 nov au 31 oct",
+  anneeConstruction:"2013",
+  nbUnites:"36",
+  // CA
+  nbMembresCA:5,
+  president:"Jean-Francois Laroche",
+  secretaire:"Maryse Fredette",
+  tresorier:"Claude Pinard",
+  membresCA:["Jean-Francois Laroche","Maryse Fredette","Claude Pinard","Robert Donnelly","Emile Poulin"],
+  // Courriels
+  courrielCA:"ca@syndicatpiedmont.com",
+  courrielFacturesFournisseurs:"factures@syndicatpiedmont.com",
+  courrielCopropriétaires:"info@syndicatpiedmont.com",
+  courrielUrgences:"urgence@syndicatpiedmont.com",
+  courrielComptabilite:"comptabilite@predictek.com",
+  // Traitement auto
+  autoFacturesFournisseurs:true,
+  autoNotifCA:true,
+  autoNotifCopros:true,
+  autoRappelsCotisations:true,
+  autoAlertesConformite:true,
+  // Quorum
+  quorumCA:"majorite",
+  quorumAGO:25,
+  // Documents
+  documents:[
+    {id:1,nom:"Declaration de copropriete",type:"declaration",date:"2013-09-01",taille:"2.4 MB",dispo:true},
+    {id:2,nom:"Reglement de l immeuble",type:"reglement",date:"2023-01-15",taille:"850 KB",dispo:true},
+    {id:3,nom:"Reglement 2024-001 — Animaux",type:"reglement",date:"2024-03-20",taille:"120 KB",dispo:true},
+    {id:4,nom:"Reglement 2024-002 — Stationnement",type:"reglement",date:"2024-06-15",taille:"95 KB",dispo:false},
+  ],
+};
+
+function ParamsSyndicat(p){
+  var syndicat = p.syndicat || "PIED";
+  var s0=useState(PARAMS_DEFAUT);var params=s0[0];var setParams=s0[1];
+  var s1=useState("identite");var ong=s1[0];var setOng=s1[1];
+  var s2=useState("");var newMembre=s2[0];var setNewMembre=s2[1];
+  var s3=useState("");var newCourrielInput=s3[0];var setNewCourrielInput=s3[1];
+  var s4=useState("");var savedMsg=s4[0];var setSavedMsg=s4[1];
+  var s5=useState(false);var showUpload=s5[0];var setShowUpload=s5[1];
+  var s6=useState({nom:"",type:"declaration",dispo:true});var uploadForm=s6[0];var setUploadForm=s6[1];
+
+  function sp(k,v){setParams(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
+  function sauvegarder(){
+    try{localStorage.setItem("predictek_params_"+syndicat,JSON.stringify(params));}catch(e){}
+    setSavedMsg("Parametres sauvegardes!");
+    setTimeout(function(){setSavedMsg("");},3000);
+  }
+  function handleDoc(e){
+    var file=e.target.files[0];
+    if(!file)return;
+    var newDoc={id:Date.now(),nom:uploadForm.nom||file.name,type:uploadForm.type,date:new Date().toISOString().slice(0,10),taille:file.size>1048576?(file.size/1048576).toFixed(1)+" MB":(file.size/1024).toFixed(0)+" KB",dispo:uploadForm.dispo};
+    sp("documents",params.documents.concat([newDoc]));
+    setShowUpload(false);
+    setSavedMsg("Document ajoute: "+newDoc.nom);
+    setTimeout(function(){setSavedMsg("");},3000);
+  }
+
+  var TABS=[
+    {id:"identite",l:"Identite syndicat"},
+    {id:"ca",l:"Conseil d administration"},
+    {id:"courriels",l:"Courriels et automatisation"},
+    {id:"documents",l:"Documents officiels"},
+  ];
+
+  var TYPE_DOC={declaration:{l:"Declaration",bg:T.purpleL,c:T.purple},reglement:{l:"Reglement",bg:T.blueL,c:T.blue},police:{l:"Assurance",bg:T.amberL,c:T.amber},financier:{l:"Financier",bg:T.accentL,c:T.accent},autre:{l:"Autre",bg:T.alt,c:T.muted}};
+
+  return(
+    <div style={{padding:20,fontFamily:"Georgia,serif",maxWidth:860,margin:"0 auto"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <div>
+          <div style={{fontSize:18,fontWeight:800,color:T.navy}}>Parametres — {params.nom}</div>
+          <div style={{fontSize:11,color:T.muted}}>Configuration du syndicat | Code: {syndicat}</div>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {savedMsg&&<Bdg bg={T.accentL} c={T.accent}>{savedMsg}</Bdg>}
+          <Btn onClick={sauvegarder}>Sauvegarder</Btn>
+        </div>
+      </div>
+
+      <div style={{display:"flex",gap:3,marginBottom:20,background:T.surface,padding:5,borderRadius:10,border:"1px solid "+T.border}}>
+        {TABS.map(function(t){var a=ong===t.id;return(
+          <button key={t.id} onClick={function(){setOng(t.id);}} style={{background:a?T.navy:"transparent",border:"none",borderRadius:7,padding:"7px 14px",color:a?"#fff":T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400,whiteSpace:"nowrap"}}>{t.l}</button>
+        );})}
+      </div>
+
+      {ong==="identite"&&(
+        <div>
+          <Card>
+            <CardTitle>Informations generales</CardTitle>
+            <CardSub>Informations de base du syndicat telles qu inscrites au Registre foncier</CardSub>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Nom du syndicat"/><input value={params.nom} onChange={function(e){sp("nom",e.target.value);}} style={INP}/></div>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse de l immeuble"/><input value={params.adr} onChange={function(e){sp("adr",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Ville"/><input value={params.ville} onChange={function(e){sp("ville",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Province"/><input value={params.province} onChange={function(e){sp("province",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Code postal"/><input value={params.codePostal} onChange={function(e){sp("codePostal",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Immatriculation REQ"/><input value={params.immat} onChange={function(e){sp("immat",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Annee de construction"/><input value={params.anneeConstruction} onChange={function(e){sp("anneeConstruction",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Nombre d unites"/><input type="number" value={params.nbUnites} onChange={function(e){sp("nbUnites",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Exercice financier"/>
+                <select value={params.exercice} onChange={function(e){sp("exercice",e.target.value);}} style={INP}>
+                  <option value="1 nov au 31 oct">1 nov au 31 oct</option>
+                  <option value="1 jan au 31 dec">1 jan au 31 dec</option>
+                  <option value="1 avr au 31 mars">1 avr au 31 mars</option>
+                  <option value="1 juil au 30 juin">1 juil au 30 juin</option>
+                </select>
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <CardTitle>Quorum</CardTitle>
+            <CardSub>Regles de quorum selon la declaration de copropriete</CardSub>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div>
+                <Lbl l="Quorum reunion CA"/>
+                <select value={params.quorumCA} onChange={function(e){sp("quorumCA",e.target.value);}} style={INP}>
+                  <option value="majorite">Majorite simple (50%+1)</option>
+                  <option value="2tiers">Deux tiers (66.7%)</option>
+                  <option value="tous">Unanimite</option>
+                </select>
+              </div>
+              <div>
+                <Lbl l="Quorum AGO (% des voix)"/>
+                <input type="number" min="10" max="75" value={params.quorumAGO} onChange={function(e){sp("quorumAGO",parseInt(e.target.value)||25);}} style={INP}/>
+                <div style={{fontSize:10,color:T.muted,marginTop:3}}>Minimum requis pour tenir l assemblee</div>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {ong==="ca"&&(
+        <div>
+          <Card>
+            <CardTitle>Composition du conseil d administration</CardTitle>
+            <CardSub>Selon la declaration de copropriete — le nombre de membres doit etre impair (3, 5, 7 ou 9)</CardSub>
+            <div style={{marginBottom:16}}>
+              <Lbl l="Nombre de membres du CA"/>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {[3,5,7,9].map(function(n){var a=params.nbMembresCA===n;return(
+                  <button key={n} onClick={function(){sp("nbMembresCA",n);}} style={{width:60,height:60,borderRadius:10,border:"2px solid "+(a?T.accent:T.border),background:a?T.accentL:T.surface,color:a?T.accent:T.muted,fontSize:20,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{n}</button>
+                );})}
+              </div>
+              <div style={{fontSize:11,color:T.muted,marginTop:8}}>Actuellement: {params.nbMembresCA} membres | Quorum CA: {Math.ceil(params.nbMembresCA/2)} presents requis</div>
+            </div>
+          </Card>
+          <Card>
+            <CardTitle>Membres du CA</CardTitle>
+            <CardSub>Noms des administrateurs selon la derniere election</CardSub>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
+              <div><Lbl l="President"/><input value={params.president} onChange={function(e){sp("president",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Secretaire"/><input value={params.secretaire} onChange={function(e){sp("secretaire",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Tresorier"/><input value={params.tresorier} onChange={function(e){sp("tresorier",e.target.value);}} style={INP}/></div>
+            </div>
+            <Lbl l="Tous les membres du CA"/>
+            <div style={{marginBottom:10,minHeight:36,background:T.alt,borderRadius:8,padding:"6px 8px",display:"flex",flexWrap:"wrap"}}>
+              {params.membresCA.map(function(m,i){return(
+                <Tag key={i} onRemove={function(){sp("membresCA",params.membresCA.filter(function(_,j){return j!==i;}));}}>
+                  {m}
+                </Tag>
+              );})}
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <input value={newMembre} onChange={function(e){setNewMembre(e.target.value);}} onKeyDown={function(e){if(e.key==="Enter"&&newMembre.trim()){sp("membresCA",params.membresCA.concat([newMembre.trim()]));setNewMembre("");}}} placeholder="Ajouter un membre..." style={Object.assign({},INP,{flex:1})}/>
+              <Btn sm onClick={function(){if(newMembre.trim()){sp("membresCA",params.membresCA.concat([newMembre.trim()]));setNewMembre("");}}}> Ajouter</Btn>
+            </div>
+            {params.membresCA.length>params.nbMembresCA&&(
+              <div style={{background:T.amberL,borderRadius:8,padding:"8px 12px",fontSize:11,color:T.amber,marginTop:10}}>
+                Attention: {params.membresCA.length} membres listes mais le CA est configure pour {params.nbMembresCA} membres.
+              </div>
+            )}
+            {params.membresCA.length<params.nbMembresCA&&(
+              <div style={{background:T.redL,borderRadius:8,padding:"8px 12px",fontSize:11,color:T.red,marginTop:10}}>
+                Poste(s) vacant(s): {params.nbMembresCA-params.membresCA.length} poste(s) a combler.
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {ong==="courriels"&&(
+        <div>
+          <Card>
+            <CardTitle>Adresses courriel du syndicat</CardTitle>
+            <CardSub>Ces adresses sont utilisees pour les communications automatiques et la reception des factures</CardSub>
+            <div style={{display:"grid",gridTemplateColumns:"1fr",gap:12}}>
+              {[
+                {k:"courrielCA",l:"Courriel du CA (notifications, PV, reunions)",ph:"ca@syndicat.com",desc:"Recoit les convocations, PV et alertes destinees aux administrateurs"},
+                {k:"courrielFacturesFournisseurs",l:"Courriel reception factures fournisseurs",ph:"factures@syndicat.com",desc:"Les fournisseurs envoient leurs factures a cette adresse pour traitement automatique"},
+                {k:"courrielCopropriétaires",l:"Courriel communications coproprietaires",ph:"info@syndicat.com",desc:"Adresse de contact general pour les coproprietaires"},
+                {k:"courrielUrgences",l:"Courriel urgences 24/7",ph:"urgence@syndicat.com",desc:"Notifie immediatement le CA en cas d urgence"},
+                {k:"courrielComptabilite",l:"Courriel comptabilite Predictek",ph:"comptabilite@predictek.com",desc:"Recoit les factures Predictek et les rapports financiers"},
+              ].map(function(item){return(
+                <div key={item.k} style={{background:T.alt,borderRadius:10,padding:14}}>
+                  <Lbl l={item.l}/>
+                  <input value={params[item.k]||""} onChange={function(e){sp(item.k,e.target.value);}} placeholder={item.ph} style={INP}/>
+                  <div style={{fontSize:10,color:T.muted,marginTop:5}}>{item.desc}</div>
+                </div>
+              );})}
+            </div>
+          </Card>
+
+          <Card>
+            <CardTitle>Automatisation des communications</CardTitle>
+            <CardSub>Activez ou desactivez les envois automatiques pour ce syndicat</CardSub>
+            <div style={{display:"grid",gap:0}}>
+              {[
+                {k:"autoFacturesFournisseurs",l:"Reception et traitement automatique des factures fournisseurs",desc:"Les factures recues par courriel sont automatiquement creees dans le systeme et envoyees pour approbation au CA"},
+                {k:"autoNotifCA",l:"Notifications automatiques au CA",desc:"Rappels de reunions, alertes de conformite, factures en attente"},
+                {k:"autoNotifCopros",l:"Notifications automatiques aux coproprietaires",desc:"Avis de convocations, rappels cotisations, documents disponibles"},
+                {k:"autoRappelsCotisations",l:"Rappels cotisations en retard",desc:"J+5, J+15, J+30 automatiquement"},
+                {k:"autoAlertesConformite",l:"Alertes conformite automatiques",desc:"CE, assurance, PAP — 90 jours, 30 jours, 7 jours avant expiration"},
+              ].map(function(item,i){return(
+                <div key={item.k} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"14px 0",borderBottom:i<4?"1px solid "+T.border:"none"}}>
+                  <div style={{flex:1,paddingRight:16}}>
+                    <div style={{fontSize:13,fontWeight:500,color:T.text,marginBottom:3}}>{item.l}</div>
+                    <div style={{fontSize:11,color:T.muted}}>{item.desc}</div>
+                  </div>
+                  <Toggle on={params[item.k]} onClick={function(){sp(item.k,!params[item.k]);}}/>
+                </div>
+              );})}
+            </div>
+            <div style={{marginTop:16,background:T.amberL,borderRadius:8,padding:"10px 14px",fontSize:11,color:T.amber}}>
+              Note: Les envois reels par courriel necessitent la connexion Supabase + SendGrid (prochaine etape). En mode demo, les alertes s affichent dans le module Notifications.
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {ong==="documents"&&(
+        <div>
+          <Card>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+              <div>
+                <CardTitle>Documents officiels du syndicat</CardTitle>
+                <CardSub style={{marginBottom:0}}>Declaration de copropriete, reglements votes, polices d assurance. Ces documents sont accessibles aux coproprietaires via leur portail.</CardSub>
+              </div>
+              <Btn sm onClick={function(){setUploadForm({nom:"",type:"declaration",dispo:true});setShowUpload(true);}}>+ Ajouter document</Btn>
+            </div>
+
+            <div style={{display:"grid",gap:10}}>
+              {params.documents.map(function(doc,i){var tp=TYPE_DOC[doc.type]||TYPE_DOC.autre;return(
+                <div key={doc.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:T.alt,borderRadius:10,padding:"12px 16px"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{width:40,height:40,borderRadius:8,background:tp.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                      <span style={{fontSize:9,fontWeight:800,color:tp.c}}>PDF</span>
+                    </div>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:600,color:T.text}}>{doc.nom}</div>
+                      <div style={{fontSize:10,color:T.muted}}>{doc.date} | {doc.taille}</div>
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    <Bdg bg={tp.bg} c={tp.c}>{tp.l}</Bdg>
+                    <div style={{display:"flex",alignItems:"center",gap:6}}>
+                      <span style={{fontSize:10,color:T.muted}}>Copros:</span>
+                      <Toggle on={doc.dispo} onClick={function(){sp("documents",params.documents.map(function(d,j){return j===i?Object.assign({},d,{dispo:!d.dispo}):d;}));}}/>
+                    </div>
+                    <Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red} onClick={function(){sp("documents",params.documents.filter(function(_,j){return j!==i;}));}}>Retirer</Btn>
+                  </div>
+                </div>
+              );})}
+              {params.documents.length===0&&(
+                <div style={{textAlign:"center",padding:40,color:T.muted,fontSize:13}}>Aucun document. Ajoutez votre declaration de copropriete.</div>
+              )}
+            </div>
+
+            <div style={{marginTop:16,background:T.blueL,borderRadius:8,padding:"10px 14px",fontSize:11,color:T.blue}}>
+              Les documents marques "Copros: actif" apparaissent dans l onglet Documents du Portail Coproprietaire. Les coproprietaires peuvent les consulter mais pas les modifier.
+            </div>
+          </Card>
+
+          {showUpload&&(
+            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}} onClick={function(e){if(e.target===e.currentTarget)setShowUpload(false);}}>
+              <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:14,padding:24,width:480,maxWidth:"94vw"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+                  <b style={{fontSize:14,color:T.text}}>Ajouter un document</b>
+                  <button onClick={function(){setShowUpload(false);}} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:T.muted,lineHeight:1}}>x</button>
+                </div>
+                <div style={{display:"grid",gap:12,marginBottom:14}}>
+                  <div><Lbl l="Nom du document"/><input value={uploadForm.nom} onChange={function(e){setUploadForm(function(o){return Object.assign({},o,{nom:e.target.value});});}} placeholder="ex: Declaration de copropriete 2013" style={INP}/></div>
+                  <div><Lbl l="Type de document"/>
+                    <select value={uploadForm.type} onChange={function(e){setUploadForm(function(o){return Object.assign({},o,{type:e.target.value});});}} style={INP}>
+                      <option value="declaration">Declaration de copropriete</option>
+                      <option value="reglement">Reglement vote</option>
+                      <option value="police">Police d assurance</option>
+                      <option value="financier">Document financier</option>
+                      <option value="autre">Autre</option>
+                    </select>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:T.alt,borderRadius:8,padding:"10px 14px"}}>
+                    <div>
+                      <div style={{fontSize:12,fontWeight:500}}>Visible aux coproprietaires</div>
+                      <div style={{fontSize:10,color:T.muted}}>Disponible dans le Portail Coproprietaire</div>
+                    </div>
+                    <Toggle on={uploadForm.dispo} onClick={function(){setUploadForm(function(o){return Object.assign({},o,{dispo:!o.dispo});});}}/>
+                  </div>
+                  <div>
+                    <Lbl l="Fichier (PDF recommande)"/>
+                    <input type="file" accept=".pdf,.doc,.docx,.jpg,.png" id="docUpload" onChange={handleDoc} style={{width:"100%",border:"1px solid "+T.border,borderRadius:7,padding:8,fontFamily:"inherit",fontSize:12,boxSizing:"border-box"}}/>
+                  </div>
+                </div>
+                <div style={{background:T.amberL,borderRadius:8,padding:"8px 12px",fontSize:11,color:T.amber,marginBottom:14}}>
+                  Note: En mode demo, le fichier est enregistre localement. Avec Supabase, les documents seront stockes dans le nuage.
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <Btn onClick={function(){document.getElementById("docUpload").click();}}>Selectionner et ajouter</Btn>
+                  <Btn onClick={function(){setShowUpload(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 // ===== MODULE PRINCIPAL HUB =====
 export default function Hub(){
   var s0=useState("syndicats");var ong=s0[0];var setOng=s0[1];
@@ -512,6 +850,7 @@ export default function Hub(){
   var s2=useState(null);var detail=s2[0];var setDetail=s2[1];
   var s3=useState(false);var creer=s3[0];var setCreer=s3[1];
   var s4=useState(null);var setup=s4[0];var setSetup=s4[1];
+  var s5=useState(false);var showParams=s5[0];var setShowParams=s5[1];
 
   var actifs=syndicats.filter(function(s){return s.statut==="actif";});
   var totalUnites=actifs.reduce(function(a,s){return a+s.nbUnites;},0);
@@ -537,11 +876,23 @@ export default function Hub(){
     );
   }
 
+  if(showParams&&detail){
+    var selSP=syndicats.find(function(s){return s.id===detail;});
+    return(
+      <div style={{fontFamily:"Georgia,serif"}}>
+        <div style={{background:T.navy,display:"flex",alignItems:"center",gap:12,padding:"12px 20px"}}>
+          <Btn sm bg={"#ffffff20"} tc={"#fff"} bdr={"1px solid #ffffff40"} onClick={function(){setShowParams(false);}}>Retour au syndicat</Btn>
+          <span style={{fontSize:13,fontWeight:700,color:"#fff"}}>{selSP?selSP.nom:""} — Parametres</span>
+        </div>
+        {selSP&&<ParamsSyndicat syndicat={selSP.code}/>}
+      </div>
+    );
+  }
   if(detail){
     var selS=syndicats.find(function(s){return s.id===detail;});
     return(
       <div style={{padding:16,fontFamily:"Georgia,serif"}}>
-        {selS&&<DetailSyndicat syndicat={selS} onRetour={function(){setDetail(null);}}/>}
+        {selS&&<DetailSyndicat syndicat={selS} onRetour={function(){setDetail(null);setShowParams(false);}} onParams={function(){setShowParams(true);}}/>}
       </div>
     );
   }
