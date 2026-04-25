@@ -22,88 +22,9 @@ function Modal(p){
 }
 
 // ===== DONNEES SYNDICATS =====
-var SYNDICATS_INIT=[
-  {
-    id:1, nom:"Syndicat Piedmont", code:"PIED",
-    adr:"Ch. du Hibou, Stoneham QC G3C 1T1",
-    president:"Jean-Francois Laroche", courriel:"jf.laroche@email.com",
-    tel:"819-479-4203", immat:"1144524577",
-    anneeConstruction:2013, nbUnites:36,
-    cotisationMensuelle:14297.28,
-    soldeOp:7361.88, soldePrev:64235.01, soldeAss:36178.37,
-    alertesCE:1, alertesAss:2, alertesPAP:3, alertesCarnet:2,
-    facturesEnAttente:2, montantFactures:1685.00,
-    prochReunion:"2026-05-15",
-    gestionnaire:"Jean-Francois Laroche",
-    statut:"actif",
-    scoreFinancier:88, scoreConformite:74, scoreEntretien:82,
-    exercice:"1 nov au 31 oct",
-    nbCoprosPortail:3,
-    dernierRapport:"2026-04-05",
-  },
-  {
-    id:2, nom:"Syndicat Les Erables", code:"ERAB",
-    adr:"345 rue des Erables, Quebec QC G1V 2K8",
-    president:"Marie-Claude Vachon", courriel:"mc.vachon@email.com",
-    tel:"418-654-3210", immat:"1187234512",
-    anneeConstruction:2008, nbUnites:24,
-    cotisationMensuelle:9850.00,
-    soldeOp:12450.00, soldePrev:38900.00, soldeAss:18200.00,
-    alertesCE:3, alertesAss:1, alertesPAP:1, alertesCarnet:1,
-    facturesEnAttente:1, montantFactures:3200.00,
-    prochReunion:"2026-06-10",
-    gestionnaire:"Marie-Claude Vachon",
-    statut:"actif",
-    scoreFinancier:92, scoreConformite:81, scoreEntretien:68,
-    exercice:"1 jan au 31 dec",
-    nbCoprosPortail:8,
-    dernierRapport:"2026-04-05",
-  },
-  {
-    id:3, nom:"Syndicat Belvedere", code:"BELV",
-    adr:"78 ave du Belvedere, Levis QC G6V 5P2",
-    president:"Robert Champagne", courriel:"r.champagne@email.com",
-    tel:"418-833-7744", immat:"1201456789",
-    anneeConstruction:2018, nbUnites:18,
-    cotisationMensuelle:7200.00,
-    soldeOp:5100.00, soldePrev:22400.00, soldeAss:11800.00,
-    alertesCE:0, alertesAss:0, alertesPAP:2, alertesCarnet:0,
-    facturesEnAttente:3, montantFactures:5670.00,
-    prochReunion:"2026-05-28",
-    gestionnaire:"Robert Champagne",
-    statut:"actif",
-    scoreFinancier:76, scoreConformite:95, scoreEntretien:98,
-    exercice:"1 nov au 31 oct",
-    nbCoprosPortail:12,
-    dernierRapport:"2026-04-05",
-  },
-  {
-    id:4, nom:"Syndicat Mont-Royal", code:"MONT",
-    adr:"221 rue Mont-Royal, Montreal QC H2T 2S8",
-    president:"", courriel:"",
-    tel:"", immat:"",
-    anneeConstruction:0, nbUnites:0,
-    cotisationMensuelle:0,
-    soldeOp:0, soldePrev:0, soldeAss:0,
-    alertesCE:0, alertesAss:0, alertesPAP:0, alertesCarnet:0,
-    facturesEnAttente:0, montantFactures:0,
-    prochReunion:"",
-    gestionnaire:"",
-    statut:"setup",
-    scoreFinancier:0, scoreConformite:0, scoreEntretien:0,
-    exercice:"",
-    nbCoprosPortail:0,
-    dernierRapport:"",
-  },
-];
+var SYNDICATS_INIT=[];
 
-var USAGERS_INIT=[
-  {id:1,nom:"Marie Tremblay",courriel:"m.tremblay@predictek.com",role:"Admin",syndicats:["PIED","ERAB","BELV","MONT"],actif:true,derniereConnexion:"2026-04-25"},
-  {id:2,nom:"Jean-Philippe Roy",courriel:"jp.roy@predictek.com",role:"Gestionnaire",syndicats:["PIED","ERAB"],actif:true,derniereConnexion:"2026-04-24"},
-  {id:3,nom:"Sarah Bolduc",courriel:"s.bolduc@predictek.com",role:"Gestionnaire",syndicats:["BELV"],actif:true,derniereConnexion:"2026-04-22"},
-  {id:4,nom:"Carlos Mendes",courriel:"c.mendes@predictek.com",role:"Terrain",syndicats:["PIED","BELV"],actif:true,derniereConnexion:"2026-04-20"},
-  {id:5,nom:"Amelie Caron",courriel:"a.caron@predictek.com",role:"Gestionnaire",syndicats:[],actif:false,derniereConnexion:"2026-03-01"},
-];
+var USAGERS_INIT=[];
 
 // ===== SCORE SANTE =====
 function ScoreBarre(p){
