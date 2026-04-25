@@ -1,6 +1,6 @@
 import { useState } from "react";
 var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",pop:"#3CAF6E",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",purple:"#6B3FA0",purpleL:"#F3EEFF"};
-var fmt=function(n){if(!n&&n!==0)return"â";return Math.abs(n).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
+var fmt=function(n){if(!n&&n!==0)return"—";return Math.abs(n).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
 var today=function(){return new Date().toISOString().slice(0,10);};
 var daysLeft=function(d){return d?Math.ceil((new Date(d)-new Date())/86400000):9999;};
 var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
@@ -113,7 +113,7 @@ var UNITES0=[
 // ===== HELPERS =====
 function expSt(d){
   var j=daysLeft(d);
-  if(!d)return{c:T.muted,bg:"transparent",l:"â"};
+  if(!d)return{c:T.muted,bg:"transparent",l:"—"};
   if(j<0)return{c:T.red,bg:T.redL,l:"EXPIRE"};
   if(j<=30)return{c:T.red,bg:T.redL,l:j+"j"};
   if(j<=90)return{c:T.amber,bg:T.amberL,l:j+"j"};
@@ -265,7 +265,7 @@ function TabFinances(p){
       {sub==="budget"&&(
         <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",borderBottom:"1px solid "+T.border}}>
-            <b style={{fontSize:13,color:T.navy}}>Budget 2025-2026 â 6 mois</b>
+            <b style={{fontSize:13,color:T.navy}}>Budget 2025-2026 — 6 mois</b>
             <div style={{display:"flex",gap:8}}>
               <Bdg bg={T.blueL} c={T.blue}>{Math.round(totR/totB*100)}% utilise</Bdg>
               <Btn sm bg={T.navy} onClick={function(){pdfPrint("Budget 2025-2026 - Syndicat Piedmont",[{k:"cat",l:"Cat"},{k:"poste",l:"Poste"},{k:"budgetF",l:"Budget"},{k:"reelF",l:"Reel 6 mois"},{k:"pct",l:"% utilise"}],BUDGET.map(function(b){return Object.assign({},b,{budgetF:fmt(b.budget),reelF:fmt(b.reel),pct:Math.round(b.reel/b.budget*100)+"%"});}));}}>PDF</Btn>
@@ -422,10 +422,10 @@ function TabReunions(p){
           <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
               <div>
-                <div style={{fontSize:15,fontWeight:800,color:T.navy}}>{selR.type} â {selR.date}</div>
+                <div style={{fontSize:15,fontWeight:800,color:T.navy}}>{selR.type} — {selR.date}</div>
                 <div style={{fontSize:11,color:T.muted,marginTop:2}}>{selR.heure} | {selR.lieu}</div>
               </div>
-              <Btn sm bg={T.navy} onClick={function(){pdfPrint("PV "+selR.type+" du "+selR.date+" â Syndicat Piedmont",[{k:"n",l:"No"},{k:"item",l:"Point ordre du jour"}],selR.ordre.map(function(o,i){return {n:i+1,item:o};}),selR.pv?"Proces-verbal: "+selR.pv:"");}}>Imprimer PV</Btn>
+              <Btn sm bg={T.navy} onClick={function(){pdfPrint("PV "+selR.type+" du "+selR.date+" — Syndicat Piedmont",[{k:"n",l:"No"},{k:"item",l:"Point ordre du jour"}],selR.ordre.map(function(o,i){return {n:i+1,item:o};}),selR.pv?"Proces-verbal: "+selR.pv:"");}}>Imprimer PV</Btn>
             </div>
             <Lbl l="Ordre du jour"/>
             {selR.ordre.map(function(o,i){return(
@@ -480,7 +480,7 @@ function TabCarnet(p){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div>
-          <b style={{fontSize:13,color:T.navy,display:"block"}}>Carnet entretien â Loi 16</b>
+          <b style={{fontSize:13,color:T.navy,display:"block"}}>Carnet entretien — Loi 16</b>
           <span style={{fontSize:11,color:T.muted}}>{p.carnet.length} composantes | {fmt(totCout)} | {alts} alerte(s)</span>
         </div>
         <div style={{display:"flex",gap:6}}>
@@ -513,7 +513,7 @@ function TabCarnet(p){
                   </div>
                 </td>
                 <td style={{padding:"8px 10px"}}><Bdg bg={st.bg} c={st.c}>{st.l}</Bdg></td>
-                <td style={{padding:"8px 10px",fontSize:11,color:T.muted}}>{c.entretien||"â"}</td>
+                <td style={{padding:"8px 10px",fontSize:11,color:T.muted}}>{c.entretien||"—"}</td>
               </tr>
             );})}
           </tbody>
@@ -572,8 +572,8 @@ function TabUnites(){
     var ALL_COLS=[{k:"u",l:"Unite"},{k:"nom",l:"Proprietaire"},{k:"fraction",l:"Fraction %"},{k:"cot",l:"Cotisation"},{k:"papL",l:"PAP"},{k:"ce",l:"CE expiry"},{k:"ass",l:"Ass. expiry"},{k:"locL",l:"Location"},{k:"animaux",l:"Animaux"}];
     var cols=ALL_COLS.filter(function(c){return expCols[c.k]!==false;});
     var rows=unites.map(function(u){return Object.assign({},u,{papL:u.pap?"Oui":"Non",locL:u.loc?"Oui":"Non"});});
-    if(expFmt==="csv"){csvDL(cols,rows,"registre-copropriÃ©taires-"+today());}
-    else{pdfPrint("Registre coproprietaires â Syndicat Piedmont",cols,rows,"36 unites | "+today());}
+    if(expFmt==="csv"){csvDL(cols,rows,"registre-copropriétaires-"+today());}
+    else{pdfPrint("Registre coproprietaires — Syndicat Piedmont",cols,rows,"36 unites | "+today());}
     setShowExport(false);
   }
 
@@ -670,8 +670,8 @@ function TabUnites(){
                         <td style={{padding:"7px 8px",textAlign:"center"}}><span style={{display:"inline-block",width:16,height:16,borderRadius:"50%",background:u.pap?T.accent:T.red,color:"#fff",fontSize:8,fontWeight:700,lineHeight:"16px",textAlign:"center"}}>{u.pap?"V":"!"}</span></td>
                         <td style={{padding:"7px 8px",textAlign:"center"}}><span style={{fontSize:10,fontWeight:600,color:ceS.c,background:ceS.bg,padding:"1px 6px",borderRadius:10}}>{ceS.l}</span></td>
                         <td style={{padding:"7px 8px",textAlign:"center"}}><span style={{fontSize:10,fontWeight:600,color:aS.c,background:aS.bg,padding:"1px 6px",borderRadius:10}}>{aS.l}</span></td>
-                        <td style={{padding:"7px 8px",textAlign:"center"}}>{u.loc?<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:8,background:T.amberL,color:T.amber}}>Loue</span>:<span style={{color:T.muted,fontSize:10}}>â</span>}</td>
-                        <td style={{padding:"7px 8px",textAlign:"center"}}>{u.animaux>0?<span style={{fontSize:11}}>{u.animaux}</span>:<span style={{color:T.muted,fontSize:10}}>â</span>}</td>
+                        <td style={{padding:"7px 8px",textAlign:"center"}}>{u.loc?<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:8,background:T.amberL,color:T.amber}}>Loue</span>:<span style={{color:T.muted,fontSize:10}}>—</span>}</td>
+                        <td style={{padding:"7px 8px",textAlign:"center"}}>{u.animaux>0?<span style={{fontSize:11}}>{u.animaux}</span>:<span style={{color:T.muted,fontSize:10}}>—</span>}</td>
                         <td style={{padding:"7px 8px",textAlign:"center"}}>{alts>0?<span style={{fontSize:10,fontWeight:700,color:"#fff",background:T.red,padding:"1px 6px",borderRadius:10}}>{alts}</span>:<span style={{fontSize:10,color:T.accent}}>ok</span>}</td>
                       </tr>
                     );
@@ -747,7 +747,7 @@ function TabUnites(){
   );
 }
 
-// ===== EXPORT COPROPRIÃTAIRES =====
+// ===== EXPORT COPROPRIÉTAIRES =====
 function ExportCopros(p){
   var s0=useState({u:true,nom:true,fraction:true,cot:true,pap:true,ce:true,ass:true,loc:true});var cols=s0[0];var setCols=s0[1];
   var s1=useState("csv");var fmt2=s1[0];var setFmt2=s1[1];
@@ -755,8 +755,8 @@ function ExportCopros(p){
   var selCols=ALL.filter(function(c){return cols[c.k]!==false;});
   function doExport(){
     var rows=UNITES0.map(function(u){return Object.assign({},u,{papL:u.pap?"Oui":"Non",locL:u.loc?"Oui":"Non"});});
-    if(fmt2==="csv"){csvDL(selCols,rows,"registre-copropriÃ©taires-"+today());}
-    else{pdfPrint("Registre coproprietaires â Syndicat Piedmont",selCols,rows,"36 unites | "+today());}
+    if(fmt2==="csv"){csvDL(selCols,rows,"registre-copropriétaires-"+today());}
+    else{pdfPrint("Registre coproprietaires — Syndicat Piedmont",selCols,rows,"36 unites | "+today());}
     p.onClose();
   }
   return(
@@ -784,6 +784,25 @@ function ExportCopros(p){
   );
 }
 
+
+// ===== TAB COPROPRIETAIRES =====
+var COPROS_INIT=[
+  {id:1,u:"515",nom:"Michel",prenom:"Beaudoin",tel:"418-555-0101",courriel:"m.beaudoin@email.com",fraction:3.875,cot:530.59,pap:true,ce:"2029-03-15",ass:"2026-12-31",loc:false,animaux:0,acces:true,codeActif:true,derniereConnexion:"2026-04-20"},
+  {id:2,u:"517",nom:"Noreau",prenom:"Marilou",tel:"",courriel:"",fraction:2.666,cot:365.05,pap:false,ce:"2028-06-01",ass:"2026-09-15",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
+  {id:3,u:"519",nom:"Boulianne",prenom:"Tommy",tel:"",courriel:"",fraction:2.666,cot:365.05,pap:true,ce:"2027-11-20",ass:"2026-11-30",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
+  {id:4,u:"521",nom:"Begin",prenom:"Jean-Francois",tel:"",courriel:"",fraction:2.666,cot:365.05,pap:true,ce:"2031-05-10",ass:"2027-01-15",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
+  {id:5,u:"523",nom:"McCartney",prenom:"Joyce",tel:"",courriel:"",fraction:2.666,cot:365.05,pap:true,ce:"2030-08-22",ass:"2026-08-31",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
+  {id:6,u:"525",nom:"Pellerin",prenom:"Simon",tel:"",courriel:"",fraction:3.833,cot:524.84,pap:true,ce:"2028-03-14",ass:"2027-03-01",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
+  {id:7,u:"527",nom:"Maltais",prenom:"Fabienne",tel:"",courriel:"",fraction:3.874,cot:530.45,pap:false,ce:"2029-09-01",ass:"2026-10-31",loc:true,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
+  {id:8,u:"529",nom:"Bolduc",prenom:"Karine",tel:"",courriel:"",fraction:2.133,cot:292.06,pap:true,ce:"2027-07-15",ass:"2026-07-31",loc:false,animaux:1,acces:false,codeActif:false,derniereConnexion:""},
+  {id:9,u:"531",nom:"Laroche",prenom:"Jean-Francois",tel:"819-479-4203",courriel:"jf.laroche@email.com",fraction:2.133,cot:292.06,pap:true,ce:"2030-09-10",ass:"2026-08-01",loc:false,animaux:1,acces:true,codeActif:true,derniereConnexion:"2026-04-25",role:"President CA"},
+  {id:10,u:"533",nom:"Lemaire",prenom:"Denis",tel:"",courriel:"",fraction:2.389,cot:327.12,pap:true,ce:"2028-12-01",ass:"2027-02-28",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
+  {id:11,u:"535",nom:"Rouillard",prenom:"Guillaume",tel:"",courriel:"",fraction:2.133,cot:292.06,pap:true,ce:"2029-04-20",ass:"2026-12-15",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
+  {id:12,u:"537",nom:"Perreault",prenom:"Catherine",tel:"",courriel:"",fraction:2.133,cot:292.06,pap:false,ce:"2028-02-14",ass:"2026-06-30",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
+  {id:13,u:"539",nom:"Tremblay",prenom:"Lucette",tel:"418-555-0539",courriel:"l.tremblay@email.com",fraction:3.840,cot:525.80,pap:true,ce:"2024-04-22",ass:"2026-06-15",loc:true,animaux:2,acces:true,codeActif:false,derniereConnexion:"2026-03-15"},
+  {id:14,u:"541",nom:"Poulin",prenom:"Emile",tel:"",courriel:"",fraction:3.847,cot:526.76,pap:true,ce:"2031-01-08",ass:"2027-01-31",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
+  {id:15,u:"543",nom:"Salvas",prenom:"Michel",tel:"",courriel:"",fraction:2.133,cot:292.06,pap:true,ce:"2027-05-30",ass:"2026-05-31",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
+];
 var TICKETS_COPRO={
   "531":[
     {id:1,titre:"Fuite sous evier",date:"2026-04-20",statut:"en_cours",cat:"plomberie"},
@@ -793,132 +812,40 @@ var TICKETS_COPRO={
     {id:3,titre:"Bruit chauffage",date:"2026-04-24",statut:"nouveau",cat:"chauffage"},
   ],
 };
-
-function daysLeft(d){return d?Math.ceil((new Date(d)-new Date())/86400000):9999;}
-function expSt(d){
-  var j=daysLeft(d);
-  if(!d)return{c:T.muted,bg:"transparent",l:"â"};
-  if(j<0)return{c:T.red,bg:T.redL,l:"EXPIRE"};
-  if(j<=30)return{c:T.red,bg:T.redL,l:j+"j"};
-  if(j<=90)return{c:T.amber,bg:T.amberL,l:j+"j"};
-  return{c:T.accent,bg:T.accentL,l:"OK"};
-}
 function genCode(){return Math.floor(1000+Math.random()*9000).toString();}
-function csvDL(cols,rows,name){
-  var q=String.fromCharCode(34);
-  var hdr=cols.map(function(c){return c.l;}).join(",");
-  var body=rows.map(function(row){
-    return cols.map(function(c){
-      var v=row[c.k]!==undefined?String(row[c.k]):"";
-      var s=v.replace(new RegExp(q,"g"),q+q);
-      return s.indexOf(",")>=0||s.indexOf(q)>=0?q+s+q:s;
-    }).join(",");
-  });
-  var blob=new Blob(["\uFEFF"+hdr+"\n"+body.join("\n")],{type:"text/csv;charset=utf-8;"});
-  var a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download=name+".csv";
-  a.click();
-}
-
 function TabCopros(){
   var s0=useState(COPROS_INIT);var copros=s0[0];var setCopros=s0[1];
   var s1=useState(null);var sel=s1[0];var setSel=s1[1];
   var s2=useState("");var search=s2[0];var setSearch=s2[1];
   var s3=useState("tous");var filtre=s3[0];var setFiltre=s3[1];
   var s4=useState(false);var showFiche=s4[0];var setShowFiche=s4[1];
-  var s5=useState(false);var showNouv=s5[0];var setShowNouv=s5[1];
-  var s6=useState(false);var showCode=s6[0];var setShowCode=s6[1];
-  var s7=useState({});var nf=s7[0];var setNf=s7[1];
-  var s8=useState("");var codeGenere=s8[0];var setCodeGenere=s8[1];
-  var s9=useState("");var msg=s9[0];var setMsg=s9[1];
-
-  function snf(k,v){setNf(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
+  var s5=useState(false);var showCode=s5[0];var setShowCode=s5[1];
+  var s6=useState("");var codeGenere=s6[0];var setCodeGenere=s6[1];
+  var s7=useState("");var msg=s7[0];var setMsg=s7[1];
   function upd(id,changes){setCopros(function(prev){return prev.map(function(c){return c.id===id?Object.assign({},c,changes):c;});});}
-
   var liste=copros.filter(function(c){
-    if(search){var q=search.toLowerCase();if(!c.u.includes(q)&&!(c.prenom+" "+c.nom).toLowerCase().includes(q)&&!c.courriel.toLowerCase().includes(q))return false;}
+    if(search){var q=search.toLowerCase();if(!(c.u+c.prenom+c.nom+c.courriel).toLowerCase().includes(q))return false;}
     if(filtre==="acces")return c.acces;
     if(filtre==="sans_acces")return !c.acces;
     if(filtre==="sans_courriel")return !c.courriel;
     if(filtre==="alertes"){var ceS=expSt(c.ce);var aS=expSt(c.ass);return ceS.c===T.red||aS.c===T.red||!c.pap;}
     return true;
   });
-
   var selC=sel?copros.find(function(c){return c.id===sel;}):null;
   var nAcces=copros.filter(function(c){return c.acces;}).length;
   var nSansCourriel=copros.filter(function(c){return !c.courriel;}).length;
   var nAlertes=copros.filter(function(c){var ceS=expSt(c.ce);var aS=expSt(c.ass);return ceS.c===T.red||aS.c===T.red||!c.pap;}).length;
-
-  function activerAcces(id){
-    var code=genCode();
-    setCodeGenere(code);
-    upd(id,{acces:true,codeActif:true});
-    setShowCode(true);
-    setMsg("Acces active pour l unite. Transmettez ce code au coproprietaire.");
-  }
-  function reinitCode(id){
-    var code=genCode();
-    setCodeGenere(code);
-    upd(id,{codeActif:true});
-    setShowCode(true);
-    setMsg("Nouveau code genere. Transmettez-le au coproprietaire.");
-  }
-  function dÃ©sactiverAcces(id){
-    upd(id,{acces:false,codeActif:false,derniereConnexion:""});
-  }
-
-  function parseCSV(text){
-    var lines=text.trim().split("\n");
-    if(lines.length<2)return null;
-    var headers=lines[0].split(",").map(function(h){return h.trim().replace(/"/g,"");});
-    var rows=[];
-    for(var i=1;i<lines.length;i++){
-      var vals=lines[i].split(",");
-      var row={};
-      headers.forEach(function(h,j){row[h]=(vals[j]||"").trim().replace(/"/g,"");});
-      if(row["Unite"]||row["u"]){
-        rows.push({
-          id:Date.now()+i,
-          u:row["Unite"]||row["u"]||"",
-          prenom:row["Prenom"]||row["prenom"]||"",
-          nom:row["Nom"]||row["nom"]||"",
-          tel:row["Telephone"]||row["tel"]||"",
-          courriel:row["Courriel"]||row["courriel"]||"",
-          fraction:parseFloat(row["Fraction"]||row["fraction"])||0,
-          cot:parseFloat(row["Cotisation"]||row["cot"])||0,
-          pap:(row["PAP"]||"").toLowerCase()==="oui",
-          ce:row["CE"]||row["ce"]||"",
-          ass:row["Assurance"]||row["ass"]||"",
-          loc:(row["Location"]||"").toLowerCase()==="oui",
-          animaux:parseInt(row["Animaux"]||"0")||0,
-          acces:false,codeActif:false,derniereConnexion:""
-        });
-      }
-    }
-    return rows;
-  }
-
-  function handleCSV(e){
-    var file=e.target.files[0];
-    if(!file)return;
-    var reader=new FileReader();
-    reader.onload=function(ev){
-      var rows=parseCSV(ev.target.result);
-      if(rows&&rows.length>0){setCopros(rows);setMsg("Import reussi: "+rows.length+" coproprietaires charges");}
-      else{setMsg("Erreur: format CSV invalide");}
-    };
-    reader.readAsText(file);
-  }
-
+  function activerAcces(id){var code=genCode();setCodeGenere(code);upd(id,{acces:true,codeActif:true});setShowCode(true);}
+  function reinitCode(id){var code=genCode();setCodeGenere(code);upd(id,{codeActif:true});setShowCode(true);}
+  function desactiverAcces(id){upd(id,{acces:false,codeActif:false,derniereConnexion:""});}
   return(
     <div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
         {[
-          {l:"Total coproprietaires",v:copros.length,c:T.navy,bg:T.blueL},
-          {l:"Acces portail actif",v:nAcces,c:T.accent,bg:T.accentL},
+          {l:"Total",v:copros.length,c:T.navy,bg:T.blueL},
+          {l:"Portail actif",v:nAcces,c:T.accent,bg:T.accentL},
           {l:"Sans courriel",v:nSansCourriel,c:nSansCourriel>0?T.amber:T.accent,bg:nSansCourriel>0?T.amberL:T.accentL},
-          {l:"Alertes conformite",v:nAlertes,c:nAlertes>0?T.red:T.accent,bg:nAlertes>0?T.redL:T.accentL},
+          {l:"Alertes",v:nAlertes,c:nAlertes>0?T.red:T.accent,bg:nAlertes>0?T.redL:T.accentL},
         ].map(function(s,i){return(
           <div key={i} style={{background:s.bg,borderRadius:10,padding:"11px 13px",border:"1px solid "+s.c+"33"}}>
             <div style={{fontSize:9,color:s.c,fontWeight:700,marginBottom:3,textTransform:"uppercase"}}>{s.l}</div>
@@ -926,112 +853,70 @@ function TabCopros(){
           </div>
         );})}
       </div>
-
       <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
-        {[["tous","Tous ("+copros.length+")"],["acces","Portail actif"],["sans_acces","Sans acces"],["sans_courriel","Sans courriel"],["alertes","Alertes"]].map(function(f){var a=filtre===f[0];return(
+        {[["tous","Tous"],["acces","Portail actif"],["sans_acces","Sans acces"],["sans_courriel","Sans courriel"],["alertes","Alertes"]].map(function(f){var a=filtre===f[0];return(
           <button key={f[0]} onClick={function(){setFiltre(f[0]);}} style={{background:a?T.navy:"#fff",border:"1px solid "+(a?T.navy:T.border),borderRadius:20,padding:"4px 12px",color:a?"#fff":T.muted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{f[1]}</button>
         );})}
-        <input value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Chercher nom, unite, courriel..." style={{border:"1px solid "+T.border,borderRadius:20,padding:"4px 12px",fontSize:11,fontFamily:"inherit",outline:"none",flex:1,minWidth:180}}/>
-        <Btn sm bg={T.purple} onClick={function(){document.getElementById("csvImportCopro").click();}}>Importer CSV</Btn>
-        <input id="csvImportCopro" type="file" accept=".csv" onChange={handleCSV} style={{display:"none"}}/>
-        <Btn sm bg={T.navy} onClick={function(){csvDL([{k:"u",l:"Unite"},{k:"prenom",l:"Prenom"},{k:"nom",l:"Nom"},{k:"tel",l:"Telephone"},{k:"courriel",l:"Courriel"},{k:"fraction",l:"Fraction"},{k:"cot",l:"Cotisation"},{k:"papL",l:"PAP"},{k:"acces",l:"Portail actif"}],copros.map(function(c){return Object.assign({},c,{papL:c.pap?"Oui":"Non",acces:c.acces?"Oui":"Non"});}),"coproprietaires-"+new Date().toISOString().slice(0,10));}}>Exporter CSV</Btn>
-        <Btn sm onClick={function(){setNf({u:"",prenom:"",nom:"",tel:"",courriel:"",fraction:0,cot:0,pap:false,ce:"",ass:"",loc:false,animaux:0});setShowNouv(true);}}>+ Nouveau</Btn>
+        <input value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Chercher..." style={{border:"1px solid "+T.border,borderRadius:20,padding:"4px 12px",fontSize:11,fontFamily:"inherit",outline:"none",flex:1,minWidth:160}}/>
       </div>
-
-      {msg&&<div style={{background:msg.includes("Erreur")?T.redL:T.accentL,color:msg.includes("Erreur")?T.red:T.accent,borderRadius:8,padding:"8px 14px",fontSize:12,marginBottom:10}}>{msg}<button onClick={function(){setMsg("");}} style={{background:"none",border:"none",cursor:"pointer",marginLeft:10,color:"inherit",fontWeight:700}}>x</button></div>}
-
-      <div style={{display:"flex",gap:12}}>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
-            <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse"}}>
-                <thead>
-                  <tr style={{background:T.navy}}>
-                    {["Unite","Nom","Courriel","Tel","Cotisation","PAP","CE","Ass.","Portail","Derniere connexion","Actions"].map(function(h){return(
-                      <th key={h} style={{padding:"7px 9px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>
-                    );})}
+      {msg&&<div style={{background:T.accentL,color:T.accent,borderRadius:8,padding:"8px 14px",fontSize:12,marginBottom:10}}>{msg}<button onClick={function(){setMsg("");}} style={{background:"none",border:"none",cursor:"pointer",marginLeft:10,color:"inherit",fontWeight:700}}>x</button></div>}
+      <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead>
+              <tr style={{background:T.navy}}>
+                {["Unite","Nom","Courriel","Tel","Cotisation","PAP","CE","Ass.","Portail","Actions"].map(function(h){return <th key={h} style={{padding:"7px 9px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>;})}
+              </tr>
+            </thead>
+            <tbody>
+              {liste.map(function(c){
+                var ceS=expSt(c.ce);var aS=expSt(c.ass);
+                var alts=(ceS.c===T.red?1:0)+(aS.c===T.red?1:0)+(!c.pap?1:0);
+                return(
+                  <tr key={c.id} style={{borderBottom:"1px solid "+T.border,background:alts>=2?T.redL:alts>=1?"#FFFBF0":T.surface,cursor:"pointer"}} onClick={function(){setSel(c.id);setShowFiche(true);}}>
+                    <td style={{padding:"7px 9px",fontWeight:700,color:T.navy,fontSize:12}}>{c.u}</td>
+                    <td style={{padding:"7px 9px",fontSize:12,color:T.text,whiteSpace:"nowrap"}}>{c.prenom} {c.nom}</td>
+                    <td style={{padding:"7px 9px",fontSize:11,color:c.courriel?T.muted:T.red,fontStyle:c.courriel?"normal":"italic"}}>{c.courriel||"Manquant"}</td>
+                    <td style={{padding:"7px 9px",fontSize:11,color:T.muted}}>{c.tel||"—"}</td>
+                    <td style={{padding:"7px 9px",fontSize:11,fontWeight:600}}>{Math.round(c.cot*100)/100} $</td>
+                    <td style={{padding:"7px 9px",textAlign:"center"}}><span style={{width:14,height:14,borderRadius:"50%",background:c.pap?T.accent:T.red,display:"inline-block",fontSize:8,color:"#fff",lineHeight:"14px",textAlign:"center",fontWeight:700}}>{c.pap?"V":"!"}</span></td>
+                    <td style={{padding:"7px 9px"}}><span style={{fontSize:9,fontWeight:700,color:ceS.c,background:ceS.bg,padding:"1px 5px",borderRadius:9}}>{ceS.l}</span></td>
+                    <td style={{padding:"7px 9px"}}><span style={{fontSize:9,fontWeight:700,color:aS.c,background:aS.bg,padding:"1px 5px",borderRadius:9}}>{aS.l}</span></td>
+                    <td style={{padding:"7px 9px",textAlign:"center"}}><Bdg bg={c.acces?T.accentL:T.alt} c={c.acces?T.accent:T.muted}>{c.acces?"Actif":"Inactif"}</Bdg></td>
+                    <td style={{padding:"7px 9px"}} onClick={function(e){e.stopPropagation();}}>
+                      <div style={{display:"flex",gap:4}}>
+                        {!c.acces&&c.courriel&&<Btn sm onClick={function(){activerAcces(c.id);}}>Activer</Btn>}
+                        {c.acces&&<Btn sm bg={T.amber} onClick={function(){reinitCode(c.id);}}>Code</Btn>}
+                        {c.acces&&<Btn sm bg={T.red} onClick={function(){desactiverAcces(c.id);}}>Off</Btn>}
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {liste.map(function(c){
-                    var ceS=expSt(c.ce);var aS=expSt(c.ass);
-                    var alts=(ceS.c===T.red?1:0)+(aS.c===T.red?1:0)+(!c.pap?1:0);
-                    return(
-                      <tr key={c.id} style={{borderBottom:"1px solid "+T.border,background:alts>=2?T.redL:alts>=1?"#FFFBF0":T.surface,cursor:"pointer"}} onClick={function(){setSel(c.id);setShowFiche(true);}}>
-                        <td style={{padding:"7px 9px",fontWeight:700,color:T.navy,fontSize:12}}>{c.u}</td>
-                        <td style={{padding:"7px 9px",fontSize:12,color:T.text,whiteSpace:"nowrap"}}>{c.prenom} {c.nom}{c.role?<span style={{fontSize:9,color:T.purple,marginLeft:4,fontWeight:600}}>{c.role}</span>:null}</td>
-                        <td style={{padding:"7px 9px",fontSize:11,color:c.courriel?T.text:T.red,fontStyle:c.courriel?"normal":"italic"}}>{c.courriel||"Manquant"}</td>
-                        <td style={{padding:"7px 9px",fontSize:11,color:T.muted}}>{c.tel||"â"}</td>
-                        <td style={{padding:"7px 9px",fontSize:11,fontWeight:600}}>{Math.round(c.cot*100)/100} $</td>
-                        <td style={{padding:"7px 9px",textAlign:"center"}}><span style={{width:14,height:14,borderRadius:"50%",background:c.pap?T.accent:T.red,display:"inline-block",fontSize:8,color:"#fff",lineHeight:"14px",textAlign:"center",fontWeight:700}}>{c.pap?"V":"!"}</span></td>
-                        <td style={{padding:"7px 9px"}}><span style={{fontSize:9,fontWeight:700,color:ceS.c,background:ceS.bg,padding:"1px 5px",borderRadius:9}}>{ceS.l}</span></td>
-                        <td style={{padding:"7px 9px"}}><span style={{fontSize:9,fontWeight:700,color:aS.c,background:aS.bg,padding:"1px 5px",borderRadius:9}}>{aS.l}</span></td>
-                        <td style={{padding:"7px 9px",textAlign:"center"}}><Bdg bg={c.acces?T.accentL:T.alt} c={c.acces?T.accent:T.muted}>{c.acces?"Actif":"Inactif"}</Bdg></td>
-                        <td style={{padding:"7px 9px",fontSize:10,color:T.muted}}>{c.derniereConnexion||"â"}</td>
-                        <td style={{padding:"7px 9px"}} onClick={function(e){e.stopPropagation();}}>
-                          <div style={{display:"flex",gap:4}}>
-                            {!c.acces&&c.courriel&&<Btn sm bg={T.accent} onClick={function(){activerAcces(c.id);}}>Activer</Btn>}
-                            {c.acces&&<Btn sm bg={T.amber} onClick={function(){reinitCode(c.id);}}>Reinit.</Btn>}
-                            {c.acces&&<Btn sm bg={T.red} onClick={function(){dÃ©sactiverAcces(c.id);}}>Desact.</Btn>}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <div style={{padding:"7px 12px",background:T.alt,fontSize:10,color:T.muted,borderTop:"1px solid "+T.border}}>{liste.length} coproprietaire(s) sur {copros.length}</div>
-          </div>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
+        <div style={{padding:"7px 12px",background:T.alt,fontSize:10,color:T.muted,borderTop:"1px solid "+T.border}}>{liste.length} coproprietaire(s) sur {copros.length}</div>
       </div>
-
-      <Modal show={showFiche} onClose={function(){setShowFiche(false);setSel(null);}} title={"Fiche â Unite "+(selC?selC.u:"")} w={560}>
+      <Modal show={showFiche} onClose={function(){setShowFiche(false);setSel(null);}} title={"Fiche — Unite "+(selC?selC.u:"")} w={520}>
         {selC&&(
           <div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-              {[
-                {l:"Nom",v:selC.prenom+" "+selC.nom},
-                {l:"Unite",v:selC.u},
-                {l:"Telephone",v:selC.tel||"â"},
-                {l:"Courriel",v:selC.courriel||"Non enregistre"},
-                {l:"Fraction",v:selC.fraction.toFixed(3)+"%"},
-                {l:"Cotisation",v:Math.round(selC.cot*100)/100+" $/mois"},
-              ].map(function(item,i){return(
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+              {[{l:"Nom",v:selC.prenom+" "+selC.nom},{l:"Unite",v:selC.u},{l:"Tel",v:selC.tel||"—"},{l:"Courriel",v:selC.courriel||"Non enregistre"},{l:"Fraction",v:selC.fraction.toFixed(3)+"%"},{l:"Cotisation",v:selC.cot+" $/mois"}].map(function(item,i){return(
                 <div key={i} style={{background:T.alt,borderRadius:8,padding:"9px 11px"}}>
                   <div style={{fontSize:9,color:T.muted,fontWeight:600,textTransform:"uppercase",marginBottom:3}}>{item.l}</div>
                   <div style={{fontSize:13,fontWeight:600,color:T.text}}>{item.v}</div>
                 </div>
               );})}
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:16}}>
-              <div style={{background:selC.pap?T.accentL:T.redL,borderRadius:8,padding:"9px 11px"}}>
-                <div style={{fontSize:9,color:selC.pap?T.accent:T.red,fontWeight:700,marginBottom:3}}>PAP AUTORISE</div>
-                <div style={{fontSize:14,fontWeight:800,color:selC.pap?T.accent:T.red}}>{selC.pap?"Oui":"Non"}</div>
-              </div>
-              <div style={{background:expSt(selC.ce).bg||T.alt,borderRadius:8,padding:"9px 11px"}}>
-                <div style={{fontSize:9,color:expSt(selC.ce).c,fontWeight:700,marginBottom:3}}>CHAUFFE-EAU</div>
-                <div style={{fontSize:12,fontWeight:700,color:expSt(selC.ce).c}}>{expSt(selC.ce).l}</div>
-                <div style={{fontSize:9,color:T.muted}}>{selC.ce}</div>
-              </div>
-              <div style={{background:expSt(selC.ass).bg||T.alt,borderRadius:8,padding:"9px 11px"}}>
-                <div style={{fontSize:9,color:expSt(selC.ass).c,fontWeight:700,marginBottom:3}}>ASSURANCE</div>
-                <div style={{fontSize:12,fontWeight:700,color:expSt(selC.ass).c}}>{expSt(selC.ass).l}</div>
-                <div style={{fontSize:9,color:T.muted}}>{selC.ass}</div>
-              </div>
-            </div>
-            <div style={{background:T.alt,borderRadius:8,padding:"11px 13px",marginBottom:16}}>
-              <div style={{fontSize:11,fontWeight:700,color:T.navy,marginBottom:8}}>Acces Portail Coproprietaire</div>
+            <div style={{background:T.alt,borderRadius:8,padding:"11px 13px",marginBottom:14}}>
+              <div style={{fontSize:11,fontWeight:700,color:T.navy,marginBottom:8}}>Acces Portail</div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div>
-                  <Bdg bg={selC.acces?T.accentL:T.alt} c={selC.acces?T.accent:T.muted}>{selC.acces?"Portail actif":"Portail inactif"}</Bdg>
-                  {selC.derniereConnexion&&<div style={{fontSize:10,color:T.muted,marginTop:4}}>Derniere connexion: {selC.derniereConnexion}</div>}
-                  {!selC.courriel&&<div style={{fontSize:10,color:T.red,marginTop:4}}>Courriel requis pour activer le portail</div>}
-                </div>
+                <Bdg bg={selC.acces?T.accentL:T.alt} c={selC.acces?T.accent:T.muted}>{selC.acces?"Portail actif":"Portail inactif"}</Bdg>
                 <div style={{display:"flex",gap:6}}>
-                  {!selC.acces&&selC.courriel&&<Btn sm onClick={function(){activerAcces(selC.id);setShowFiche(false);}}>Activer acces</Btn>}
+                  {!selC.acces&&selC.courriel&&<Btn sm onClick={function(){activerAcces(selC.id);setShowFiche(false);}}>Activer</Btn>}
                   {selC.acces&&<Btn sm bg={T.amber} onClick={function(){reinitCode(selC.id);setShowFiche(false);}}>Reinitialiser code</Btn>}
-                  {selC.acces&&<Btn sm bg={T.red} onClick={function(){dÃ©sactiverAcces(selC.id);setShowFiche(false);}}>Desactiver</Btn>}
+                  {selC.acces&&<Btn sm bg={T.red} onClick={function(){desactiverAcces(selC.id);setShowFiche(false);}}>Desactiver</Btn>}
                 </div>
               </div>
             </div>
@@ -1040,11 +925,8 @@ function TabCopros(){
                 <div style={{fontSize:11,fontWeight:700,color:T.navy,marginBottom:8}}>Demandes de service</div>
                 {TICKETS_COPRO[selC.u].map(function(t,i){return(
                   <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 10px",background:T.alt,borderRadius:7,marginBottom:5}}>
-                    <div>
-                      <div style={{fontSize:12,color:T.text,fontWeight:500}}>{t.titre}</div>
-                      <div style={{fontSize:10,color:T.muted}}>{t.date} | {t.cat}</div>
-                    </div>
-                    <Bdg bg={t.statut==="ferme"?T.accentL:t.statut==="en_cours"?T.blueL:T.amberL} c={t.statut==="ferme"?T.accent:t.statut==="en_cours"?T.blue:T.amber}>{t.statut==="ferme"?"Ferme":t.statut==="en_cours"?"En cours":"Nouveau"}</Bdg>
+                    <div><div style={{fontSize:12,color:T.text}}>{t.titre}</div><div style={{fontSize:10,color:T.muted}}>{t.date}</div></div>
+                    <Bdg bg={t.statut==="ferme"?T.accentL:t.statut==="en_cours"?T.blueL:T.amberL} c={t.statut==="ferme"?T.accent:t.statut==="en_cours"?T.blue:T.amber}>{t.statut}</Bdg>
                   </div>
                 );})}
               </div>
@@ -1052,42 +934,11 @@ function TabCopros(){
           </div>
         )}
       </Modal>
-
-      <Modal show={showCode} onClose={function(){setShowCode(false);}} title="Code d acces genere" w={400}>
+      <Modal show={showCode} onClose={function(){setShowCode(false);}} title="Code d acces genere" w={380}>
         <div style={{textAlign:"center",padding:"10px 0"}}>
-          <div style={{fontSize:12,color:T.muted,marginBottom:12}}>{msg}</div>
-          <div style={{fontSize:48,fontWeight:900,color:T.navy,letterSpacing:12,background:T.blueL,borderRadius:12,padding:"20px",marginBottom:16}}>{codeGenere}</div>
-          <div style={{fontSize:11,color:T.muted,marginBottom:20}}>Unite {selC?selC.u:""} â {selC?selC.prenom+" "+selC.nom:""}<br/>Transmettez ce code par courriel ou en personne.<br/>Le coproprietaire l utilisera avec son numero d unite.</div>
+          <div style={{fontSize:48,fontWeight:900,color:T.navy,letterSpacing:12,background:T.blueL,borderRadius:12,padding:20,marginBottom:16}}>{codeGenere}</div>
+          <div style={{fontSize:11,color:T.muted,marginBottom:20}}>Transmettez ce code au coproprietaire avec son numero d unite.</div>
           <Btn onClick={function(){setShowCode(false);}}>Compris</Btn>
-        </div>
-      </Modal>
-
-      <Modal show={showNouv} onClose={function(){setShowNouv(false);}} title="Nouveau coproprietaire" w={520}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-          <FRow l="Unite"><input value={nf.u||""} onChange={function(e){snf("u",e.target.value);}} style={INP} placeholder="ex: 543"/></FRow>
-          <FRow l="Prenom"><input value={nf.prenom||""} onChange={function(e){snf("prenom",e.target.value);}} style={INP}/></FRow>
-          <FRow l="Nom"><input value={nf.nom||""} onChange={function(e){snf("nom",e.target.value);}} style={INP}/></FRow>
-          <FRow l="Telephone"><input value={nf.tel||""} onChange={function(e){snf("tel",e.target.value);}} style={INP}/></FRow>
-          <FRow l="Courriel" full><input value={nf.courriel||""} onChange={function(e){snf("courriel",e.target.value);}} style={INP}/></FRow>
-          <FRow l="Fraction %"><input type="number" value={nf.fraction||""} onChange={function(e){snf("fraction",parseFloat(e.target.value)||0);}} style={INP}/></FRow>
-          <FRow l="Cotisation ($/mois)"><input type="number" value={nf.cot||""} onChange={function(e){snf("cot",parseFloat(e.target.value)||0);}} style={INP}/></FRow>
-          <FRow l="CE expiry"><input type="date" value={nf.ce||""} onChange={function(e){snf("ce",e.target.value);}} style={INP}/></FRow>
-          <FRow l="Ass. expiry"><input type="date" value={nf.ass||""} onChange={function(e){snf("ass",e.target.value);}} style={INP}/></FRow>
-          <FRow l="PAP autorise">
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={function(){snf("pap",true);}} style={{flex:1,padding:"7px",border:"2px solid "+(nf.pap?T.accent:T.border),borderRadius:7,background:nf.pap?T.accentL:T.surface,color:nf.pap?T.accent:T.muted,cursor:"pointer",fontFamily:"inherit",fontWeight:nf.pap?700:400}}>Oui</button>
-              <button onClick={function(){snf("pap",false);}} style={{flex:1,padding:"7px",border:"2px solid "+(nf.pap===false&&nf.pap!==undefined?T.red:T.border),borderRadius:7,background:nf.pap===false&&nf.pap!==undefined?T.redL:T.surface,color:nf.pap===false&&nf.pap!==undefined?T.red:T.muted,cursor:"pointer",fontFamily:"inherit",fontWeight:!nf.pap&&nf.pap!==undefined?700:400}}>Non</button>
-            </div>
-          </FRow>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <Btn onClick={function(){
-            if(!nf.u||!nf.nom)return;
-            setCopros(function(prev){return prev.concat([Object.assign({},nf,{id:Date.now(),acces:false,codeActif:false,derniereConnexion:""})]);});
-            setShowNouv(false);
-            setMsg("Coproprietaire ajoute: unite "+nf.u);
-          }}>Ajouter</Btn>
-          <Btn onClick={function(){setShowNouv(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
         </div>
       </Modal>
     </div>
@@ -1095,49 +946,39 @@ function TabCopros(){
 }
 
 
-  var s0=useState("bons");var ong=s0[0];var setOng=s0[1];
-  var s1=useState(BONS_INIT);var bons=s1[0];var setBons=s1[1];
+// ===== TAB FOURNISSEURS CA =====
+var FOURNISSEURS_CA=[
+  {id:1,nom:"Deneigement Express",cat:"Deneigement",tel:"418-555-1001",courriel:"info@deneigementexpress.com",contact:"Marc Gagnon",note:4.8,certifie:true},
+  {id:2,nom:"Paysagement Horizon",cat:"Paysagement",tel:"418-555-2002",courriel:"contact@paysagementhorizon.com",contact:"Sophie Larose",note:4.5,certifie:true},
+  {id:3,nom:"Plomberie ProFlo",cat:"Plomberie",tel:"418-555-3003",courriel:"urgence@proflo.com",contact:"Denis Bouchard",note:4.9,certifie:true},
+  {id:4,nom:"ElectroServ QC",cat:"Electricite",tel:"418-555-4004",courriel:"service@electroserv.com",contact:"Patrick Simard",note:4.6,certifie:true},
+  {id:5,nom:"AscenseurTech QC",cat:"Ascenseur",tel:"418-555-5005",courriel:"info@ascenseurtech.com",contact:"Lise Trottier",note:4.7,certifie:true},
+  {id:6,nom:"ChauFroid Expert",cat:"Chauffage",tel:"418-555-6006",courriel:"service@chaufroid.com",contact:"Alain Perron",note:4.4,certifie:true},
+];
+var BONS_CA_INIT=[
+  {id:1,four:"Plomberie ProFlo",cat:"Plomberie",unite:"527",desc:"Reparation fuite evier cuisine",date:"2026-04-22",mnt:485,statut:"approuve",prio:"haute"},
+  {id:2,four:"Deneigement Express",cat:"Deneigement",unite:"commun",desc:"Deneigement urgence stationnement",date:"2026-04-10",mnt:850,statut:"complete",prio:"urgence"},
+  {id:3,four:"ElectroServ QC",cat:"Electricite",unite:"commun",desc:"Remplacement eclairage hall",date:"2026-04-05",mnt:320,statut:"complete",prio:"normale"},
+  {id:4,four:"AscenseurTech QC",cat:"Ascenseur",unite:"commun",desc:"Inspection annuelle ascenseur",date:"2026-03-31",mnt:2200,statut:"complete",prio:"normale"},
+  {id:5,four:"ChauFroid Expert",cat:"Chauffage",unite:"539",desc:"Bruit canalisation chauffage",date:"2026-04-24",mnt:0,statut:"nouveau",prio:"normale"},
+];
+function TabFournisseursCA(){
+  var s0=useState(BONS_CA_INIT);var bons=s0[0];var setBons=s0[1];
+  var s1=useState("bons");var ong=s1[0];var setOng=s1[1];
   var s2=useState(null);var sel=s2[0];var setSel=s2[1];
   var s3=useState(false);var showN=s3[0];var setShowN=s3[1];
-  var s4=useState(false);var showSoum=s4[0];var setShowSoum=s4[1];
-  var s5=useState({});var nf=s5[0];var setNf=s5[1];
+  var s4=useState({});var nf=s4[0];var setNf=s4[1];
   function snf(k,v){setNf(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
-
-  var nouveaux=bons.filter(function(b){return b.statut==="nouveau";}).length;
-  var approuves=bons.filter(function(b){return b.statut==="approuve";}).length;
-  var mntTotal=bons.reduce(function(a,b){return a+b.mnt;},0);
-
-  var selB=sel?bons.find(function(b){return b.id===sel;}):null;
-
-  function approuver(id){
-    setBons(function(prev){return prev.map(function(b){return b.id===id?Object.assign({},b,{statut:"approuve"}):b;});});
-  }
-  function completer(id){
-    setBons(function(prev){return prev.map(function(b){return b.id===id?Object.assign({},b,{statut:"complete"}):b;});});
-  }
-
-  var PRIO_ST={urgence:{c:T.red,bg:T.redL},haute:{c:T.amber,bg:T.amberL},normale:{c:T.accent,bg:T.accentL}};
   var BON_ST={nouveau:{c:T.blue,bg:T.blueL,l:"Nouveau"},approuve:{c:T.amber,bg:T.amberL,l:"Approuve"},complete:{c:T.accent,bg:T.accentL,l:"Complete"}};
-
+  var PRIO_ST={urgence:{c:T.red,bg:T.redL},haute:{c:T.amber,bg:T.amberL},normale:{c:T.accent,bg:T.accentL}};
+  var mntTotal=bons.reduce(function(a,b){return a+b.mnt;},0);
   return(
-    <div style={{padding:16,fontFamily:"Georgia,serif"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div>
-          <div style={{fontSize:16,fontWeight:800,color:T.navy}}>Fournisseurs â Syndicat Piedmont</div>
-          <div style={{fontSize:11,color:T.muted}}>Gestion locale des fournisseurs et bons de travail</div>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <Btn sm bg={T.purple} onClick={function(){setShowSoum(true);}}>Appel offres</Btn>
-          <Btn sm onClick={function(){setNf({fournisseur:FOURNISSEURS_SYND[0].nom,cat:"Plomberie",unite:"",desc:"",date:today(),mnt:"",prio:"normale",notes:""});setShowN(true);}}>+ Bon de travail</Btn>
-        </div>
-      </div>
-
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
         {[
-          {l:"Fournisseurs assignes",v:FOURNISSEURS_SYND.length,c:T.navy,bg:T.blueL},
-          {l:"Bons en cours",v:nouveaux+approuves,c:nouveaux>0?T.red:T.amber,bg:nouveaux>0?T.redL:T.amberL},
-          {l:"Contrats actifs",v:CONTRATS_INIT.length,c:T.accent,bg:T.accentL},
-          {l:"Total bons (2026)",v:money(mntTotal),c:T.navy,bg:T.blueL},
+          {l:"Fournisseurs assignes",v:FOURNISSEURS_CA.length,c:T.navy,bg:T.blueL},
+          {l:"Bons en cours",v:bons.filter(function(b){return b.statut!=="complete";}).length,c:T.amber,bg:T.amberL},
+          {l:"Total bons 2026",v:fmt(mntTotal),c:T.navy,bg:T.blueL},
         ].map(function(st,i){return(
           <div key={i} style={{background:st.bg,borderRadius:10,padding:"11px 13px",border:"1px solid "+st.c+"33"}}>
             <div style={{fontSize:9,color:st.c,fontWeight:700,marginBottom:3,textTransform:"uppercase"}}>{st.l}</div>
@@ -1145,85 +986,43 @@ function TabCopros(){
           </div>
         );})}
       </div>
-
-      <div style={{display:"flex",gap:3,marginBottom:14,background:T.surface,padding:5,borderRadius:10,border:"1px solid "+T.border}}>
-        {[["bons","Bons de travail"],["fournisseurs","Nos fournisseurs"],["contrats","Contrats"]].map(function(t){var a=ong===t[0];return(
-          <button key={t[0]} onClick={function(){setOng(t[0]);}} style={{background:a?T.navy:"transparent",border:"none",borderRadius:7,padding:"7px 14px",color:a?"#fff":T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400,whiteSpace:"nowrap"}}>{t[1]}</button>
+      <div style={{display:"flex",gap:3,marginBottom:12,background:T.surface,padding:4,borderRadius:9,border:"1px solid "+T.border}}>
+        {[["bons","Bons de travail"],["fournisseurs","Nos fournisseurs"]].map(function(t){var a=ong===t[0];return(
+          <button key={t[0]} onClick={function(){setOng(t[0]);}} style={{background:a?T.navy:"transparent",border:"none",borderRadius:7,padding:"6px 14px",color:a?"#fff":T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400}}>{t[1]}</button>
         );})}
+        <div style={{marginLeft:"auto"}}>
+          <Btn sm onClick={function(){setNf({four:FOURNISSEURS_CA[0].nom,cat:"Plomberie",unite:"",desc:"",date:today(),mnt:"",prio:"normale"});setShowN(true);}}>+ Bon de travail</Btn>
+        </div>
       </div>
-
       {ong==="bons"&&(
-        <div style={{display:"flex",gap:12}}>
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
-              <table style={{width:"100%",borderCollapse:"collapse"}}>
-                <thead>
-                  <tr style={{background:T.navy}}>
-                    {["Fournisseur","Unite","Description","Date","Montant","Priorite","Statut","Action"].map(function(h){return <th key={h} style={{padding:"7px 10px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>;})}
-                  </tr>
-                </thead>
-                <tbody>
-                  {bons.map(function(b){var st=BON_ST[b.statut]||BON_ST.nouveau;var pr=PRIO_ST[b.prio]||PRIO_ST.normale;return(
-                    <tr key={b.id} onClick={function(){setSel(b.id);}} style={{borderBottom:"1px solid "+T.border,background:sel===b.id?T.accentL:T.surface,cursor:"pointer"}}>
-                      <td style={{padding:"8px 10px",fontWeight:600,fontSize:12,color:T.text}}>{b.fournisseur}</td>
-                      <td style={{padding:"8px 10px",fontSize:11,color:T.muted}}>{b.unite}</td>
-                      <td style={{padding:"8px 10px",fontSize:12,color:T.text,maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.desc}</td>
-                      <td style={{padding:"8px 10px",fontSize:11,color:T.muted,whiteSpace:"nowrap"}}>{b.date}</td>
-                      <td style={{padding:"8px 10px",fontSize:12,fontWeight:600}}>{b.mnt>0?money(b.mnt):"A definir"}</td>
-                      <td style={{padding:"8px 10px"}}><Bdg bg={pr.bg} c={pr.c}>{b.prio}</Bdg></td>
-                      <td style={{padding:"8px 10px"}}><Bdg bg={st.bg} c={st.c}>{st.l}</Bdg></td>
-                      <td style={{padding:"8px 10px"}} onClick={function(e){e.stopPropagation();}}>
-                        <div style={{display:"flex",gap:4}}>
-                          {b.statut==="nouveau"&&<Btn sm onClick={function(){approuver(b.id);}}>Approuver</Btn>}
-                          {b.statut==="approuve"&&<Btn sm bg={T.blueL} tc={T.blue} onClick={function(){completer(b.id);}}>Completer</Btn>}
-                        </div>
-                      </td>
-                    </tr>
-                  );})}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {selB&&(
-            <div style={{width:260,flexShrink:0}}>
-              <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
-                  <b style={{fontSize:13,color:T.navy}}>Detail bon #{selB.id}</b>
-                  <button onClick={function(){setSel(null);}} style={{background:"none",border:"none",cursor:"pointer",color:T.muted,fontSize:16,lineHeight:1}}>x</button>
-                </div>
-                {[
-                  {l:"Fournisseur",v:selB.fournisseur},
-                  {l:"Categorie",v:selB.cat},
-                  {l:"Unite",v:selB.unite},
-                  {l:"Date",v:selB.date},
-                  {l:"Montant",v:selB.mnt>0?money(selB.mnt):"A definir"},
-                ].map(function(item,i){return(
-                  <div key={i} style={{padding:"6px 0",borderBottom:"1px solid "+T.border,display:"flex",justifyContent:"space-between"}}>
-                    <span style={{fontSize:10,color:T.muted}}>{item.l}</span>
-                    <span style={{fontSize:11,fontWeight:500,color:T.text}}>{item.v}</span>
-                  </div>
-                );})}
-                <div style={{marginTop:10}}>
-                  <Lbl l="Description"/>
-                  <div style={{fontSize:12,color:T.text,background:T.alt,borderRadius:7,padding:"8px 10px",lineHeight:1.5}}>{selB.desc}</div>
-                </div>
-                {selB.notes&&<div style={{marginTop:8,fontSize:11,color:T.muted,background:T.amberL,borderRadius:7,padding:"7px 10px"}}>{selB.notes}</div>}
-                <div style={{marginTop:12,display:"flex",gap:6}}>
-                  {selB.statut==="nouveau"&&<Btn sm onClick={function(){approuver(selB.id);setSel(null);}}>Approuver</Btn>}
-                  {selB.statut==="approuve"&&<Btn sm bg={T.blueL} tc={T.blue} onClick={function(){completer(selB.id);setSel(null);}}>Marquer complete</Btn>}
-                </div>
-              </div>
-            </div>
-          )}
+        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead><tr style={{background:T.navy}}>{["Fournisseur","Unite","Description","Date","Montant","Priorite","Statut","Action"].map(function(h){return <th key={h} style={{padding:"7px 10px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>;})}</tr></thead>
+            <tbody>
+              {bons.map(function(b){var st=BON_ST[b.statut]||BON_ST.nouveau;var pr=PRIO_ST[b.prio]||PRIO_ST.normale;return(
+                <tr key={b.id} style={{borderBottom:"1px solid "+T.border}}>
+                  <td style={{padding:"8px 10px",fontWeight:600,fontSize:12}}>{b.four}</td>
+                  <td style={{padding:"8px 10px",fontSize:11,color:T.muted}}>{b.unite}</td>
+                  <td style={{padding:"8px 10px",fontSize:12,color:T.text,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{b.desc}</td>
+                  <td style={{padding:"8px 10px",fontSize:11,color:T.muted,whiteSpace:"nowrap"}}>{b.date}</td>
+                  <td style={{padding:"8px 10px",fontSize:12,fontWeight:600}}>{b.mnt>0?fmt(b.mnt):"A definir"}</td>
+                  <td style={{padding:"8px 10px"}}><Bdg bg={pr.bg} c={pr.c}>{b.prio}</Bdg></td>
+                  <td style={{padding:"8px 10px"}}><Bdg bg={st.bg} c={st.c}>{st.l}</Bdg></td>
+                  <td style={{padding:"8px 10px"}}>
+                    {b.statut==="nouveau"&&<Btn sm onClick={function(){setBons(function(prev){return prev.map(function(x){return x.id===b.id?Object.assign({},x,{statut:"approuve"}):x;});});}}>Approuver</Btn>}
+                    {b.statut==="approuve"&&<Btn sm bg={T.blueL} tc={T.blue} onClick={function(){setBons(function(prev){return prev.map(function(x){return x.id===b.id?Object.assign({},x,{statut:"complete"}):x;});});}}>Completer</Btn>}
+                  </td>
+                </tr>
+              );})}
+            </tbody>
+          </table>
         </div>
       )}
-
       {ong==="fournisseurs"&&(
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
-          {FOURNISSEURS_SYND.map(function(f){return(
+          {FOURNISSEURS_CA.map(function(f){return(
             <div key={f.id} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                 <div>
                   <div style={{fontSize:13,fontWeight:700,color:T.text,marginBottom:4}}>{f.nom}</div>
                   <Bdg bg={T.alt} c={T.muted}>{f.cat}</Bdg>
@@ -1233,102 +1032,30 @@ function TabCopros(){
                   <div style={{fontSize:8,color:T.muted}}>sur 5</div>
                 </div>
               </div>
-              <div style={{fontSize:11,color:T.muted,marginBottom:4}}>{f.contact}</div>
-              <div style={{fontSize:11,color:T.blue,marginBottom:4}}>{f.tel}</div>
-              <div style={{fontSize:11,color:T.muted,marginBottom:10,wordBreak:"break-all"}}>{f.courriel}</div>
-              <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:10}}>
-                <Bdg bg={f.certifie?T.accentL:T.alt} c={f.certifie?T.accent:T.muted}>{f.certifie?"RBQ":"Sans RBQ"}</Bdg>
-                <Bdg bg={f.assurance?T.accentL:T.redL} c={f.assurance?T.accent:T.red}>{f.assurance?"Assure":"Non assure"}</Bdg>
-              </div>
-              <Btn sm fw onClick={function(){setNf({fournisseur:f.nom,cat:f.cat,unite:"",desc:"",date:today(),mnt:"",prio:"normale",notes:""});setShowN(true);}}>Creer bon de travail</Btn>
+              <div style={{fontSize:11,color:T.muted,marginBottom:3}}>{f.contact}</div>
+              <div style={{fontSize:11,color:T.blue,marginBottom:8}}>{f.tel}</div>
+              <Btn sm fw onClick={function(){setNf({four:f.nom,cat:f.cat,unite:"",desc:"",date:today(),mnt:"",prio:"normale"});setShowN(true);}}>Creer bon de travail</Btn>
             </div>
           );})}
         </div>
       )}
-
-      {ong==="contrats"&&(
-        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
-          <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <thead>
-              <tr style={{background:T.navy}}>
-                {["Fournisseur","Type","Debut","Fin","Montant annuel","Renouvellement","Statut"].map(function(h){return <th key={h} style={{padding:"7px 12px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left"}}>{h}</th>;})}
-              </tr>
-            </thead>
-            <tbody>
-              {CONTRATS_INIT.map(function(c){return(
-                <tr key={c.id} style={{borderBottom:"1px solid "+T.border}}>
-                  <td style={{padding:"10px 12px",fontWeight:600,fontSize:12,color:T.text}}>{c.fournisseur}</td>
-                  <td style={{padding:"10px 12px"}}><Bdg bg={T.alt} c={T.muted}>{c.type}</Bdg></td>
-                  <td style={{padding:"10px 12px",fontSize:11,color:T.muted}}>{c.debut}</td>
-                  <td style={{padding:"10px 12px",fontSize:11,color:T.muted}}>{c.fin}</td>
-                  <td style={{padding:"10px 12px",fontSize:12,fontWeight:600}}>{money(c.mntAnnuel)}</td>
-                  <td style={{padding:"10px 12px"}}><Bdg bg={c.renouvellement==="auto"?T.accentL:T.amberL} c={c.renouvellement==="auto"?T.accent:T.amber}>{c.renouvellement==="auto"?"Auto":"Manuel"}</Bdg></td>
-                  <td style={{padding:"10px 12px"}}><Bdg bg={T.accentL} c={T.accent}>{c.statut}</Bdg></td>
-                </tr>
-              );})}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <Modal show={showN} onClose={function(){setShowN(false);}} title="Nouveau bon de travail" w={500}>
+      <Modal show={showN} onClose={function(){setShowN(false);}} title="Nouveau bon de travail" w={480}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-          <FRow l="Fournisseur" full>
-            <select value={nf.fournisseur||""} onChange={function(e){snf("fournisseur",e.target.value);}} style={INP}>
-              {FOURNISSEURS_SYND.map(function(f){return <option key={f.id} value={f.nom}>{f.nom} ({f.cat})</option>;})}
-            </select>
-          </FRow>
-          <FRow l="Unite"><input value={nf.unite||""} onChange={function(e){snf("unite",e.target.value);}} style={INP} placeholder="ex: 527 ou commun"/></FRow>
-          <FRow l="Date"><input type="date" value={nf.date||""} onChange={function(e){snf("date",e.target.value);}} style={INP}/></FRow>
-          <FRow l="Priorite">
-            <select value={nf.prio||"normale"} onChange={function(e){snf("prio",e.target.value);}} style={INP}>
-              <option value="normale">Normale</option>
-              <option value="haute">Haute</option>
-              <option value="urgence">URGENCE</option>
-            </select>
-          </FRow>
-          <FRow l="Montant estime ($)"><input type="number" value={nf.mnt||""} onChange={function(e){snf("mnt",parseFloat(e.target.value)||0);}} style={INP} placeholder="0 si inconnu"/></FRow>
-          <FRow l="Description" full><textarea value={nf.desc||""} onChange={function(e){snf("desc",e.target.value);}} rows={3} style={Object.assign({},INP,{resize:"vertical"})}/></FRow>
-          <FRow l="Notes internes" full><input value={nf.notes||""} onChange={function(e){snf("notes",e.target.value);}} style={INP}/></FRow>
+          <div style={{gridColumn:"1/-1"}}><Lbl l="Fournisseur"/><select value={nf.four||""} onChange={function(e){snf("four",e.target.value);}} style={INP}>{FOURNISSEURS_CA.map(function(f){return <option key={f.id} value={f.nom}>{f.nom}</option>;})}</select></div>
+          <div><Lbl l="Unite"/><input value={nf.unite||""} onChange={function(e){snf("unite",e.target.value);}} style={INP} placeholder="ex: 527"/></div>
+          <div><Lbl l="Date"/><input type="date" value={nf.date||""} onChange={function(e){snf("date",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Priorite"/><select value={nf.prio||"normale"} onChange={function(e){snf("prio",e.target.value);}} style={INP}><option value="normale">Normale</option><option value="haute">Haute</option><option value="urgence">URGENCE</option></select></div>
+          <div><Lbl l="Montant ($)"/><input type="number" value={nf.mnt||""} onChange={function(e){snf("mnt",parseFloat(e.target.value)||0);}} style={INP}/></div>
+          <div style={{gridColumn:"1/-1"}}><Lbl l="Description"/><textarea value={nf.desc||""} onChange={function(e){snf("desc",e.target.value);}} rows={3} style={Object.assign({},INP,{resize:"vertical"})}/></div>
         </div>
-        {nf.prio==="urgence"&&<div style={{background:T.redL,borderRadius:8,padding:"9px 13px",fontSize:11,color:T.red,marginBottom:12}}>URGENCE: Le fournisseur sera contacte immediatement.</div>}
         <div style={{display:"flex",gap:8}}>
-          <Btn onClick={function(){
-            if(!nf.desc)return;
-            setBons(function(prev){return prev.concat([Object.assign({},nf,{id:Date.now(),statut:"nouveau",cat:FOURNISSEURS_SYND.find(function(f){return f.nom===nf.fournisseur;})?FOURNISSEURS_SYND.find(function(f){return f.nom===nf.fournisseur;}).cat:"Autre"})]);});
-            setShowN(false);
-          }}>Creer le bon</Btn>
+          <Btn onClick={function(){if(!nf.desc)return;setBons(function(prev){return prev.concat([Object.assign({},nf,{id:Date.now(),statut:"nouveau"})]);});setShowN(false);}}>Creer</Btn>
           <Btn onClick={function(){setShowN(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
-        </div>
-      </Modal>
-
-      <Modal show={showSoum} onClose={function(){setShowSoum(false);}} title="Appel d offres" w={480}>
-        <div style={{background:T.blueL,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.blue,marginBottom:14}}>
-          Creez un appel d offres pour recevoir des soumissions de plusieurs fournisseurs. L IA analysera les soumissions et recommandera la meilleure option (fonctionnalite IA â prochaine version).
-        </div>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-          <FRow l="Type de travaux" full>
-            <select style={INP}>
-              <option>Deneigement 2026-2027</option>
-              <option>Paysagement</option>
-              <option>Entretien batiment</option>
-              <option>Autre</option>
-            </select>
-          </FRow>
-          <FRow l="Budget prevu"><input type="number" style={INP} placeholder="Ex: 20000"/></FRow>
-          <FRow l="Date limite soumissions"><input type="date" style={INP}/></FRow>
-          <FRow l="Description" full><textarea rows={3} style={Object.assign({},INP,{resize:"vertical"})} placeholder="Decrivez les travaux requis..."/></FRow>
-        </div>
-        <div style={{background:T.amberL,borderRadius:8,padding:"9px 13px",fontSize:11,color:T.amber,marginBottom:14}}>Envoi des appels d offres aux fournisseurs certifies disponibles dans votre categorie.</div>
-        <div style={{display:"flex",gap:8}}>
-          <Btn onClick={function(){alert("Appel d offres cree! Fournisseurs notifies. (Supabase requis pour envoi reel)");setShowSoum(false);}}>Envoyer l appel d offres</Btn>
-          <Btn onClick={function(){setShowSoum(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
         </div>
       </Modal>
     </div>
   );
 }
-
 
 // ===== MODULE PRINCIPAL =====
 export default function Gestionnaire(){
@@ -1367,7 +1094,7 @@ export default function Gestionnaire(){
       {ong==="carnet"&&<TabCarnet carnet={carnet} setCarnet={setCarnet}/>}
       {ong==="unites"&&<TabUnites/>}
       {ong==="copros"&&<TabCopros/>}
-      {ong==="fournisseurs"&&<FournisseursCA/>}
+      {ong==="fournisseurs"&&<TabFournisseursCA/>}
       <ExportCopros show={showExp} onClose={function(){setShowExp(false);}}/>
     </div>
   );
