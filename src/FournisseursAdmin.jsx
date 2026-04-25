@@ -23,25 +23,9 @@ function Modal(p){
 
 var CATS=["Deneigement","Paysagement","Plomberie","Electricite","Chauffage","Ascenseur","Nettoyage","Serrurerie","Peinture","Toiture","Construction","Autre"];
 
-var FOURNISSEURS_INIT=[
-  {id:1,nom:"Deneigement Express",cat:"Deneigement",tel:"418-555-1001",courriel:"info@deneigementexpress.com",contact:"Marc Gagnon",syndicats:["PIED","ERAB","BELV"],actif:true,note:4.8,nbContrats:12,totalFacture:89500,certifie:true,assurance:true,rbq:"5830-1234-01",notes:"Fiable, toujours ponctuel. Tarif preferentiel pour 3 syndicats et plus."},
-  {id:2,nom:"Paysagement Horizon",cat:"Paysagement",tel:"418-555-2002",courriel:"contact@paysagementhorizon.com",contact:"Sophie Larose",syndicats:["PIED","ERAB"],actif:true,note:4.5,nbContrats:8,totalFacture:42300,certifie:true,assurance:true,rbq:"5830-2345-02",notes:"Bon travail. Parfois en retard en haute saison."},
-  {id:3,nom:"Plomberie ProFlo",cat:"Plomberie",tel:"418-555-3003",courriel:"urgence@proflo.com",contact:"Denis Bouchard",syndicats:["PIED","BELV"],actif:true,note:4.9,nbContrats:23,totalFacture:67800,certifie:true,assurance:true,rbq:"5830-3456-03",notes:"Excellent. Disponible 24/7 pour urgences. Recommande."},
-  {id:4,nom:"ElectroServ QC",cat:"Electricite",tel:"418-555-4004",courriel:"service@electroserv.com",contact:"Patrick Simard",syndicats:["PIED","ERAB","BELV"],actif:true,note:4.6,nbContrats:15,totalFacture:54200,certifie:true,assurance:true,rbq:"5830-4567-04",notes:"Maitre electricien. Bon rapport qualite-prix."},
-  {id:5,nom:"AscenseurTech QC",cat:"Ascenseur",tel:"418-555-5005",courriel:"info@ascenseurtech.com",contact:"Lise Trottier",syndicats:["PIED"],actif:true,note:4.7,nbContrats:6,totalFacture:28900,certifie:true,assurance:true,rbq:"5830-5678-05",notes:"Specialiste ascenseurs. Inspection annuelle fiable."},
-  {id:6,nom:"ChauFroid Expert",cat:"Chauffage",tel:"418-555-6006",courriel:"service@chaufroid.com",contact:"Alain Perron",syndicats:["PIED","ERAB","BELV"],actif:true,note:4.4,nbContrats:19,totalFacture:73100,certifie:true,assurance:true,rbq:"5830-6789-06",notes:"Competent. Delais parfois longs en hiver."},
-  {id:7,nom:"Nettoyage Prestige",cat:"Nettoyage",tel:"418-555-7007",courriel:"info@nettoyageprestige.com",contact:"Julie Cote",syndicats:["ERAB","BELV"],actif:true,note:4.3,nbContrats:24,totalFacture:31600,certifie:false,assurance:true,rbq:"",notes:"Bon service regulier. Pas de certification RBQ (non requise)."},
-  {id:8,nom:"Serrurier Express",cat:"Serrurerie",tel:"418-555-8008",courriel:"urgence@serrurier.com",contact:"Carl Morin",syndicats:["PIED","BELV"],actif:true,note:4.2,nbContrats:7,totalFacture:8400,certifie:false,assurance:true,rbq:"",notes:"Disponible rapidement. Utilise pour urgences surtout."},
-  {id:9,nom:"Toitures Massicotte",cat:"Toiture",tel:"418-555-9009",courriel:"soumissions@massicotte.com",contact:"Richard Massicotte",syndicats:["ERAB"],actif:false,note:3.8,nbContrats:2,totalFacture:45000,certifie:true,assurance:true,rbq:"5830-7890-09",notes:"Contrat termine. Non renouvele suite a problemes de qualite."},
-];
+var FOURNISSEURS_INIT=[];
 
-var BONS_GLOBAUX=[
-  {id:1,syndicat:"PIED",fournisseur:"Plomberie ProFlo",unite:"527",desc:"Reparation fuite cuisine",date:"2026-04-22",mnt:485,statut:"approuve"},
-  {id:2,syndicat:"ERAB",fournisseur:"ChauFroid Expert",unite:"12",desc:"Inspection systeme chauffage",date:"2026-04-18",mnt:320,statut:"complete"},
-  {id:3,syndicat:"BELV",fournisseur:"ElectroServ QC",unite:"05",desc:"Remplacement panneau electrique",date:"2026-04-15",mnt:2400,statut:"complete"},
-  {id:4,syndicat:"PIED",fournisseur:"Deneigement Express",unite:"commun",desc:"Deneigement urgence stationnement",date:"2026-04-10",mnt:850,statut:"complete"},
-  {id:5,syndicat:"ERAB",fournisseur:"Paysagement Horizon",unite:"commun",desc:"Nettoyage printemps",date:"2026-04-08",mnt:1200,statut:"approuve"},
-];
+var BONS_GLOBAUX=[];
 
 export default function FournisseursAdmin(){
   var s0=useState("repertoire");var ong=s0[0];var setOng=s0[1];
