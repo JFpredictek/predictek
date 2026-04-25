@@ -190,25 +190,8 @@ function TabFacturation(){
                 <Td>
                   <div style={{display:"flex",gap:4}}>
                     <Btn sm bg={T.navy} onClick={function(){printFacture(f);}}>PDF</Btn>
-                    {f.statut==="brouillon"&&<Btn sm onClick={function(){setFactures(function(prev){
-                var updated=prev.map(function(x){return x.id===f.id?Object.assign({},x,{statut:"envoye"}):x;});
-                try{
-                  var existing=JSON.parse(localStorage.getItem("predictek_factures_syndicats")||"[]");
-                  var fc=updated.find(function(x){return x.id===f.id;});
-                  if(fc){
-                    var newEntry={id:"EXT-"+fc.id,four:"Predictek",date:fc.date,mnt:fc.mntTTC,desc:fc.desc+" ("+fc.no+")",statut:"attente",ref:fc.no,par:"",dateA:"",syndicat:fc.client};
-                    existing=existing.filter(function(e){return e.ref!==fc.no;});
-                    existing.push(newEntry);
-                    localStorage.setItem("predictek_factures_syndicats",JSON.stringify(existing));
-                  }
-                }catch(e){}
-                return updated;
-              });}}> Envoyer</Btn>}
-                    {f.statut==="envoye"&&<Btn sm bg={T.accent} onClick={function(){setFactures(function(prev){
-                var updated=prev.map(function(x){return x.id===f.id?Object.assign({},x,{statut:"paye",datePmt:today()}):x;});
-                try{var existing=JSON.parse(localStorage.getItem("predictek_factures_syndicats")||"[]");localStorage.setItem("predictek_factures_syndicats",JSON.stringify(existing.filter(function(e){return e.ref!==f.no;})));}catch(e){}
-                return updated;
-              });}}> Paye</Btn>}
+                    {f.statut==="brouillon"&&<Btn sm onClick={function(){setFactures(function(prev){return prev.map(function(x){return x.id===f.id?Object.assign({},x,{statut:"envoye"}):x;});});}}> Envoyer</Btn>}
+                    {f.statut==="envoye"&&<Btn sm bg={T.accent} onClick={function(){setFactures(function(prev){return prev.map(function(x){return x.id===f.id?Object.assign({},x,{statut:"paye",datePmt:today()}):x;});});}}> Paye</Btn>}
                   </div>
                 </Td>
               </tr>
@@ -726,13 +709,483 @@ function TabEtats(){
   );
 }
 
+
+// ===== PLAN DE COMPTES PREDICTEK =====
+var COMPTES=[
+  {no:"1010",nom:"Caisse",type:"actif",cat:"Actif court terme",solde:8450.00},
+  {no:"1020",nom:"Banque — Compte operations",type:"actif",cat:"Actif court terme",solde:42380.75},
+  {no:"1100",nom:"Comptes clients — Syndicats",type:"actif",cat:"Actif court terme",solde:18200.00},
+  {no:"1110",nom:"TPS a recevoir",type:"actif",cat:"Actif court terme",solde:910.00},
+  {no:"1111",nom:"TVQ a recevoir",type:"actif",cat:"Actif court terme",solde:1816.28},
+  {no:"1200",nom:"Fournitures de bureau",type:"actif",cat:"Actif court terme",solde:340.00},
+  {no:"1500",nom:"Equipement informatique",type:"actif",cat:"Actif long terme",solde:12000.00},
+  {no:"1510",nom:"Amortissement cumule — Equipement",type:"actif",cat:"Actif long terme",solde:-2400.00},
+  {no:"2010",nom:"Comptes fournisseurs",type:"passif",cat:"Passif court terme",solde:3200.00},
+  {no:"2100",nom:"TPS a remettre",type:"passif",cat:"Passif court terme",solde:2100.00},
+  {no:"2101",nom:"TVQ a remettre",type:"passif",cat:"Passif court terme",solde:4190.25},
+  {no:"2200",nom:"Salaires a payer",type:"passif",cat:"Passif court terme",solde:4800.00},
+  {no:"2210",nom:"DAS a remettre — Federal",type:"passif",cat:"Passif court terme",solde:1840.00},
+  {no:"2211",nom:"DAS a remettre — Provincial",type:"passif",cat:"Passif court terme",solde:1120.00},
+  {no:"2220",nom:"RQAP a remettre",type:"passif",cat:"Passif court terme",solde:210.00},
+  {no:"2230",nom:"RRQ a remettre",type:"passif",cat:"Passif court terme",solde:680.00},
+  {no:"3000",nom:"Capital — Proprietaire",type:"capitaux",cat:"Capitaux propres",solde:25000.00},
+  {no:"3100",nom:"Benefices non repartis",type:"capitaux",cat:"Capitaux propres",solde:38157.78},
+  {no:"4010",nom:"Honoraires de gestion — Syndicats",type:"produit",cat:"Produits",solde:86400.00},
+  {no:"4020",nom:"Services additionnels",type:"produit",cat:"Produits",solde:8200.00},
+  {no:"4030",nom:"Frais administratifs",type:"produit",cat:"Produits",solde:2400.00},
+  {no:"5010",nom:"Salaires — Gestionnaires",type:"charge",cat:"Charges",solde:48000.00},
+  {no:"5011",nom:"Salaires — Terrain",type:"charge",cat:"Charges",solde:22000.00},
+  {no:"5020",nom:"Charges sociales patronales",type:"charge",cat:"Charges",solde:10800.00},
+  {no:"5030",nom:"Loyer bureau",type:"charge",cat:"Charges",solde:7200.00},
+  {no:"5040",nom:"Telecommunications",type:"charge",cat:"Charges",solde:1800.00},
+  {no:"5050",nom:"Logiciels et abonnements",type:"charge",cat:"Charges",solde:3600.00},
+  {no:"5060",nom:"Fournitures de bureau",type:"charge",cat:"Charges",solde:840.00},
+  {no:"5070",nom:"Deplacement et kilometrage",type:"charge",cat:"Charges",solde:2400.00},
+  {no:"5080",nom:"Formation et developpement",type:"charge",cat:"Charges",solde:1200.00},
+  {no:"5090",nom:"Assurance entreprise",type:"charge",cat:"Charges",solde:2400.00},
+  {no:"5100",nom:"Honoraires professionnels",type:"charge",cat:"Charges",solde:3600.00},
+  {no:"5200",nom:"Amortissement — Equipement",type:"charge",cat:"Charges",solde:2400.00},
+];
+
+var ECRITURES_INIT=[
+  {id:1,date:"2026-04-01",no:"JG-001",desc:"Honoraires gestion Piedmont — avril",debit:[{cpt:"1100",mnt:2759.40}],credit:[{cpt:"4010",mnt:2400.00},{cpt:"2100",mnt:120.00},{cpt:"2101",mnt:239.40}]},
+  {id:2,date:"2026-04-05",no:"JG-002",desc:"Encaissement FC-2026-001 Piedmont",debit:[{cpt:"1020",mnt:2759.40}],credit:[{cpt:"1100",mnt:2759.40}]},
+  {id:3,date:"2026-04-15",no:"JG-003",desc:"Paie bimensuelle — 1ere quinzaine avril",debit:[{cpt:"5010",mnt:4083.34},{cpt:"5020",mnt:979.96}],credit:[{cpt:"2200",mnt:4097.97},{cpt:"2210",mnt:650.00},{cpt:"2211",mnt:700.00},{cpt:"2220",mnt:127.50},{cpt:"2230",mnt:412.50}]},
+  {id:4,date:"2026-04-01",no:"JG-004",desc:"Loyer bureau — avril 2026",debit:[{cpt:"5030",mnt:600.00}],credit:[{cpt:"1020",mnt:600.00}]},
+  {id:5,date:"2026-04-20",no:"JG-005",desc:"Honoraires gestion Les Erables — avril",debit:[{cpt:"1100",mnt:2299.50}],credit:[{cpt:"4010",mnt:2000.00},{cpt:"2100",mnt:100.00},{cpt:"2101",mnt:199.50}]},
+];
+
+// ===== TAB SOLDES OUVERTURE =====
+function TabSoldesOuverture(){
+  var s0=useState(function(){
+    return COMPTES.map(function(c){return Object.assign({},c,{soldeOuv:c.solde});});
+  });var comptes=s0[0];var setComptes=s0[1];
+  var s1=useState("");var filterType=s1[0];var setFilterType=s1[1];
+  var s2=useState("");var savedMsg=s2[0];var setSavedMsg=s2[1];
+
+  function upd(no,val){setComptes(function(prev){return prev.map(function(c){return c.no===no?Object.assign({},c,{soldeOuv:parseFloat(val)||0}):c;});});}
+
+  var totalActif=comptes.filter(function(c){return c.type==="actif";}).reduce(function(a,c){return a+c.soldeOuv;},0);
+  var totalPassif=comptes.filter(function(c){return c.type==="passif";}).reduce(function(a,c){return a+c.soldeOuv;},0);
+  var totalCapitaux=comptes.filter(function(c){return c.type==="capitaux";}).reduce(function(a,c){return a+c.soldeOuv;},0);
+  var balance=totalActif-(totalPassif+totalCapitaux);
+  var balanced=Math.abs(balance)<0.01;
+
+  var liste=filterType?comptes.filter(function(c){return c.type===filterType;}):comptes;
+  var groups={};
+  liste.forEach(function(c){if(!groups[c.cat])groups[c.cat]=[];groups[c.cat].push(c);});
+
+  function sauvegarder(){
+    try{localStorage.setItem("predictek_soldes_ouv",JSON.stringify(comptes));}catch(e){}
+    setSavedMsg("Soldes sauvegardes!");
+    setTimeout(function(){setSavedMsg("");},3000);
+  }
+
+  return(
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:18}}>
+        <StatCard l="Total actif" v={money(totalActif)} c={T.accent} bg={T.accentL}/>
+        <StatCard l="Total passif" v={money(totalPassif)} c={T.red} bg={T.redL}/>
+        <StatCard l="Capitaux propres" v={money(totalCapitaux)} c={T.purple} bg={T.purpleL}/>
+        <StatCard l="Balance" v={money(balance)} c={balanced?T.accent:T.red} bg={balanced?T.accentL:T.redL} sub={balanced?"Equilibree":"Desequilibre!"}/>
+      </div>
+      {!balanced&&<div style={{background:T.redL,borderRadius:8,padding:"9px 14px",fontSize:12,color:T.red,marginBottom:14}}>Bilan desequilibre de {money(Math.abs(balance))} — Verifiez vos soldes d ouverture.</div>}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <div style={{display:"flex",gap:6}}>
+          {[["","Tous"],["actif","Actif"],["passif","Passif"],["capitaux","Capitaux"],["produit","Produits"],["charge","Charges"]].map(function(f){var a=filterType===f[0];return(
+            <button key={f[0]} onClick={function(){setFilterType(f[0]);}} style={{background:a?T.navy:"#fff",border:"1px solid "+(a?T.navy:T.border),borderRadius:20,padding:"4px 12px",color:a?"#fff":T.muted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{f[1]}</button>
+          );})}
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {savedMsg&&<Bdg bg={T.accentL} c={T.accent}>{savedMsg}</Bdg>}
+          <Btn sm onClick={sauvegarder}>Sauvegarder</Btn>
+        </div>
+      </div>
+      {Object.keys(groups).map(function(cat){return(
+        <div key={cat} style={{marginBottom:16}}>
+          <div style={{background:T.navy,color:"#fff",padding:"8px 14px",fontSize:11,fontWeight:700,borderRadius:"8px 8px 0 0"}}>{cat}</div>
+          <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr><Th dark light>No</Th><Th dark light>Nom du compte</Th><Th dark light r>Solde d ouverture ($)</Th></tr></thead>
+              <tbody>
+                {groups[cat].map(function(c){return(
+                  <tr key={c.no}>
+                    <Td c={T.muted}>{c.no}</Td>
+                    <Td>{c.nom}</Td>
+                    <td style={{padding:"6px 12px",textAlign:"right"}}>
+                      <input type="number" value={c.soldeOuv} onChange={function(e){upd(c.no,e.target.value);}} style={{width:140,border:"1px solid "+T.border,borderRadius:6,padding:"4px 8px",fontSize:12,fontFamily:"inherit",textAlign:"right",outline:"none"}} step="0.01"/>
+                    </td>
+                  </tr>
+                );})}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );})}
+    </div>
+  );
+}
+
+// ===== TAB GRAND LIVRE =====
+function TabGrandLivre(){
+  var s0=useState(COMPTES[1].no);var selCpt=s0[0];var setSelCpt=s0[1];
+  var s1=useState("2026-01-01");var dateDebut=s1[0];var setDateDebut=s1[1];
+  var s2=useState("2026-12-31");var dateFin=s2[0];var setDateFin=s2[1];
+
+  var cpt=COMPTES.find(function(c){return c.no===selCpt;})||COMPTES[0];
+  var isDebitNormal=cpt.type==="actif"||cpt.type==="charge";
+
+  // Build ledger entries from journal
+  var lignes=[];
+  var solde=cpt.soldeOuv||cpt.solde||0;
+  var soldeInit=solde;
+
+  ECRITURES_INIT.forEach(function(e){
+    if(e.date<dateDebut||e.date>dateFin)return;
+    e.debit.forEach(function(d){
+      if(d.cpt===selCpt){
+        var delta=isDebitNormal?d.mnt:-d.mnt;
+        solde+=delta;
+        lignes.push({date:e.date,no:e.no,desc:e.desc,debit:d.mnt,credit:0,solde:solde});
+      }
+    });
+    e.credit.forEach(function(c){
+      if(c.cpt===selCpt){
+        var delta=isDebitNormal?-c.mnt:c.mnt;
+        solde+=delta;
+        lignes.push({date:e.date,no:e.no,desc:e.desc,debit:0,credit:c.mnt,solde:solde});
+      }
+    });
+  });
+
+  lignes.sort(function(a,b){return a.date>b.date?1:-1;});
+
+  var totalDebit=lignes.reduce(function(a,l){return a+l.debit;},0);
+  var totalCredit=lignes.reduce(function(a,l){return a+l.credit;},0);
+
+  return(
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:12,marginBottom:18,alignItems:"end"}}>
+        <div>
+          <Lbl l="Compte"/>
+          <select value={selCpt} onChange={function(e){setSelCpt(e.target.value);}} style={INP}>
+            {COMPTES.map(function(c){return <option key={c.no} value={c.no}>{c.no} — {c.nom}</option>;})}
+          </select>
+        </div>
+        <div><Lbl l="Du"/><input type="date" value={dateDebut} onChange={function(e){setDateDebut(e.target.value);}} style={INP}/></div>
+        <div><Lbl l="Au"/><input type="date" value={dateFin} onChange={function(e){setDateFin(e.target.value);}} style={INP}/></div>
+      </div>
+      <div style={{background:T.navy,color:"#fff",padding:"12px 16px",borderRadius:"10px 10px 0 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <span style={{fontSize:16,fontWeight:800}}>{cpt.no} — {cpt.nom}</span>
+          <Bdg bg={"#ffffff20"} c={"#fff"} sz={10} style={{marginLeft:8}}>{cpt.type}</Bdg>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontSize:10,color:"#8da0bb"}}>Solde a la cloture</div>
+          <div style={{fontSize:18,fontWeight:800,color:"#3CAF6E"}}>{money(solde)}</div>
+        </div>
+      </div>
+      <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:"0 0 10px 10px",overflow:"hidden"}}>
+        <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <thead>
+            <tr>
+              <Th dark light>Date</Th>
+              <Th dark light>Ref.</Th>
+              <Th dark light>Description</Th>
+              <Th dark light r>Debit</Th>
+              <Th dark light r>Credit</Th>
+              <Th dark light r>Solde</Th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style={{background:T.alt}}>
+              <Td c={T.muted}>—</Td>
+              <Td c={T.muted}>—</Td>
+              <Td bold>Solde d ouverture</Td>
+              <Td r>—</Td>
+              <Td r>—</Td>
+              <Td r bold c={T.navy}>{money(soldeInit)}</Td>
+            </tr>
+            {lignes.map(function(l,i){return(
+              <tr key={i}>
+                <Td c={T.muted}>{l.date}</Td>
+                <Td c={T.accent}>{l.no}</Td>
+                <Td>{l.desc}</Td>
+                <Td r c={l.debit>0?T.navy:T.muted}>{l.debit>0?money(l.debit):"—"}</Td>
+                <Td r c={l.credit>0?T.red:T.muted}>{l.credit>0?money(l.credit):"—"}</Td>
+                <Td r bold c={l.solde>=0?T.navy:T.red}>{money(l.solde)}</Td>
+              </tr>
+            );})}
+            <tr style={{background:T.alt,borderTop:"2px solid "+T.border}}>
+              <td colSpan={3} style={{padding:"9px 12px",fontSize:12,fontWeight:700,color:T.navy}}>TOTAUX</td>
+              <Td r bold c={T.navy}>{money(totalDebit)}</Td>
+              <Td r bold c={T.red}>{money(totalCredit)}</Td>
+              <Td r bold c={solde>=0?T.accent:T.red}>{money(solde)}</Td>
+            </tr>
+          </tbody>
+        </table>
+        {lignes.length===0&&(
+          <div style={{textAlign:"center",padding:40,color:T.muted,fontSize:13}}>Aucune ecriture pour ce compte dans la periode selectionnee.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ===== TAB BUDGET PREDICTEK =====
+function TabBudget(){
+  var MOIS=["Jan","Fev","Mar","Avr","Mai","Jun","Jul","Aou","Sep","Oct","Nov","Dec"];
+  var s0=useState({
+    "Honoraires de gestion":     [7200,7200,7200,7200,7200,7200,7200,7200,7200,7200,7200,7200],
+    "Services additionnels":     [600,600,800,800,700,700,700,700,700,700,700,600],
+    "Salaires gestionnaires":    [4000,4000,4000,4000,4000,4000,4000,4000,4000,4000,4000,4000],
+    "Salaires terrain":          [1833,1833,1833,1833,1833,1833,1833,1833,1833,1833,1833,1833],
+    "Charges sociales":          [900,900,900,900,900,900,900,900,900,900,900,900],
+    "Loyer bureau":              [600,600,600,600,600,600,600,600,600,600,600,600],
+    "Telecommunications":        [150,150,150,150,150,150,150,150,150,150,150,150],
+    "Logiciels et abonnements":  [300,300,300,300,300,300,300,300,300,300,300,300],
+    "Assurance entreprise":      [200,200,200,200,200,200,200,200,200,200,200,200],
+    "Honoraires professionnels": [300,300,300,300,300,300,300,300,300,300,300,300],
+  });
+  var budget=s0[0];var setBudget=s0[1];
+  var s1=useState("produits");var section=s1[0];var setSection=s1[1];
+
+  var PRODUITS=["Honoraires de gestion","Services additionnels"];
+  var CHARGES=["Salaires gestionnaires","Salaires terrain","Charges sociales","Loyer bureau","Telecommunications","Logiciels et abonnements","Assurance entreprise","Honoraires professionnels"];
+
+  var REEL_ANNUEL={
+    "Honoraires de gestion":86400,"Services additionnels":8200,
+    "Salaires gestionnaires":48000,"Salaires terrain":22000,"Charges sociales":10800,
+    "Loyer bureau":7200,"Telecommunications":1800,"Logiciels et abonnements":3600,
+    "Assurance entreprise":2400,"Honoraires professionnels":3600,
+  };
+
+  function ligneTotal(k){return budget[k]?budget[k].reduce(function(a,v){return a+v;},0):0;}
+  function totalSection(keys){return keys.reduce(function(a,k){return a+ligneTotal(k);},0);}
+
+  var totalProdBudget=totalSection(PRODUITS);
+  var totalChargBudget=totalSection(CHARGES);
+  var beneficeBudget=totalProdBudget-totalChargBudget;
+  var totalProdReel=PRODUITS.reduce(function(a,k){return a+(REEL_ANNUEL[k]||0);},0);
+  var totalChargReel=CHARGES.reduce(function(a,k){return a+(REEL_ANNUEL[k]||0);},0);
+  var beneficeReel=totalProdReel-totalChargReel;
+
+  function upd(k,i,val){setBudget(function(prev){var n=Object.assign({},prev);n[k]=n[k].slice();n[k][i]=parseFloat(val)||0;return n;});}
+
+  function BudgetTable(p){
+    return(
+      <div style={{marginBottom:20}}>
+        <div style={{background:p.color,color:"#fff",padding:"9px 14px",fontSize:12,fontWeight:700,borderRadius:"8px 8px 0 0"}}>{p.title}</div>
+        <div style={{overflowX:"auto",border:"1px solid "+T.border,borderRadius:"0 0 8px 8px"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",minWidth:900}}>
+            <thead>
+              <tr style={{background:T.alt}}>
+                <Th>Poste</Th>
+                {MOIS.map(function(m){return <Th key={m} r>{m}</Th>;})}
+                <Th r>Total budget</Th>
+                <Th r>Reel YTD</Th>
+                <Th r>Ecart</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {p.keys.map(function(k){
+                var total=ligneTotal(k);
+                var reel=REEL_ANNUEL[k]||0;
+                var ecart=reel-total;
+                return(
+                  <tr key={k}>
+                    <Td bold>{k}</Td>
+                    {(budget[k]||[]).map(function(val,i){return(
+                      <td key={i} style={{padding:"4px 6px",textAlign:"right",borderBottom:"1px solid "+T.border}}>
+                        <input type="number" value={val} onChange={function(e){upd(k,i,e.target.value);}} style={{width:68,border:"1px solid "+T.border,borderRadius:5,padding:"3px 5px",fontSize:11,fontFamily:"inherit",textAlign:"right",outline:"none"}}/>
+                      </td>
+                    );})}
+                    <Td r bold c={T.navy}>{money(total)}</Td>
+                    <Td r c={T.accent}>{money(reel)}</Td>
+                    <Td r bold c={ecart>=0?T.accent:T.red}>{money(ecart)}</Td>
+                  </tr>
+                );
+              })}
+              <tr style={{background:T.alt,borderTop:"2px solid "+T.border}}>
+                <td style={{padding:"9px 12px",fontSize:12,fontWeight:700,color:p.color}}>TOTAL</td>
+                {MOIS.map(function(m,i){var sum=p.keys.reduce(function(a,k){return a+(budget[k]?budget[k][i]:0);},0);return <td key={i} style={{padding:"9px 6px",textAlign:"right",fontSize:12,fontWeight:700,color:p.color}}>{money(sum)}</td>;})}
+                <Td r bold c={p.color}>{money(totalSection(p.keys))}</Td>
+                <Td r bold c={p.color}>{money(p.keys.reduce(function(a,k){return a+(REEL_ANNUEL[k]||0);},0))}</Td>
+                <td style={{padding:"9px 12px"}}></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  return(
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:18}}>
+        <StatCard l="Revenus budgetes" v={money(totalProdBudget)} c={T.accent} bg={T.accentL}/>
+        <StatCard l="Charges budgetees" v={money(totalChargBudget)} c={T.red} bg={T.redL}/>
+        <StatCard l="Benefice projete" v={money(beneficeBudget)} c={beneficeBudget>=0?T.accent:T.red} bg={beneficeBudget>=0?T.accentL:T.redL} sub={"Reel: "+money(beneficeReel)}/>
+      </div>
+      <div style={{display:"flex",gap:3,marginBottom:16,background:T.surface,padding:5,borderRadius:10,border:"1px solid "+T.border}}>
+        {[["produits","Produits"],["charges","Charges"]].map(function(t){var a=section===t[0];return(
+          <button key={t[0]} onClick={function(){setSection(t[0]);}} style={{background:a?T.navy:"transparent",border:"none",borderRadius:7,padding:"7px 14px",color:a?"#fff":T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400}}>{t[1]}</button>
+        );})}
+      </div>
+      {section==="produits"&&<BudgetTable title="PRODUITS D EXPLOITATION" color={T.accent} keys={PRODUITS}/>}
+      {section==="charges"&&<BudgetTable title="CHARGES D EXPLOITATION" color={T.red} keys={CHARGES}/>}
+    </div>
+  );
+}
+
+// ===== TAB EMPLOYES =====
+function TabEmployes(){
+  var EMPLOYES_INIT=[
+    {id:1,nom:"Marie Tremblay",prenom:"Marie",poste:"Gestionnaire principal",dept:"Administration",type:"TP",salaire:52000,dateEmbauche:"2022-03-01",tel:"418-555-0201",courriel:"m.tremblay@predictek.com",naiss:"1988-05-14",nas:"***-***-***",adresse:"123 rue des Erables, Quebec QC G1K 1A1",federal:"M",provincial:"M",rrq:true,rqap:true,vacances:4,actif:true,notes:"Responsable syndicats Piedmont et Erables"},
+    {id:2,nom:"Jean-Philippe Roy",prenom:"Jean-Philippe",poste:"Gestionnaire syndicats",dept:"Operations",type:"TP",salaire:46000,dateEmbauche:"2023-01-15",tel:"418-555-0202",courriel:"jp.roy@predictek.com",naiss:"1992-11-22",nas:"***-***-***",adresse:"456 boul Laurier, Quebec QC G1V 2L2",federal:"M",provincial:"M",rrq:true,rqap:true,vacances:3,actif:true,notes:""},
+    {id:3,nom:"Carlos Mendes",prenom:"Carlos",poste:"Technicien terrain",dept:"Terrain",type:"TP",salaire:38000,dateEmbauche:"2023-06-01",tel:"418-555-0203",courriel:"c.mendes@predictek.com",naiss:"1990-07-08",nas:"***-***-***",adresse:"789 rue St-Jean, Quebec QC G1R 1P1",federal:"M",provincial:"M",rrq:true,rqap:true,vacances:3,actif:true,notes:"Permis classe 5. Bilingue."},
+    {id:4,nom:"Sarah Bolduc",prenom:"Sarah",poste:"Gestionnaire syndicats",dept:"Operations",type:"TP",salaire:44000,dateEmbauche:"2023-09-01",tel:"418-555-0204",courriel:"s.bolduc@predictek.com",naiss:"1994-03-30",nas:"***-***-***",adresse:"321 ave Cartier, Quebec QC G2L 3K8",federal:"C",provincial:"C",rrq:true,rqap:true,vacances:3,actif:true,notes:"Responsable syndicat Belvedere"},
+  ];
+  var s0=useState(EMPLOYES_INIT);var employes=s0[0];var setEmployes=s0[1];
+  var s1=useState(null);var sel=s1[0];var setSel=s1[1];
+  var s2=useState(false);var showN=s2[0];var setShowN=s2[1];
+  var s3=useState({});var nf=s3[0];var setNf=s3[1];
+  function snf(k,v){setNf(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
+
+  var actifs=employes.filter(function(e){return e.actif;});
+  var totalMasseSal=actifs.reduce(function(a,e){return a+e.salaire;},0);
+
+  var selE=sel?employes.find(function(e){return e.id===sel;}):null;
+
+  return(
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:18}}>
+        <StatCard l="Employes actifs" v={actifs.length} c={T.navy} bg={T.blueL}/>
+        <StatCard l="Masse salariale" v={money(totalMasseSal)} c={T.accent} bg={T.accentL} sub="annuelle"/>
+        <StatCard l="Masse salariale" v={money(totalMasseSal/26)} c={T.purple} bg={T.purpleL} sub="par periode (26)"/>
+        <StatCard l="Charges patronales" v={money(totalMasseSal*0.15)} c={T.amber} bg={T.amberL} sub="estimees ~15%"/>
+      </div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <b style={{fontSize:14,color:T.navy}}>Registre des employes</b>
+        <Btn sm onClick={function(){setNf({nom:"",prenom:"",poste:"",dept:"Operations",type:"TP",salaire:"",dateEmbauche:today(),tel:"",courriel:"",naiss:"",nas:"",adresse:"",federal:"M",provincial:"M",rrq:true,rqap:true,vacances:3,actif:true,notes:""});setShowN(true);}}>+ Nouvel employe</Btn>
+      </div>
+      <div style={{display:"flex",gap:14}}>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr><Th dark light>Employe</Th><Th dark light>Poste</Th><Th dark light>Dept</Th><Th dark light r>Salaire annuel</Th><Th dark light>Embauche</Th><Th dark light>Vacances</Th><Th dark light>Statut</Th></tr></thead>
+              <tbody>
+                {employes.map(function(e){return(
+                  <tr key={e.id} onClick={function(){setSel(e.id);}} style={{borderBottom:"1px solid "+T.border,background:sel===e.id?T.accentL:e.actif?T.surface:T.alt,cursor:"pointer"}}>
+                    <Td bold>{e.prenom} {e.nom}</Td>
+                    <Td c={T.muted}>{e.poste}</Td>
+                    <Td><Bdg bg={T.blueL} c={T.blue}>{e.dept}</Bdg></Td>
+                    <Td r bold>{money(e.salaire)}</Td>
+                    <Td c={T.muted}>{e.dateEmbauche}</Td>
+                    <Td>{e.vacances} sem.</Td>
+                    <Td><Bdg bg={e.actif?T.accentL:T.redL} c={e.actif?T.accent:T.red}>{e.actif?"Actif":"Inactif"}</Bdg></Td>
+                  </tr>
+                );})}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {selE&&(
+          <div style={{width:320,flexShrink:0}}>
+            <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+                <div>
+                  <div style={{fontSize:15,fontWeight:800,color:T.navy}}>{selE.prenom} {selE.nom}</div>
+                  <div style={{fontSize:12,color:T.muted}}>{selE.poste}</div>
+                </div>
+                <button onClick={function(){setSel(null);}} style={{background:"none",border:"none",cursor:"pointer",color:T.muted,fontSize:18,lineHeight:1}}>x</button>
+              </div>
+              <div style={{display:"grid",gap:0}}>
+                {[
+                  {l:"Departement",v:selE.dept},
+                  {l:"Type",v:selE.type==="TP"?"Temps plein":"Temps partiel"},
+                  {l:"Salaire annuel",v:money(selE.salaire)},
+                  {l:"Salaire bimensuel",v:money(Math.round(selE.salaire/26*100)/100)},
+                  {l:"Date d embauche",v:selE.dateEmbauche},
+                  {l:"Semaines vacances",v:selE.vacances+" semaines"},
+                  {l:"Telephone",v:selE.tel||"—"},
+                  {l:"Courriel",v:selE.courriel||"—"},
+                  {l:"Date de naissance",v:selE.naiss||"—"},
+                  {l:"Adresse",v:selE.adresse||"—"},
+                  {l:"Code federal",v:selE.federal},
+                  {l:"Code provincial",v:selE.provincial},
+                  {l:"RRQ",v:selE.rrq?"Cotisant":"Exempte"},
+                  {l:"RQAP",v:selE.rqap?"Cotisant":"Exempte"},
+                ].map(function(item,i){return(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"7px 0",borderBottom:"1px solid "+T.border}}>
+                    <span style={{fontSize:10,color:T.muted,flexShrink:0,marginRight:8}}>{item.l}</span>
+                    <span style={{fontSize:11,fontWeight:500,color:T.text,textAlign:"right",wordBreak:"break-word"}}>{item.v}</span>
+                  </div>
+                );})}
+              </div>
+              {selE.notes&&<div style={{marginTop:10,background:T.alt,borderRadius:7,padding:"8px 10px",fontSize:11,color:T.muted}}>{selE.notes}</div>}
+              <div style={{marginTop:12,display:"flex",gap:6}}>
+                <Btn sm fw bg={selE.actif?T.redL:T.accentL} tc={selE.actif?T.red:T.accent} bdr={"1px solid "+(selE.actif?T.red:T.accent)} onClick={function(){setEmployes(function(prev){return prev.map(function(e){return e.id===selE.id?Object.assign({},e,{actif:!e.actif}):e;});});}}>
+                  {selE.actif?"Desactiver":"Reactiver"}
+                </Btn>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Modal show={showN} onClose={function(){setShowN(false);}} title="Nouvel employe" w={580}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+          <div><Lbl l="Prenom"/><input value={nf.prenom||""} onChange={function(e){snf("prenom",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Nom"/><input value={nf.nom||""} onChange={function(e){snf("nom",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Poste"/><input value={nf.poste||""} onChange={function(e){snf("poste",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Departement"/>
+            <select value={nf.dept||"Operations"} onChange={function(e){snf("dept",e.target.value);}} style={INP}>
+              {["Administration","Operations","Terrain","Comptabilite","Direction"].map(function(d){return <option key={d}>{d}</option>;})}
+            </select>
+          </div>
+          <div><Lbl l="Salaire annuel ($)"/><input type="number" value={nf.salaire||""} onChange={function(e){snf("salaire",parseFloat(e.target.value)||0);}} style={INP}/></div>
+          <div><Lbl l="Date d embauche"/><input type="date" value={nf.dateEmbauche||""} onChange={function(e){snf("dateEmbauche",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Telephone"/><input value={nf.tel||""} onChange={function(e){snf("tel",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Courriel"/><input value={nf.courriel||""} onChange={function(e){snf("courriel",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Date de naissance"/><input type="date" value={nf.naiss||""} onChange={function(e){snf("naiss",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Semaines de vacances"/>
+            <select value={nf.vacances||3} onChange={function(e){snf("vacances",parseInt(e.target.value));}} style={INP}>
+              {[2,3,4,5,6].map(function(n){return <option key={n} value={n}>{n} semaines</option>;})}
+            </select>
+          </div>
+          <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse"/><input value={nf.adresse||""} onChange={function(e){snf("adresse",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Code fiscal federal"/>
+            <select value={nf.federal||"M"} onChange={function(e){snf("federal",e.target.value);}} style={INP}><option value="M">M — Marie</option><option value="C">C — Celibataire</option><option value="E">E — Exempte</option></select>
+          </div>
+          <div><Lbl l="Code fiscal provincial"/>
+            <select value={nf.provincial||"M"} onChange={function(e){snf("provincial",e.target.value);}} style={INP}><option value="M">M — Marie</option><option value="C">C — Celibataire</option><option value="E">E — Exempte</option></select>
+          </div>
+          <div style={{gridColumn:"1/-1"}}><Lbl l="Notes"/><textarea value={nf.notes||""} onChange={function(e){snf("notes",e.target.value);}} rows={2} style={Object.assign({},INP,{resize:"vertical"})}/></div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <Btn onClick={function(){if(!nf.nom||!nf.prenom)return;setEmployes(function(prev){return prev.concat([Object.assign({},nf,{id:Date.now(),type:"TP",nas:"***-***-***",actif:true})]);});setShowN(false);}}>Ajouter l employe</Btn>
+          <Btn onClick={function(){setShowN(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+
+
 // ===== MODULE PRINCIPAL =====
 export default function Comptabilite(){
   var s0=useState("facturation");var ong=s0[0];var setOng=s0[1];
   var TABS=[
     {id:"facturation",l:"Facturation clients"},
     {id:"paie",l:"Paie et DAS"},
+    {id:"employes",l:"Employes"},
     {id:"journal",l:"Journal comptable"},
+    {id:"soldes",l:"Soldes d ouverture"},
+    {id:"grandlivre",l:"Grand livre"},
+    {id:"budget",l:"Budget"},
     {id:"etats",l:"Etats financiers"},
   ];
   return(
@@ -755,7 +1208,11 @@ export default function Comptabilite(){
       </div>
       {ong==="facturation"&&<TabFacturation/>}
       {ong==="paie"&&<TabPaie/>}
+      {ong==="employes"&&<TabEmployes/>}
       {ong==="journal"&&<TabJournal/>}
+      {ong==="soldes"&&<TabSoldesOuverture/>}
+      {ong==="grandlivre"&&<TabGrandLivre/>}
+      {ong==="budget"&&<TabBudget/>}
       {ong==="etats"&&<TabEtats/>}
     </div>
   );
