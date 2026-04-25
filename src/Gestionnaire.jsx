@@ -784,39 +784,6 @@ function ExportCopros(p){
   );
 }
 
-  if(!p.show)return null;
-  return(
-    <div onClick={function(e){if(e.target===e.currentTarget)p.onClose();}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}}>
-      <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:14,padding:24,width:p.w||520,maxWidth:"94vw",maxHeight:"88vh",overflowY:"auto"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-          <b style={{fontSize:14,color:T.text}}>{p.title}</b>
-          <button onClick={p.onClose} style={{background:"none",border:"none",fontSize:18,cursor:"pointer",color:T.muted,lineHeight:1}}>x</button>
-        </div>
-        {p.children}
-      </div>
-    </div>
-  );
-}
-
-var COPROS_INIT=[
-  {id:1,u:"515",nom:"Michel",prenom:"Beaudoin",tel:"418-555-0101",courriel:"m.beaudoin@email.com",fraction:3.875,cot:530.59,pap:true,ce:"2029-03-15",ass:"2026-12-31",loc:false,animaux:0,acces:true,codeActif:true,derniereConnexion:"2026-04-20"},
-  {id:2,u:"517",nom:"Noreau",prenom:"Marilou",tel:"",courriel:"",fraction:2.666,cot:365.05,pap:false,ce:"2028-06-01",ass:"2026-09-15",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
-  {id:3,u:"519",nom:"Boulianne",prenom:"Tommy",tel:"",courriel:"",fraction:2.666,cot:365.05,pap:true,ce:"2027-11-20",ass:"2026-11-30",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
-  {id:4,u:"521",nom:"Begin",prenom:"Jean-Francois",tel:"",courriel:"",fraction:2.666,cot:365.05,pap:true,ce:"2031-05-10",ass:"2027-01-15",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
-  {id:5,u:"523",nom:"McCartney",prenom:"Joyce",tel:"",courriel:"",fraction:2.666,cot:365.05,pap:true,ce:"2030-08-22",ass:"2026-08-31",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
-  {id:6,u:"525",nom:"Pellerin",prenom:"Simon",tel:"",courriel:"",fraction:3.833,cot:524.84,pap:true,ce:"2028-03-14",ass:"2027-03-01",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
-  {id:7,u:"527",nom:"Maltais",prenom:"Fabienne",tel:"",courriel:"",fraction:3.874,cot:530.45,pap:false,ce:"2029-09-01",ass:"2026-10-31",loc:true,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
-  {id:8,u:"529",nom:"Bolduc",prenom:"Karine",tel:"",courriel:"",fraction:2.133,cot:292.06,pap:true,ce:"2027-07-15",ass:"2026-07-31",loc:false,animaux:1,acces:false,codeActif:false,derniereConnexion:""},
-  {id:9,u:"531",nom:"Laroche",prenom:"Jean-Francois",tel:"819-479-4203",courriel:"jf.laroche@email.com",fraction:2.133,cot:292.06,pap:true,ce:"2030-09-10",ass:"2026-08-01",loc:false,animaux:1,acces:true,codeActif:true,derniereConnexion:"2026-04-25",role:"President CA"},
-  {id:10,u:"533",nom:"Lemaire",prenom:"Denis",tel:"",courriel:"",fraction:2.389,cot:327.12,pap:true,ce:"2028-12-01",ass:"2027-02-28",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
-  {id:11,u:"535",nom:"Rouillard",prenom:"Guillaume",tel:"",courriel:"",fraction:2.133,cot:292.06,pap:true,ce:"2029-04-20",ass:"2026-12-15",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
-  {id:12,u:"537",nom:"Perreault",prenom:"Catherine",tel:"",courriel:"",fraction:2.133,cot:292.06,pap:false,ce:"2028-02-14",ass:"2026-06-30",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
-  {id:13,u:"539",nom:"Tremblay",prenom:"Lucette",tel:"418-555-0539",courriel:"l.tremblay@email.com",fraction:3.840,cot:525.80,pap:true,ce:"2024-04-22",ass:"2026-06-15",loc:true,animaux:2,acces:true,codeActif:false,derniereConnexion:"2026-03-15"},
-  {id:14,u:"541",nom:"Poulin",prenom:"Emile",tel:"",courriel:"",fraction:3.847,cot:526.76,pap:true,ce:"2031-01-08",ass:"2027-01-31",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
-  {id:15,u:"543",nom:"Salvas",prenom:"Michel",tel:"",courriel:"",fraction:2.133,cot:292.06,pap:true,ce:"2027-05-30",ass:"2026-05-31",loc:false,animaux:0,acces:false,codeActif:false,derniereConnexion:""},
-];
-
-var TICKETS_COPRO={
   "531":[
     {id:1,titre:"Fuite sous evier",date:"2026-04-20",statut:"en_cours",cat:"plomberie"},
     {id:2,titre:"Ampoule hall entree",date:"2026-04-05",statut:"ferme",cat:"electricite"},
@@ -1127,44 +1094,6 @@ function TabCopros(){
 }
 
 
-  if(!p.show)return null;
-  return(
-    <div onClick={function(e){if(e.target===e.currentTarget)p.onClose();}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}}>
-      <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:14,padding:24,width:p.w||520,maxWidth:"94vw",maxHeight:"90vh",overflowY:"auto"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-          <b style={{fontSize:14,color:T.text}}>{p.title}</b>
-          <button onClick={p.onClose} style={{background:"none",border:"none",fontSize:18,cursor:"pointer",color:T.muted,lineHeight:1}}>x</button>
-        </div>
-        {p.children}
-      </div>
-    </div>
-  );
-}
-
-var FOURNISSEURS_SYND=[
-  {id:1,nom:"Deneigement Express",cat:"Deneigement",tel:"418-555-1001",courriel:"info@deneigementexpress.com",contact:"Marc Gagnon",note:4.8,certifie:true,assurance:true},
-  {id:2,nom:"Paysagement Horizon",cat:"Paysagement",tel:"418-555-2002",courriel:"contact@paysagementhorizon.com",contact:"Sophie Larose",note:4.5,certifie:true,assurance:true},
-  {id:3,nom:"Plomberie ProFlo",cat:"Plomberie",tel:"418-555-3003",courriel:"urgence@proflo.com",contact:"Denis Bouchard",note:4.9,certifie:true,assurance:true},
-  {id:4,nom:"ElectroServ QC",cat:"Electricite",tel:"418-555-4004",courriel:"service@electroserv.com",contact:"Patrick Simard",note:4.6,certifie:true,assurance:true},
-  {id:5,nom:"AscenseurTech QC",cat:"Ascenseur",tel:"418-555-5005",courriel:"info@ascenseurtech.com",contact:"Lise Trottier",note:4.7,certifie:true,assurance:true},
-  {id:6,nom:"ChauFroid Expert",cat:"Chauffage",tel:"418-555-6006",courriel:"service@chaufroid.com",contact:"Alain Perron",note:4.4,certifie:true,assurance:true},
-];
-
-var BONS_INIT=[
-  {id:1,fournisseur:"Plomberie ProFlo",cat:"Plomberie",unite:"527",desc:"Reparation fuite sous evier cuisine",date:"2026-04-22",mnt:485,statut:"approuve",prio:"haute",notes:"Fuite visible, risque de degat"},
-  {id:2,fournisseur:"Deneigement Express",cat:"Deneigement",unite:"commun",desc:"Deneigement urgence stationnement apres tempete",date:"2026-04-10",mnt:850,statut:"complete",prio:"urgence",notes:"Intervention dans les 2h"},
-  {id:3,fournisseur:"ElectroServ QC",cat:"Electricite",unite:"commun",desc:"Remplacement eclairage hall entree",date:"2026-04-05",mnt:320,statut:"complete",prio:"normale",notes:""},
-  {id:4,fournisseur:"AscenseurTech QC",cat:"Ascenseur",unite:"commun",desc:"Inspection annuelle ascenseur",date:"2026-03-31",mnt:2200,statut:"complete",prio:"normale",notes:"Rapport inspection remis"},
-  {id:5,fournisseur:"ChauFroid Expert",cat:"Chauffage",unite:"539",desc:"Bruit dans canalisation chauffage",date:"2026-04-24",mnt:0,statut:"nouveau",prio:"normale",notes:"Diagnostic requis"},
-];
-
-var CONTRATS_INIT=[
-  {id:1,fournisseur:"Deneigement Express",type:"Annuel",debut:"2025-11-01",fin:"2026-04-30",mntAnnuel:22000,statut:"actif",renouvellement:"auto"},
-  {id:2,fournisseur:"Paysagement Horizon",type:"Saisonnier",debut:"2026-04-01",fin:"2026-10-31",mntAnnuel:8500,statut:"actif",renouvellement:"manuel"},
-  {id:3,fournisseur:"AscenseurTech QC",type:"Entretien",debut:"2026-01-01",fin:"2026-12-31",mntAnnuel:4800,statut:"actif",renouvellement:"auto"},
-];
-
-function FournisseursCA(){
   var s0=useState("bons");var ong=s0[0];var setOng=s0[1];
   var s1=useState(BONS_INIT);var bons=s1[0];var setBons=s1[1];
   var s2=useState(null);var sel=s2[0];var setSel=s2[1];
