@@ -212,13 +212,7 @@ function TabRedactionPV(){
 
 // ===== TAB DETECTION ANOMALIES =====
 function TabDetectionAnomalies(){
-  var s0=useState([
-    {id:1,four:"Deneigement Express",date:"2026-04-10",mnt:850,desc:"Deneigement urgence stationnement",contrat:"22000$/an",statut:"analyser"},
-    {id:2,four:"Plomberie ProFlo",date:"2026-04-22",mnt:485,desc:"Reparation fuite evier cuisine unite 527",contrat:"Horaire",statut:"analyser"},
-    {id:3,four:"ElectroServ QC",date:"2026-04-05",mnt:3800,desc:"Remplacement panneau electrique general",contrat:"Horaire",statut:"analyser"},
-    {id:4,four:"Deneigement Express",date:"2026-03-15",mnt:4200,desc:"Contrat mensuel + extras mars",contrat:"22000$/an",statut:"analyser"},
-    {id:5,four:"NordBlanche Services",date:"2026-04-20",mnt:1200,desc:"Service non planifie",contrat:"Aucun contrat",statut:"analyser"},
-  ]);
+  var s0=useState([]);var soumFactures=s0[0];var setSoumFactures=s0[1];;
   var factures=s0[0];var setFactures=s0[1];
   var s1=useState({});var resultats=s1[0];var setResultats=s1[1];
   var s2=useState(null);var loading=s2[0];var setLoading=s2[1];
