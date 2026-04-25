@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Hub from "./Hub";
 import CRM from "./CRM";
 import Fournisseurs from "./Fournisseurs";
 import Gestionnaire from "./Gestionnaire";
 import PortailCopro from "./PortailCopro";
+
 var MODS=[
   {id:"hub",label:"Administration",icon:"H",desc:"Syndicats, usagers, fournisseurs"},
   {id:"crm",label:"CRM Support",icon:"C",desc:"Tickets, IA, bons de travail"},
@@ -11,19 +12,62 @@ var MODS=[
   {id:"gestionnaire",label:"Portail du CA",icon:"CA",desc:"Finances, reunions, unites"},
   {id:"copro",label:"Portail Coproprietaire",icon:"CO",desc:"Acces coproprietaire"},
 ];
+
+function LogoUploader(p){
+  function handleFile(e){
+    var file=e.target.files[0];
+    if(!file)return;
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      try{
+        localStorage.setItem("predictek_logo",ev.target.result);
+        p.onLogoChange(ev.target.result);
+      }catch(err){console.log("localStorage not available");}
+    };
+    reader.readAsDataURL(file);
+  }
+  function resetLogo(){
+    try{localStorage.removeItem("predictek_logo");}catch(e){}
+    p.onLogoChange(null);
+  }
+  return(
+    <div style={{display:"flex",alignItems:"center",gap:8}}>
+      <input type="file" accept="image/*" id="logoInput" onChange={handleFile} style={{display:"none"}}/>
+      <button onClick={function(){document.getElementById("logoInput").click();}} style={{background:"#ffffff18",border:"1px solid #ffffff30",borderRadius:6,padding:"3px 10px",color:"#8da0bb",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>
+        Changer logo
+      </button>
+      {p.logo&&<button onClick={resetLogo} style={{background:"none",border:"none",color:"#55687a",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>Reset</button>}
+    </div>
+  );
+}
+
 export default function App(){
   var s=useState("hub");var active=s[0];var setActive=s[1];
+  var sl=useState(null);var logo=sl[0];var setLogo=sl[1];
+
+  useEffect(function(){
+    try{
+      var saved=localStorage.getItem("predictek_logo");
+      if(saved)setLogo(saved);
+    }catch(e){}
+  },[]);
+
   return(
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
       <div style={{background:"#13233A",borderBottom:"1px solid #ffffff15",display:"flex",alignItems:"center",height:52,flexShrink:0,overflowX:"auto"}}>
         <div style={{display:"flex",alignItems:"center",gap:10,padding:"0 16px",borderRight:"1px solid #ffffff15",height:"100%",flexShrink:0}}>
-          <div style={{width:28,height:28,borderRadius:6,background:"linear-gradient(135deg,#1B5E3B,#3CAF6E)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <span style={{color:"#fff",fontWeight:900,fontSize:15,fontFamily:"Georgia,serif"}}>P</span>
-          </div>
+          {logo?(
+            <img src={logo} alt="Logo" style={{width:32,height:32,borderRadius:6,objectFit:"contain",background:"#fff",padding:2}}/>
+          ):(
+            <div style={{width:32,height:32,borderRadius:6,background:"linear-gradient(135deg,#1B5E3B,#3CAF6E)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <span style={{color:"#fff",fontWeight:900,fontSize:16,fontFamily:"Georgia,serif"}}>P</span>
+            </div>
+          )}
           <div>
             <div style={{fontSize:13,fontWeight:800,color:"#fff",fontFamily:"Georgia,serif",lineHeight:1}}>Predictek</div>
             <div style={{fontSize:8,color:"#3CAF6E",letterSpacing:"0.08em"}}>GESTION COPROPRIETE</div>
           </div>
+          <LogoUploader logo={logo} onLogoChange={setLogo}/>
         </div>
         <div style={{display:"flex",height:"100%"}}>
           {MODS.map(function(m){var a=active===m.id;return(
