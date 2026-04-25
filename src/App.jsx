@@ -2,16 +2,14 @@ import { useState } from "react";
 import Hub from "./Hub";
 import CRM from "./CRM";
 import Fournisseurs from "./Fournisseurs";
-import Piedmont from "./Piedmont";
 import Gestionnaire from "./Gestionnaire";
 import PortailCopro from "./PortailCopro";
 var MODS=[
   {id:"hub",label:"Administration",icon:"H",desc:"Syndicats, usagers, fournisseurs"},
   {id:"crm",label:"CRM Support",icon:"C",desc:"Tickets, IA, bons de travail"},
   {id:"fournisseurs",label:"Fournisseurs",icon:"F",desc:"Vue globale tous syndicats"},
-  {id:"gestionnaire",label:"Portail du CA",icon:"CA",desc:"Finances, reunions, carnet"},
-  {id:"piedmont",label:"Portail Unites",icon:"P",desc:"Syndicat Piedmont - 36 unites"},
-  {id:"copro",label:"Portail Copropriétaire",icon:"CO",desc:"Acces coproprietaire"},
+  {id:"gestionnaire",label:"Portail du CA",icon:"CA",desc:"Finances, reunions, unites"},
+  {id:"copro",label:"Portail Coproprietaire",icon:"CO",desc:"Acces coproprietaire"},
 ];
 export default function App(){
   var s=useState("hub");var active=s[0];var setActive=s[1];
@@ -44,7 +42,6 @@ export default function App(){
         {active==="crm"&&<CRM/>}
         {active==="fournisseurs"&&<Fournisseurs/>}
         {active==="gestionnaire"&&<Gestionnaire/>}
-        {active==="piedmont"&&<Piedmont/>}
         {active==="copro"&&<PortailCopro/>}
       </div>
     </div>
