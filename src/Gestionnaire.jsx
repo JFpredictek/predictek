@@ -28,20 +28,8 @@ function Modal(p){
 
 // ===== DONNEES =====
 var SYNDICAT={nom:"Syndicat Piedmont",adr:"Ch. du Hibou, Stoneham QC G3C 1T1",president:"Jean-Francois Laroche",immat:"1144524577",exercice:"1 nov au 31 oct",nbUnites:36};
-var COMPTES=[{id:1,nom:"Compte operation",no:"021258-1",solde:7361.88},{id:2,nom:"Fonds prevoyance",no:"0212558-ET1",solde:64235.01},{id:3,nom:"Fonds assurance",no:"0212558-ET3",solde:36178.37}];
-var BUDGET=[
-  {id:1,cat:"Administration",poste:"Honoraires gestion",budget:28800,reel:14400},
-  {id:2,cat:"Administration",poste:"Frais legaux",budget:2000,reel:450},
-  {id:3,cat:"Administration",poste:"Assurance syndicat",budget:18500,reel:18500},
-  {id:4,cat:"Entretien",poste:"Deneigement",budget:22000,reel:18750},
-  {id:5,cat:"Entretien",poste:"Paysagement",budget:8500,reel:5200},
-  {id:6,cat:"Entretien",poste:"Entretien batiment",budget:15000,reel:6830},
-  {id:7,cat:"Entretien",poste:"Nettoyage",budget:4800,reel:2400},
-  {id:8,cat:"Services",poste:"Electricite communes",budget:6000,reel:3150},
-  {id:9,cat:"Services",poste:"Aqueduc",budget:3600,reel:1800},
-  {id:10,cat:"Prevoyance",poste:"Cotisation prevoyance",budget:36000,reel:18000},
-  {id:11,cat:"Imprevus",poste:"Reserve",budget:5000,reel:1200},
-];
+var COMPTES=[];
+var BUDGET=[];
 var FACT0=[];
 var PREV0=[
   {id:1,date:"2026-05-01",desc:"Cotisations mai 2026",mnt:14297.28,statut:"planifie",nb:36,par:"",dateA:""},
@@ -248,7 +236,7 @@ function TabFinances(p){
   function spf(k,v){setPf(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
   var totB=BUDGET.reduce(function(a,b){return a+b.budget;},0);
   var totR=BUDGET.reduce(function(a,b){return a+b.reel;},0);
-  var SUBS=[["budget","Budget"],["factures","Factures"],["prelevements","Prelevements"]];
+  var SUBS=[];
   return(
     <div>
       <div style={{display:"flex",gap:6,marginBottom:14}}>
@@ -563,7 +551,7 @@ function TabUnites(){
   var selU=sel?unites.find(function(u){return u.u===sel;}):null;
 
   function doExport(){
-    var ALL_COLS=[{k:"u",l:"Unite"},{k:"nom",l:"Proprietaire"},{k:"fraction",l:"Fraction %"},{k:"cot",l:"Cotisation"},{k:"papL",l:"PAP"},{k:"ce",l:"CE expiry"},{k:"ass",l:"Ass. expiry"},{k:"locL",l:"Location"},{k:"animaux",l:"Animaux"}];
+    var ALL_COLS=[];
     var cols=ALL_COLS.filter(function(c){return expCols[c.k]!==false;});
     var rows=unites.map(function(u){return Object.assign({},u,{papL:u.pap?"Oui":"Non",locL:u.loc?"Oui":"Non"});});
     if(expFmt==="csv"){csvDL(cols,rows,"registre-copropriétaires-"+today());}
@@ -745,7 +733,7 @@ function TabUnites(){
 function ExportCopros(p){
   var s0=useState({u:true,nom:true,fraction:true,cot:true,pap:true,ce:true,ass:true,loc:true});var cols=s0[0];var setCols=s0[1];
   var s1=useState("csv");var fmt2=s1[0];var setFmt2=s1[1];
-  var ALL=[{k:"u",l:"Unite"},{k:"nom",l:"Proprietaire"},{k:"fraction",l:"Fraction %"},{k:"cot",l:"Cotisation"},{k:"papL",l:"PAP"},{k:"ce",l:"CE expiry"},{k:"ass",l:"Ass. expiry"},{k:"locL",l:"Location"}];
+  var ALL=[];
   var selCols=ALL.filter(function(c){return cols[c.k]!==false;});
   function doExport(){
     var rows=UNITES0.map(function(u){return Object.assign({},u,{papL:u.pap?"Oui":"Non",locL:u.loc?"Oui":"Non"});});
@@ -785,7 +773,7 @@ var COMPTES_SYND=[];
 var ECRITURES_SYND=[];
 
 function TabSoldesOuvSynd(){
-  var s0=useState(COMPTES_SYND.map(function(c){return Object.assign({},c,{soldeOuv:c.solde});}));
+  var s0=useState([]);
   var comptes=s0[0];var setComptes=s0[1];
   var s1=useState("");var savedMsg=s1[0];var setSavedMsg=s1[1];
   function upd(no,val){setComptes(function(prev){return prev.map(function(c){return c.no===no?Object.assign({},c,{soldeOuv:parseFloat(val)||0}):c;});});}
@@ -838,8 +826,8 @@ function TabSoldesOuvSynd(){
 }
 
 function TabGrandLivreSynd(){
-  var s0=useState(COMPTES_SYND[0].no);var selCpt=s0[0];var setSelCpt=s0[1];
-  var cpt=COMPTES_SYND.find(function(c){return c.no===selCpt;})||COMPTES_SYND[0];
+  var s0=useState(COMPTES_SYND.length>0?COMPTES_SYND[0].no:"");var selCpt=s0[0];var setSelCpt=s0[1];
+  var cpt=COMPTES_SYND.find(function(c){return c.no===selCpt;})||{no:"",nom:"Aucun compte",type:"actif",solde:0,cat:""};
   var isDebitNormal=cpt.type==="actif"||cpt.type==="charge";
   var solde=cpt.solde||0;
   var soldeInit=solde;
@@ -889,7 +877,7 @@ function TabGrandLivreSynd(){
 }
 
 function TabBudgetSynd(){
-  var MOIS=["Nov","Dec","Jan","Fev","Mar","Avr","Mai","Jun","Jul","Aou","Sep","Oct"];
+  var MOIS=[];
   var s0=useState({
     "Cotisations mensuelles":[14297,14297,14297,14297,14297,14297,14297,14297,14297,14297,14297,14297],
     "Honoraires Predictek":  [2400,2400,2400,2400,2400,2400,2400,2400,2400,2400,2400,2400],
@@ -904,9 +892,9 @@ function TabBudgetSynd(){
   });
   var budget=s0[0];var setBudget=s0[1];
 
-  var PRODUITS=["Cotisations mensuelles"];
-  var CHARGES=["Honoraires Predictek","Deneigement","Paysagement","Electricite","Assurance syndicat","Plomberie et urgences","Entretien ascenseur","Chauffage","Fournitures et divers"];
-  var REEL={"Cotisations mensuelles":57189,"Honoraires Predictek":24800,"Deneigement":18700,"Paysagement":6200,"Electricite":3400,"Assurance syndicat":8900,"Plomberie et urgences":4850,"Entretien ascenseur":2200,"Chauffage":1800,"Fournitures et divers":940};
+  var PRODUITS=[];
+  var CHARGES=[];
+  var REEL={"Cotisations mensuelles"":0,"Honoraires Predictek"":0,"Deneigement"":0,"Paysagement"":0,"Electricite"":0,"Assurance syndicat"":0,"Plomberie et urgences"":0,"Entretien ascenseur"":0,"Chauffage"":0,"Fournitures et divers":940};
 
   function ligneTotal(k){return budget[k]?budget[k].reduce(function(a,v){return a+v;},0):0;}
   var totalProd=PRODUITS.reduce(function(a,k){return a+ligneTotal(k);},0);
@@ -1160,7 +1148,7 @@ export default function Gestionnaire(){
   var s5=useState(false);var showExp=s5[0];var setShowExp=s5[1];
 
   var fatts=fact.filter(function(f){return f.statut==="attente";}).length;
-  var TABS=[{id:"bord",l:"Tableau de bord"},{id:"finances",l:"Finances"},{id:"reunions",l:"Reunions et PV"},{id:"carnet",l:"Carnet entretien"},{id:"unites",l:"Unites"},{id:"copros",l:"Coproprietaires"},{id:"fournisseurs",l:"Fournisseurs"},{id:"soldes",l:"Soldes ouv."},{id:"grandlivre",l:"Grand livre"},{id:"budget",l:"Budget"}];
+  var TABS=[];
 
   return(
     <div style={{padding:16,fontFamily:"Georgia,serif"}}>
