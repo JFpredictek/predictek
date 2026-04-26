@@ -846,7 +846,7 @@ function Onboarding(p){
     quorumCA:"majorite",quorumAGO:25,
     // Etape 2 - CA
     nbMembresCA:5,president:"",secretaire:"",tresorier:"",membresCA:[],
-    courrielCA:"",courrielFactures:"",courrielCopros:"",courrielUrgences:"",telUrgences:"",
+    courrielCA:"",courrielFactures:"",courrielCopros:"",courrielUrgences:"",
     // Etape 4 - Soldes
     soldeOp:"",soldePrev:"",soldeAss:"",dateOuverture:"",
     budgetAnnuel:"",cotisationMoyenne:"",
@@ -1415,28 +1415,9 @@ function ParamsPredictek(){
 }
 
 
-var HISTORIQUE_INIT=[
-  {id:1,date:"2026-04-25 09:15",type:"courriel",dest:"jf.laroche@email.com",sujet:"Rapport mensuel avril 2026",statut:"simule",syndicat:"PIED",moyen:"courriel"},
-  {id:2,date:"2026-04-24 14:30",type:"sms",dest:"+1 418-555-0539",sujet:"Rappel cotisation en retard - Unite 539",statut:"simule",syndicat:"PIED",moyen:"sms"},
-  {id:3,date:"2026-04-22 10:00",type:"courriel",dest:"ca@syndicatpiedmont.com",sujet:"Convocation reunion CA - 15 mai 2026",statut:"simule",syndicat:"PIED",moyen:"courriel"},
-  {id:4,date:"2026-04-20 16:45",type:"courriel",dest:"m.beaudoin@email.com",sujet:"Alerte chauffe-eau - Unite 515",statut:"simule",syndicat:"PIED",moyen:"courriel"},
-  {id:5,date:"2026-04-18 11:20",type:"portail",dest:"Coproprietaires portail actif (3)",sujet:"Avis travaux deneigement",statut:"simule",syndicat:"PIED",moyen:"portail"},
-];
-var TEMPLATES=[
-  {id:1,cat:"Cotisations",nom:"Rappel cotisation J+5",sujet:"[{{syndicat}}] Cotisation en retard - Unite {{unite}}",corps:"Madame, Monsieur,\n\nNous constatons que votre cotisation mensuelle pour l unite {{unite}} d un montant de {{montant}} $ n a pas ete recue.\n\nMerci de regulariser sous 10 jours.\n\nCordialement,\nAdministration {{syndicat}}\nGere par Predictek",moyens:["courriel"],auto:true},
-  {id:2,cat:"Conformite",nom:"Alerte chauffe-eau expire",sujet:"[{{syndicat}}] Action requise - Chauffe-eau Unite {{unite}}",corps:"Madame, Monsieur,\n\nVotre chauffe-eau de l unite {{unite}} est arrive a son terme de vie.\n\nVous devez proceder a son remplacement dans les 60 jours et nous transmettre la preuve d installation.\n\nCordialement,\nAdministration {{syndicat}}",moyens:["courriel","sms"],auto:false},
-  {id:3,cat:"Reunions",nom:"Convocation CA",sujet:"[{{syndicat}}] Convocation - Reunion CA le {{date}}",corps:"Madame, Monsieur,\n\nVous etes convoques a la reunion du CA le {{date}} a {{heure}} - {{lieu}}.\n\nOrdre du jour:\n{{ordre_du_jour}}\n\nMerci de confirmer votre presence.\n\nCordialement,\n{{president}}, President\n{{syndicat}}",moyens:["courriel"],auto:false},
-  {id:4,cat:"Documents",nom:"Nouveau document disponible",sujet:"[{{syndicat}}] Nouveau document disponible sur votre portail",corps:"Madame, Monsieur,\n\nUn nouveau document est maintenant disponible sur votre portail coproprietaire:\n\n{{nom_document}}\n\nConnectez-vous sur app.predictek.ca pour y acceder.\n\nCordialement,\nAdministration {{syndicat}}",moyens:["courriel","portail"],auto:true},
-  {id:5,cat:"Urgences",nom:"Alerte urgence immeuble",sujet:"URGENT - {{syndicat}}: {{titre_urgence}}",corps:"ALERTE URGENCE\n\n{{description}}\n\nAction requise: {{action}}\n\nContacter immediatement: {{contact_urgence}}\n\nAdministration {{syndicat}}",moyens:["courriel","sms"],auto:false},
-  {id:6,cat:"Finances",nom:"Rapport mensuel CA",sujet:"[{{syndicat}}] Rapport mensuel - {{mois}} {{annee}}",corps:"Rapport mensuel - {{mois}} {{annee}}\n\nSoldes:\n- Exploitation: {{solde_op}} $\n- Prevoyance: {{solde_prev}} $\n\nCotisations recues: {{cot_recues}} $\nFactures approuvees: {{fact_approuvees}}\n\nRapport genere automatiquement par Predictek",moyens:["courriel"],auto:true},
-];
-var DESTINATAIRES=[
-  {id:1,nom:"Jean-Francois Laroche",unite:"531",courriel:"jf.laroche@email.com",tel:"819-479-4203",groupes:["CA","president"]},
-  {id:2,nom:"Maryse Fredette",unite:"",courriel:"m.fredette@email.com",tel:"418-555-0301",groupes:["CA","secretaire"]},
-  {id:3,nom:"Michel Beaudoin",unite:"515",courriel:"m.beaudoin@email.com",tel:"418-555-0101",groupes:["copros_portail"]},
-  {id:4,nom:"Lucette Tremblay",unite:"539",courriel:"l.tremblay@email.com",tel:"418-555-0539",groupes:["copros_portail","retard"]},
-  {id:5,nom:"CA Syndicat Piedmont",unite:"",courriel:"ca@syndicatpiedmont.com",tel:"",groupes:["CA","liste_ca"]},
-];
+var HISTORIQUE_INIT=[];
+var TEMPLATES=[];
+var DESTINATAIRES=[];
 
 function TabEnvoiManuel(){
   var s0=useState(null);var tmpl=s0[0];var setTmpl=s0[1];
@@ -1710,10 +1691,6 @@ function TabConfig(){
 }
 
 
-
-
-
-
 function StatCard(p){return(
   <div style={{background:p.bg||T.accentL,borderRadius:10,padding:"13px 15px",border:"1px solid "+(p.c||T.accent)+"33"}}>
     <div style={{fontSize:9,color:p.c||T.accent,fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.07em"}}>{p.l}</div>
@@ -1723,6 +1700,7 @@ function StatCard(p){return(
 );}
 function Th(p){return <th style={{padding:"8px 12px",textAlign:p.r?"right":"left",fontSize:10,fontWeight:700,color:p.light?"#8da0bb":T.muted,background:p.dark?T.navy:T.alt,whiteSpace:"nowrap",borderBottom:"1px solid "+T.border}}>{p.children}</th>;}
 function Td(p){return <td style={{padding:"8px 12px",fontSize:12,color:p.c||T.text,fontWeight:p.bold?700:400,textAlign:p.r?"right":"left",borderBottom:"1px solid "+T.border,background:p.bg||"transparent"}}>{p.children}</td>;}
+
 function TabEmployes(){
   var EMPLOYES_INIT=[];
   var s0=useState(EMPLOYES_INIT);var employes=s0[0];var setEmployes=s0[1];
