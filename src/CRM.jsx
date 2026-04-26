@@ -1,574 +1,189 @@
-import { useState, useMemo, useRef } from "react";
+import { useState } from "react";
+var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",purple:"#6B3FA0",purpleL:"#F3EEFF"};
+var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
+var money=function(n){return Math.abs(n||0).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
+var today=function(){return new Date().toISOString().slice(0,10);};
+function Bdg(p){return <span style={{fontSize:p.sz||10,fontWeight:600,padding:"2px 8px",borderRadius:20,background:p.bg||T.accentL,color:p.c||T.accent,whiteSpace:"nowrap",display:"inline-block"}}>{p.children}</span>;}
+function Btn(p){return <button onClick={p.onClick} disabled={p.dis} style={{background:p.dis?"#ccc":p.bg||T.accent,border:p.bdr||"none",borderRadius:7,padding:p.sm?"5px 11px":"8px 16px",color:p.tc||"#fff",fontSize:p.sm?10:12,fontWeight:600,cursor:p.dis?"not-allowed":"pointer",fontFamily:"inherit",width:p.fw?"100%":"auto"}}>{p.children}</button>;}
+function Lbl(p){return <div style={{fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:5}}>{p.l}</div>;}
+function Modal(p){if(!p.show)return null;return(<div onClick={function(e){if(e.target===e.currentTarget)p.onClose();}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}}><div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:14,padding:24,width:p.w||540,maxWidth:"95vw",maxHeight:"90vh",overflowY:"auto"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}><b style={{fontSize:15,color:T.text}}>{p.title}</b><button onClick={p.onClose} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:T.muted,lineHeight:1}}>x</button></div>{p.children}</div></div>);}
 
-const T={bg:"#F5F3EE",surface:"#FFF",surfaceAlt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentMid:"#2D8653",accentLight:"#E8F2EC",accentPop:"#3CAF6E",gold:"#B8943A",goldLight:"#FAF3E0",red:"#B83232",redLight:"#FDECEA",amber:"#B86020",amberLight:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueLight:"#EFF6FF",purple:"#6B3FA0",purpleLight:"#F3EEFF",teal:"#0E7490",tealLight:"#ECFEFF"};
-
-//  BASE DE CONNAISSANCES 
-const BASE_LEGALE = "ACTE DE COPROPRIETE PIEDMONT & CODE CIVIL DU QUEBEC:\n" +
-"" +
-"" +
-"" +
-"Art.74 Acte: Avis de mutation dans les 15 jours de la publication de l'acte.\n" +
-"" +
-"" +
-"" +
-"" +
-"" +
-"" +
-"Art.114.16 Acte: Maximum 2 animaux domestiques. Pitbulls et races dangereuses interdits.\n" +
-"" +
-"" +
-"" +
-"" +
-"" +
-"" +
-"" +
-"" +
-"" +
-"" +
-"" +
-"" +
-"";
-
-const FOURNISSEURS_MINI=[
-  {id:1,nom:"",tel:"418-555-1001",cats:["deneigement"],note:0},
-  {id:2,nom:"Paysagement Horizon",tel:"418-555-1002",cats:["paysagement"],note:0},
-  {id:3,nom:"Plomberie ProFlo",tel:"418-555-1003",cats:["plomberie"],note:0},
-  {id:4,nom:"AscenseurTech QC",tel:"418-555-1004",cats:["ascenseur","inspection"],note:0},
-  {id:5,nom:"Travaux Escaliers inc.",tel:"418-555-1005",cats:["menuiserie","toiture"],note:0},
-];
-const CAT_FOUR_MAP={
-  copro_reparation:["plomberie","electricite","menuiserie","toiture","nettoyage"],
-  copro_autorisation:["menuiserie","paysagement","inspection"],
-  admin_approbation:["deneigement","paysagement","ascenseur","inspection"],
-};
-
-const SYNDICATS=[
-  {id:1,nom:"Syndicat Piedmont",court:"Piedmont",unites:36,plan:"Pro"},
-  {id:2,nom:"Condos du Vieux-Port",court:"Vieux-Port",unites:32,plan:"Essentiel"},
-  {id:3,nom:"Tour des Laurentides",court:"Laurentides",unites:128,plan:"Prestige"},
-];
-
-const AGENTS=[
-  {id:1,nom:"",initiales:"JL",role:"Super Admin",couleur:T.gold},
-  {id:2,nom:"Marie-Claude Bouchard",initiales:"MB",role:"Admin",couleur:T.navy},
-  {id:3,nom:"Patrick Simard",initiales:"PS",role:"Utilisateur",couleur:T.blue},
-];
-
-const CATEGORIES={
-  copro_question:{label:"Question",icon:"",couleur:T.blue,canAI:true,desc:""},
-  copro_plainte:{label:"Plainte",icon:"!",couleur:T.red,canAI:false,desc:"Plainte contre un voisin ou une situation"},
-  copro_reparation:{label:"",icon:"W",couleur:T.amber,canAI:false,desc:""},
-  copro_autorisation:{label:"Autorisation",icon:"A",couleur:T.purple,canAI:true,desc:"Demande d'autorisation (travaux, animal, location...)"},
-  copro_document:{label:"Document",icon:"D",couleur:T.accentMid,canAI:true,desc:"Demande de document ou information"},
-  admin_decision:{label:"",icon:"C",couleur:T.accent,canAI:false,desc:""},
-  admin_approbation:{label:"Approbation",icon:"V",couleur:T.accentMid,canAI:false,desc:"Approbation requise (facture, travaux...)"},
-  admin_rapport:{label:"Rapport",icon:"R",couleur:T.navy,canAI:true,desc:""},
-  interne_bug:{label:"Bug technique",icon:"B",couleur:T.red,canAI:false,desc:""},
-  interne_support:{label:"Support",icon:"S",couleur:T.purple,canAI:true,desc:"Question de support sur l'utilisation"},
-};
-
-const ASSIGN_MODES={
-  manual:{label:"Manuel",desc:"Un agent Predictek assigne manuellement"},
-  auto_type:{label:"Auto par type",desc:""},
-  round_robin:{label:"Round-robin",desc:"Rotation automatique entre les agents disponibles"},
-};
-
-const STATUTS={
-  nouveau:{label:"Nouveau",c:T.blue,bg:T.blueLight},
-  ai_repond:{label:"",c:T.purple,bg:T.purpleLight},
-  en_cours:{label:"En cours",c:T.amber,bg:T.amberLight},
-  attente_client:{label:"Att. client",c:T.gold,bg:T.goldLight},
-  resolu:{label:"",c:T.accent,bg:T.accentLight},
-  ferme:{label:"",c:T.muted,bg:T.surfaceAlt},
-};
-
-const TICKETS_INIT=[
-  {id:1001,synd:1,cat:"copro_question",sujet:"",msg:"",auteur:"Michel Beaudoin",unite:"515",canal:"portail",statut:"resolu",priorite:"normale",agent:1,dateCreation:"2026-04-15 09:23",dateMaj:"2026-04-15 09:31",aiReponsible:true,messages:[{from:"ai",date:"2026-04-15 09:31",txt:""}]},
-  {id:1002,synd:1,cat:"copro_plainte",sujet:"",msg:"",auteur:"",unite:"531",canal:"portail",statut:"en_cours",priorite:"haute",agent:2,dateCreation:"2026-04-19 22:41",dateMaj:"2026-04-20 10:15",aiReponsible:false,messages:[{from:"agent",nom:"Marie-Claude Bouchard",date:"2026-04-20 10:15",txt:""}]},
-  {id:1003,synd:1,cat:"copro_autorisation",sujet:"Demande installation thermopompe murale",msg:"",auteur:"Simon Pellerin",unite:"525",canal:"courriel",statut:"nouveau",priorite:"normale",agent:null,dateCreation:"2026-04-21 14:05",dateMaj:"2026-04-21 14:05",aiReponsible:true,messages:[]},
-  {id:1004,synd:1,cat:"admin_approbation",sujet:"",msg:"",auteur:"",unite:null,canal:"manuel",statut:"en_cours",priorite:"haute",agent:1,dateCreation:"2026-04-20 08:00",dateMaj:"2026-04-20 08:00",aiReponsible:false,messages:[]},
-  {id:1005,synd:2,cat:"copro_question",sujet:"",msg:"",auteur:"Lucie Tremblay",unite:"204",canal:"portail",statut:"ai_repond",priorite:"normale",agent:null,dateCreation:"2026-04-22 11:30",dateMaj:"2026-04-22 11:30",aiReponsible:true,messages:[]},
-  {id:1006,synd:1,cat:"copro_reparation",sujet:"Fuite d'eau dans le plafond du salon",msg:"",auteur:"Fabienne Maltais",unite:"527",canal:"portail",statut:"en_cours",priorite:"urgente",agent:2,dateCreation:"2026-04-22 18:45",dateMaj:"2026-04-22 18:45",aiReponsible:false,messages:[{from:"agent",nom:"Marie-Claude Bouchard",date:"2026-04-22 19:10",txt:""}],bon:{fourId:3,fourNom:"Plomberie ProFlo",bonId:101,titre:"",statut:"envoye",dateCreation:"2026-04-22"}},
-  {id:1007,synd:3,cat:"interne_bug",sujet:"",msg:"",auteur:"",unite:null,canal:"manuel",statut:"nouveau",priorite:"haute",agent:3,dateCreation:"2026-04-22 09:15",dateMaj:"2026-04-22 09:15",aiReponsible:false,messages:[]},
-  {id:1008,synd:1,cat:"copro_document",sujet:"",msg:"",auteur:"Lucette Tremblay",unite:"539",canal:"courriel",statut:"nouveau",priorite:"haute",agent:null,dateCreation:"2026-04-22 16:20",dateMaj:"2026-04-22 16:20",aiReponsible:true,messages:[]},
-];
-
-const ASSIGN_CONFIG_INIT={
-  mode:"auto_type",
-  type_rules:{
-    copro_question:null,copro_autorisation:null,copro_document:null,admin_rapport:null,interne_support:null,
-    copro_plainte:2,copro_reparation:2,admin_decision:1,admin_approbation:1,interne_bug:3,
-  },
-  round_robin_agents:[1,2,3],
-  round_robin_next:0,
-  ai_auto_reply:true,
-  ai_confidence_threshold:75,
-};
-
-const td=()=>new Date().toISOString().slice(0,10);
-const now=()=>new Date().toLocaleString("fr-CA",{dateStyle:"short",timeStyle:"short"});
-const ini=n=>n.split(" ").filter(w=>w.length>1).map(w=>w[0]).join("").slice(0,2).toUpperCase();
-
-function Tag({l,c,sz}){return <span style={{fontSize:sz||10,padding:"2px 7px",borderRadius:20,background:(c||T.accent)+"18",color:c||T.accent,fontWeight:600,whiteSpace:"nowrap"}}>{l}</span>;}
-function Card({children,s}){return <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:16,...(s||{})}}>{children}</div>;}
-function Av({ini:i,c,sz}){var size=sz||32;return <div style={{width:size,height:size,borderRadius:"50%",background:c||T.accent,display:"flex",alignItems:"center",justifyContent:"center",fontSize:size*0.33,fontWeight:700,color:"#fff",flexShrink:0}}>{i}</div>;}
-function SH({l,s}){return <div style={{fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8,fontWeight:600,...(s||{})}}>{l}</div>;}
-var inp={width:"100%",border:"1px solid "+T.border,borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",boxSizing:"border-box",background:T.surface,outline:"none"};
-function Btn({onClick,children,bg,tc,sm,s,border}){return <button onClick={onClick} style={{background:bg||T.accent,border:border||"none""4px 10px":"8px 15px",color:tc||"#fff""pointer",fontFamily:"inherit",...(s||{})}}>{children}</button>;}
-function Modal({open,onClose,title,w,children}){
-  if(!open)return null;
-  return <div style={{position:"fixed",inset:0,background:"#00000060",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
-    <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:14,padding:22,width:w||520,maxWidth:"95vw",maxHeight:"92vh",overflowY:"auto"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <b style={{fontSize:15,color:T.text}}>{title}</b>
-        <button onClick={onClose} style={{background:"none",border:"none",fontSize:20,cursor:"pointer""");
-  const [aiLoading,setAiLoading]=useState(false);
-  const [note,setNote]=useState("");
-  const [subTab,setSubTab]=useState("conversation");
-  const [selFour,setSelFour]=useState(null);
-  const cat=CATEGORIES[ticket.cat]||{};
-  const statut=STATUTS[ticket.statut]||{};
-  const agent=AGENTS.find(a=>a.id===ticket.agent);
-  const synd=SYNDICATS.find(s=>s.id===ticket.synd);
-
-  async function genAI(){
-    setAiLoading(true);
-    const prompt = "" +
-      ""+ticket.auteur+(ticket.unite?""+ticket.unite+", "+synd.nom+")":(" ("+synd.nom+")"))+".\n\n" +
-      "DEMANDE: "+ticket.sujet+"\n"+ticket.msg+"\n\n" +
-      ""+BASE_LEGALE+"\n\n" +
-      "" +
-      "" +
-      "";
-    try {
-      const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,system:"",messages:[{role:"user""Erreur de g????????????????????????????????n????????????????????????????????ration.";
-      setReply(txt);
-    } catch(e){setReply("");}
-    setAiLoading(false);
-  }
-
-  function sendReply(isAI){
-    if(!reply.trim())return;
-    const newMsg={from:isAI?"ai":"agent""Predictek IA":AGENTS[0].nom,date:now(),txt:reply};
-    onUpdate(ticket.id,{messages:[...ticket.messages,newMsg],statut:"attente_client",dateMaj:now()});
-    setReply("");
-  }
-
-  function addNote(){
-    if(!note.trim())return;
-    const newMsg={from:"note",nom:AGENTS[0].nom,date:now(),txt:note};
-    onUpdate(ticket.id,{messages:[...ticket.messages,newMsg],dateMaj:now()});
-    setNote("");
-  }
-
-  const prioColor={urgente:T.red,haute:T.amber,normale:T.accent,basse:T.muted};
-
-  return(
-    <div style={{display:"flex",flexDirection:"column",height:"100%""14px 18px",borderBottom:"1px solid "+T.border,background:T.surfaceAlt}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-          <div style={{flex:1}}>
-            <div style={{display:"flex",gap:6,marginBottom:5,flexWrap:"wrap"}}>
-              <span style={{fontSize:10,color:T.muted,fontFamily:"monospace"}}>#{ticket.id}</span>
-              <Tag l={cat.label||ticket.cat} c={cat.couleur||T.muted}/>
-              <Tag l={statut.label} c={statut.c}/>
-              <Tag l={ticket.priorite} c={prioColor[ticket.priorite]||T.muted}/>
-              <Tag l={ticket.canal} c={T.muted}/>
-              {ticket.aiReponsible&&<Tag l="" c={T.purple}/>}
-            </div>
-            <div style={{fontSize:14,fontWeight:700,color:T.text,marginBottom:3}}>{ticket.sujet}</div>
-            <div style={{fontSize:11,color:T.muted}}>{ticket.auteur}{ticket.unite?""+ticket.unite:"""""none",border:"none",fontSize:18,cursor:"pointer",color:T.muted,marginLeft:10}}>x</button>
-        </div>
-        {/* Actions rapides */}
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          {[{v:"en_cours",l:"En cours"},{v:"attente_client",l:"Att. client"},{v:"resolu",l:""},{v:"ferme",l:""}].map(st=>(
-            <button key={st.v} onClick={()=>onUpdate(ticket.id,{statut:st.v,dateMaj:now()})}
-              style={{background:ticket.statut===st.v?STATUTS[st.v].c:T.surfaceAlt,border:"1px solid ""3px 9px""#fff":T.muted,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>
-              {st.l}
-            </button>
-          ))}
-          <div style={{marginLeft:"auto",display:"flex",gap:5,alignItems:"center"}}>
-            <span style={{fontSize:10,color:T.muted}}>Agent:</span>
-            <select value={ticket.agent||""} onChange={e=>onUpdate(ticket.id,{agent:parseInt(e.target.value)||null})}
-              style={{border:"1px solid "+T.border,borderRadius:6,padding:"3px 7px",fontSize:10,fontFamily:"inherit",background:T.surface}}>
-              <option value="""flex",gap:1,borderBottom:"1px solid "+T.border,padding:"0 18px",background:T.surface}}>
-        {[{id:"conversation",l:"Conversation"},{id:"details",l:""},{id:"ia",l:"Assistant IA"},{id:"bon",l:"Bon de travail"}].map(t=>(
-          <button key={t.id} onClick={()=>setSubTab(t.id)}
-            style={{background:"none",border:"none""2px solid "+T.accent:"2px solid transparent""8px 12px",cursor:"pointer",fontSize:11,fontFamily:"inherit""auto",padding:"16px 18px"}}>
-        {subTab==="conversation"&&(
-          <div>
-            {/* Message original */}
-            <div style={{display:"flex",gap:10,marginBottom:16}}>
-              <Av ini={ini(ticket.auteur)} c={T.navy} sz={34}/>
-              <div style={{flex:1}}>
-                <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:5}}>
-                  <b style={{fontSize:12,color:T.text}}>{ticket.auteur}</b>
-                  {ticket.unite&&<Tag l={""+ticket.unite} c={T.muted}/>}
-                  <span style={{fontSize:10,color:T.muted}}>{ticket.dateCreation}</span>
-                </div>
-                <div style={{background:T.surfaceAlt,borderRadius:"0 10px 10px 10px",padding:"10px 14px",fontSize:12,color:T.text,lineHeight:1.6}}>{ticket.msg}</div>
-              </div>
-            </div>
-
-            {/* Fil de messages */}
-            {ticket.messages.map((m,i)=>{
-              const isAI=m.from==="ai";
-              const isNote=m.from==="note";
-              const isAgent=m.from==="agent";
-              if(isNote) return(
-                <div key={i} style={{margin:"10px 0",padding:"8px 12px",background:T.goldLight,borderRadius:8,border:"1px dashed "+T.gold+"50""flex""row-reverse":"row"}}>
-                  {isAI&&<div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,"+T.purple+","+T.blue+")",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#fff",flexShrink:0}}>IA</div>}
-                  {isAgent&&<Av ini={ini(m.nom||"P")} c={T.accent} sz={34}/>}
-                  <div style={{flex:1,maxWidth:"80%"}}>
-                    <div style={{display:"flex",gap:7,alignItems:"center""row-reverse":"row""Predictek IA":m.nom}</b>
-                      <span style={{fontSize:9,color:T.muted}}>{m.date}</span>
-                      {isAI&&<Tag l="" c={T.purple} sz={8}/>}
-                    </div>
-                    <div style={{background:isAI?"linear-gradient(135deg,"+T.purpleLight+","+T.blueLight+")""1px solid ""30""30""10px 0 10px 10px":"0 10px 10px 10px",padding:"10px 14px",fontSize:12,color:T.text,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{m.txt}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {subTab==="details"&&(
-          <div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-              {[["Syndicat""????????????????????????????????????????????????"],["Canal",ticket.canal],["",ticket.priorite],["",agent?agent.nom:""],["",ticket.dateCreation],["",ticket.dateMaj],["",ticket.aiReponsible?"":""],["Nb messages",ticket.messages.length]].map(([l,v],i)=>(
-                <div key={i} style={{background:T.surfaceAlt,borderRadius:7,padding:"8px 11px"}}>
-                  <div style={{fontSize:9,color:T.muted,textTransform:"uppercase""10":T.surfaceAlt,borderRadius:8,padding:"10px 14px",border:"1px solid ""30""bon"&&(function(){
-          var bon=ticket.bon||null;
-          var matchingFours=FOURNISSEURS_MINI.filter(function(f){
-            var cats=CAT_FOUR_MAP[ticket.cat]||[];
-            return f.cats.some(function(c){return cats.indexOf(c)>=0;});
-          });
-          var SETAPES={cree:{l:"",c:T.muted},envoye:{l:"",c:T.blue},accepte:{l:"",c:T.accentMid},en_cours:{l:"En cours",c:T.amber},inspecte:{l:"",c:T.purple},termine:{l:"",c:T.accent},facture:{l:"",c:T.gold},paye:{l:"",c:T.accentPop}};
-          var etapes=["cree","envoye","accepte","en_cours","inspecte","termine","facture","paye""1px solid "+T.accent+"30",borderRadius:10,padding:"12px 16px",marginBottom:14}}>
-                    <div style={{fontSize:11,color:T.muted,marginBottom:4,textTransform:"uppercase",fontWeight:600,letterSpacing:"0.08em""flex",gap:8,alignItems:"center""flex""flex",gap:8,marginTop:10}}>
-                      {["accepte","en_cours","inspecte","termine"].filter(function(e){return etapes.indexOf(e)>etapes.indexOf(bon.statut);}).slice(0,2).map(function(e){return(
-                        <Btn key={e} sm onClick={function(){onUpdate(ticket.id,{bon:Object.assign({},bon,{statut:e}),dateMaj:now()});}} bg={T.accentLight} tc={T.accent} s={{border:"1px solid "+T.accent+"30""10px 14px""1px solid "+T.amber+"30",borderRadius:10,padding:"12px 16px""uppercase",letterSpacing:"0.08em""flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:9,marginBottom:6,cursor:"pointer",border:"2px solid "", ")}</div>
-                          </div>
-                          <div style={{fontSize:13,color:T.gold}}>{"".repeat(Math.floor(f.note))} <span style={{fontSize:10,color:T.muted}}>{f.note}</span></div>
-                          {selFour===f.id&&<Tag l="" c={T.accent}/>}
-                        </div>
-                      );})}
-                    </div>
-                  )}
-                  <Btn onClick={function(){
-                    if(!selFour)return;
-                    var f=FOURNISSEURS_MINI.find(function(x){return x.id===selFour;});
-                    var bonId=Math.floor(Math.random()*900)+100;
-                    var newBon={fourId:selFour,fourNom:f?f.nom:"",bonId:bonId,titre:ticket.sujet+""+ticket.unite,statut:"envoye",dateCreation:now().split(",")[0]};
-                    var newMsg={from:"agent",nom:"Predictek",date:now(),txt:"Bon de travail #"+bonId+" cree et envoye a ""?")+". "};
-                    onUpdate(ticket.id,{bon:newBon,statut:"en_cours",dateMaj:now(),messages:ticket.messages.concat([newMsg])});
-                  }} s={{width:"100%"}}>
-                    Creer et envoyer le bon de travail
-                  </Btn>
-                </div>
-              )}
-            </div>
-          );
-        })()}
-
-        {subTab==="ia"&&(
-          <div>
-            <div style={{background:"linear-gradient(135deg,"+T.purpleLight+","+T.blueLight+")",borderRadius:10,padding:"12px 16px",marginBottom:14,border:"1px solid "+T.purple+"20""linear-gradient(135deg,"+T.purple+","+T.blue+")"} s={{width:"100%""G????????????????????????????????n????????????????????????????????ration en cours...":""}
-                </Btn>
-                {aiLoading&&<div style={{textAlign:"center",padding:"20px""10px 14px""1px solid "+T.border,padding:"14px 18px",background:T.surface}}>
-        <div style={{display:"flex",gap:6,marginBottom:8}}>
-          {["","Note interne""none",borderRadius:5,padding:"3px 10px""#fff":T.amber,fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-              {t}
-            </button>
-          ))}
-        </div>
-        <textarea value={reply} onChange={e=>setReply(e.target.value)} rows={3}
-          placeholder=""
-          style={{...inp,height:70,resize:"vertical",marginBottom:8,lineHeight:1.6}}/>
-        <div style={{display:"flex""linear-gradient(135deg,"+T.purple+","+T.blue+")""");}}} bg={T.goldLight} tc={T.amber} s={{fontSize:11,border:"1px solid "+T.gold+"30"}}>Note interne</Btn>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-//  MODAL NOUVEAU TICKET 
-function ModalNouveauTicket({open,onClose,onSave}){
-  const [form,setForm]=useState({synd:1,cat:"copro_question",sujet:"",msg:"",auteur:"",unite:"",canal:"manuel",priorite:"normale",agent:""});
-  function sf(k,v){setForm(p=>({...p,[k]:v}));}
-  function save(){
-    if(!form.sujet||!form.msg||!form.auteur)return;
-    const cat=CATEGORIES[form.cat];
-    onSave({...form,id:Date.now()%10000+2000,statut:"nouveau""copro_question",sujet:"",msg:"",auteur:"",unite:"",canal:"manuel",priorite:"normale",agent:""});
+// ===== TICKETS =====
+function TabTickets(){
+  var s0=useState([]);var tickets=s0[0];var setTickets=s0[1];
+  var s1=useState(false);var showN=s1[0];var setShowN=s1[1];
+  var s2=useState({});var nf=s2[0];var setNf=s2[1];
+  var s3=useState("");var search=s3[0];var setSearch=s3[1];
+  var s4=useState("tous");var filtre=s4[0];var setFiltre=s4[1];
+  function snf(k,v){setNf(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
+  var CATS=["copro_question","copro_plainte","copro_reparation","copro_autorisation","admin_approbation","interne_bug","interne_amelioration"];
+  var PRIOS=["basse","normale","haute","urgence"];
+  var STATUTS={nouveau:{c:T.blue,bg:T.blueL,l:"Nouveau"},en_cours:{c:T.amber,bg:T.amberL,l:"En cours"},ferme:{c:T.accent,bg:T.accentL,l:"Ferme"}};
+  var liste=tickets.filter(function(t){
+    if(search&&!(t.sujet+t.cat).toLowerCase().includes(search.toLowerCase()))return false;
+    if(filtre!=="tous"&&t.statut!==filtre)return false;
+    return true;
+  });
+  function creer(){
+    if(!nf.sujet)return;
+    setTickets(function(p){return [{id:Date.now(),sujet:nf.sujet,cat:nf.cat||"copro_question",prio:nf.prio||"normale",statut:"nouveau",date:today(),msg:nf.msg||"",syndicat:""}].concat(p);});
+    setShowN(false);setNf({});
   }
   return(
-    <Modal open={open} onClose={onClose} title="Nouveau ticket" w={560}>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
-        <F l="Syndicat">
-          <select value={form.synd} onChange={e=>sf("synd",parseInt(e.target.value))} style={inp}>
-            {SYNDICATS.map(s=><option key={s.id} value={s.id}>{s.nom}</option>)}
-          </select>
-        </F>
-        <F l="">
-          <select value={form.cat} onChange={e=>sf("cat",e.target.value)} style={inp}>
-            {Object.entries(CATEGORIES).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
-          </select>
-        </F>
-        <F l="Auteur / Demandeur">
-          <input value={form.auteur} onChange={e=>sf("auteur",e.target.value)} placeholder="Nom complet" style={inp}/>
-        </F>
-        <F l="">
-          <input value={form.unite} onChange={e=>sf("unite",e.target.value)} placeholder="ex: 531" style={inp}/>
-        </F>
-        <F l="Canal">
-          <select value={form.canal} onChange={e=>sf("canal",e.target.value)} style={inp}>
-            <option value="portail""courriel">Courriel</option>
-            <option value="manuel">Saisie manuelle</option>
-            <option value="telephone""Priorit????????????????????????????????">
-          <select value={form.priorite} onChange={e=>sf("priorite",e.target.value)} style={inp}>
-            <option value="urgente">Urgente</option>
-            <option value="haute">Haute</option>
-            <option value="normale">Normale</option>
-            <option value="basse">Basse</option>
-          </select>
-        </F>
-      </div>
-      <F l="Sujet *" s={{marginBottom:10}}>
-        <input value={form.sujet} onChange={e=>sf("sujet",e.target.value)} placeholder="" style={inp}/>
-      </F>
-      <F l="Message / Description *" s={{marginBottom:10}}>
-        <textarea value={form.msg} onChange={e=>sf("msg",e.target.value)} rows={4}
-          placeholder="" style={{...inp,height:90,resize:"vertical"}}/>
-      </F>
-      <F l="" s={{marginBottom:16}}>
-        <select value={form.agent} onChange={e=>sf("agent",e.target.value)} style={inp}>
-          <option value="">Assignation automatique</option>
-          {AGENTS.map(a=><option key={a.id} value={a.id}>{a.nom}</option>)}
-        </select>
-      </F>
-      {CATEGORIES[form.cat]&&CATEGORIES[form.cat].canAI&&(
-        <div style={{background:T.purpleLight,borderRadius:7,padding:"7px 11px""flex""1px solid "+T.border}>Annuler</Btn>
-      </div>
-    </Modal>
-  );
-}
-
-//  VUE CONFIGURATION ASSIGNATION 
-function VueConfig({config,setConfig}){
-  function sf(k,v){setConfig(p=>({...p,[k]:v}));}
-  function setRule(cat,agentId){setConfig(p=>({...p,type_rules:{...p.type_rules,[cat]:agentId||null}}));}
-  return(
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-      <Card>
-        <SH l="Mode d'assignation global"/>
-        {Object.entries(ASSIGN_MODES).map(([k,v])=>(
-          <div key={k} onClick={()=>sf("mode",k)}
-            style={{display:"flex",alignItems:"flex-start",gap:8,padding:"9px 11px",borderRadius:8,marginBottom:5,cursor:"pointer""1px solid ""30":T.border)}}>
-            <div style={{width:14,height:14,borderRadius:"50%",border:"2px solid ""transparent""R????????????????????????????????ponse automatique par IA"/>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center""ai_auto_reply""pointer",position:"relative",flexShrink:0}}>
-            <div style={{width:16,height:16,borderRadius:"50%",background:"#fff",position:"absolute""left .2s",boxShadow:"0 1px 3px #0003"}}/>
-          </div>
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          {["tous","nouveau","en_cours","ferme"].map(function(f){var a=filtre===f;return(<button key={f} onClick={function(){setFiltre(f);}} style={{background:a?T.navy:"#fff",border:"1px solid "+(a?T.navy:T.border),borderRadius:20,padding:"4px 12px",color:a?"#fff":T.muted,fontSize:11,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize"}}>{f==="tous"?"Tous":f.replace("_"," ")}</button>);}) }
+          <input value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Chercher..." style={{border:"1px solid "+T.border,borderRadius:20,padding:"4px 12px",fontSize:11,fontFamily:"inherit",outline:"none",width:160}}/>
         </div>
-        <div>
-          <div style={{fontSize:11,color:T.muted,marginBottom:5}}>Seuil de confiance minimum: <b style={{color:T.purple}}>{config.ai_confidence_threshold}%</b></div>
-          <input type="range" min={50} max={95} value={config.ai_confidence_threshold}
-            onChange={e=>sf("ai_confidence_threshold",parseInt(e.target.value))}
-            style={{width:"100%",accentColor:T.purple}}/>
-          <div style={{display:"flex",justifyContent:"space-between""8px 11px"", ")}
+        <Btn sm onClick={function(){setNf({});setShowN(true);}}>+ Nouveau ticket</Btn>
+      </div>
+      {liste.length===0?(
+        <div style={{textAlign:"center",padding:60,color:T.muted,fontSize:13,background:T.surface,borderRadius:10,border:"1px solid "+T.border}}>
+          <div style={{fontSize:32,marginBottom:12}}>-</div>
+          <div style={{fontWeight:600,color:T.navy,marginBottom:6}}>Aucun ticket</div>
+          <div>Cliquez "+ Nouveau ticket" pour creer le premier ticket de support.</div>
         </div>
-      </Card>
-      {config.mode==="auto_type"&&(
-        <Card s={{gridColumn:"span 2"}}>
-          <SH l=""/>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
-            {Object.entries(CATEGORIES).map(([k,v])=>(
-              <div key={k} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 11px",background:T.surfaceAlt,borderRadius:8}}>
-                <div style={{width:24,height:24,borderRadius:6,background:v.couleur+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:v.couleur,flexShrink:0}}>{v.icon}</div>
-                <span style={{fontSize:11,color:T.text,flex:1}}>{v.label}</span>
-                {v.canAI&&<Tag l="IA" c={T.purple} sz={8}/>}
-                <select value={config.type_rules[k]||"""1px solid "+T.border,borderRadius:5,padding:"3px 6px",fontSize:10,fontFamily:"inherit",background:T.surface}}>
-                  <option value=""" ")[0]}</option>)}
-                </select>
-              </div>
-            ))}
-          </div>
-        </Card>
+      ):(
+        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead><tr style={{background:T.navy}}>{["#","Sujet","Categorie","Priorite","Statut","Date","Actions"].map(function(h){return <th key={h} style={{padding:"8px 12px",fontSize:10,fontWeight:700,color:"#8da0bb",textAlign:"left"}}>{h}</th>;})}</tr></thead>
+            <tbody>
+              {liste.map(function(t){var st=STATUTS[t.statut]||STATUTS.nouveau;return(
+                <tr key={t.id} style={{borderBottom:"1px solid "+T.border}}>
+                  <td style={{padding:"8px 12px",fontSize:11,color:T.muted}}>#{t.id.toString().slice(-4)}</td>
+                  <td style={{padding:"8px 12px",fontSize:12,fontWeight:600,color:T.text,maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.sujet}</td>
+                  <td style={{padding:"8px 12px"}}><Bdg bg={T.alt} c={T.muted}>{t.cat}</Bdg></td>
+                  <td style={{padding:"8px 12px"}}><Bdg bg={t.prio==="urgence"?T.redL:t.prio==="haute"?T.amberL:T.accentL} c={t.prio==="urgence"?T.red:t.prio==="haute"?T.amber:T.accent}>{t.prio}</Bdg></td>
+                  <td style={{padding:"8px 12px"}}><Bdg bg={st.bg} c={st.c}>{st.l}</Bdg></td>
+                  <td style={{padding:"8px 12px",fontSize:11,color:T.muted}}>{t.date}</td>
+                  <td style={{padding:"8px 12px",display:"flex",gap:4}}>
+                    {t.statut==="nouveau"&&<Btn sm bg={T.amber} onClick={function(){setTickets(function(p){return p.map(function(x){return x.id===t.id?Object.assign({},x,{statut:"en_cours"}):x;});});}}>Prendre</Btn>}
+                    {t.statut==="en_cours"&&<Btn sm onClick={function(){setTickets(function(p){return p.map(function(x){return x.id===t.id?Object.assign({},x,{statut:"ferme"}):x;});});}}>Fermer</Btn>}
+                    <Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red} onClick={function(){setTickets(function(p){return p.filter(function(x){return x.id!==t.id;});});}}>X</Btn>
+                  </td>
+                </tr>
+              );})}
+            </tbody>
+          </table>
+        </div>
       )}
+      <Modal show={showN} onClose={function(){setShowN(false);}} title="Nouveau ticket">
+        <div style={{display:"grid",gap:10,marginBottom:14}}>
+          <div><Lbl l="Sujet"/><input value={nf.sujet||""} onChange={function(e){snf("sujet",e.target.value);}} style={INP} placeholder="Decrivez le probleme..."/></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><Lbl l="Categorie"/><select value={nf.cat||"copro_question"} onChange={function(e){snf("cat",e.target.value);}} style={INP}>{CATS.map(function(c){return <option key={c} value={c}>{c}</option>;})}</select></div>
+            <div><Lbl l="Priorite"/><select value={nf.prio||"normale"} onChange={function(e){snf("prio",e.target.value);}} style={INP}>{PRIOS.map(function(c){return <option key={c} value={c}>{c}</option>;})}</select></div>
+          </div>
+          <div><Lbl l="Description"/><textarea value={nf.msg||""} onChange={function(e){snf("msg",e.target.value);}} rows={3} style={Object.assign({},INP,{resize:"vertical"})}/></div>
+        </div>
+        <div style={{display:"flex",gap:8}}><Btn onClick={creer}>Creer le ticket</Btn><Btn onClick={function(){setShowN(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn></div>
+      </Modal>
     </div>
   );
 }
 
-//  APP PRINCIPALE 
+// ===== CONTACTS =====
+function TabContacts(){
+  var s0=useState([]);var contacts=s0[0];var setContacts=s0[1];
+  var s1=useState(false);var showN=s1[0];var setShowN=s1[1];
+  var s2=useState({});var nf=s2[0];var setNf=s2[1];
+  var s3=useState("");var search=s3[0];var setSearch=s3[1];
+  function snf(k,v){setNf(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
+  var liste=contacts.filter(function(c){return !search||( c.nom+c.prenom+c.courriel).toLowerCase().includes(search.toLowerCase());});
+  function creer(){if(!nf.nom)return;setContacts(function(p){return [{id:Date.now(),nom:nf.nom,prenom:nf.prenom||"",courriel:nf.courriel||"",tel:nf.tel||"",type:nf.type||"coproprietaire",syndicat:nf.syndicat||""}].concat(p);});setShowN(false);setNf({});}
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <input value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Chercher un contact..." style={Object.assign({},INP,{width:240})}/>
+        <Btn sm onClick={function(){setNf({});setShowN(true);}}>+ Nouveau contact</Btn>
+      </div>
+      {liste.length===0?(
+        <div style={{textAlign:"center",padding:60,color:T.muted,fontSize:13,background:T.surface,borderRadius:10,border:"1px solid "+T.border}}>
+          <div style={{fontSize:32,marginBottom:12}}>-</div>
+          <div style={{fontWeight:600,color:T.navy,marginBottom:6}}>Aucun contact</div>
+          <div>Cliquez "+ Nouveau contact" pour ajouter votre premier contact.</div>
+        </div>
+      ):(
+        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead><tr style={{background:T.navy}}>{["Nom","Courriel","Telephone","Type","Syndicat"].map(function(h){return <th key={h} style={{padding:"8px 12px",fontSize:10,fontWeight:700,color:"#8da0bb",textAlign:"left"}}>{h}</th>;})}</tr></thead>
+            <tbody>{liste.map(function(c){return(<tr key={c.id} style={{borderBottom:"1px solid "+T.border}}><td style={{padding:"8px 12px",fontSize:12,fontWeight:600,color:T.navy}}>{c.prenom} {c.nom}</td><td style={{padding:"8px 12px",fontSize:11,color:T.muted}}>{c.courriel||"-"}</td><td style={{padding:"8px 12px",fontSize:11,color:T.muted}}>{c.tel||"-"}</td><td style={{padding:"8px 12px"}}><Bdg bg={T.blueL} c={T.blue}>{c.type}</Bdg></td><td style={{padding:"8px 12px",fontSize:11,color:T.muted}}>{c.syndicat||"-"}</td></tr>);})}</tbody>
+          </table>
+        </div>
+      )}
+      <Modal show={showN} onClose={function(){setShowN(false);}} title="Nouveau contact">
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+          <div><Lbl l="Prenom"/><input value={nf.prenom||""} onChange={function(e){snf("prenom",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Nom"/><input value={nf.nom||""} onChange={function(e){snf("nom",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Courriel"/><input value={nf.courriel||""} onChange={function(e){snf("courriel",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Telephone"/><input value={nf.tel||""} onChange={function(e){snf("tel",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Type"/><select value={nf.type||"coproprietaire"} onChange={function(e){snf("type",e.target.value);}} style={INP}><option value="coproprietaire">Coproprietaire</option><option value="fournisseur">Fournisseur</option><option value="ca">Membre CA</option><option value="autre">Autre</option></select></div>
+          <div><Lbl l="Syndicat"/><input value={nf.syndicat||""} onChange={function(e){snf("syndicat",e.target.value);}} style={INP} placeholder="Code syndicat"/></div>
+        </div>
+        <div style={{display:"flex",gap:8}}><Btn onClick={creer}>Ajouter</Btn><Btn onClick={function(){setShowN(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn></div>
+      </Modal>
+    </div>
+  );
+}
+
+// ===== BONS DE TRAVAIL =====
+function TabBons(){
+  var s0=useState([]);var bons=s0[0];var setBons=s0[1];
+  var s1=useState(false);var showN=s1[0];var setShowN=s1[1];
+  var s2=useState({});var nf=s2[0];var setNf=s2[1];
+  function snf(k,v){setNf(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
+  var STATUTS={nouveau:{c:T.blue,bg:T.blueL,l:"Nouveau"},approuve:{c:T.amber,bg:T.amberL,l:"Approuve"},complete:{c:T.accent,bg:T.accentL,l:"Complete"}};
+  function creer(){if(!nf.titre)return;setBons(function(p){return [{id:Date.now(),titre:nf.titre,fournisseur:nf.fournisseur||"",montant:parseFloat(nf.montant)||0,statut:"nouveau",date:today(),syndicat:nf.syndicat||"",prio:nf.prio||"normale"}].concat(p);});setShowN(false);setNf({});}
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:14}}>
+        <Btn sm onClick={function(){setNf({});setShowN(true);}}>+ Nouveau bon</Btn>
+      </div>
+      {bons.length===0?(
+        <div style={{textAlign:"center",padding:60,color:T.muted,fontSize:13,background:T.surface,borderRadius:10,border:"1px solid "+T.border}}>
+          <div style={{fontSize:32,marginBottom:12}}>-</div>
+          <div style={{fontWeight:600,color:T.navy,marginBottom:6}}>Aucun bon de travail</div>
+          <div>Cliquez "+ Nouveau bon" pour creer un bon de travail.</div>
+        </div>
+      ):(
+        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead><tr style={{background:T.navy}}>{["Titre","Fournisseur","Montant","Syndicat","Priorite","Statut","Date"].map(function(h){return <th key={h} style={{padding:"8px 12px",fontSize:10,fontWeight:700,color:"#8da0bb",textAlign:"left"}}>{h}</th>;})}</tr></thead>
+            <tbody>{bons.map(function(b){var st=STATUTS[b.statut]||STATUTS.nouveau;return(<tr key={b.id} style={{borderBottom:"1px solid "+T.border}}><td style={{padding:"8px 12px",fontSize:12,fontWeight:600,color:T.text}}>{b.titre}</td><td style={{padding:"8px 12px",fontSize:11,color:T.muted}}>{b.fournisseur||"-"}</td><td style={{padding:"8px 12px",fontSize:12,fontWeight:600}}>{b.montant>0?money(b.montant):"-"}</td><td style={{padding:"8px 12px",fontSize:11,color:T.muted}}>{b.syndicat||"-"}</td><td style={{padding:"8px 12px"}}><Bdg bg={b.prio==="urgence"?T.redL:T.amberL} c={b.prio==="urgence"?T.red:T.amber}>{b.prio}</Bdg></td><td style={{padding:"8px 12px"}}><Bdg bg={st.bg} c={st.c}>{st.l}</Bdg></td><td style={{padding:"8px 12px",fontSize:11,color:T.muted}}>{b.date}</td></tr>);})}</tbody>
+          </table>
+        </div>
+      )}
+      <Modal show={showN} onClose={function(){setShowN(false);}} title="Nouveau bon de travail">
+        <div style={{display:"grid",gap:10,marginBottom:14}}>
+          <div><Lbl l="Titre"/><input value={nf.titre||""} onChange={function(e){snf("titre",e.target.value);}} style={INP} placeholder="Description des travaux..."/></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div><Lbl l="Fournisseur"/><input value={nf.fournisseur||""} onChange={function(e){snf("fournisseur",e.target.value);}} style={INP}/></div>
+            <div><Lbl l="Montant ($)"/><input type="number" value={nf.montant||""} onChange={function(e){snf("montant",e.target.value);}} style={INP}/></div>
+            <div><Lbl l="Syndicat"/><input value={nf.syndicat||""} onChange={function(e){snf("syndicat",e.target.value);}} style={INP} placeholder="Code syndicat"/></div>
+            <div><Lbl l="Priorite"/><select value={nf.prio||"normale"} onChange={function(e){snf("prio",e.target.value);}} style={INP}><option value="normale">Normale</option><option value="haute">Haute</option><option value="urgence">URGENCE</option></select></div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8}}><Btn onClick={creer}>Creer</Btn><Btn onClick={function(){setShowN(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn></div>
+      </Modal>
+    </div>
+  );
+}
+
+// ===== MODULE PRINCIPAL CRM =====
 export default function CRM(){
-  const [tickets,setTickets]=useState(TICKETS_INIT);
-  const [config,setConfig]=useState(ASSIGN_CONFIG_INIT);
-  const [selTicket,setSelTicket]=useState(null);
-  const [tab,setTab]=useState("tickets");
-  const [filtres,setFiltres]=useState({synd:"tous",cat:"tous",statut:"tous",agent:"tous",priorite:"tous",q:""});
-  const [modalNew,setModalNew]=useState(false);
-  const [viewMode,setViewMode]=useState("liste""tous"||t.synd===parseInt(filtres.synd);
-    const okC=filtres.cat==="tous"||t.cat===filtres.cat;
-    const okSt=filtres.statut==="tous"||t.statut===filtres.statut;
-    const okA=filtres.agent==="tous"||(filtres.agent==="none"&&!t.agent)||(t.agent===parseInt(filtres.agent));
-    const okP=filtres.priorite==="tous"||t.priorite===filtres.priorite;
-    const okQ=filtres.q===""||t.sujet.toLowerCase().includes(filtres.q.toLowerCase())||t.auteur.toLowerCase().includes(filtres.q.toLowerCase());
-    return okS&&okC&&okSt&&okA&&okP&&okQ;
-  }),[tickets,filtres]);
-
-  // Stats
-  const stats={
-    total:tickets.length,
-    nouveaux:tickets.filter(t=>t.statut==="nouveau").length,
-    enCours:tickets.filter(t=>["en_cours","ai_repond"].includes(t.statut)).length,
-    urgents:tickets.filter(t=>t.priorite==="urgente"&&t.statut!=="resolu"&&t.statut!=="ferme").length,
-    aiHandled:tickets.filter(t=>t.aiReponsible).length,
-    nonAssignes:tickets.filter(t=>!t.agent&&!["resolu","ferme"].includes(t.statut)).length,
-  };
-
-  const prioColor={urgente:T.red,haute:T.amber,normale:T.accent,basse:T.muted};
-
+  var s0=useState("tickets");var ong=s0[0];var setOng=s0[1];
+  var TABS=[{id:"tickets",l:"Tickets support"},{id:"contacts",l:"Contacts"},{id:"bons",l:"Bons de travail"}];
   return(
-    <div style={{minHeight:"100vh",background:T.bg,fontFamily:"Georgia,serif",display:"flex",flexDirection:"column"}}>
-      {/* Header */}
-      <div style={{background:T.navy,padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:50,flexShrink:0}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:28,height:28,borderRadius:6,background:"linear-gradient(135deg,"+T.accent+","+T.accentPop+")",display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <span style={{color:"#fff",fontWeight:900,fontSize:15,fontFamily:"Georgia,serif"}}>P</span>
-          </div>
-          <div style={{fontSize:13,fontWeight:800,color:"#fff",fontFamily:"Georgia,serif"}}>Predictek</div>
-          <div style={{width:1,height:22,background:"#ffffff20",margin:"0 6px""flex",alignItems:"center",gap:8}}>
-          {stats.urgents>0&&<div style={{background:T.red,borderRadius:20,padding:"3px 10px",fontSize:10,color:"#fff""s":""}</div>}
-          {stats.nonAssignes>0&&<div style={{background:T.amber,borderRadius:20,padding:"3px 10px",fontSize:10,color:"#fff""s":""}</div>}
-          <Av ini="JL" c={T.gold} sz={28}/>
-          <span style={{fontSize:10,color:"#8da0bb""1px solid "+T.border,padding:"0 20px",display:"flex",gap:2}}>
-        {[{id:"tickets",l:"Tickets"},{id:"stats",l:"Statistiques"},{id:"config_crm",l:"Configuration"}].map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id)}
-            style={{background:"none",border:"none""2px solid "+T.accent:"2px solid transparent""11px 14px",cursor:"pointer",fontSize:12,fontFamily:"inherit""tickets""#fff",fontSize:9,borderRadius:20,padding:"1px 5px",fontWeight:700}}>{stats.nouveaux}</span>:null}
-          </button>
-        ))}
+    <div style={{padding:16,fontFamily:"Georgia,serif"}}>
+      <div style={{fontSize:18,fontWeight:800,color:T.navy,marginBottom:4}}>CRM Support Predictek</div>
+      <div style={{fontSize:11,color:T.muted,marginBottom:16}}>Gestion des tickets, contacts et bons de travail</div>
+      <div style={{display:"flex",gap:3,marginBottom:16,background:T.surface,padding:5,borderRadius:10,border:"1px solid "+T.border}}>
+        {TABS.map(function(t){var a=ong===t.id;return(<button key={t.id} onClick={function(){setOng(t.id);}} style={{background:a?T.navy:"transparent",border:"none",borderRadius:7,padding:"8px 16px",color:a?"#fff":T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400}}>{t.l}</button>);})}
       </div>
-
-      {tab==="tickets"&&(
-        <div style={{display:"flex",flex:1,overflow:"hidden""flex",flexDirection:"column""1px solid "+T.border:"none"}}>
-            {/* KPIs */}
-            <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.border,background:T.surface}}>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:8,marginBottom:12}}>
-                {[{l:"Total",v:stats.total,c:T.navy},{l:"Nouveaux",v:stats.nouveaux,c:T.blue},{l:"En cours",v:stats.enCours,c:T.amber},{l:"Urgents",v:stats.urgents,c:T.red},{l:"",v:stats.aiHandled,c:T.purple},{l:"",v:stats.nonAssignes,c:T.amber}].map((k,i)=>(
-                  <div key={i} style={{background:T.surfaceAlt,borderRadius:8,padding:"7px 10px",borderLeft:"3px solid "+k.c}}>
-                    <div style={{fontSize:8,color:T.muted,textTransform:"uppercase",marginBottom:2}}>{k.l}</div>
-                    <div style={{fontSize:18,fontWeight:700,color:k.c}}>{k.v}</div>
-                  </div>
-                ))}
-              </div>
-              {/* Filtres */}
-              <div style={{display:"flex",gap:7,flexWrap:"wrap",alignItems:"center"}}>
-                <input value={filtres.q} onChange={e=>sf("q",e.target.value)} placeholder="Rechercher..."
-                  style={{...inp,width:150,fontSize:11}}/>
-                {[
-                  {k:"synd",opts:[{v:"tous",l:"Tous syndicats"},...SYNDICATS.map(s=>({v:s.id,l:s.court}))]},
-                  {k:"statut",opts:[{v:"tous",l:"Tous statuts"},...Object.entries(STATUTS).map(([k,v])=>({v:k,l:v.label}))]},
-                  {k:"cat",opts:[{v:"tous",l:""},...Object.entries(CATEGORIES).map(([k,v])=>({v:k,l:v.label}))]},
-                  {k:"priorite",opts:[{v:"tous",l:""},{v:"urgente",l:"Urgente"},{v:"haute",l:"Haute"},{v:"normale",l:"Normale"},{v:"basse",l:"Basse"}]},
-                  {k:"agent",opts:[{v:"tous",l:"Tous agents"},{v:"none",l:""},...AGENTS.map(a=>({v:a.id,l:a.initiales}))]},
-                ].map(({k,opts})=>(
-                  <select key={k} value={filtres[k]} onChange={e=>sf(k,e.target.value)}
-                    style={{...inp,width:"auto",fontSize:10,padding:"4px 8px"}}>
-                    {opts.map(o=><option key={o.v} value={o.v}>{o.l}</option>)}
-                  </select>
-                ))}
-                <Btn onClick={()=>setModalNew(true)} s={{marginLeft:"auto",fontSize:11}}>+ Nouveau ticket</Btn>
-              </div>
-            </div>
-
-            {/* Liste tickets */}
-            <div style={{flex:1,overflowY:"auto"}}>
-              {filtered.length===0&&<div style={{textAlign:"center",padding:"40px""12px 16px",borderBottom:"1px solid "+T.border+"70",cursor:"pointer""urgente""05":"transparent""3px solid "+T.accent:t.priorite==="urgente""3px solid "+T.red:"3px solid transparent",transition:"background .1s"}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
-                      <div style={{flex:1}}>
-                        <div style={{display:"flex",gap:5,marginBottom:4,flexWrap:"wrap"}}>
-                          <span style={{fontSize:9,color:T.muted,fontFamily:"monospace"}}>#{t.id}</span>
-                          <Tag l={cat.label||t.cat} c={cat.couleur||T.muted} sz={9}/>
-                          <Tag l={st.label} c={st.c} sz={9}/>
-                          <Tag l={t.priorite} c={prioColor[t.priorite]||T.muted} sz={9}/>
-                          {t.aiReponsible&&<Tag l="IA" c={T.purple} sz={8}/>}
-                        {t.bon&&<Tag l={"BT #"" ???????????????????????????????? Unit???????????????????????????????? "+t.unite:""""}</div>
-                      </div>
-                      <div style={{textAlign:"right""50%",background:T.border,display:"flex",alignItems:"center",justifyContent:"center"" ")[0]}</div>
-                        {t.messages.length>0&&<div style={{fontSize:9,color:T.muted}}>{t.messages.length} msg</div>}
-                      </div>
-                    </div>
-                    <div style={{fontSize:10,color:T.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap""flex",flexDirection:"column",overflow:"hidden"}}>
-              <DetailTicket ticket={selTicket} onUpdate={updTicket} onClose={()=>setSelTicket(null)}/>
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab==="stats"&&(
-        <div style={{padding:"22px 26px",maxWidth:1200,margin:"0 auto",width:"100%"}}>
-          <h2 style={{fontSize:18,fontWeight:700,color:T.text,marginBottom:4}}>Statistiques CRM</h2>
-          <p style={{color:T.muted,fontSize:12,marginBottom:18}}>Vue globale de tous les tickets et de la performance de l'IA</p>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14,marginBottom:18}}>
-            {[
-              {l:"",v:tickets.filter(t=>t.aiReponsible).length+"/"+tickets.length,pct:Math.round(tickets.filter(t=>t.aiReponsible).length/tickets.length*100),c:T.purple},
-              {l:"",v:tickets.filter(t=>["resolu","ferme"].includes(t.statut)).length+"/"+tickets.length,pct:Math.round(tickets.filter(t=>["resolu","ferme"].includes(t.statut)).length/tickets.length*100),c:T.accent},
-              {l:"Tickets urgents ouverts",v:stats.urgents,pct:Math.round(stats.urgents/tickets.length*100),c:T.red},
-            ].map((k,i)=>(
-              <Card key={i} s={{borderLeft:"4px solid "+k.c}}>
-                <div style={{fontSize:9,color:T.muted,textTransform:"uppercase",marginBottom:5}}>{k.l}</div>
-                <div style={{fontSize:24,fontWeight:700,color:k.c,marginBottom:8}}>{k.v}</div>
-                <div style={{background:T.surfaceAlt,borderRadius:5,height:7,overflow:"hidden"}}>
-                  <div style={{width:k.pct+"%",height:"100%",background:k.c,borderRadius:5}}/>
-                </div>
-                <div style={{fontSize:9,color:T.muted,marginTop:4}}>{k.pct}%</div>
-              </Card>
-            ))}
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-            <Card>
-              <SH l=""/>
-              {Object.entries(CATEGORIES).map(([k,v])=>{
-                const n=tickets.filter(t=>t.cat===k).length;
-                if(!n)return null;
-                return(
-                  <div key={k} style={{display:"flex",alignItems:"center",gap:9,marginBottom:8}}>
-                    <div style={{width:24,height:24,borderRadius:6,background:v.couleur+"18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:v.couleur,flexShrink:0}}>{v.icon}</div>
-                    <div style={{flex:1}}>
-                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                        <span style={{fontSize:11,color:T.text}}>{v.label}</span>
-                        <span style={{fontSize:11,fontWeight:600,color:v.couleur}}>{n}</span>
-                      </div>
-                      <div style={{background:T.surfaceAlt,borderRadius:3,height:5,overflow:"hidden"}}>
-                        <div style={{width:(n/tickets.length*100)+"%",height:"100%",background:v.couleur,borderRadius:3}}/>
-                      </div>
-                    </div>
-                    {v.canAI&&<Tag l="IA" c={T.purple} sz={8}/>}
-                  </div>
-                );
-              })}
-            </Card>
-            <Card>
-              <SH l="Tickets par syndicat"/>
-              {SYNDICATS.map(s=>{
-                const n=tickets.filter(t=>t.synd===s.id).length;
-                const resolus=tickets.filter(t=>t.synd===s.id&&["resolu","ferme"].includes(t.statut)).length;
-                return(
-                  <div key={s.id} style={{marginBottom:12}}>
-                    <div style={{display:"flex",justifyContent:"space-between""hidden"}}>
-                      <div style={{width:(resolus/Math.max(n,1)*100)+"%",height:"100%",background:T.accent,borderRadius:5}}/>
-                    </div>
-                  </div>
-                );
-              })}
-              <Card s={{marginTop:14,background:T.purpleLight,border:"1px solid "+T.purple+"20"}}>
-                <SH l="Performance IA""config_crm"&&(
-        <div style={{padding:"22px 26px",maxWidth:1200,margin:"0 auto",width:"100%"}}>
-          <h2 style={{fontSize:18,fontWeight:700,color:T.text,marginBottom:4}}>Configuration du CRM</h2>
-          <p style={{color:T.muted,fontSize:12,marginBottom:18}}>Mode d'assignation, r????????????????????????????????ponse IA automatique, r????????????????????????????????gles par cat????????????????????????????????gorie</p>
-          <VueConfig config={config} setConfig={setConfig}/>
-        </div>
-      )}
-
-      <ModalNouveauTicket open={modalNew} onClose={()=>setModalNew(false)} onSave={addTicket}/>
+      {ong==="tickets"&&<TabTickets/>}
+      {ong==="contacts"&&<TabContacts/>}
+      {ong==="bons"&&<TabBons/>}
     </div>
   );
 }
