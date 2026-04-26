@@ -112,7 +112,7 @@ function PanelAlertes(p){
                     </div>
                     <span style={{fontSize:10,color:T.muted}}>{a.date}</span>
                   </div>
-                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>{a.unite!=="tous"?"Unite "+a.unite+" — ":""}{a.nom}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>{a.unite!=="tous"?"Unite "+a.unite+" â ":""}{a.nom}</div>
                   <div style={{fontSize:11,color:T.muted}}>{a.detail}</div>
                 </div>
               </div>
@@ -145,7 +145,7 @@ function PanelAlertes(p){
         {selAlert&&(
           <div>
             <div style={{background:T.blueL,borderRadius:8,padding:"9px 13px",fontSize:12,color:T.blue,marginBottom:14}}>
-              Notification pour: {selAlert.unite!=="tous"?"Unite "+selAlert.unite+" — ":""}{selAlert.nom}
+              Notification pour: {selAlert.unite!=="tous"?"Unite "+selAlert.unite+" â ":""}{selAlert.nom}
             </div>
             <div style={{marginBottom:12}}>
               <Lbl l="Moyen d envoi"/>
@@ -174,7 +174,7 @@ function PanelAlertes(p){
                 p.setAlertes(function(prev){return prev.map(function(a){return a.id===selAlert.id?Object.assign({},a,{lu:true}):a;});});
                 setShowEnv(false);
                 setSelA(null);
-                alert("Notification envoyee! (simulation — Supabase requis pour envoi reel)");
+                alert("Notification envoyee! (simulation â Supabase requis pour envoi reel)");
               }} style={{flex:1,background:T.accent,color:"#fff",border:"none",borderRadius:7,padding:"9px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Envoyer maintenant</button>
               <Btn onClick={function(){setShowEnv(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
             </div>
@@ -342,7 +342,7 @@ function PanelParametres(p){
             Les envois reels par courriel et SMS necessitent Supabase + SendGrid (prochaine etape).
           </div>
           <div style={{background:T.amberL,borderRadius:8,padding:"9px 12px",fontSize:11,color:T.amber}}>
-            Mode simulation — Les alertes s affichent dans l application mais les envois reels sont desactives jusqu a la connexion Supabase.
+            Mode simulation â Les alertes s affichent dans l application mais les envois reels sont desactives jusqu a la connexion Supabase.
           </div>
         </div>
       </div>
@@ -428,7 +428,7 @@ export default function Notifications(){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
         <div>
           <div style={{fontSize:17,fontWeight:800,color:T.navy}}>Centre de notifications</div>
-          <div style={{fontSize:11,color:T.muted}}>Alertes automatiques, rappels et communications — Syndicat Piedmont</div>
+          <div style={{fontSize:11,color:T.muted}}>Alertes automatiques, rappels et communications â Syndicat Piedmont</div>
         </div>
         <div style={{display:"flex",gap:8}}>
           {critiques>0&&<Bdg bg={T.redL} c={T.red} sz={12}>{critiques} critique(s) non lu(es)</Bdg>}
