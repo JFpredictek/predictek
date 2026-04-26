@@ -78,12 +78,7 @@ var COMPTES_PLAN=[
 var FACTURES_CLIENTS=[];
 
 // ===== EMPLOYES =====
-var EMPLOYES=[
-  {id:1,nom:"Marie Tremblay",poste:"Gestionnaire principal",salaire:52000,type:"annuel",federal:"M",provincial:"M",rqap:true,rrq:true,actif:true},
-  {id:2,nom:"Jean-Philippe Roy",poste:"Gestionnaire syndicats",salaire:46000,type:"annuel",federal:"M",provincial:"M",rqap:true,rrq:true,actif:true},
-  {id:3,nom:"Carlos Mendes",poste:"Technicien terrain",salaire:38000,type:"annuel",federal:"M",provincial:"M",rqap:true,rrq:true,actif:true},
-  {id:4,nom:"Sarah Bolduc",poste:"Gestionnaire syndicats",salaire:44000,type:"annuel",federal:"C",provincial:"C",rqap:true,rrq:true,actif:true},
-];
+var EMPLOYES=[];
 
 // ===== PAIES =====
 var PAIES_INIT=[];
