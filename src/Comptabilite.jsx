@@ -1041,6 +1041,7 @@ export default function Comptabilite(){
       </div>
       {ong==="facturation"&&<TabFacturation/>}
       {ong==="paie"&&<TabPaie/>}
+      
       {ong==="journal"&&<TabJournal/>}
       {ong==="soldes"&&<TabSoldesOuverture/>}
       {ong==="grandlivre"&&<TabGrandLivre/>}
