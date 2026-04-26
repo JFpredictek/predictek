@@ -23,11 +23,33 @@ var today=function(){return new Date().toISOString().slice(0,10);};
 var daysLeft=function(d){return d?Math.ceil((new Date(d)-new Date())/86400000):9999;};
 
 // ===== DONNEES =====
-var ALERTES_INIT=[];
+var ALERTES_INIT=[
+  {id:1,type:"ce_expire",unite:"539",nom:"Lucette Tremblay",detail:"Chauffe-eau expire depuis 366 jours (2024-04-22)",prio:"critique",date:"2026-04-25",lu:false,action:"Contacter proprietaire pour mise a niveau"},
+  {id:2,type:"ass_expire",unite:"537",nom:"Catherine Perreault",detail:"Assurance RC expiree depuis 25 jours (2026-03-31)",prio:"critique",date:"2026-04-25",lu:false,action:"Envoyer rappel urgent par courriel"},
+  {id:3,type:"ce_bientot",unite:"517",nom:"Marilou Noreau",detail:"Chauffe-eau expire dans 39 jours (2026-06-03)",prio:"attention",date:"2026-04-25",lu:false,action:"Envoyer avis 30 jours"},
+  {id:4,type:"pap_manquant",unite:"517",nom:"Marilou Noreau",detail:"Autorisation prelevement automatique manquante",prio:"attention",date:"2026-04-25",lu:false,action:"Envoyer formulaire PAP"},
+  {id:5,type:"pap_manquant",unite:"537",nom:"Catherine Perreault",detail:"Autorisation prelevement automatique manquante",prio:"attention",date:"2026-04-25",lu:false,action:"Envoyer formulaire PAP"},
+  {id:6,type:"reunion",unite:"tous",nom:"Tous les administrateurs",detail:"Reunion CA dans 20 jours - Rappel ordre du jour requis",prio:"info",date:"2026-04-25",lu:true,action:"Finaliser ordre du jour"},
+  {id:7,type:"rapport",unite:"tous",nom:"Conseil administration",detail:"Rapport mensuel avril 2026 a generer et envoyer",prio:"info",date:"2026-04-25",lu:false,action:"Generer rapport automatique"},
+  {id:8,type:"ass_bientot",unite:"523",nom:"Joyce McCartney",detail:"Assurance RC expire dans 127 jours (2026-08-31)",prio:"info",date:"2026-04-25",lu:true,action:"Envoyer rappel 90 jours"},
+];
 
-var MODELES_INIT=[];
+var MODELES_INIT=[
+  {id:1,type:"cotisation_retard",nom:"Rappel cotisation en retard",sujet:"[NOM SYNDICAT] Cotisation en retard - Unite {{unite}}",corps:"Madame, Monsieur,\n\nNous constatons que votre cotisation mensuelle pour l unite {{unite}} d un montant de {{montant}} $ n a pas ete recue pour le mois de {{mois}}.\n\nMerci de regulariser votre situation dans les meilleurs delais.\n\nCordialement,\nAdministration \nGere par Predictek",actif:true,auto:true,delai:"J+5"},
+  {id:2,type:"ce_expire",nom:"Alerte chauffe-eau expire",sujet:"[NOM SYNDICAT] Action requise - Chauffe-eau Unite {{unite}}",corps:"Madame, Monsieur,\n\nSelon nos dossiers, votre chauffe-eau de l unite {{unite}} est arrive a son terme de vie de 10 ans.\n\nConformement au reglement de l immeuble, vous devez proceder a son remplacement dans les 60 jours et nous transmettre la preuve d installation.\n\nCordialement,\nAdministration ",actif:true,auto:false,delai:""},
+  {id:3,type:"ass_expire",nom:"Rappel assurance RC",sujet:"[NOM SYNDICAT] Renouvellement assurance requis - Unite {{unite}}",corps:"Madame, Monsieur,\n\nVotre attestation d assurance responsabilite civile pour l unite {{unite}} arrive a echeance prochainement ou est expiree.\n\nMerci de nous faire parvenir votre nouvelle attestation par courriel des que possible. Le minimum requis est de 2 000 000 $.\n\nCordialement,\nAdministration ",actif:true,auto:true,delai:"J-30"},
+  {id:4,type:"convocation_ca",nom:"Convocation reunion CA",sujet:"[NOM SYNDICAT] Convocation - Reunion du CA le {{date}}",corps:"Madame, Monsieur,\n\nVous etes convoques a la prochaine reunion du conseil d administration qui aura lieu le {{date}} a {{heure}} a {{lieu}}.\n\nOrdre du jour:\n{{ordre_du_jour}}\n\nMerci de confirmer votre presence.\n\nCordialement,\nJean-Francois Laroche, President\n",actif:true,auto:false,delai:"J-10"},
+  {id:5,type:"rapport_mensuel",nom:"Rapport mensuel automatique",sujet:"[NOM SYNDICAT] Rapport mensuel - {{mois}} {{annee}}",corps:"Rapport mensuel automatique \nPeriode: {{mois}} {{annee}}\n\nSOLDES COMPTES:\n- Exploitation: {{solde_op}} $\n- Prevoyance: {{solde_prev}} $\n- Assurance: {{solde_ass}} $\n\nCOTISATIONS:\n- Prevues: {{cot_prevues}} $\n- Recues: {{cot_recues}} $\n- En retard: {{cot_retard}} unites\n\nFACTURES:\n- Approuvees ce mois: {{fact_approuvees}}\n- En attente: {{fact_attente}}\n\nALERTES:\n- Conformite: {{nb_alertes}} alerte(s)\n\nRapport genere automatiquement par Predictek",actif:true,auto:true,delai:"5e jour du mois"},
+  {id:6,type:"pap_manquant",nom:"Demande autorisation PAP",sujet:"[NOM SYNDICAT] Autorisation prelevement requis - Unite {{unite}}",corps:"Madame, Monsieur,\n\nAfin d autoriser le prelevement automatique de votre cotisation mensuelle de {{montant}} $ pour l unite {{unite}}, nous vous demandons de completer et retourner le formulaire d autorisation bancaire joint.\n\nCordialement,\nAdministration ",actif:true,auto:false,delai:""},
+];
 
-var HISTORIQUE_INIT=[];
+var HISTORIQUE_INIT=[
+  {id:1,date:"2026-04-20",type:"cotisation_retard",destinataire:"Marilou Noreau (517)",statut:"envoye",moyen:"courriel"},
+  {id:2,date:"2026-04-15",type:"ass_expire",destinataire:"Catherine Perreault (537)",statut:"envoye",moyen:"courriel"},
+  {id:3,date:"2026-04-10",type:"rapport_mensuel",destinataire:"Conseil CA",statut:"envoye",moyen:"courriel"},
+  {id:4,date:"2026-04-05",type:"convocation_ca",destinataire:"4 administrateurs",statut:"envoye",moyen:"courriel"},
+  {id:5,date:"2026-03-20",type:"cotisation_retard",destinataire:"Marilou Noreau (517)",statut:"envoye",moyen:"courriel"},
+];
 
 var PARAMETRES_INIT={
   alerteCE90:true, alerteCE30:true, alerteCE7:true,
@@ -112,7 +134,7 @@ function PanelAlertes(p){
                     </div>
                     <span style={{fontSize:10,color:T.muted}}>{a.date}</span>
                   </div>
-                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>{a.unite!=="tous"?"Unite "+a.unite+" â ":""}{a.nom}</div>
+                  <div style={{fontSize:12,fontWeight:600,color:T.text,marginBottom:2}}>{a.unite!=="tous"?"Unite "+a.unite+" - ":""}{a.nom}</div>
                   <div style={{fontSize:11,color:T.muted}}>{a.detail}</div>
                 </div>
               </div>
@@ -145,7 +167,7 @@ function PanelAlertes(p){
         {selAlert&&(
           <div>
             <div style={{background:T.blueL,borderRadius:8,padding:"9px 13px",fontSize:12,color:T.blue,marginBottom:14}}>
-              Notification pour: {selAlert.unite!=="tous"?"Unite "+selAlert.unite+" â ":""}{selAlert.nom}
+              Notification pour: {selAlert.unite!=="tous"?"Unite "+selAlert.unite+" - ":""}{selAlert.nom}
             </div>
             <div style={{marginBottom:12}}>
               <Lbl l="Moyen d envoi"/>
@@ -167,14 +189,14 @@ function PanelAlertes(p){
             </div>
             <div style={{marginBottom:16}}>
               <Lbl l="Apercu du message"/>
-              <div style={{background:T.alt,borderRadius:8,padding:"11px 13px",fontSize:11,color:T.text,lineHeight:1.7,whiteSpace:"pre-wrap",maxHeight:160,overflowY:"auto",border:"1px solid "+T.border}}>{"Madame, Monsieur,\n\n"+selAlert.action+".\n\nCordialement,\nAdministration Syndicat Piedmont\nGere par Predictek"}</div>
+              <div style={{background:T.alt,borderRadius:8,padding:"11px 13px",fontSize:11,color:T.text,lineHeight:1.7,whiteSpace:"pre-wrap",maxHeight:160,overflowY:"auto",border:"1px solid "+T.border}}>{"Madame, Monsieur,\n\n"+selAlert.action+".\n\nCordialement,\nAdministration \nGere par Predictek"}</div>
             </div>
             <div style={{display:"flex",gap:8}}>
               <button onClick={function(){
                 p.setAlertes(function(prev){return prev.map(function(a){return a.id===selAlert.id?Object.assign({},a,{lu:true}):a;});});
                 setShowEnv(false);
                 setSelA(null);
-                alert("Notification envoyee! (simulation â Supabase requis pour envoi reel)");
+                alert("Notification envoyee! (simulation - Supabase requis pour envoi reel)");
               }} style={{flex:1,background:T.accent,color:"#fff",border:"none",borderRadius:7,padding:"9px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Envoyer maintenant</button>
               <Btn onClick={function(){setShowEnv(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
             </div>
@@ -342,7 +364,7 @@ function PanelParametres(p){
             Les envois reels par courriel et SMS necessitent Supabase + SendGrid (prochaine etape).
           </div>
           <div style={{background:T.amberL,borderRadius:8,padding:"9px 12px",fontSize:11,color:T.amber}}>
-            Mode simulation â Les alertes s affichent dans l application mais les envois reels sont desactives jusqu a la connexion Supabase.
+            Mode simulation - Les alertes s affichent dans l application mais les envois reels sont desactives jusqu a la connexion Supabase.
           </div>
         </div>
       </div>
@@ -428,7 +450,7 @@ export default function Notifications(){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
         <div>
           <div style={{fontSize:17,fontWeight:800,color:T.navy}}>Centre de notifications</div>
-          <div style={{fontSize:11,color:T.muted}}>Alertes automatiques, rappels et communications â Syndicat Piedmont</div>
+          <div style={{fontSize:11,color:T.muted}}>Alertes automatiques, rappels et communications</div>
         </div>
         <div style={{display:"flex",gap:8}}>
           {critiques>0&&<Bdg bg={T.redL} c={T.red} sz={12}>{critiques} critique(s) non lu(es)</Bdg>}
