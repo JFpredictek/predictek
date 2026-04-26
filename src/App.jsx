@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import sb from "./lib/supabase";
+import Login from "./Login";
 import Hub from "./Hub";
 import CRM from "./CRM";
 import FournisseursAdmin from "./FournisseursAdmin";
@@ -8,7 +10,6 @@ import Notifications from "./Notifications";
 import Comptabilite from "./Comptabilite";
 import ModuleIA from "./ModuleIA";
 import ModuleHistorique from "./Historique";
-import Login from "./Login";
 
 var MODS=[
   {id:"hub",label:"Predictek",icon:"P"},
@@ -23,48 +24,32 @@ var MODS=[
 ];
 
 export default function App(){
-  var s0=useState("hub");var active=s0[0];var setActive=s0[1];
-  var s1=useState(null);var logo=s1[0];var setLogo=s1[1];
-  var s2=useState(null);var user=s2[0];var setUser=s2[1];
-  var s3=useState(true);var checking=s3[0];var setChecking=s3[1];
+  var s0=useState(null);var user=s0[0];var setUser=s0[1];
+  var s1=useState(false);var checking=s1[0];var setChecking=s1[1];
+  var s2=useState("hub");var active=s2[0];var setActive=s2[1];
+  var s3=useState(null);var logo=s3[0];var setLogo=s3[1];
 
   useEffect(function(){
-    // Check existing session
-    try{
-      var token=localStorage.getItem("predictek_token");
-      var savedUser=JSON.parse(localStorage.getItem("predictek_user")||"null");
-      if(token&&savedUser){setUser(savedUser);}
-      var savedLogo=localStorage.getItem("predictek_logo");
-      if(savedLogo)setLogo(savedLogo);
-    }catch(e){}
+    setChecking(true);
+    var u=sb.getUser();
+    if(u)setUser(u);
     setChecking(false);
-
-    function onSt(e){if(e.key==="predictek_logo")setLogo(e.newValue);}
-    window.addEventListener("storage",onSt);
-    return function(){window.removeEventListener("storage",onSt);};
+    try{var saved=localStorage.getItem("predictek_logo");if(saved)setLogo(saved);}catch(e){}
   },[]);
 
   function handleLogin(u){
     setUser(u);
-    try{localStorage.setItem("predictek_current_user",JSON.stringify({nom:u.email,id:u.id}));}catch(e){}
+    sb.log("securite","connexion","Connexion utilisateur: "+u.email,"","");
   }
 
   function handleLogout(){
-    try{
-      localStorage.removeItem("predictek_token");
-      localStorage.removeItem("predictek_user");
-      localStorage.removeItem("predictek_current_user");
-    }catch(e){}
+    sb.log("securite","deconnexion","Deconnexion: "+(user?user.email:""),"","");
+    sb.logout();
     setUser(null);
   }
 
-  if(checking){
-    return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"#13233A",color:"#fff",fontFamily:"Georgia,serif",fontSize:18}}>Chargement...</div>;
-  }
-
-  if(!user){
-    return <Login onLogin={handleLogin}/>;
-  }
+  if(checking)return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Georgia,serif",color:"#7C7568"}}>Chargement...</div>;
+  if(!user)return <Login onLogin={handleLogin}/>;
 
   return(
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
@@ -81,9 +66,7 @@ export default function App(){
         <div style={{display:"flex",height:"100%",overflowX:"auto",flex:1}}>
           {MODS.map(function(m){
             var a=active===m.id;
-            var isPred=m.id==="hub";
-            var isIA=m.id==="ia";
-            var isHIS=m.id==="historique";
+            var isPred=m.id==="hub";var isIA=m.id==="ia";var isHIS=m.id==="historique";
             var bc=isPred?"#3CAF6E":isIA?"#9C6FD0":isHIS?"#B86020":"#3CAF6E";
             var ib=isPred?"#1B5E3B":isIA?"#6B3FA0":isHIS?"#B86020":"#3CAF6E";
             return(
@@ -94,9 +77,9 @@ export default function App(){
             );
           })}
         </div>
-        <div style={{padding:"0 14px",borderLeft:"1px solid #ffffff15",height:"100%",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-          <span style={{fontSize:10,color:"#8da0bb"}}>{user.email}</span>
-          <button onClick={handleLogout} style={{background:"#ffffff18",border:"none",borderRadius:6,padding:"4px 10px",color:"#8da0bb",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>Deconnexion</button>
+        <div style={{padding:"0 12px",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+          <span style={{fontSize:10,color:"#8da0bb"}}>{user.nom||user.email}</span>
+          <button onClick={handleLogout} style={{background:"#ffffff18",border:"1px solid #ffffff30",borderRadius:6,padding:"4px 10px",color:"#8da0bb",fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>Deconnexion</button>
         </div>
       </div>
       <div style={{flex:1,background:"#F5F3EE",overflow:"auto"}}>
