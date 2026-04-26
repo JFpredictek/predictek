@@ -1,6 +1,6 @@
 import { useState } from "react";
 var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",pop:"#3CAF6E",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",purple:"#6B3FA0",purpleL:"#F3EEFF"};
-var fmt=function(n){if(!n&&n!==0)return"—";return Math.abs(n).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
+var fmt=function(n){if(!n&&n!==0)return"â";return Math.abs(n).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
 var today=function(){return new Date().toISOString().slice(0,10);};
 var daysLeft=function(d){return d?Math.ceil((new Date(d)-new Date())/86400000):9999;};
 var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
@@ -27,14 +27,14 @@ function Modal(p){
 }
 
 // ===== DONNEES =====
-var SYNDICAT={nom:"Syndicat Piedmont",adr:"Ch. du Hibou, Stoneham QC G3C 1T1",president:"Jean-Francois Laroche",immat:"1144524577",exercice:"1 nov au 31 oct",nbUnites:36};
+var SYNDICAT={nom:"Syndicat Piedmont",adr:"Ch. du Hibou, Stoneham QC G3C 1T1",president:"Jean-Francois Laroche",immat:"1144524577",exercice:"1 nov au 31 oct",nbUnites:0};
 var COMPTES=[];
 var BUDGET=[];
 var FACT0=[];
 var PREV0=[
-  {id:1,date:"2026-05-01",desc:"Cotisations mai 2026",mnt:14297.28,statut:"planifie",nb:36,par:"",dateA:""},
-  {id:2,date:"2026-04-01",desc:"Cotisations avril 2026",mnt:14297.28,statut:"effectue",nb:36,par:"J-F Laroche",dateA:"2026-03-28"},
-  {id:3,date:"2026-03-01",desc:"Cotisations mars 2026",mnt:14297.28,statut:"effectue",nb:36,par:"J-F Laroche",dateA:"2026-02-26"},
+  {id:1,date:"2026-05-01",desc:"Cotisations mai 2026",mnt:0,statut:"planifie",nb:36,par:"",dateA:""},
+  {id:2,date:"2026-04-01",desc:"Cotisations avril 2026",mnt:0,statut:"effectue",nb:36,par:"J-F Laroche",dateA:"2026-03-28"},
+  {id:3,date:"2026-03-01",desc:"Cotisations mars 2026",mnt:0,statut:"effectue",nb:36,par:"J-F Laroche",dateA:"2026-02-26"},
 ];
 var REUN0=[
   {id:1,type:"CA",date:"2026-05-15",heure:"19:00",lieu:"Salle comm. Piedmont",statut:"planifiee",ordre:["Approbation PV 18 mars","Rapport financier Q2","Soumissions deneigement 2026-2027","Divers"],pv:"",participants:[]},
@@ -54,48 +54,48 @@ var CARNET0=[
   {id:10,comp:"Amenagement paysager",install:"2014-05-01",duree:15,cout:22000,notes:"Renovation prevue 2027",entretien:"2025-09-15"},
 ];
 var UNITES0=[
-  {u:"515",nom:"Michel Beaudoin",fraction:3.875,cot:530.59,pap:true,ce:"2029-03-15",ass:"2026-12-31",loc:false,animaux:0},
-  {u:"517",nom:"Marilou Noreau",fraction:2.666,cot:365.05,pap:false,ce:"2028-06-01",ass:"2026-09-15",loc:false,animaux:0},
-  {u:"519",nom:"Tommy Boulianne",fraction:2.666,cot:365.05,pap:true,ce:"2027-11-20",ass:"2026-11-30",loc:false,animaux:0},
-  {u:"521",nom:"Jean-Francois Begin",fraction:2.666,cot:365.05,pap:true,ce:"2031-05-10",ass:"2027-01-15",loc:false,animaux:0},
-  {u:"523",nom:"Joyce McCartney",fraction:2.666,cot:365.05,pap:true,ce:"2030-08-22",ass:"2026-08-31",loc:false,animaux:0},
-  {u:"525",nom:"Simon Pellerin",fraction:3.833,cot:524.84,pap:true,ce:"2028-03-14",ass:"2027-03-01",loc:false,animaux:0},
-  {u:"527",nom:"Fabienne Maltais",fraction:3.874,cot:530.45,pap:false,ce:"2029-09-01",ass:"2026-10-31",loc:true,animaux:0},
-  {u:"529",nom:"K. Bolduc & A. Fortier",fraction:2.133,cot:292.06,pap:true,ce:"2027-07-15",ass:"2026-07-31",loc:false,animaux:1},
-  {u:"531",nom:"J-F Laroche & M. Fredette",fraction:2.133,cot:292.06,pap:true,ce:"2030-09-10",ass:"2026-08-01",loc:false,animaux:1},
-  {u:"533",nom:"D. Lemaire & K. Marchand",fraction:2.389,cot:327.12,pap:true,ce:"2028-12-01",ass:"2027-02-28",loc:false,animaux:0},
-  {u:"535",nom:"Guillaume Rouillard",fraction:2.133,cot:292.06,pap:true,ce:"2029-04-20",ass:"2026-12-15",loc:false,animaux:0},
-  {u:"537",nom:"Catherine Perreault",fraction:2.133,cot:292.06,pap:false,ce:"2028-02-14",ass:"2026-06-30",loc:false,animaux:0},
-  {u:"539",nom:"Lucette Tremblay",fraction:3.840,cot:525.80,pap:true,ce:"2024-04-22",ass:"2026-06-15",loc:true,animaux:2},
-  {u:"541",nom:"Emile Poulin",fraction:3.847,cot:526.76,pap:true,ce:"2031-01-08",ass:"2027-01-31",loc:false,animaux:0},
-  {u:"543",nom:"Michel Salvas",fraction:2.133,cot:292.06,pap:true,ce:"2027-05-30",ass:"2026-05-31",loc:false,animaux:0},
-  {u:"545",nom:"Julie Bergeron",fraction:2.133,cot:292.06,pap:true,ce:"2029-11-15",ass:"2026-11-30",loc:false,animaux:0},
-  {u:"547",nom:"Denis Audet",fraction:2.392,cot:327.53,pap:false,ce:"2028-08-10",ass:"2026-08-31",loc:false,animaux:0},
-  {u:"549",nom:"Nicolas Gignac",fraction:2.133,cot:292.06,pap:true,ce:"2030-03-22",ass:"2026-09-30",loc:false,animaux:0},
-  {u:"551",nom:"M. Baril & M. Poisson",fraction:2.133,cot:292.06,pap:true,ce:"2027-10-05",ass:"2026-10-31",loc:false,animaux:0},
-  {u:"553",nom:"Claude Pinard",fraction:3.865,cot:529.22,pap:true,ce:"2029-06-18",ass:"2026-06-30",loc:false,animaux:0},
-  {u:"555",nom:"Robert Donnelly",fraction:3.747,cot:513.06,pap:true,ce:"2028-09-25",ass:"2027-04-30",loc:false,animaux:0},
-  {u:"557",nom:"K. Villeneuve & J-S Gagnon",fraction:2.067,cot:283.03,pap:true,ce:"2031-07-12",ass:"2026-07-31",loc:false,animaux:0},
-  {u:"559",nom:"B. Dufour & N. Massey",fraction:2.067,cot:283.03,pap:false,ce:"2027-03-08",ass:"2026-03-31",loc:false,animaux:0},
-  {u:"561",nom:"Raymond April",fraction:2.328,cot:318.77,pap:true,ce:"2030-12-01",ass:"2026-12-31",loc:false,animaux:0},
-  {u:"563",nom:"Luc-Andre Lussier",fraction:2.067,cot:283.03,pap:true,ce:"2028-04-15",ass:"2026-04-30",loc:false,animaux:0},
-  {u:"565",nom:"M-A Gravel & C. Desjardins",fraction:2.067,cot:283.03,pap:true,ce:"2029-08-20",ass:"2027-08-31",loc:false,animaux:0},
-  {u:"567",nom:"M-A Gravel & C. Desjardins",fraction:3.724,cot:509.91,pap:true,ce:"2030-01-14",ass:"2027-01-31",loc:false,animaux:0},
-  {u:"569",nom:"Algest & A. Pelletier",fraction:3.569,cot:488.69,pap:true,ce:"2028-11-30",ass:"2026-11-30",loc:false,animaux:0},
-  {u:"571",nom:"T. Martineau & C. Deschamps",fraction:2.012,cot:275.50,pap:false,ce:"2027-06-25",ass:"2026-06-30",loc:false,animaux:0},
-  {u:"573",nom:"V. Tremblay & E. Blanchet",fraction:2.012,cot:275.50,pap:true,ce:"2029-02-18",ass:"2026-02-28",loc:false,animaux:0},
-  {u:"575",nom:"Caroline Dompierre",fraction:2.264,cot:310.00,pap:true,ce:"2030-07-04",ass:"2027-07-31",loc:false,animaux:0},
-  {u:"577",nom:"S. Gobeil & M-E Vaillancourt",fraction:2.012,cot:275.50,pap:true,ce:"2028-05-12",ass:"2026-05-31",loc:false,animaux:0},
-  {u:"579",nom:"Sylvie Bergeron",fraction:2.012,cot:275.50,pap:true,ce:"2031-09-28",ass:"2026-09-30",loc:false,animaux:0},
-  {u:"581",nom:"Doris Poitras",fraction:3.703,cot:507.04,pap:true,ce:"2029-10-15",ass:"2026-10-31",loc:false,animaux:0},
-  {u:"583",nom:"S. Grondin & X. Grondin",fraction:4.353,cot:596.04,pap:true,ce:"2032-01-15",ass:"2026-10-01",loc:true,animaux:0},
-  {u:"585",nom:"Y. Dusseault & A. Beauchesne",fraction:4.353,cot:596.04,pap:true,ce:"2030-04-22",ass:"2027-04-30",loc:false,animaux:0},
+  {u:"515",nom:"Michel Beaudoin",fraction:0,cot:0,pap:true,ce:"2029-03-15",ass:"2026-12-31",loc:false,animaux:0},
+  {u:"517",nom:"Marilou Noreau",fraction:0,cot:0,pap:false,ce:"2028-06-01",ass:"2026-09-15",loc:false,animaux:0},
+  {u:"519",nom:"Tommy Boulianne",fraction:0,cot:0,pap:true,ce:"2027-11-20",ass:"2026-11-30",loc:false,animaux:0},
+  {u:"521",nom:"Jean-Francois Begin",fraction:0,cot:0,pap:true,ce:"2031-05-10",ass:"2027-01-15",loc:false,animaux:0},
+  {u:"523",nom:"Joyce McCartney",fraction:0,cot:0,pap:true,ce:"2030-08-22",ass:"2026-08-31",loc:false,animaux:0},
+  {u:"525",nom:"Simon Pellerin",fraction:0,cot:0,pap:true,ce:"2028-03-14",ass:"2027-03-01",loc:false,animaux:0},
+  {u:"527",nom:"Fabienne Maltais",fraction:0,cot:0,pap:false,ce:"2029-09-01",ass:"2026-10-31",loc:true,animaux:0},
+  {u:"529",nom:"K. Bolduc & A. Fortier",fraction:0,cot:0,pap:true,ce:"2027-07-15",ass:"2026-07-31",loc:false,animaux:1},
+  {u:"531",nom:"J-F Laroche & M. Fredette",fraction:0,cot:0,pap:true,ce:"2030-09-10",ass:"2026-08-01",loc:false,animaux:1},
+  {u:"533",nom:"D. Lemaire & K. Marchand",fraction:0,cot:0,pap:true,ce:"2028-12-01",ass:"2027-02-28",loc:false,animaux:0},
+  {u:"535",nom:"Guillaume Rouillard",fraction:0,cot:0,pap:true,ce:"2029-04-20",ass:"2026-12-15",loc:false,animaux:0},
+  {u:"537",nom:"Catherine Perreault",fraction:0,cot:0,pap:false,ce:"2028-02-14",ass:"2026-06-30",loc:false,animaux:0},
+  {u:"539",nom:"Lucette Tremblay",fraction:0,cot:0,pap:true,ce:"2024-04-22",ass:"2026-06-15",loc:true,animaux:2},
+  {u:"541",nom:"Emile Poulin",fraction:0,cot:0,pap:true,ce:"2031-01-08",ass:"2027-01-31",loc:false,animaux:0},
+  {u:"543",nom:"Michel Salvas",fraction:0,cot:0,pap:true,ce:"2027-05-30",ass:"2026-05-31",loc:false,animaux:0},
+  {u:"545",nom:"Julie Bergeron",fraction:0,cot:0,pap:true,ce:"2029-11-15",ass:"2026-11-30",loc:false,animaux:0},
+  {u:"547",nom:"Denis Audet",fraction:0,cot:0,pap:false,ce:"2028-08-10",ass:"2026-08-31",loc:false,animaux:0},
+  {u:"549",nom:"Nicolas Gignac",fraction:0,cot:0,pap:true,ce:"2030-03-22",ass:"2026-09-30",loc:false,animaux:0},
+  {u:"551",nom:"M. Baril & M. Poisson",fraction:0,cot:0,pap:true,ce:"2027-10-05",ass:"2026-10-31",loc:false,animaux:0},
+  {u:"553",nom:"Claude Pinard",fraction:0,cot:0,pap:true,ce:"2029-06-18",ass:"2026-06-30",loc:false,animaux:0},
+  {u:"555",nom:"Robert Donnelly",fraction:0,cot:0,pap:true,ce:"2028-09-25",ass:"2027-04-30",loc:false,animaux:0},
+  {u:"557",nom:"K. Villeneuve & J-S Gagnon",fraction:0,cot:0,pap:true,ce:"2031-07-12",ass:"2026-07-31",loc:false,animaux:0},
+  {u:"559",nom:"B. Dufour & N. Massey",fraction:0,cot:0,pap:false,ce:"2027-03-08",ass:"2026-03-31",loc:false,animaux:0},
+  {u:"561",nom:"Raymond April",fraction:0,cot:0,pap:true,ce:"2030-12-01",ass:"2026-12-31",loc:false,animaux:0},
+  {u:"563",nom:"Luc-Andre Lussier",fraction:0,cot:0,pap:true,ce:"2028-04-15",ass:"2026-04-30",loc:false,animaux:0},
+  {u:"565",nom:"M-A Gravel & C. Desjardins",fraction:0,cot:0,pap:true,ce:"2029-08-20",ass:"2027-08-31",loc:false,animaux:0},
+  {u:"567",nom:"M-A Gravel & C. Desjardins",fraction:0,cot:0,pap:true,ce:"2030-01-14",ass:"2027-01-31",loc:false,animaux:0},
+  {u:"569",nom:"Algest & A. Pelletier",fraction:0,cot:0,pap:true,ce:"2028-11-30",ass:"2026-11-30",loc:false,animaux:0},
+  {u:"571",nom:"T. Martineau & C. Deschamps",fraction:0,cot:0,pap:false,ce:"2027-06-25",ass:"2026-06-30",loc:false,animaux:0},
+  {u:"573",nom:"V. Tremblay & E. Blanchet",fraction:0,cot:0,pap:true,ce:"2029-02-18",ass:"2026-02-28",loc:false,animaux:0},
+  {u:"575",nom:"Caroline Dompierre",fraction:0,cot:0,pap:true,ce:"2030-07-04",ass:"2027-07-31",loc:false,animaux:0},
+  {u:"577",nom:"S. Gobeil & M-E Vaillancourt",fraction:0,cot:0,pap:true,ce:"2028-05-12",ass:"2026-05-31",loc:false,animaux:0},
+  {u:"579",nom:"Sylvie Bergeron",fraction:0,cot:0,pap:true,ce:"2031-09-28",ass:"2026-09-30",loc:false,animaux:0},
+  {u:"581",nom:"Doris Poitras",fraction:0,cot:0,pap:true,ce:"2029-10-15",ass:"2026-10-31",loc:false,animaux:0},
+  {u:"583",nom:"S. Grondin & X. Grondin",fraction:0,cot:0,pap:true,ce:"2032-01-15",ass:"2026-10-01",loc:true,animaux:0},
+  {u:"585",nom:"Y. Dusseault & A. Beauchesne",fraction:0,cot:0,pap:true,ce:"2030-04-22",ass:"2027-04-30",loc:false,animaux:0},
 ];
 
 // ===== HELPERS =====
 function expSt(d){
   var j=daysLeft(d);
-  if(!d)return{c:T.muted,bg:"transparent",l:"—"};
+  if(!d)return{c:T.muted,bg:"transparent",l:"â"};
   if(j<0)return{c:T.red,bg:T.redL,l:"EXPIRE"};
   if(j<=30)return{c:T.red,bg:T.redL,l:j+"j"};
   if(j<=90)return{c:T.amber,bg:T.amberL,l:j+"j"};
@@ -247,7 +247,7 @@ function TabFinances(p){
       {sub==="budget"&&(
         <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 14px",borderBottom:"1px solid "+T.border}}>
-            <b style={{fontSize:13,color:T.navy}}>Budget 2025-2026 — 6 mois</b>
+            <b style={{fontSize:13,color:T.navy}}>Budget 2025-2026 â 6 mois</b>
             <div style={{display:"flex",gap:8}}>
               <Bdg bg={T.blueL} c={T.blue}>{Math.round(totR/totB*100)}% utilise</Bdg>
               <Btn sm bg={T.navy} onClick={function(){pdfPrint("Budget 2025-2026 - Syndicat Piedmont",[{k:"cat",l:"Cat"},{k:"poste",l:"Poste"},{k:"budgetF",l:"Budget"},{k:"reelF",l:"Reel 6 mois"},{k:"pct",l:"% utilise"}],BUDGET.map(function(b){return Object.assign({},b,{budgetF:fmt(b.budget),reelF:fmt(b.reel),pct:Math.round(b.reel/b.budget*100)+"%"});}));}}>PDF</Btn>
@@ -332,7 +332,7 @@ function TabFinances(p){
             <b style={{fontSize:13,color:T.navy}}>Prelevements bancaires</b>
             <div style={{display:"flex",gap:6}}>
               <Btn sm onClick={function(){csvDL([{k:"date",l:"Date"},{k:"desc",l:"Description"},{k:"nb",l:"Unites"},{k:"mnt",l:"Montant"},{k:"statut",l:"Statut"},{k:"par",l:"Approuve par"}],p.prev,"prelevements-"+today());}}>CSV</Btn>
-              <Btn sm onClick={function(){setPf({date:"",desc:"Cotisations mensuelles",mnt:14297.28,nb:36});setShowP(true);}}>+ Prelevement</Btn>
+              <Btn sm onClick={function(){setPf({date:"",desc:"Cotisations mensuelles",mnt:0,nb:36});setShowP(true);}}>+ Prelevement</Btn>
             </div>
           </div>
           <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
@@ -404,10 +404,10 @@ function TabReunions(p){
           <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
               <div>
-                <div style={{fontSize:15,fontWeight:800,color:T.navy}}>{selR.type} — {selR.date}</div>
+                <div style={{fontSize:15,fontWeight:800,color:T.navy}}>{selR.type} â {selR.date}</div>
                 <div style={{fontSize:11,color:T.muted,marginTop:2}}>{selR.heure} | {selR.lieu}</div>
               </div>
-              <Btn sm bg={T.navy} onClick={function(){pdfPrint("PV "+selR.type+" du "+selR.date+" — Syndicat Piedmont",[{k:"n",l:"No"},{k:"item",l:"Point ordre du jour"}],selR.ordre.map(function(o,i){return {n:i+1,item:o};}),selR.pv?"Proces-verbal: "+selR.pv:"");}}>Imprimer PV</Btn>
+              <Btn sm bg={T.navy} onClick={function(){pdfPrint("PV "+selR.type+" du "+selR.date+" â Syndicat Piedmont",[{k:"n",l:"No"},{k:"item",l:"Point ordre du jour"}],selR.ordre.map(function(o,i){return {n:i+1,item:o};}),selR.pv?"Proces-verbal: "+selR.pv:"");}}>Imprimer PV</Btn>
             </div>
             <Lbl l="Ordre du jour"/>
             {selR.ordre.map(function(o,i){return(
@@ -462,7 +462,7 @@ function TabCarnet(p){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div>
-          <b style={{fontSize:13,color:T.navy,display:"block"}}>Carnet entretien — Loi 16</b>
+          <b style={{fontSize:13,color:T.navy,display:"block"}}>Carnet entretien â Loi 16</b>
           <span style={{fontSize:11,color:T.muted}}>{p.carnet.length} composantes | {fmt(totCout)} | {alts} alerte(s)</span>
         </div>
         <div style={{display:"flex",gap:6}}>
@@ -495,7 +495,7 @@ function TabCarnet(p){
                   </div>
                 </td>
                 <td style={{padding:"8px 10px"}}><Bdg bg={st.bg} c={st.c}>{st.l}</Bdg></td>
-                <td style={{padding:"8px 10px",fontSize:11,color:T.muted}}>{c.entretien||"—"}</td>
+                <td style={{padding:"8px 10px",fontSize:11,color:T.muted}}>{c.entretien||"â"}</td>
               </tr>
             );})}
           </tbody>
@@ -554,8 +554,8 @@ function TabUnites(){
     var ALL_COLS=[];
     var cols=ALL_COLS.filter(function(c){return expCols[c.k]!==false;});
     var rows=unites.map(function(u){return Object.assign({},u,{papL:u.pap?"Oui":"Non",locL:u.loc?"Oui":"Non"});});
-    if(expFmt==="csv"){csvDL(cols,rows,"registre-copropriétaires-"+today());}
-    else{pdfPrint("Registre coproprietaires — Syndicat Piedmont",cols,rows,"36 unites | "+today());}
+    if(expFmt==="csv"){csvDL(cols,rows,"registre-copropriÃ©taires-"+today());}
+    else{pdfPrint("Registre coproprietaires â Syndicat Piedmont",cols,rows,"36 unites | "+today());}
     setShowExport(false);
   }
 
@@ -652,8 +652,8 @@ function TabUnites(){
                         <td style={{padding:"7px 8px",textAlign:"center"}}><span style={{display:"inline-block",width:16,height:16,borderRadius:"50%",background:u.pap?T.accent:T.red,color:"#fff",fontSize:8,fontWeight:700,lineHeight:"16px",textAlign:"center"}}>{u.pap?"V":"!"}</span></td>
                         <td style={{padding:"7px 8px",textAlign:"center"}}><span style={{fontSize:10,fontWeight:600,color:ceS.c,background:ceS.bg,padding:"1px 6px",borderRadius:10}}>{ceS.l}</span></td>
                         <td style={{padding:"7px 8px",textAlign:"center"}}><span style={{fontSize:10,fontWeight:600,color:aS.c,background:aS.bg,padding:"1px 6px",borderRadius:10}}>{aS.l}</span></td>
-                        <td style={{padding:"7px 8px",textAlign:"center"}}>{u.loc?<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:8,background:T.amberL,color:T.amber}}>Loue</span>:<span style={{color:T.muted,fontSize:10}}>—</span>}</td>
-                        <td style={{padding:"7px 8px",textAlign:"center"}}>{u.animaux>0?<span style={{fontSize:11}}>{u.animaux}</span>:<span style={{color:T.muted,fontSize:10}}>—</span>}</td>
+                        <td style={{padding:"7px 8px",textAlign:"center"}}>{u.loc?<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:8,background:T.amberL,color:T.amber}}>Loue</span>:<span style={{color:T.muted,fontSize:10}}>â</span>}</td>
+                        <td style={{padding:"7px 8px",textAlign:"center"}}>{u.animaux>0?<span style={{fontSize:11}}>{u.animaux}</span>:<span style={{color:T.muted,fontSize:10}}>â</span>}</td>
                         <td style={{padding:"7px 8px",textAlign:"center"}}>{alts>0?<span style={{fontSize:10,fontWeight:700,color:"#fff",background:T.red,padding:"1px 6px",borderRadius:10}}>{alts}</span>:<span style={{fontSize:10,color:T.accent}}>ok</span>}</td>
                       </tr>
                     );
@@ -729,7 +729,7 @@ function TabUnites(){
   );
 }
 
-// ===== EXPORT COPROPRIÉTAIRES =====
+// ===== EXPORT COPROPRIÃTAIRES =====
 function ExportCopros(p){
   var s0=useState({u:true,nom:true,fraction:true,cot:true,pap:true,ce:true,ass:true,loc:true});var cols=s0[0];var setCols=s0[1];
   var s1=useState("csv");var fmt2=s1[0];var setFmt2=s1[1];
@@ -737,8 +737,8 @@ function ExportCopros(p){
   var selCols=ALL.filter(function(c){return cols[c.k]!==false;});
   function doExport(){
     var rows=UNITES0.map(function(u){return Object.assign({},u,{papL:u.pap?"Oui":"Non",locL:u.loc?"Oui":"Non"});});
-    if(fmt2==="csv"){csvDL(selCols,rows,"registre-copropriétaires-"+today());}
-    else{pdfPrint("Registre coproprietaires — Syndicat Piedmont",selCols,rows,"36 unites | "+today());}
+    if(fmt2==="csv"){csvDL(selCols,rows,"registre-copropriÃ©taires-"+today());}
+    else{pdfPrint("Registre coproprietaires â Syndicat Piedmont",selCols,rows,"36 unites | "+today());}
     p.onClose();
   }
   return(
@@ -795,7 +795,7 @@ function TabSoldesOuvSynd(){
           </div>
         );})}
       </div>
-      {!balanced&&<div style={{background:T.redL,borderRadius:8,padding:"9px 14px",fontSize:12,color:T.red,marginBottom:12}}>Bilan desequilibre — Verifiez les soldes.</div>}
+      {!balanced&&<div style={{background:T.redL,borderRadius:8,padding:"9px 14px",fontSize:12,color:T.red,marginBottom:12}}>Bilan desequilibre â Verifiez les soldes.</div>}
       <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12,gap:8,alignItems:"center"}}>
         {savedMsg&&<Bdg bg={T.accentL} c={T.accent}>{savedMsg}</Bdg>}
         <Btn sm onClick={sauvegarder}>Sauvegarder</Btn>
@@ -846,25 +846,25 @@ function TabGrandLivreSynd(){
       <div style={{marginBottom:14}}>
         <div style={{fontSize:10,color:T.muted,fontWeight:600,textTransform:"uppercase",marginBottom:5}}>Compte</div>
         <select value={selCpt} onChange={function(e){setSelCpt(e.target.value);}} style={INP}>
-          {COMPTES_SYND.map(function(c){return <option key={c.no} value={c.no}>{c.no} — {c.nom}</option>;})}
+          {COMPTES_SYND.map(function(c){return <option key={c.no} value={c.no}>{c.no} â {c.nom}</option>;})}
         </select>
       </div>
       <div style={{background:T.navy,color:"#fff",padding:"12px 16px",borderRadius:"10px 10px 0 0",display:"flex",justifyContent:"space-between"}}>
-        <span style={{fontWeight:800,fontSize:14}}>{cpt.no} — {cpt.nom}</span>
+        <span style={{fontWeight:800,fontSize:14}}>{cpt.no} â {cpt.nom}</span>
         <span style={{fontSize:16,fontWeight:800,color:"#3CAF6E"}}>{fmt(solde)}</span>
       </div>
       <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:"0 0 10px 10px",overflow:"hidden"}}>
         <table style={{width:"100%",borderCollapse:"collapse"}}>
           <thead><tr style={{background:T.alt}}>{["Date","Ref.","Description","Debit","Credit","Solde"].map(function(h){return <th key={h} style={{padding:"7px 12px",textAlign:["Debit","Credit","Solde"].includes(h)?"right":"left",fontSize:10,fontWeight:700,color:T.muted}}>{h}</th>;})}</tr></thead>
           <tbody>
-            <tr style={{background:"#FFFBF0"}}><td style={{padding:"7px 12px",fontSize:11,color:T.muted}}>—</td><td style={{padding:"7px 12px",fontSize:11,color:T.muted}}>—</td><td style={{padding:"7px 12px",fontSize:12,fontWeight:600}}>Solde d ouverture</td><td style={{padding:"7px 12px",textAlign:"right"}}>—</td><td style={{padding:"7px 12px",textAlign:"right"}}>—</td><td style={{padding:"7px 12px",textAlign:"right",fontWeight:700,color:T.navy}}>{fmt(soldeInit)}</td></tr>
+            <tr style={{background:"#FFFBF0"}}><td style={{padding:"7px 12px",fontSize:11,color:T.muted}}>â</td><td style={{padding:"7px 12px",fontSize:11,color:T.muted}}>â</td><td style={{padding:"7px 12px",fontSize:12,fontWeight:600}}>Solde d ouverture</td><td style={{padding:"7px 12px",textAlign:"right"}}>â</td><td style={{padding:"7px 12px",textAlign:"right"}}>â</td><td style={{padding:"7px 12px",textAlign:"right",fontWeight:700,color:T.navy}}>{fmt(soldeInit)}</td></tr>
             {lignes.map(function(l,i){return(
               <tr key={i} style={{borderBottom:"1px solid "+T.border}}>
                 <td style={{padding:"7px 12px",fontSize:11,color:T.muted}}>{l.date}</td>
                 <td style={{padding:"7px 12px",fontSize:11,color:T.accent}}>{l.no}</td>
                 <td style={{padding:"7px 12px",fontSize:12,color:T.text}}>{l.desc}</td>
-                <td style={{padding:"7px 12px",textAlign:"right",fontSize:12,fontWeight:l.debit>0?600:400,color:l.debit>0?T.navy:T.muted}}>{l.debit>0?fmt(l.debit):"—"}</td>
-                <td style={{padding:"7px 12px",textAlign:"right",fontSize:12,fontWeight:l.credit>0?600:400,color:l.credit>0?T.red:T.muted}}>{l.credit>0?fmt(l.credit):"—"}</td>
+                <td style={{padding:"7px 12px",textAlign:"right",fontSize:12,fontWeight:l.debit>0?600:400,color:l.debit>0?T.navy:T.muted}}>{l.debit>0?fmt(l.debit):"â"}</td>
+                <td style={{padding:"7px 12px",textAlign:"right",fontSize:12,fontWeight:l.credit>0?600:400,color:l.credit>0?T.red:T.muted}}>{l.credit>0?fmt(l.credit):"â"}</td>
                 <td style={{padding:"7px 12px",textAlign:"right",fontSize:12,fontWeight:700,color:l.solde>=0?T.navy:T.red}}>{fmt(l.solde)}</td>
               </tr>
             );})}
@@ -1026,11 +1026,11 @@ function TabCopros(){
         </div>
         <div style={{padding:"7px 12px",background:T.alt,fontSize:10,color:T.muted,borderTop:"1px solid "+T.border}}>{liste.length} coproprietaire(s) sur {copros.length}</div>
       </div>
-      <Modal show={showFiche} onClose={function(){setShowFiche(false);setSel(null);}} title={"Fiche — Unite "+(selC?selC.u:"")} w={480}>
+      <Modal show={showFiche} onClose={function(){setShowFiche(false);setSel(null);}} title={"Fiche â Unite "+(selC?selC.u:"")} w={480}>
         {selC&&(
           <div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-              {[{l:"Nom",v:selC.prenom+" "+selC.nom},{l:"Unite",v:selC.u},{l:"Courriel",v:selC.courriel||"—"},{l:"Cotisation",v:selC.cot+" $/mois"}].map(function(item,i){return(
+              {[{l:"Nom",v:selC.prenom+" "+selC.nom},{l:"Unite",v:selC.u},{l:"Courriel",v:selC.courriel||"â"},{l:"Cotisation",v:selC.cot+" $/mois"}].map(function(item,i){return(
                 <div key={i} style={{background:T.alt,borderRadius:8,padding:"9px 11px"}}><div style={{fontSize:9,color:T.muted,fontWeight:600,textTransform:"uppercase",marginBottom:3}}>{item.l}</div><div style={{fontSize:13,fontWeight:600,color:T.text}}>{item.v}</div></div>
               );})}
             </div>
