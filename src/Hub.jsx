@@ -1301,173 +1301,108 @@ function Onboarding(p){
 
 // ===== PARAMS PREDICTEK =====
 function ParamsPredictek(){
-  var T_={surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",red:"#B83232",redL:"#FDECEA",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",amber:"#B86020",amberL:"#FEF3E2"};
-  var INP_={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
-  function Lbl_(p){return <div style={{fontSize:10,color:T_.muted,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:5}}>{p.l}</div>;}
-  function Fld_(p){return <div style={p.full?{gridColumn:"1/-1"}:{}}><Lbl_ l={p.l}/>{p.children}{p.hint&&<div style={{fontSize:10,color:T_.muted,marginTop:3}}>{p.hint}</div>}</div>;}
-
   function load(k,def){try{var v=localStorage.getItem("predictek_params_"+k);return v?JSON.parse(v):def;}catch(e){return def;}}
   function save(k,v){try{localStorage.setItem("predictek_params_"+k,JSON.stringify(v));}catch(e){}}
-
+  var P={surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF"};
+  var FI={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
+  function Lb(p){return <div style={{fontSize:10,color:P.muted,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:5}}>{p.l}</div>;}
+  function Fd(p){return <div style={p.full?{gridColumn:"1/-1"}:{}}><Lb l={p.l}/>{p.children}{p.hint&&<div style={{fontSize:10,color:P.muted,marginTop:3}}>{p.hint}</div>}</div>;}
+  function Bv(p){return <button onClick={p.onClick} style={{background:p.bg||P.accent,border:"none",borderRadius:7,padding:"8px 18px",color:p.tc||"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{p.children}</button>;}
   var s0=useState(load("entreprise",{nomLegal:"",nomCommercial:"Predictek",adr:"",ville:"",province:"QC",codePostal:"",siteWeb:"",courriel:"",telephone:"",neq:"",dateConstitution:"",exerciceDebut:"01-11",exerciceFin:"31-10"}));
   var infos=s0[0];var setInfos=s0[1];
   var s1=useState(load("fiscalite",{noTPS:"",noTVQ:"",noDeclarant:"",freqTPS:"trimestrielle",freqTVQ:"trimestrielle",regime:"regulier",inscritTPS:true,inscritTVQ:true}));
   var fisc=s1[0];var setFisc=s1[1];
-  var s2=useState(load("banque",{institution:"",transit:"",noInstitution:"",noCompte:"",nomCompte:"",iban:"",swift:""}));
+  var s2=useState(load("banque",{institution:"",transit:"",noInstitution:"",noCompte:"",nomCompte:""}));
   var banque=s2[0];var setBanque=s2[1];
   var s3=useState(load("logo",{url:"",nom:""}));
   var logo=s3[0];var setLogo=s3[1];
   var s4=useState("entreprise");var ong=s4[0];var setOng=s4[1];
-  var s5=useState("");var savedMsg=s5[0];var setSavedMsg=s5[1];
-
+  var s5=useState("");var savedOk=s5[0];var setSavedOk=s5[1];
   function si(setter,k){return function(v){setter(function(o){var n=Object.assign({},o);n[k]=v;return n;});};}
-  function sauver(){
-    save("entreprise",infos);save("fiscalite",fisc);save("banque",banque);save("logo",logo);
-    try{if(logo.url)localStorage.setItem("predictek_logo",logo.url);}catch(e){}
-    setSavedMsg("Parametres sauvegardes!");setTimeout(function(){setSavedMsg("");},3000);
-  }
-  function handleLogo(e){
-    var file=e.target.files[0];if(!file)return;
-    var reader=new FileReader();
-    reader.onload=function(ev){
-      var newLogo={url:ev.target.result,nom:file.name};
-      setLogo(newLogo);
-      try{localStorage.setItem("predictek_logo",ev.target.result);}catch(err){}
-    };
-    reader.readAsDataURL(file);
-  }
-
-  var TABS=[{id:"entreprise",l:"Entreprise"},{id:"fiscalite",l:"TPS / TVQ"},{id:"banque",l:"Banque"},{id:"logo",l:"Logo et apparence"}];
-
+  function sauver(){save("entreprise",infos);save("fiscalite",fisc);save("banque",banque);save("logo",logo);try{if(logo.url)localStorage.setItem("predictek_logo",logo.url);}catch(e){}setSavedOk("Sauvegardes!");setTimeout(function(){setSavedOk("");},3000);}
+  function handleLogo(e){var file=e.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(ev){var nl={url:ev.target.result,nom:file.name};setLogo(nl);try{localStorage.setItem("predictek_logo",ev.target.result);}catch(err){}};reader.readAsDataURL(file);}
+  var PTABS=[{id:"entreprise",l:"Entreprise"},{id:"fiscalite",l:"TPS / TVQ"},{id:"banque",l:"Banque"},{id:"logo",l:"Logo"}];
   return(
     <div style={{padding:16,fontFamily:"Georgia,serif"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <div>
-          <div style={{fontSize:16,fontWeight:800,color:T_.navy}}>Parametres Predictek</div>
-          <div style={{fontSize:11,color:T_.muted}}>Configuration de votre entreprise de gestion - utilise dans les factures et rapports</div>
-        </div>
+        <div><div style={{fontSize:16,fontWeight:800,color:P.navy}}>Parametres Predictek</div><div style={{fontSize:11,color:P.muted}}>Informations de votre entreprise</div></div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          {savedMsg&&<span style={{fontSize:11,color:T_.accent,fontWeight:600,background:T_.accentL,padding:"4px 12px",borderRadius:20}}>{savedMsg}</span>}
-          <button onClick={sauver} style={{background:T_.accent,color:"#fff",border:"none",borderRadius:7,padding:"8px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Sauvegarder</button>
+          {savedOk&&<span style={{fontSize:11,color:P.accent,fontWeight:600,background:P.accentL,padding:"4px 12px",borderRadius:20}}>{savedOk}</span>}
+          <Bv onClick={sauver}>Sauvegarder</Bv>
         </div>
       </div>
-
-      <div style={{display:"flex",gap:3,marginBottom:16,background:T_.surface,padding:4,borderRadius:10,border:"1px solid "+T_.border}}>
-        {TABS.map(function(t){var a=ong===t.id;return(
-          <button key={t.id} onClick={function(){setOng(t.id);}} style={{background:a?T_.navy:"transparent",border:"none",borderRadius:7,padding:"7px 16px",color:a?"#fff":T_.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400}}>{t.l}</button>
-        );})}
+      <div style={{display:"flex",gap:3,marginBottom:16,background:P.surface,padding:4,borderRadius:10,border:"1px solid "+P.border}}>
+        {PTABS.map(function(t){var a=ong===t.id;return(<button key={t.id} onClick={function(){setOng(t.id);}} style={{background:a?P.navy:"transparent",border:"none",borderRadius:7,padding:"7px 16px",color:a?"#fff":P.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400}}>{t.l}</button>);})}
       </div>
-
       {ong==="entreprise"&&(
-        <div style={{background:T_.surface,border:"1px solid "+T_.border,borderRadius:12,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,color:T_.navy,marginBottom:14}}>Informations legales et coordonnees</div>
+        <div style={{background:P.surface,border:"1px solid "+P.border,borderRadius:12,padding:20}}>
+          <div style={{fontSize:13,fontWeight:700,color:P.navy,marginBottom:14}}>Informations legales et coordonnees</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <Fld_ l="Nom legal (RAQ)" full><input value={infos.nomLegal} onChange={function(e){si(setInfos,"nomLegal")(e.target.value);}} style={INP_} placeholder="9XXX-XXXX Quebec inc."/></Fld_>
-            <Fld_ l="Nom commercial"><input value={infos.nomCommercial} onChange={function(e){si(setInfos,"nomCommercial")(e.target.value);}} style={INP_} placeholder="Predictek"/></Fld_>
-            <Fld_ l="NEQ (Registre entreprises QC)" hint="10 chiffres"><input value={infos.neq} onChange={function(e){si(setInfos,"neq")(e.target.value);}} style={INP_} placeholder="1234567890"/></Fld_>
-            <Fld_ l="Date de constitution"><input type="date" value={infos.dateConstitution} onChange={function(e){si(setInfos,"dateConstitution")(e.target.value);}} style={INP_}/></Fld_>
-            <Fld_ l="Adresse" full><input value={infos.adr} onChange={function(e){si(setInfos,"adr")(e.target.value);}} style={INP_} placeholder="123 rue Principale"/></Fld_>
-            <Fld_ l="Ville"><input value={infos.ville} onChange={function(e){si(setInfos,"ville")(e.target.value);}} style={INP_} placeholder="Quebec"/></Fld_>
-            <Fld_ l="Province"><select value={infos.province} onChange={function(e){si(setInfos,"province")(e.target.value);}} style={INP_}><option>QC</option><option>ON</option><option>BC</option><option>AB</option></select></Fld_>
-            <Fld_ l="Code postal"><input value={infos.codePostal} onChange={function(e){si(setInfos,"codePostal")(e.target.value.toUpperCase());}} style={INP_} placeholder="G1A 1A1"/></Fld_>
-            <Fld_ l="Telephone"><input value={infos.telephone} onChange={function(e){si(setInfos,"telephone")(e.target.value);}} style={INP_} placeholder="418-555-0000"/></Fld_>
-            <Fld_ l="Courriel principal"><input value={infos.courriel} onChange={function(e){si(setInfos,"courriel")(e.target.value);}} style={INP_} placeholder="info@predictek.ca"/></Fld_>
-            <Fld_ l="Site web"><input value={infos.siteWeb} onChange={function(e){si(setInfos,"siteWeb")(e.target.value);}} style={INP_} placeholder="app.predictek.ca"/></Fld_>
-            <Fld_ l="Debut exercice (JJ-MM)"><input value={infos.exerciceDebut} onChange={function(e){si(setInfos,"exerciceDebut")(e.target.value);}} style={INP_} placeholder="01-11"/></Fld_>
-            <Fld_ l="Fin exercice (JJ-MM)"><input value={infos.exerciceFin} onChange={function(e){si(setInfos,"exerciceFin")(e.target.value);}} style={INP_} placeholder="31-10"/></Fld_>
+            <Fd l="Nom legal" full><input value={infos.nomLegal} onChange={function(e){si(setInfos,"nomLegal")(e.target.value);}} style={FI} placeholder="9XXX-XXXX Quebec inc."/></Fd>
+            <Fd l="Nom commercial"><input value={infos.nomCommercial} onChange={function(e){si(setInfos,"nomCommercial")(e.target.value);}} style={FI} placeholder="Predictek"/></Fd>
+            <Fd l="NEQ" hint="10 chiffres - Registre entreprises QC"><input value={infos.neq} onChange={function(e){si(setInfos,"neq")(e.target.value);}} style={FI} placeholder="1234567890"/></Fd>
+            <Fd l="Date de constitution"><input type="date" value={infos.dateConstitution} onChange={function(e){si(setInfos,"dateConstitution")(e.target.value);}} style={FI}/></Fd>
+            <Fd l="Adresse" full><input value={infos.adr} onChange={function(e){si(setInfos,"adr")(e.target.value);}} style={FI} placeholder="123 rue Principale"/></Fd>
+            <Fd l="Ville"><input value={infos.ville} onChange={function(e){si(setInfos,"ville")(e.target.value);}} style={FI} placeholder="Quebec"/></Fd>
+            <Fd l="Province"><select value={infos.province} onChange={function(e){si(setInfos,"province")(e.target.value);}} style={FI}><option>QC</option><option>ON</option><option>BC</option><option>AB</option></select></Fd>
+            <Fd l="Code postal"><input value={infos.codePostal} onChange={function(e){si(setInfos,"codePostal")(e.target.value.toUpperCase());}} style={FI} placeholder="G1A 1A1"/></Fd>
+            <Fd l="Telephone"><input value={infos.telephone} onChange={function(e){si(setInfos,"telephone")(e.target.value);}} style={FI} placeholder="418-555-0000"/></Fd>
+            <Fd l="Courriel"><input value={infos.courriel} onChange={function(e){si(setInfos,"courriel")(e.target.value);}} style={FI} placeholder="info@predictek.ca"/></Fd>
+            <Fd l="Site web"><input value={infos.siteWeb} onChange={function(e){si(setInfos,"siteWeb")(e.target.value);}} style={FI} placeholder="app.predictek.ca"/></Fd>
+            <Fd l="Debut exercice"><input value={infos.exerciceDebut} onChange={function(e){si(setInfos,"exerciceDebut")(e.target.value);}} style={FI} placeholder="01-11"/></Fd>
+            <Fd l="Fin exercice"><input value={infos.exerciceFin} onChange={function(e){si(setInfos,"exerciceFin")(e.target.value);}} style={FI} placeholder="31-10"/></Fd>
           </div>
         </div>
       )}
-
       {ong==="fiscalite"&&(
-        <div style={{background:T_.surface,border:"1px solid "+T_.border,borderRadius:12,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,color:T_.navy,marginBottom:14}}>Numeros de taxes et parametres fiscaux</div>
-          <div style={{background:T_.amberL,border:"1px solid "+T_.amber+"44",borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:11,color:T_.amber}}>
-            Ces numeros apparaissent automatiquement sur toutes vos factures clients et rapports de taxes.
-          </div>
+        <div style={{background:P.surface,border:"1px solid "+P.border,borderRadius:12,padding:20}}>
+          <div style={{fontSize:13,fontWeight:700,color:P.navy,marginBottom:4}}>Numeros de taxes et parametres fiscaux</div>
+          <div style={{background:P.amberL,border:"1px solid "+P.amber+"44",borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:11,color:P.amber}}>Ces numeros apparaissent sur vos factures et rapports de taxes.</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <div style={{gridColumn:"1/-1",display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,padding:14,background:T_.accentL,borderRadius:10,border:"1px solid "+T_.accent+"33"}}>
-              <div style={{fontSize:12,fontWeight:700,color:T_.accent,gridColumn:"1/-1",marginBottom:4}}>TPS - Taxe sur les produits et services (Federal)</div>
-              <Fld_ l="Numero TPS" hint="Format: 123456789 RT0001"><input value={fisc.noTPS} onChange={function(e){si(setFisc,"noTPS")(e.target.value.toUpperCase());}} style={INP_} placeholder="123456789 RT0001"/></Fld_>
-              <Fld_ l="Frequence de remise">
-                <select value={fisc.freqTPS} onChange={function(e){si(setFisc,"freqTPS")(e.target.value);}} style={INP_}>
-                  <option value="mensuelle">Mensuelle</option>
-                  <option value="trimestrielle">Trimestrielle</option>
-                  <option value="annuelle">Annuelle</option>
-                </select>
-              </Fld_>
-              <div style={{gridColumn:"1/-1",display:"flex",alignItems:"center",gap:8}}>
-                <input type="checkbox" id="inscritTPS" checked={fisc.inscritTPS} onChange={function(e){si(setFisc,"inscritTPS")(e.target.checked);}}/>
-                <label htmlFor="inscritTPS" style={{fontSize:12,cursor:"pointer"}}>Inscrit a la TPS</label>
-              </div>
+            <div style={{gridColumn:"1/-1",background:P.accentL,border:"1px solid "+P.accent+"33",borderRadius:10,padding:14,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div style={{fontSize:12,fontWeight:700,color:P.accent,gridColumn:"1/-1"}}>TPS - Federal (5%)</div>
+              <Fd l="Numero TPS" hint="Format: 123456789 RT0001"><input value={fisc.noTPS} onChange={function(e){si(setFisc,"noTPS")(e.target.value.toUpperCase());}} style={FI} placeholder="123456789 RT0001"/></Fd>
+              <Fd l="Frequence de remise"><select value={fisc.freqTPS} onChange={function(e){si(setFisc,"freqTPS")(e.target.value);}} style={FI}><option value="mensuelle">Mensuelle</option><option value="trimestrielle">Trimestrielle</option><option value="annuelle">Annuelle</option></select></Fd>
+              <div style={{gridColumn:"1/-1",display:"flex",alignItems:"center",gap:8}}><input type="checkbox" id="cbTPS" checked={!!fisc.inscritTPS} onChange={function(e){si(setFisc,"inscritTPS")(e.target.checked);}}/><label htmlFor="cbTPS" style={{fontSize:12,cursor:"pointer"}}>Inscrit a la TPS</label></div>
             </div>
-            <div style={{gridColumn:"1/-1",display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,padding:14,background:T_.blueL,borderRadius:10,border:"1px solid "+T_.blue+"33"}}>
-              <div style={{fontSize:12,fontWeight:700,color:T_.blue,gridColumn:"1/-1",marginBottom:4}}>TVQ - Taxe de vente du Quebec (Provincial)</div>
-              <Fld_ l="Numero TVQ" hint="Format: 1234567890 TQ0001"><input value={fisc.noTVQ} onChange={function(e){si(setFisc,"noTVQ")(e.target.value.toUpperCase());}} style={INP_} placeholder="1234567890 TQ0001"/></Fld_>
-              <Fld_ l="Frequence de remise">
-                <select value={fisc.freqTVQ} onChange={function(e){si(setFisc,"freqTVQ")(e.target.value);}} style={INP_}>
-                  <option value="mensuelle">Mensuelle</option>
-                  <option value="trimestrielle">Trimestrielle</option>
-                  <option value="annuelle">Annuelle</option>
-                </select>
-              </Fld_>
-              <Fld_ l="Numero declarant TVQ"><input value={fisc.noDeclarant} onChange={function(e){si(setFisc,"noDeclarant")(e.target.value);}} style={INP_} placeholder="1234567890"/></Fld_>
-              <Fld_ l="Regime de taxes">
-                <select value={fisc.regime} onChange={function(e){si(setFisc,"regime")(e.target.value);}} style={INP_}>
-                  <option value="regulier">Methode reguliere</option>
-                  <option value="simplifie">Methode simplifiee</option>
-                  <option value="rapide">Comptabilite abrege</option>
-                </select>
-              </Fld_>
-              <div style={{gridColumn:"1/-1",display:"flex",alignItems:"center",gap:8}}>
-                <input type="checkbox" id="inscritTVQ" checked={fisc.inscritTVQ} onChange={function(e){si(setFisc,"inscritTVQ")(e.target.checked);}}/>
-                <label htmlFor="inscritTVQ" style={{fontSize:12,cursor:"pointer"}}>Inscrit a la TVQ</label>
-              </div>
+            <div style={{gridColumn:"1/-1",background:P.blueL,border:"1px solid "+P.blue+"33",borderRadius:10,padding:14,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div style={{fontSize:12,fontWeight:700,color:P.blue,gridColumn:"1/-1"}}>TVQ - Provincial (9.975%)</div>
+              <Fd l="Numero TVQ" hint="Format: 1234567890 TQ0001"><input value={fisc.noTVQ} onChange={function(e){si(setFisc,"noTVQ")(e.target.value.toUpperCase());}} style={FI} placeholder="1234567890 TQ0001"/></Fd>
+              <Fd l="Numero declarant TVQ"><input value={fisc.noDeclarant} onChange={function(e){si(setFisc,"noDeclarant")(e.target.value);}} style={FI} placeholder="1234567890"/></Fd>
+              <Fd l="Frequence de remise"><select value={fisc.freqTVQ} onChange={function(e){si(setFisc,"freqTVQ")(e.target.value);}} style={FI}><option value="mensuelle">Mensuelle</option><option value="trimestrielle">Trimestrielle</option><option value="annuelle">Annuelle</option></select></Fd>
+              <Fd l="Regime de taxes"><select value={fisc.regime} onChange={function(e){si(setFisc,"regime")(e.target.value);}} style={FI}><option value="regulier">Methode reguliere</option><option value="simplifie">Methode simplifiee</option><option value="rapide">Comptabilite abregee</option></select></Fd>
+              <div style={{gridColumn:"1/-1",display:"flex",alignItems:"center",gap:8}}><input type="checkbox" id="cbTVQ" checked={!!fisc.inscritTVQ} onChange={function(e){si(setFisc,"inscritTVQ")(e.target.checked);}}/><label htmlFor="cbTVQ" style={{fontSize:12,cursor:"pointer"}}>Inscrit a la TVQ</label></div>
             </div>
           </div>
         </div>
       )}
-
       {ong==="banque"&&(
-        <div style={{background:T_.surface,border:"1px solid "+T_.border,borderRadius:12,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,color:T_.navy,marginBottom:14}}>Coordonnees bancaires</div>
-          <div style={{background:T_.amberL,border:"1px solid "+T_.amber+"44",borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:11,color:T_.amber}}>
-            Utilise pour les virements et les paiements directs. Apparait sur les factures si active.
-          </div>
+        <div style={{background:P.surface,border:"1px solid "+P.border,borderRadius:12,padding:20}}>
+          <div style={{fontSize:13,fontWeight:700,color:P.navy,marginBottom:14}}>Coordonnees bancaires</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <Fld_ l="Nom de l institution"><input value={banque.institution} onChange={function(e){si(setBanque,"institution")(e.target.value);}} style={INP_} placeholder="Desjardins, RBC, TD..."/></Fld_>
-            <Fld_ l="Nom du compte"><input value={banque.nomCompte} onChange={function(e){si(setBanque,"nomCompte")(e.target.value);}} style={INP_} placeholder="Compte operations Predictek"/></Fld_>
-            <Fld_ l="Numero de transit (5 chiffres)"><input value={banque.transit} onChange={function(e){si(setBanque,"transit")(e.target.value);}} style={INP_} placeholder="12345"/></Fld_>
-            <Fld_ l="Numero d institution (3 chiffres)"><input value={banque.noInstitution} onChange={function(e){si(setBanque,"noInstitution")(e.target.value);}} style={INP_} placeholder="815"/></Fld_>
-            <Fld_ l="Numero de compte" full hint="N entre votre banque, n apparait pas sur les factures"><input value={banque.noCompte} onChange={function(e){si(setBanque,"noCompte")(e.target.value);}} style={INP_} placeholder="1234567"/></Fld_>
+            <Fd l="Institution financiere"><input value={banque.institution} onChange={function(e){si(setBanque,"institution")(e.target.value);}} style={FI} placeholder="Desjardins, RBC, TD..."/></Fd>
+            <Fd l="Nom du compte"><input value={banque.nomCompte} onChange={function(e){si(setBanque,"nomCompte")(e.target.value);}} style={FI} placeholder="Compte operations Predictek"/></Fd>
+            <Fd l="No de transit (5 chiffres)"><input value={banque.transit} onChange={function(e){si(setBanque,"transit")(e.target.value);}} style={FI} placeholder="12345"/></Fd>
+            <Fd l="No d institution (3 chiffres)"><input value={banque.noInstitution} onChange={function(e){si(setBanque,"noInstitution")(e.target.value);}} style={FI} placeholder="815"/></Fd>
+            <Fd l="No de compte" full hint="Confidentiel - n apparait pas sur les factures"><input value={banque.noCompte} onChange={function(e){si(setBanque,"noCompte")(e.target.value);}} style={FI} placeholder="1234567"/></Fd>
           </div>
         </div>
       )}
-
       {ong==="logo"&&(
-        <div style={{background:T_.surface,border:"1px solid "+T_.border,borderRadius:12,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,color:T_.navy,marginBottom:14}}>Logo et identite visuelle</div>
+        <div style={{background:P.surface,border:"1px solid "+P.border,borderRadius:12,padding:20}}>
+          <div style={{fontSize:13,fontWeight:700,color:P.navy,marginBottom:14}}>Logo et identite visuelle</div>
           <div style={{display:"flex",gap:24,alignItems:"flex-start"}}>
-            <div style={{width:120,height:120,borderRadius:14,background:logo.url?"#fff":"linear-gradient(135deg,#1B5E3B,#3CAF6E)",display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+T_.border,overflow:"hidden",flexShrink:0}}>
+            <div style={{width:120,height:120,borderRadius:14,background:logo.url?"#fff":"linear-gradient(135deg,#1B5E3B,#3CAF6E)",display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+P.border,overflow:"hidden",flexShrink:0}}>
               {logo.url?<img src={logo.url} alt="Logo" style={{width:"100%",height:"100%",objectFit:"contain",padding:8}}/>:<span style={{color:"#fff",fontWeight:900,fontSize:48,fontFamily:"Georgia,serif"}}>P</span>}
             </div>
             <div style={{flex:1}}>
-              <input type="file" accept="image/png,image/jpeg,image/svg+xml" id="logoUpload" onChange={handleLogo} style={{display:"none"}}/>
-              <div style={{display:"grid",gap:10,marginBottom:14}}>
-                <button onClick={function(){document.getElementById("logoUpload").click();}} style={{background:T_.accent,color:"#fff",border:"none",borderRadius:8,padding:"12px 20px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                  {logo.url?"Remplacer le logo":"Choisir un logo"}
-                </button>
-                {logo.url&&(
-                  <button onClick={function(){setLogo({url:"",nom:""});try{localStorage.removeItem("predictek_logo");}catch(e){}}} style={{background:T_.redL,color:T_.red,border:"1px solid "+T_.red,borderRadius:8,padding:"10px 20px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>
-                    Retirer le logo
-                  </button>
-                )}
+              <input type="file" accept="image/png,image/jpeg,image/svg+xml" id="lgUp" onChange={handleLogo} style={{display:"none"}}/>
+              <div style={{display:"grid",gap:10,marginBottom:12}}>
+                <Bv onClick={function(){document.getElementById("lgUp").click();}}>{logo.url?"Remplacer le logo":"Choisir un logo"}</Bv>
+                {logo.url&&<Bv bg={P.redL} tc={P.red} onClick={function(){setLogo({url:"",nom:""});try{localStorage.removeItem("predictek_logo");}catch(e){};}}>Retirer le logo</Bv>}
               </div>
-              {logo.nom&&<div style={{fontSize:11,color:T_.muted,marginBottom:8}}>Fichier: {logo.nom}</div>}
-              <div style={{background:T_.alt,borderRadius:8,padding:"10px 14px",fontSize:11,color:T_.muted}}>
-                Formats: PNG, JPG ou SVG. Recommande: fond transparent, min. 200x200px.<br/>
-                Le logo apparait dans la barre de navigation et sur les factures PDF.
-              </div>
+              {logo.nom&&<div style={{fontSize:11,color:P.muted,marginBottom:8}}>Fichier: {logo.nom}</div>}
+              <div style={{background:P.alt,borderRadius:8,padding:"10px 14px",fontSize:11,color:P.muted}}>Formats: PNG, JPG ou SVG. Fond transparent, min. 200x200px. Apparait dans la barre de navigation et sur les factures.</div>
             </div>
           </div>
         </div>
@@ -1573,9 +1508,7 @@ export default function Hub(){
         </div>
       )}
 
-      {ong==="usagers"&&<GestionUsagers syndicats={syndicats}/>
-      {ong==="params_predictek"&&<ParamsPredictek/>}}
-
+      {ong==="usagers"&&<GestionUsagers syndicats={syndicats}/>}
       {ong==="params_predictek"&&<ParamsPredictek/>}
 
       {ong==="rapports"&&(
