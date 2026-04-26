@@ -89,7 +89,8 @@ export default function ModuleHistorique(){
     ];
     var h = loadHist();
     demos.forEach(function(d,i){
-      h.unshift({id:Date.now()-i*1000,ts:new Date(Date.now()-i*3600000).toISOString(),utilisateur:"Jean-Francois Laroche",);
+      h.unshift({id:Date.now()-i*1000,ts:new Date(Date.now()-i*3600000).toISOString(),
+        utilisateur:"JF Laroche",cat:d.cat,action:d.action,description:d.description,details:d.details,syndicat:d.syndicat});
     });
     saveHist(h);
     setHist(h);
@@ -126,7 +127,7 @@ export default function ModuleHistorique(){
         <div style={{display:"flex",gap:8}}>
           <Btn sm bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={refresh}>Actualiser</Btn>
           {hist.length===0&&<Btn sm bg={T.purpleL} tc={T.purple} bdr={"1px solid "+T.purple} onClick={addDemo}>Ajouter exemples</Btn>}
-          {hist.length>0&&<Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red} onClick={function(){if(window.confirm("Vider tout l historique?")){{saveHist([]);setHist([]);}};}}>Vider</Btn>}
+          {hist.length>0&&<Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red} onClick={function(){saveHist([]);setHist([]);;}}>Vider</Btn>}
         </div>
       </div>
 
