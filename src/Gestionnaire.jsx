@@ -362,7 +362,7 @@ function TabReunions(p){
                 <div style={{fontSize:15,fontWeight:800,color:T.navy}}>{selR.type} - {selR.date}</div>
                 <div style={{fontSize:11,color:T.muted,marginTop:2}}>{selR.heure} | {selR.lieu}</div>
               </div>
-              <Btn sm bg={T.navy} onClick={function(){pdfPrint("PV "+selR.type+" du "+selR.date+" - Syndicat Piedmont",[{k:"n",l:"No"},{k:"item",l:"Point ordre du jour"}],selR.ordre.map(function(o,i){return {n:i+1,item:o};}),selR.pv?"Proces-verbal: "+selR.pv:"");}}>Imprimer PV</Btn>
+              <Btn sm bg={T.navy} onClick={function(){pdfPrint("PV "+selR.type+" du "+selR.date+" ",[{k:"n",l:"No"},{k:"item",l:"Point ordre du jour"}],selR.ordre.map(function(o,i){return {n:i+1,item:o};}),selR.pv?"Proces-verbal: "+selR.pv:"");}}>Imprimer PV</Btn>
             </div>
             <Lbl l="Ordre du jour"/>
             {selR.ordre.map(function(o,i){return(
@@ -421,7 +421,7 @@ function TabCarnet(p){
           <span style={{fontSize:11,color:T.muted}}>{p.carnet.length} composantes | {fmt(totCout)} | {alts} alerte(s)</span>
         </div>
         <div style={{display:"flex",gap:6}}>
-          <Btn sm bg={T.navy} onClick={function(){pdfPrint("Carnet entretien - Syndicat Piedmont (Loi 16)",[{k:"comp",l:"Composante"},{k:"install",l:"Installation"},{k:"duree",l:"Duree vie"},{k:"coutF",l:"Cout"},{k:"pct",l:"% utilise"},{k:"yr",l:"Remplacement"},{k:"notes",l:"Notes"}],p.carnet.map(function(c){var st=carnetSt(c);return Object.assign({},c,{coutF:fmt(c.cout),duree:c.duree+" ans",pct:st.pct+"%",yr:st.yr});}));}}>PDF</Btn>
+          <Btn sm bg={T.navy} onClick={function(){pdfPrint("Carnet entretien - Carnet entretien Loi 16",[{k:"comp",l:"Composante"},{k:"install",l:"Installation"},{k:"duree",l:"Duree vie"},{k:"coutF",l:"Cout"},{k:"pct",l:"% utilise"},{k:"yr",l:"Remplacement"},{k:"notes",l:"Notes"}],p.carnet.map(function(c){var st=carnetSt(c);return Object.assign({},c,{coutF:fmt(c.cout),duree:c.duree+" ans",pct:st.pct+"%",yr:st.yr});}));}}>PDF</Btn>
           <Btn sm onClick={function(){csvDL([{k:"comp",l:"Composante"},{k:"install",l:"Installation"},{k:"duree",l:"Duree (ans)"},{k:"cout",l:"Cout"},{k:"notes",l:"Notes"},{k:"entretien",l:"Dernier entretien"}],p.carnet,"carnet-"+today());}}>CSV</Btn>
           <Btn sm onClick={function(){setNf({comp:"",install:"",duree:20,cout:0,notes:"",entretien:""});setShowN(true);}}>+ Composante</Btn>
         </div>
@@ -510,7 +510,7 @@ function TabUnites(){
     var cols=ALL_COLS.filter(function(c){return expCols[c.k]!==false;});
     var rows=unites.map(function(u){return Object.assign({},u,{papL:u.pap?"Oui":"Non",locL:u.loc?"Oui":"Non"});});
     if(expFmt==="csv"){csvDL(cols,rows,"registre-copropri-taires-"+today());}
-    else{pdfPrint("Registre - "+syndicat.nom,cols,rows,"36 unites | "+today());}
+    else{pdfPrint("Registre - "+syndicat.nom,cols,rows,"unites: "+unites.length+" | "+today());}
     setShowExport(false);
   }
 
@@ -693,7 +693,7 @@ function ExportCopros(p){
   function doExport(){
     var rows=UNITES0.map(function(u){return Object.assign({},u,{papL:u.pap?"Oui":"Non",locL:u.loc?"Oui":"Non"});});
     if(fmt2==="csv"){csvDL(selCols,rows,"registre-copropri-taires-"+today());}
-    else{pdfPrint("Registre - "+syndicat.nom,selCols,rows,"36 unites | "+today());}
+    else{pdfPrint("Registre - "+syndicat.nom,selCols,rows,"unites: "+unites.length+" | "+today());}
     p.onClose();
   }
   return(
@@ -849,7 +849,7 @@ function TabBudgetSynd(){
 
   var PRODUITS=[];
   var CHARGES=[];
-  var REEL={"Cotisations mensuelles"":0,"Honoraires Predictek"":0,"Deneigement"":0,"Paysagement"":0,"Electricite"":0,"Assurance syndicat"":0,"Plomberie et urgences"":0,"Entretien ascenseur"":0,"Chauffage"":0,"Fournitures et divers":940};
+  var REEL={"Cotisations mensuelles":0,"Honoraires Predictek":0,"Deneigement":0,"Paysagement":0,"Electricite":0,"Assurance syndicat":0,"Plomberie et urgences":0,"Entretien ascenseur":0,"Chauffage":0,"Fournitures et divers":940};
 
   function ligneTotal(k){return budget[k]?budget[k].reduce(function(a,v){return a+v;},0):0;}
   var totalProd=PRODUITS.reduce(function(a,k){return a+ligneTotal(k);},0);
