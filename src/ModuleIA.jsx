@@ -325,7 +325,7 @@ function TabChatbot(){
     setLoading(false);
   }
 
-  var QUESTIONS_RAPIDES=["Quelles sont les heures de silence?","Comment soumettre une demande de reparation?","Puis-je avoir 3 animaux?","Comment acceder a mes documents de copropriete?","Qui contacter en cas d urgence?"];
+  var QUESTIONS_RAPIDES=["Quelles sont les heures de silence?","Comment soumettre une demande de reparation?","Comment acceder a mes documents de copropriete?","Quelles sont les regles pour les animaux?","Qui contacter en cas d urgence?"];
 
   return(
     <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:14,height:560}}>
@@ -381,8 +381,7 @@ function TabChatbot(){
         <div style={{background:T.amberL,border:"1px solid "+T.amber+"44",borderRadius:10,padding:12}}>
           <div style={{fontSize:11,fontWeight:700,color:T.amber,marginBottom:6}}>Urgences</div>
           <div style={{fontSize:11,color:T.amber,lineHeight:1.6}}>
-            Fuite/feu/bris: <b>819-479-4203</b><br/>
-            Jean-Francois Laroche<br/>President CA
+            Fuite/feu/bris:<br/><b>Voir config syndicat</b><br/><span style={{fontSize:10}}>Configure dans Parametres syndicat</span>
           </div>
         </div>
       </div>
