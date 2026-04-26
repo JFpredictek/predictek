@@ -318,7 +318,9 @@ function TabPaie(){
       <Modal show={showN} onClose={function(){setShowN(false);}} title="Generer un bulletin de paie" w={500}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
           <FRow l="Employe" full>
-            <select value={sim.employe||""} onChange={function(e){setSim(function(o){return Object.assign({},o,{employe:e.target.value});});}}>{EMPLOYES.length>0?EMPLOYES.map(function(e){return <option key={e.id}>{e.nom}</option>;}): <option value="">Aucun employe</option>}</select>
+            <select value={sim.employe||""} onChange={function(e){setSelEmp(e.target.value);setSim(function(o){return Object.assign({},o,{employe:e.target.value});});}} style={INP}>
+              {EMPLOYES.map(function(e){return <option key={e.id}>{e.nom}</option>;})}
+            </select>
           </FRow>
           <FRow l="Salaire brut ($)">
             <input type="number" value={sim.salaireBrut||""} onChange={function(e){
@@ -733,7 +735,7 @@ var ECRITURES_INIT=[];
 
 // ===== TAB SOLDES OUVERTURE =====
 function TabSoldesOuverture(){
-  var s0=useState(COMPTES_PLAN.map(function(c){return Object.assign({},c,{soldeOuv:c.solde});}));var comptes=s0[0];var setComptes=s0[1];
+  var s0=useState(COMPTES.map(function(c){return Object.assign({},c,{soldeOuv:c.solde});}));var comptes=s0[0];var setComptes=s0[1];
   var s1=useState("");var filterType=s1[0];var setFilterType=s1[1];
   var s2=useState("");var savedMsg=s2[0];var setSavedMsg=s2[1];
 
@@ -909,7 +911,7 @@ function TabGrandLivre(){
 // ===== TAB BUDGET PREDICTEK =====
 function TabBudget(){
   var MOIS=["Jan","Fev","Mar","Avr","Mai","Jun","Jul","Aou","Sep","Oct","Nov","Dec"];
-  var s0=useState({});;
+  var s0=useState({});
   var budget=s0[0];var setBudget=s0[1];
   var s1=useState("produits");var section=s1[0];var setSection=s1[1];
 
@@ -917,10 +919,10 @@ function TabBudget(){
   var CHARGES=["Salaires gestionnaires","Salaires terrain","Charges sociales","Loyer bureau","Telecommunications","Logiciels et abonnements","Assurance entreprise","Honoraires professionnels"];
 
   var REEL_ANNUEL={
-    "Honoraires de gestion":86400,"Services additionnels":8200,
-    "Salaires gestionnaires":48000,"Salaires terrain":22000,"Charges sociales":10800,
-    "Loyer bureau":7200,"Telecommunications":1800,"Logiciels et abonnements":3600,
-    "Assurance entreprise":2400,"Honoraires professionnels":3600,
+    "Honoraires de gestion":0,"Services additionnels":0,
+    "Salaires gestionnaires":0,"Salaires terrain":0,"Charges sociales":0,
+    "Loyer bureau":0,"Telecommunications":0,"Logiciels et abonnements":0,
+    "Assurance entreprise":0,"Honoraires professionnels":0,
   };
 
   function ligneTotal(k){return budget[k]?budget[k].reduce(function(a,v){return a+v;},0):0;}
