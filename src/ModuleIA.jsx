@@ -27,8 +27,8 @@ async function callClaude(system, user, maxTokens){
 // ===== TAB ANALYSE SOUMISSIONS =====
 function TabAnalyseSoumissions(){
   var s0=useState([
-    {id:1,fournisseur:"Deneigement Express",cat:"Deneigement",prix:22000,delai:"48h",garantie:"1 an",certifie:true,experience:"12 ans",note:"Partenaire actuel Ã¢ÂÂ tarif preferentiel multi-syndicats"},
-    {id:2,fournisseur:"NordBlanche Services",cat:"Deneigement",prix:19500,delai:"72h",garantie:"6 mois",certifie:true,experience:"4 ans",note:"Nouveau soumissionnaire Ã¢ÂÂ prix agressif"},
+    {id:1,fournisseur:"Deneigement Express",cat:"Deneigement",prix:22000,delai:"48h",garantie:"1 an",certifie:true,experience:"12 ans",note:"Partenaire actuel - tarif preferentiel multi-syndicats"},
+    {id:2,fournisseur:"NordBlanche Services",cat:"Deneigement",prix:19500,delai:"72h",garantie:"6 mois",certifie:true,experience:"4 ans",note:"Nouveau soumissionnaire - prix agressif"},
     {id:3,fournisseur:"GeoNord Entretien",cat:"Deneigement",prix:21200,delai:"24h",garantie:"1 an",certifie:false,experience:"8 ans",note:"Pas de certification RBQ"},
   ]);
   var soumissions=s0[0];var setSoumissions=s0[1];
@@ -179,7 +179,7 @@ function TabRedactionPV(){
               <div><Lbl l="Lieu"/><input value={meta.lieu} onChange={function(e){sm("lieu",e.target.value);}} style={INP}/></div>
               <div><Lbl l="President de seance"/><input value={meta.president} onChange={function(e){sm("president",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Secretaire"/><input value={meta.secretaire} onChange={function(e){sm("secretaire",e.target.value);}} style={INP}/></div>
-              <div style={{gridColumn:"1/-1"}}><Lbl l="Personnes presentes"/><input value={meta.presences} onChange={function(e){sm("presences",e.target.value);}} style={INP} placeholder="Noms separÃÂ©s par virgule"/></div>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Personnes presentes"/><input value={meta.presences} onChange={function(e){sm("presences",e.target.value);}} style={INP} placeholder="Noms separ-s par virgule"/></div>
             </div>
           </Card>
           <Card>
@@ -212,8 +212,8 @@ function TabRedactionPV(){
 
 // ===== TAB DETECTION ANOMALIES =====
 function TabDetectionAnomalies(){
-  var s0=useState([]);var soumFactures=s0[0];var setSoumFactures=s0[1];;
-  var factures=s0[0];var setFactures=s0[1];
+  var FACTURES_ANOM_INIT=[{id:1,four:"Fournisseur A",date:"2026-04-10",mnt:850,desc:"Service standard",contrat:"Contrat annuel",statut:"analyser"},{id:2,four:"Fournisseur B",date:"2026-04-22",mnt:485,desc:"Reparation urgence",contrat:"Horaire",statut:"analyser"},{id:3,four:"Fournisseur C",date:"2026-04-05",mnt:3800,desc:"Travaux majeurs",contrat:"Horaire",statut:"analyser"}];
+  var s0=useState(FACTURES_ANOM_INIT);var factures=s0[0];var setFactures=s0[1];var setFactures=s0[1];
   var s1=useState({});var resultats=s1[0];var setResultats=s1[1];
   var s2=useState(null);var loading=s2[0];var setLoading=s2[1];
 
@@ -243,7 +243,7 @@ function TabDetectionAnomalies(){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
         <div>
-          <b style={{fontSize:14,color:T.navy}}>Detection d anomalies Ã¢ÂÂ Factures fournisseurs</b>
+          <b style={{fontSize:14,color:T.navy}}>Detection d anomalies - Factures fournisseurs</b>
           <div style={{fontSize:11,color:T.muted,marginTop:2}}>L IA analyse chaque facture et detecte les irregularites potentielles</div>
         </div>
         <Btn dis={loading!==null} onClick={analyserToutes}>{loading!==null&&<Spinner/>}Analyser toutes</Btn>
@@ -269,7 +269,7 @@ function TabDetectionAnomalies(){
                     <div style={{fontSize:22,fontWeight:900,color:niv.c}}>{res.score}</div>
                     <div style={{fontSize:9,color:niv.c,fontWeight:700}}>SCORE</div>
                   </div>
-                ):<div style={{fontSize:11,color:T.muted}}>Ã¢ÂÂ</div>}
+                ):<div style={{fontSize:11,color:T.muted}}>-</div>}
               </div>
               <div>
                 {res?(
@@ -277,7 +277,7 @@ function TabDetectionAnomalies(){
                     <Bdg bg={niv.bg} c={niv.c}>{niv.l}</Bdg>
                     {res.anomalies&&res.anomalies.length>0&&(
                       <div style={{marginTop:6}}>
-                        {res.anomalies.map(function(a,i){return <div key={i} style={{fontSize:10,color:niv.c,marginTop:2}}>Ã¢ÂÂ¢ {a}</div>;})}
+                        {res.anomalies.map(function(a,i){return <div key={i} style={{fontSize:10,color:niv.c,marginTop:2}}>- {a}</div>;})}
                       </div>
                     )}
                     {res.recommandation&&<div style={{fontSize:10,color:T.muted,marginTop:4,fontStyle:"italic"}}>{res.recommandation}</div>}
@@ -296,14 +296,14 @@ function TabDetectionAnomalies(){
   );
 }
 
-// ===== TAB CHATBOT COPROPRIÃÂTAIRE =====
+// ===== TAB CHATBOT COPROPRI-TAIRE =====
 function TabChatbot(){
   var s0=useState([]);var msgs=s0[0];var setMsgs=s0[1];
   var s1=useState("");var input=s1[0];var setInput=s1[1];
   var s2=useState(false);var loading=s2[0];var setLoading=s2[1];
   var s3=useState("531");var unite=s3[0];
 
-  var SYSTEM="Tu es l assistant virtuel du Syndicat Piedmont, un syndicat de copropriete de 36 unites situe au Chemin du Hibou, Stoneham-et-Tewkesbury QC G3C 1T1. Tu aides UNIQUEMENT le coproprietaire de l UNITE 531 (Jean-Francois Laroche) avec ses questions. Tu es professionnel, courtois, precis et concis. Tu reponds en francais. REGLES ET INFORMATIONS DU SYNDICAT: Heures de silence: 22h a 8h. Animaux: maximum 2 par unite. Stationnement visiteurs: maximum 48h. Modifications: approbation CA requise pour tout travail modifiant les parties communes ou la structure. Assurance: responsabilite civile minimale de 2 000 000$ requise pour chaque unite. Chauffe-eau: remplacement obligatoire apres 10 ans par le coproprietaire. ADMINISTRATION: President CA: Jean-Francois Laroche (unite 531). Gestionnaire: Predictek (app.predictek.ca). Cotisation mensuelle unite 531: 292.06$/mois (fraction: 0%). Fonds de prevoyance: 64 235$. Compte exploitation: 7 361$. Prochain exercice: 1 nov 2026 au 31 oct 2027. CONTACTS: Urgences 24/7: 819-479-4203. CA: ca@syndicatpiedmont.com. PROCEDURES: Pour une demande de reparation, le coproprietaire soumet via son portail. Pour une urgence (fuite, feu, bris): appeler immediatement le 819-479-4203. Pour les questions juridiques specifiques, orienter vers un notaire ou avocat. Ne fournis JAMAIS d informations sur les autres unites ou coproprietaires.";
+  var SYSTEM="Tu es l assistant virtuel de Predictek, un systeme de gestion de copropriete. Tu aides les coproprietaires avec leurs questions situe au Chemin du Hibou, Stoneham-et-Tewkesbury QC G3C 1T1. Tu aides UNIQUEMENT le coproprietaire de l UNITE 531 (Jean-Francois Laroche) avec ses questions. Tu es professionnel, courtois, precis et concis. Tu reponds en francais. REGLES ET INFORMATIONS DU SYNDICAT: Heures de silence: 22h a 8h. Animaux: maximum 2 par unite. Stationnement visiteurs: maximum 48h. Modifications: approbation CA requise pour tout travail modifiant les parties communes ou la structure. Assurance: responsabilite civile minimale de 2 000 000$ requise pour chaque unite. Chauffe-eau: remplacement obligatoire apres 10 ans par le coproprietaire. ADMINISTRATION: President CA: Jean-Francois Laroche (unite 531). Gestionnaire: Predictek (app.predictek.ca). Cotisation mensuelle unite 531: 292.06$/mois (fraction: 2.133%). Fonds de prevoyance: 64 235$. Compte exploitation: 7 361$. Prochain exercice: 1 nov 2026 au 31 oct 2027. CONTACTS: Urgences 24/7: 819-479-4203. CA: ca@syndicatpiedmont.com. PROCEDURES: Pour une demande de reparation, le coproprietaire soumet via son portail. Pour une urgence (fuite, feu, bris): appeler immediatement le 819-479-4203. Pour les questions juridiques specifiques, orienter vers un notaire ou avocat. Ne fournis JAMAIS d informations sur les autres unites ou coproprietaires.";
 
   async function envoyer(){
     if(!input.trim())return;
@@ -335,7 +335,7 @@ function TabChatbot(){
             <span style={{fontSize:14,fontWeight:900,color:"#fff"}}>IA</span>
           </div>
           <div>
-            <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>Assistant Syndicat Piedmont</div>
+            <div style={{fontSize:13,fontWeight:700,color:"#fff"}}>Assistant virtuel Predictek</div>
             <div style={{fontSize:10,color:"#3CAF6E"}}>Propulse par IA Predictek</div>
           </div>
           <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
@@ -397,14 +397,14 @@ export default function ModuleIA(){
     {id:"soumissions",l:"Analyse soumissions"},
     {id:"pv",l:"Redaction PV"},
     {id:"anomalies",l:"Detection anomalies"},
-    {id:"chatbot",l:"Chatbot copropriÃÂ©taire"},
+    {id:"chatbot",l:"Chatbot coproprietaire"},
   ];
   return(
     <div style={{padding:16,fontFamily:"Georgia,serif"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <div>
           <div style={{fontSize:18,fontWeight:800,color:T.navy}}>Intelligence artificielle Predictek</div>
-          <div style={{fontSize:11,color:T.muted}}>Outils IA pour optimiser la gestion de vos syndicats Ã¢ÂÂ Propulse par Claude</div>
+          <div style={{fontSize:11,color:T.muted}}>Outils IA pour optimiser la gestion de vos syndicats - Propulse par Claude</div>
         </div>
         <Bdg bg={T.purpleL} c={T.purple}>Claude Sonnet 4</Bdg>
       </div>
