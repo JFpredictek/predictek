@@ -109,7 +109,7 @@ function CarteSyndicat(p){
       </div>
 
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10,paddingTop:8,borderTop:"1px solid "+T.border}}>
-        <div style={{fontSize:10,color:T.muted}}>{s.gestionnaire||"â"}</div>
+        <div style={{fontSize:10,color:T.muted}}>{s.gestionnaire||"Ã¢ÂÂ"}</div>
         <div style={{fontSize:10,color:T.muted}}>{s.nbCoprosPortail} portail(s) actif(s)</div>
       </div>
     </div>
@@ -153,13 +153,13 @@ function DetailSyndicat(p){
         <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14}}>
           <Lbl l="Informations generales"/>
           {[
-            {l:"President",v:s.president||"â"},
-            {l:"Courriel",v:s.courriel||"â"},
-            {l:"Telephone",v:s.tel||"â"},
-            {l:"Immatriculation",v:s.immat||"â"},
-            {l:"Annee construction",v:s.anneeConstruction||"â"},
-            {l:"Exercice financier",v:s.exercice||"â"},
-            {l:"Gestionnaire Predictek",v:s.gestionnaire||"â"},
+            {l:"President",v:s.president||"Ã¢ÂÂ"},
+            {l:"Courriel",v:s.courriel||"Ã¢ÂÂ"},
+            {l:"Telephone",v:s.tel||"Ã¢ÂÂ"},
+            {l:"Immatriculation",v:s.immat||"Ã¢ÂÂ"},
+            {l:"Annee construction",v:s.anneeConstruction||"Ã¢ÂÂ"},
+            {l:"Exercice financier",v:s.exercice||"Ã¢ÂÂ"},
+            {l:"Gestionnaire Predictek",v:s.gestionnaire||"Ã¢ÂÂ"},
           ].map(function(item,i){return(
             <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid "+T.border}}>
               <span style={{fontSize:11,color:T.muted}}>{item.l}</span>
@@ -281,7 +281,7 @@ function CreerSyndicat(p){
       {etape===2&&(
         <div>
           <div style={{fontSize:14,fontWeight:700,color:T.navy,marginBottom:8}}>Importer le registre des coproprietaires</div>
-          <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Importez votre fichier Excel/CSV avec les informations des coproprietaires. Ce n est pas obligatoire â vous pouvez les ajouter manuellement plus tard.</div>
+          <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Importez votre fichier Excel/CSV avec les informations des coproprietaires. Ce n est pas obligatoire Ã¢ÂÂ vous pouvez les ajouter manuellement plus tard.</div>
           <div style={{background:T.blueL,borderRadius:10,padding:14,marginBottom:16,border:"1px solid "+T.blue+"44"}}>
             <div style={{fontSize:12,fontWeight:600,color:T.blue,marginBottom:8}}>Format CSV attendu (colonnes):</div>
             <div style={{fontSize:11,color:T.blue,fontFamily:"monospace",lineHeight:1.8}}>
@@ -311,9 +311,9 @@ function CreerSyndicat(p){
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
               {[
                 {l:"Nom",v:form.nom},{l:"Code",v:form.code},
-                {l:"President",v:form.president||"â"},{l:"Immatriculation",v:form.immat||"â"},
-                {l:"Exercice",v:form.exercice},{l:"Gestionnaire",v:form.gestionnaire||"â"},
-                {l:"Adresse",v:form.adr||"â"},{l:"Coproprietaires CSV",v:nbImport>0?nbImport+" detectes":"A ajouter manuellement"},
+                {l:"President",v:form.president||"Ã¢ÂÂ"},{l:"Immatriculation",v:form.immat||"Ã¢ÂÂ"},
+                {l:"Exercice",v:form.exercice},{l:"Gestionnaire",v:form.gestionnaire||"Ã¢ÂÂ"},
+                {l:"Adresse",v:form.adr||"Ã¢ÂÂ"},{l:"Coproprietaires CSV",v:nbImport>0?nbImport+" detectes":"A ajouter manuellement"},
               ].map(function(item,i){return(
                 <div key={i}>
                   <div style={{fontSize:9,color:T.accent,fontWeight:700,textTransform:"uppercase",marginBottom:2}}>{item.l}</div>
@@ -385,7 +385,7 @@ function GestionUsagers(p){
                   </div>
                 </td>
                 <td style={{padding:"9px 12px"}}><Bdg bg={u.actif?T.accentL:T.redL} c={u.actif?T.accent:T.red}>{u.actif?"Actif":"Inactif"}</Bdg></td>
-                <td style={{padding:"9px 12px",fontSize:11,color:T.muted}}>{u.derniereConnexion||"â"}</td>
+                <td style={{padding:"9px 12px",fontSize:11,color:T.muted}}>{u.derniereConnexion||"Ã¢ÂÂ"}</td>
                 <td style={{padding:"9px 12px"}}>
                   <Btn sm bg={u.actif?T.redL:T.accentL} tc={u.actif?T.red:T.accent} bdr={"1px solid "+(u.actif?T.red:T.accent)} onClick={function(){setUsagers(function(prev){return prev.map(function(x){return x.id===u.id?Object.assign({},x,{actif:!x.actif}):x;});});}}>
                     {u.actif?"Desactiver":"Reactiver"}
@@ -455,7 +455,7 @@ var PARAMS_DEFAUT={
   // Courriels
   courrielCA:"ca@syndicatpiedmont.com",
   courrielFacturesFournisseurs:"factures@syndicatpiedmont.com",
-  courrielCopropriÃ©taires:"info@syndicatpiedmont.com",
+  courrielCopropriÃÂ©taires:"info@syndicatpiedmont.com",
   courrielUrgences:"urgence@syndicatpiedmont.com",
   courrielComptabilite:"comptabilite@predictek.com",
   // Traitement auto
@@ -471,8 +471,8 @@ var PARAMS_DEFAUT={
   documents:[
     {id:1,nom:"Declaration de copropriete",type:"declaration",date:"2013-09-01",taille:"2.4 MB",dispo:true},
     {id:2,nom:"Reglement de l immeuble",type:"reglement",date:"2023-01-15",taille:"850 KB",dispo:true},
-    {id:3,nom:"Reglement 2024-001 â Animaux",type:"reglement",date:"2024-03-20",taille:"120 KB",dispo:true},
-    {id:4,nom:"Reglement 2024-002 â Stationnement",type:"reglement",date:"2024-06-15",taille:"95 KB",dispo:false},
+    {id:3,nom:"Reglement 2024-001 Ã¢ÂÂ Animaux",type:"reglement",date:"2024-03-20",taille:"120 KB",dispo:true},
+    {id:4,nom:"Reglement 2024-002 Ã¢ÂÂ Stationnement",type:"reglement",date:"2024-06-15",taille:"95 KB",dispo:false},
   ],
 };
 
@@ -515,7 +515,7 @@ function ParamsSyndicat(p){
     <div style={{padding:20,fontFamily:"Georgia,serif",maxWidth:860,margin:"0 auto"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
         <div>
-          <div style={{fontSize:18,fontWeight:800,color:T.navy}}>Parametres â {params.nom}</div>
+          <div style={{fontSize:18,fontWeight:800,color:T.navy}}>Parametres Ã¢ÂÂ {params.nom}</div>
           <div style={{fontSize:11,color:T.muted}}>Configuration du syndicat | Code: {syndicat}</div>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
@@ -580,7 +580,7 @@ function ParamsSyndicat(p){
         <div>
           <Card>
             <CardTitle>Composition du conseil d administration</CardTitle>
-            <CardSub>Selon la declaration de copropriete â le nombre de membres doit etre impair (3, 5, 7 ou 9)</CardSub>
+            <CardSub>Selon la declaration de copropriete Ã¢ÂÂ le nombre de membres doit etre impair (3, 5, 7 ou 9)</CardSub>
             <div style={{marginBottom:16}}>
               <Lbl l="Nombre de membres du CA"/>
               <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
@@ -634,7 +634,7 @@ function ParamsSyndicat(p){
               {[
                 {k:"courrielCA",l:"Courriel du CA (notifications, PV, reunions)",ph:"ca@syndicat.com",desc:"Recoit les convocations, PV et alertes destinees aux administrateurs"},
                 {k:"courrielFacturesFournisseurs",l:"Courriel reception factures fournisseurs",ph:"factures@syndicat.com",desc:"Les fournisseurs envoient leurs factures a cette adresse pour traitement automatique"},
-                {k:"courrielCopropriÃ©taires",l:"Courriel communications coproprietaires",ph:"info@syndicat.com",desc:"Adresse de contact general pour les coproprietaires"},
+                {k:"courrielCopropriÃÂ©taires",l:"Courriel communications coproprietaires",ph:"info@syndicat.com",desc:"Adresse de contact general pour les coproprietaires"},
                 {k:"courrielUrgences",l:"Courriel urgences 24/7",ph:"urgence@syndicat.com",desc:"Notifie immediatement le CA en cas d urgence"},
                 {k:"courrielComptabilite",l:"Courriel comptabilite Predictek",ph:"comptabilite@predictek.com",desc:"Recoit les factures Predictek et les rapports financiers"},
               ].map(function(item){return(
@@ -656,7 +656,7 @@ function ParamsSyndicat(p){
                 {k:"autoNotifCA",l:"Notifications automatiques au CA",desc:"Rappels de reunions, alertes de conformite, factures en attente"},
                 {k:"autoNotifCopros",l:"Notifications automatiques aux coproprietaires",desc:"Avis de convocations, rappels cotisations, documents disponibles"},
                 {k:"autoRappelsCotisations",l:"Rappels cotisations en retard",desc:"J+5, J+15, J+30 automatiquement"},
-                {k:"autoAlertesConformite",l:"Alertes conformite automatiques",desc:"CE, assurance, PAP â 90 jours, 30 jours, 7 jours avant expiration"},
+                {k:"autoAlertesConformite",l:"Alertes conformite automatiques",desc:"CE, assurance, PAP Ã¢ÂÂ 90 jours, 30 jours, 7 jours avant expiration"},
               ].map(function(item,i){return(
                 <div key={item.k} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"14px 0",borderBottom:i<4?"1px solid "+T.border:"none"}}>
                   <div style={{flex:1,paddingRight:16}}>
@@ -765,7 +765,7 @@ function ParamsSyndicat(p){
 
 
 function StepIndicator(p){
-  var STEPS=["Syndicat","CA","CopropriÃ©taires","Soldes","Documents","Carnet","Attestation","Confirmation"];
+  var STEPS=["Syndicat","CA","CopropriÃÂ©taires","Soldes","Documents","Carnet","Attestation","Confirmation"];
   return(
     <div style={{display:"flex",marginBottom:24,overflowX:"auto"}}>
       {STEPS.map(function(s,i){
@@ -774,7 +774,7 @@ function StepIndicator(p){
           <div key={i} style={{display:"flex",alignItems:"center",flexShrink:0}}>
             <div style={{display:"flex",flexDirection:"column",alignItems:"center",width:80}}>
               <div style={{width:32,height:32,borderRadius:"50%",background:done?T.accent:current?T.navy:T.border,display:"flex",alignItems:"center",justifyContent:"center",color:done||current?"#fff":T.muted,fontSize:done?16:12,fontWeight:700,marginBottom:4}}>
-                {done?"â":i+1}
+                {done?"Ã¢ÂÂ":i+1}
               </div>
               <div style={{fontSize:9,fontWeight:current?700:400,color:current?T.navy:done?T.accent:T.muted,textAlign:"center",lineHeight:1.2}}>{s}</div>
             </div>
@@ -816,43 +816,43 @@ function parseCSV(text){
 var COMPOSANTES_LOI16=[
   {cat:"Structure",nom:"Fondations et structure principale",dureeVie:50,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
   {cat:"Structure",nom:"Balcons et terrasses",dureeVie:30,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Enveloppe",nom:"Toiture â membrane et structure",dureeVie:25,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Enveloppe",nom:"Fenetres et portes exterieures â parties communes",dureeVie:30,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
+  {cat:"Enveloppe",nom:"Toiture Ã¢ÂÂ membrane et structure",dureeVie:25,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
+  {cat:"Enveloppe",nom:"Fenetres et portes exterieures Ã¢ÂÂ parties communes",dureeVie:30,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
   {cat:"Enveloppe",nom:"Revetement exterieur",dureeVie:30,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Mecanique",nom:"Systeme de chauffage â parties communes",dureeVie:20,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Mecanique",nom:"Systeme de ventilation â parties communes",dureeVie:20,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Mecanique",nom:"Tuyauterie et plomberie â parties communes",dureeVie:40,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Mecanique",nom:"Systeme electrique â parties communes",dureeVie:40,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
+  {cat:"Mecanique",nom:"Systeme de chauffage Ã¢ÂÂ parties communes",dureeVie:20,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
+  {cat:"Mecanique",nom:"Systeme de ventilation Ã¢ÂÂ parties communes",dureeVie:20,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
+  {cat:"Mecanique",nom:"Tuyauterie et plomberie Ã¢ÂÂ parties communes",dureeVie:40,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
+  {cat:"Mecanique",nom:"Systeme electrique Ã¢ÂÂ parties communes",dureeVie:40,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
   {cat:"Mecanique",nom:"Ascenseur(s)",dureeVie:25,anneeInstall:"",etat:"bon",notes:"",obligatoire:false},
   {cat:"Securite",nom:"Systeme de detection incendie",dureeVie:15,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
   {cat:"Securite",nom:"Systeme de gicleurs",dureeVie:25,anneeInstall:"",etat:"bon",notes:"",obligatoire:false},
   {cat:"Securite",nom:"Systeme d acces et interphone",dureeVie:15,anneeInstall:"",etat:"bon",notes:"",obligatoire:false},
-  {cat:"Amenagements",nom:"Stationnement â surface et structure",dureeVie:20,anneeInstall:"",etat:"bon",notes:"",obligatoire:false},
+  {cat:"Amenagements",nom:"Stationnement Ã¢ÂÂ surface et structure",dureeVie:20,anneeInstall:"",etat:"bon",notes:"",obligatoire:false},
   {cat:"Amenagements",nom:"Paysagement et amenagements exterieurs",dureeVie:20,anneeInstall:"",etat:"bon",notes:"",obligatoire:false},
-  {cat:"Amenagements",nom:"Eclairage â parties communes",dureeVie:15,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
+  {cat:"Amenagements",nom:"Eclairage Ã¢ÂÂ parties communes",dureeVie:15,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
   {cat:"Interieur",nom:"Corridors et hall d entree",dureeVie:20,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Interieur",nom:"Peinture â parties communes",dureeVie:10,anneeInstall:"",etat:"bon",notes:"",obligatoire:false},
+  {cat:"Interieur",nom:"Peinture Ã¢ÂÂ parties communes",dureeVie:10,anneeInstall:"",etat:"bon",notes:"",obligatoire:false},
 ];
 
 function Onboarding(p){
   var s0=useState(1);var step=s0[0];var setStep=s0[1];
   var s1=useState({
-    // Etape 1 â Syndicat
+    // Etape 1 Ã¢ÂÂ Syndicat
     nom:"",code:"",adr:"",ville:"",province:"QC",codePostal:"",immat:"",
     anneeConstruction:"",nbUnites:"",exercice:"1 nov au 31 oct",
     quorumCA:"majorite",quorumAGO:25,
-    // Etape 2 â CA
+    // Etape 2 Ã¢ÂÂ CA
     nbMembresCA:5,president:"",secretaire:"",tresorier:"",membresCA:[],
     courrielCA:"",courrielFactures:"",courrielCopros:"",courrielUrgences:"",
-    // Etape 4 â Soldes
+    // Etape 4 Ã¢ÂÂ Soldes
     soldeOp:"",soldePrev:"",soldeAss:"",dateOuverture:"",
     budgetAnnuel:"",cotisationMoyenne:"",
-    // Etape 5 â Documents
+    // Etape 5 Ã¢ÂÂ Documents
     documents:[],
-    // Etape 6 â Carnet
+    // Etape 6 Ã¢ÂÂ Carnet
     composantes:COMPOSANTES_LOI16.map(function(c,i){return Object.assign({},c,{id:i});}),
     inspecteur:"",dateInspection:"",
-    // Etape 7 â Attestation
+    // Etape 7 Ã¢ÂÂ Attestation
     attestationAcceptee:false,
   });
   var data=s1[0];var setData=s1[1];
@@ -919,7 +919,7 @@ function Onboarding(p){
     <div style={{padding:20,fontFamily:"Georgia,serif",maxWidth:900,margin:"0 auto"}}>
       <div style={{background:T.navy,color:"#fff",borderRadius:12,padding:"16px 20px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
-          <div style={{fontSize:18,fontWeight:800}}>Nouveau syndicat â Configuration initiale</div>
+          <div style={{fontSize:18,fontWeight:800}}>Nouveau syndicat Ã¢ÂÂ Configuration initiale</div>
           <div style={{fontSize:11,color:"#8da0bb",marginTop:2}}>Completez les 8 etapes pour activer votre syndicat dans Predictek</div>
         </div>
         <div style={{fontSize:22,fontWeight:900,color:T.accent}}>Predictek</div>
@@ -929,7 +929,7 @@ function Onboarding(p){
 
       {step===1&&(
         <div>
-          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 1 â Informations du syndicat</div>
+          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 1 Ã¢ÂÂ Informations du syndicat</div>
           <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Ces informations proviennent de votre declaration de copropriete et du Registre foncier du Quebec.</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <Field l="Nom officiel du syndicat" full hint="Ex: Syndicat des coproprietaires du Ch. du Hibou"><input value={data.nom} onChange={function(e){sd("nom",e.target.value);}} style={INP} placeholder="Syndicat Piedmont"/></Field>
@@ -939,19 +939,19 @@ function Onboarding(p){
             <Field l="Ville"><input value={data.ville} onChange={function(e){sd("ville",e.target.value);}} style={INP} placeholder="Stoneham-et-Tewkesbury"/></Field>
             <Field l="Province"><select value={data.province} onChange={function(e){sd("province",e.target.value);}} style={INP}><option>QC</option><option>ON</option><option>BC</option><option>AB</option></select></Field>
             <Field l="Code postal"><input value={data.codePostal} onChange={function(e){sd("codePostal",e.target.value.toUpperCase());}} style={INP} placeholder="G3C 1T1"/></Field>
-            <Field l="Numero immatriculation REQ" hint="11 chiffres â registre entreprises Quebec"><input value={data.immat} onChange={function(e){sd("immat",e.target.value);}} style={INP} placeholder="1144524577"/></Field>
+            <Field l="Numero immatriculation REQ" hint="11 chiffres Ã¢ÂÂ registre entreprises Quebec"><input value={data.immat} onChange={function(e){sd("immat",e.target.value);}} style={INP} placeholder="1144524577"/></Field>
             <Field l="Exercice financier"><select value={data.exercice} onChange={function(e){sd("exercice",e.target.value);}} style={INP}><option value="1 nov au 31 oct">1 nov au 31 oct</option><option value="1 jan au 31 dec">1 jan au 31 dec</option><option value="1 avr au 31 mars">1 avr au 31 mars</option><option value="1 juil au 30 juin">1 juil au 30 juin</option></select></Field>
             <Field l="Quorum AGO (% des voix)"><input type="number" min="10" max="75" value={data.quorumAGO} onChange={function(e){sd("quorumAGO",parseInt(e.target.value)||25);}} style={INP}/></Field>
           </div>
           <div style={{display:"flex",justifyContent:"flex-end",marginTop:20}}>
-            <Btn dis={!data.nom||!data.code||!data.ville} onClick={function(){setStep(2);}}>Continuer â</Btn>
+            <Btn dis={!data.nom||!data.code||!data.ville} onClick={function(){setStep(2);}}>Continuer Ã¢ÂÂ</Btn>
           </div>
         </div>
       )}
 
       {step===2&&(
         <div>
-          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 2 â Conseil d administration</div>
+          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 2 Ã¢ÂÂ Conseil d administration</div>
           <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Composition du CA selon la declaration de copropriete. Le nombre de membres doit etre impair.</div>
           <div style={{marginBottom:14}}>
             <Lbl l="Nombre de membres du CA"/>
@@ -989,15 +989,15 @@ function Onboarding(p){
             <Field l="Courriel urgences 24/7"><input value={data.courrielUrgences} onChange={function(e){sd("courrielUrgences",e.target.value);}} style={INP} placeholder="urgence@syndicat.com"/></Field>
           </div>
           <div style={{display:"flex",justifyContent:"space-between",marginTop:20}}>
-            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(1);}}>â Retour</Btn>
-            <Btn dis={!data.president} onClick={function(){setStep(3);}}>Continuer â</Btn>
+            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(1);}}>Ã¢ÂÂ Retour</Btn>
+            <Btn dis={!data.president} onClick={function(){setStep(3);}}>Continuer Ã¢ÂÂ</Btn>
           </div>
         </div>
       )}
 
       {step===3&&(
         <div>
-          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 3 â Import des coproprietaires</div>
+          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 3 Ã¢ÂÂ Import des coproprietaires</div>
           <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Importez votre registre en format CSV. Vous pouvez aussi saisir manuellement.</div>
 
           <div style={{background:T.blueL,border:"1px solid "+T.blue+"44",borderRadius:10,padding:14,marginBottom:16}}>
@@ -1022,7 +1022,7 @@ function Onboarding(p){
           )}
           {csvErrors.length>0&&(
             <div style={{background:T.amberL,borderRadius:8,padding:"9px 13px",fontSize:11,color:T.amber,marginBottom:10}}>
-              {csvErrors.slice(0,5).map(function(e,i){return <div key={i}>â¢ {e}</div>;})}
+              {csvErrors.slice(0,5).map(function(e,i){return <div key={i}>Ã¢ÂÂ¢ {e}</div>;})}
             </div>
           )}
 
@@ -1055,29 +1055,29 @@ function Onboarding(p){
 
           {copros.length===0&&(
             <div style={{marginBottom:14}}>
-              <Lbl l="OU â Saisir le nombre d unites manuellement"/>
+              <Lbl l="OU Ã¢ÂÂ Saisir le nombre d unites manuellement"/>
               <input type="number" value={data.nbUnites} onChange={function(e){sd("nbUnites",e.target.value);}} style={INP} placeholder="Nombre d unites (ex: 36)"/>
               <div style={{fontSize:10,color:T.muted,marginTop:3}}>Vous pourrez ajouter les coproprietaires plus tard.</div>
             </div>
           )}
 
           <div style={{display:"flex",justifyContent:"space-between",marginTop:20}}>
-            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(2);}}>â Retour</Btn>
-            <Btn dis={copros.length===0&&!data.nbUnites} onClick={function(){setStep(4);}}>Continuer â</Btn>
+            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(2);}}>Ã¢ÂÂ Retour</Btn>
+            <Btn dis={copros.length===0&&!data.nbUnites} onClick={function(){setStep(4);}}>Continuer Ã¢ÂÂ</Btn>
           </div>
         </div>
       )}
 
       {step===4&&(
         <div>
-          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 4 â Soldes d ouverture et budget</div>
+          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 4 Ã¢ÂÂ Soldes d ouverture et budget</div>
           <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Entrez les soldes bancaires au debut de l exercice actif. Ces valeurs seront les soldes d ouverture dans la comptabilite.</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
             <Field l="Date d ouverture de l exercice"><input type="date" value={data.dateOuverture} onChange={function(e){sd("dateOuverture",e.target.value);}} style={INP}/></Field>
             <div/>
-            <Field l="Solde â Compte d exploitation ($)" hint="Argent disponible pour les operations courantes"><input type="number" value={data.soldeOp} onChange={function(e){sd("soldeOp",e.target.value);}} style={INP} placeholder="Ex: 7361.88" step="0.01"/></Field>
-            <Field l="Solde â Fonds de prevoyance ($)" hint="Reserve pour travaux majeurs (Loi 16 â obligatoire)"><input type="number" value={data.soldePrev} onChange={function(e){sd("soldePrev",e.target.value);}} style={INP} placeholder="Ex: 64235.01" step="0.01"/></Field>
-            <Field l="Solde â Fonds d assurance ($)" hint="Reserve pour la franchise d assurance"><input type="number" value={data.soldeAss} onChange={function(e){sd("soldeAss",e.target.value);}} style={INP} placeholder="Ex: 36178.37" step="0.01"/></Field>
+            <Field l="Solde Ã¢ÂÂ Compte d exploitation ($)" hint="Argent disponible pour les operations courantes"><input type="number" value={data.soldeOp} onChange={function(e){sd("soldeOp",e.target.value);}} style={INP} placeholder="Ex: 7361.88" step="0.01"/></Field>
+            <Field l="Solde Ã¢ÂÂ Fonds de prevoyance ($)" hint="Reserve pour travaux majeurs (Loi 16 Ã¢ÂÂ obligatoire)"><input type="number" value={data.soldePrev} onChange={function(e){sd("soldePrev",e.target.value);}} style={INP} placeholder="Ex: 64235.01" step="0.01"/></Field>
+            <Field l="Solde Ã¢ÂÂ Fonds d assurance ($)" hint="Reserve pour la franchise d assurance"><input type="number" value={data.soldeAss} onChange={function(e){sd("soldeAss",e.target.value);}} style={INP} placeholder="Ex: 36178.37" step="0.01"/></Field>
             <Field l="Budget annuel total ($)" hint="Total des depenses budgetees pour l exercice"><input type="number" value={data.budgetAnnuel} onChange={function(e){sd("budgetAnnuel",e.target.value);}} style={INP} placeholder="Ex: 142800" step="0.01"/></Field>
           </div>
           {(data.soldeOp||data.soldePrev||data.soldeAss)&&(
@@ -1091,18 +1091,18 @@ function Onboarding(p){
             </div>
           )}
           <div style={{display:"flex",justifyContent:"space-between",marginTop:20}}>
-            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(3);}}>â Retour</Btn>
-            <Btn onClick={function(){setStep(5);}}>Continuer â</Btn>
+            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(3);}}>Ã¢ÂÂ Retour</Btn>
+            <Btn onClick={function(){setStep(5);}}>Continuer Ã¢ÂÂ</Btn>
           </div>
         </div>
       )}
 
       {step===5&&(
         <div>
-          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 5 â Documents officiels</div>
+          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 5 Ã¢ÂÂ Documents officiels</div>
           <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Importez les documents fondamentaux du syndicat. La declaration de copropriete est obligatoire.</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-            {[{cat:"declaration",l:"Declaration de copropriete",desc:"Document fondateur â acte notarie",obligatoire:true},{cat:"reglement",l:"Reglement de l immeuble",desc:"Regles de vie approuvees en assemblee",obligatoire:true},{cat:"police",l:"Police d assurance",desc:"Assurance syndicat en vigueur",obligatoire:false},{cat:"financier",l:"Etats financiers annuels",desc:"Derniers etats financiers verifies",obligatoire:false},{cat:"carnet_prev",l:"Etude du fonds de prevoyance",desc:"Etude actuarielle Loi 16",obligatoire:false},{cat:"autre",l:"Autre document",desc:"Tout autre document pertinent",obligatoire:false}].map(function(dtype){
+            {[{cat:"declaration",l:"Declaration de copropriete",desc:"Document fondateur Ã¢ÂÂ acte notarie",obligatoire:true},{cat:"reglement",l:"Reglement de l immeuble",desc:"Regles de vie approuvees en assemblee",obligatoire:true},{cat:"police",l:"Police d assurance",desc:"Assurance syndicat en vigueur",obligatoire:false},{cat:"financier",l:"Etats financiers annuels",desc:"Derniers etats financiers verifies",obligatoire:false},{cat:"carnet_prev",l:"Etude du fonds de prevoyance",desc:"Etude actuarielle Loi 16",obligatoire:false},{cat:"autre",l:"Autre document",desc:"Tout autre document pertinent",obligatoire:false}].map(function(dtype){
               var uploaded=data.documents.filter(function(d){return d.cat===dtype.cat;});
               return(
                 <div key={dtype.cat} style={{background:T.surface,border:"1px solid "+(uploaded.length>0?T.accent:dtype.obligatoire?T.amber:T.border),borderRadius:10,padding:12}}>
@@ -1111,7 +1111,7 @@ function Onboarding(p){
                       <div style={{fontSize:12,fontWeight:700,color:T.text}}>{dtype.l}{dtype.obligatoire&&<span style={{color:T.red,marginLeft:4}}>*</span>}</div>
                       <div style={{fontSize:10,color:T.muted}}>{dtype.desc}</div>
                     </div>
-                    {uploaded.length>0&&<span style={{fontSize:16,color:T.accent}}>â</span>}
+                    {uploaded.length>0&&<span style={{fontSize:16,color:T.accent}}>Ã¢ÂÂ</span>}
                   </div>
                   {uploaded.map(function(d,i){return(
                     <div key={i} style={{fontSize:10,color:T.accent,background:T.accentL,borderRadius:5,padding:"3px 8px",marginBottom:4,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -1125,18 +1125,18 @@ function Onboarding(p){
             })}
           </div>
           <div style={{display:"flex",justifyContent:"space-between",marginTop:20}}>
-            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(4);}}>â Retour</Btn>
-            <Btn onClick={function(){setStep(6);}}>Continuer â</Btn>
+            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(4);}}>Ã¢ÂÂ Retour</Btn>
+            <Btn onClick={function(){setStep(6);}}>Continuer Ã¢ÂÂ</Btn>
           </div>
         </div>
       )}
 
       {step===6&&(
         <div>
-          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 6 â Carnet d entretien (Loi 16)</div>
+          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 6 Ã¢ÂÂ Carnet d entretien (Loi 16)</div>
           <div style={{fontSize:12,color:T.muted,marginBottom:6}}>Requis par la Loi 16 pour tous les syndicats de copropriete au Quebec. Listez les composantes de l immeuble avec leur date d installation et etat actuel.</div>
           <div style={{background:T.amberL,border:"1px solid "+T.amber+"44",borderRadius:8,padding:"9px 14px",marginBottom:14,fontSize:11,color:T.amber}}>
-            <b>Loi 16 â Article 1070.2 CCQ:</b> Tout syndicat doit tenir un carnet d entretien de l immeuble incluant toutes les composantes majeures avec leur duree de vie prevue et leur etat actuel.
+            <b>Loi 16 Ã¢ÂÂ Article 1070.2 CCQ:</b> Tout syndicat doit tenir un carnet d entretien de l immeuble incluant toutes les composantes majeures avec leur duree de vie prevue et leur etat actuel.
           </div>
           <div style={{marginBottom:12,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
             <Field l="Nom de l inspecteur / expert"><input value={data.inspecteur} onChange={function(e){sd("inspecteur",e.target.value);}} style={INP} placeholder="Nom, titre, no de licence"/></Field>
@@ -1190,15 +1190,15 @@ function Onboarding(p){
             );
           })}
           <div style={{display:"flex",justifyContent:"space-between",marginTop:20}}>
-            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(5);}}>â Retour</Btn>
-            <Btn onClick={function(){setStep(7);}}>Continuer â</Btn>
+            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(5);}}>Ã¢ÂÂ Retour</Btn>
+            <Btn onClick={function(){setStep(7);}}>Continuer Ã¢ÂÂ</Btn>
           </div>
         </div>
       )}
 
       {step===7&&(
         <div>
-          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 7 â Attestation de copropriete</div>
+          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 7 Ã¢ÂÂ Attestation de copropriete</div>
           <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Generez et acceptez l attestation reglementaire du syndicat. Requise selon la Loi 16 et les exigences des preteurs hypothecaires.</div>
 
           <div style={{background:T.surface,border:"2px solid "+T.navy,borderRadius:12,padding:20,marginBottom:16,fontFamily:"Georgia,serif"}}>
@@ -1224,7 +1224,7 @@ function Onboarding(p){
                 "Le registre des coproprietaires est tenu a jour et accessible",
               ].map(function(item,i){return(
                 <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",fontSize:11,color:T.text}}>
-                  <span style={{color:T.accent,fontWeight:700,flexShrink:0,marginTop:1}}>â</span>
+                  <span style={{color:T.accent,fontWeight:700,flexShrink:0,marginTop:1}}>Ã¢ÂÂ</span>
                   <span>{item}</span>
                 </div>
               );})}
@@ -1240,7 +1240,7 @@ function Onboarding(p){
                 </div>
                 <div>
                   <div style={{fontWeight:700,marginBottom:4}}>Date et lieu</div>
-                  <div style={{color:T.muted}}>{today()} â {data.ville||"[Ville]"}</div>
+                  <div style={{color:T.muted}}>{today()} Ã¢ÂÂ {data.ville||"[Ville]"}</div>
                   <div style={{marginTop:8,fontWeight:700,marginBottom:4}}>Secretaire</div>
                   <div style={{color:T.muted}}>{data.secretaire||"[Nom du secretaire]"}</div>
                 </div>
@@ -1254,24 +1254,24 @@ function Onboarding(p){
           <Check checked={data.attestationAcceptee} onChange={function(){sd("attestationAcceptee",!data.attestationAcceptee);}} label="Je certifie que les informations contenues dans cette attestation sont exactes et completes" desc="En cochant cette case, vous confirmez l exactitude des informations au nom du conseil d administration du syndicat."/>
 
           <div style={{display:"flex",justifyContent:"space-between",marginTop:20}}>
-            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(6);}}>â Retour</Btn>
-            <Btn dis={!data.attestationAcceptee} onClick={function(){setStep(8);}}>Continuer â</Btn>
+            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(6);}}>Ã¢ÂÂ Retour</Btn>
+            <Btn dis={!data.attestationAcceptee} onClick={function(){setStep(8);}}>Continuer Ã¢ÂÂ</Btn>
           </div>
         </div>
       )}
 
       {step===8&&(
         <div>
-          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 8 â Confirmation et activation</div>
+          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 8 Ã¢ÂÂ Confirmation et activation</div>
           <div style={{fontSize:12,color:T.muted,marginBottom:20}}>Verifiez le resume de la configuration avant d activer le syndicat.</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:20}}>
             {[
-              {titre:"Syndicat",items:[{l:"Nom",v:data.nom},{l:"Code",v:data.code},{l:"Immatriculation",v:data.immat||"â"},{l:"Construction",v:data.anneeConstruction},{l:"Exercice",v:data.exercice}]},
-              {titre:"CA",items:[{l:"Membres",v:data.nbMembresCA+" membres"},{l:"President",v:data.president||"â"},{l:"Secretaire",v:data.secretaire||"â"},{l:"Tresorier",v:data.tresorier||"â"}]},
-              {titre:"CopropriÃ©taires",items:[{l:"Importes",v:copros.length||data.nbUnites||"0"},{l:"Cotisations/mois",v:totalCot>0?money(totalCot):"â"},{l:"Fraction totale",v:totalFraction>0?totalFraction.toFixed(3)+"%":"â"}]},
-              {titre:"Finances",items:[{l:"Exploitation",v:money(parseFloat(data.soldeOp)||0)},{l:"Prevoyance",v:money(parseFloat(data.soldePrev)||0)},{l:"Assurance",v:money(parseFloat(data.soldeAss)||0)},{l:"Budget annuel",v:data.budgetAnnuel?money(parseFloat(data.budgetAnnuel)):"â"}]},
-              {titre:"Documents",items:[{l:"Importes",v:data.documents.length+" document(s)"},{l:"Declaration",v:data.documents.find(function(d){return d.cat==="declaration";})?"â Presente":"â  Manquante"},{l:"Reglement",v:data.documents.find(function(d){return d.cat==="reglement";})?"â Present":"â"}]},
-              {titre:"Carnet Loi 16",items:[{l:"Composantes",v:data.composantes.length+" total"},{l:"Completees",v:compOk+"/"+compOblig+" obligatoires"},{l:"Inspecteur",v:data.inspecteur||"â"},{l:"Date inspection",v:data.dateInspection||"â"}]},
+              {titre:"Syndicat",items:[{l:"Nom",v:data.nom},{l:"Code",v:data.code},{l:"Immatriculation",v:data.immat||"Ã¢ÂÂ"},{l:"Construction",v:data.anneeConstruction},{l:"Exercice",v:data.exercice}]},
+              {titre:"CA",items:[{l:"Membres",v:data.nbMembresCA+" membres"},{l:"President",v:data.president||"Ã¢ÂÂ"},{l:"Secretaire",v:data.secretaire||"Ã¢ÂÂ"},{l:"Tresorier",v:data.tresorier||"Ã¢ÂÂ"}]},
+              {titre:"CopropriÃÂ©taires",items:[{l:"Importes",v:copros.length||data.nbUnites||"0"},{l:"Cotisations/mois",v:totalCot>0?money(totalCot):"Ã¢ÂÂ"},{l:"Fraction totale",v:totalFraction>0?totalFraction.toFixed(3)+"%":"Ã¢ÂÂ"}]},
+              {titre:"Finances",items:[{l:"Exploitation",v:money(parseFloat(data.soldeOp)||0)},{l:"Prevoyance",v:money(parseFloat(data.soldePrev)||0)},{l:"Assurance",v:money(parseFloat(data.soldeAss)||0)},{l:"Budget annuel",v:data.budgetAnnuel?money(parseFloat(data.budgetAnnuel)):"Ã¢ÂÂ"}]},
+              {titre:"Documents",items:[{l:"Importes",v:data.documents.length+" document(s)"},{l:"Declaration",v:data.documents.find(function(d){return d.cat==="declaration";})?"Ã¢ÂÂ Presente":"Ã¢ÂÂ  Manquante"},{l:"Reglement",v:data.documents.find(function(d){return d.cat==="reglement";})?"Ã¢ÂÂ Present":"Ã¢ÂÂ"}]},
+              {titre:"Carnet Loi 16",items:[{l:"Composantes",v:data.composantes.length+" total"},{l:"Completees",v:compOk+"/"+compOblig+" obligatoires"},{l:"Inspecteur",v:data.inspecteur||"Ã¢ÂÂ"},{l:"Date inspection",v:data.dateInspection||"Ã¢ÂÂ"}]},
             ].map(function(section){return(
               <div key={section.titre} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14}}>
                 <div style={{fontSize:11,fontWeight:700,color:T.navy,marginBottom:10,paddingBottom:6,borderBottom:"1px solid "+T.border}}>{section.titre}</div>
@@ -1288,7 +1288,7 @@ function Onboarding(p){
             <b>Pret a activer!</b> Le syndicat {data.nom} sera cree et accessible dans tous les modules Predictek. Toutes les donnees importees seront disponibles immediatement.
           </div>
           <div style={{display:"flex",justifyContent:"space-between"}}>
-            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(7);}}>â Retour</Btn>
+            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(7);}}>Ã¢ÂÂ Retour</Btn>
             <Btn bg={T.accent} onClick={terminer} style={{fontSize:14,padding:"12px 28px"}}>Activer le syndicat {data.nom}</Btn>
           </div>
         </div>
@@ -1297,163 +1297,6 @@ function Onboarding(p){
   );
 }
 
-
-
-// ===== PARAMETRES PREDICTEK =====
-function ParamsPredictek(){
-  var s0=useState(function(){
-    try{var s=localStorage.getItem("predictek_infos_entreprise");if(s)return JSON.parse(s);}catch(e){}
-    return {
-      nomLegal:"",nomCommercial:"Predictek",
-      adr:"",ville:"",province:"QC",codePostal:"",
-      tel:"",courriel:"",siteWeb:"",
-      neq:"",
-      noTPS:"",noDeclarantTPS:"",
-      noTVQ:"",noDeclarantTVQ:"",
-      exerciceDebut:"2025-11-01",exerciceFin:"2026-10-31",
-      institutionBanque:"",noCompte:"",noTransit:"",noInstitution:"",
-      courrielRemiseARC:"",courrielRemiseRQ:"",
-      logo:null,
-    };
-  });
-  var info=s0[0];var setInfo=s0[1];
-  var s1=useState("");var savedMsg=s1[0];var setSavedMsg=s1[1];
-  var s2=useState("entreprise");var ong=s2[0];var setOng=s2[1];
-  var s3=useState(null);var logo=s3[0];var setLogo=s3[1];
-  function si(k,v){setInfo(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
-  function sauvegarder(){
-    try{localStorage.setItem("predictek_infos_entreprise",JSON.stringify(info));}catch(e){}
-    setSavedMsg("Sauvegardes!");setTimeout(function(){setSavedMsg("");},3000);
-  }
-  function handleLogo(e){
-    var file=e.target.files[0];if(!file)return;
-    var reader=new FileReader();
-    reader.onload=function(ev){
-      si("logo",ev.target.result);
-      try{localStorage.setItem("predictek_logo",ev.target.result);}catch(e){}
-    };
-    reader.readAsDataURL(file);
-  }
-  function resetLogo(){si("logo",null);try{localStorage.removeItem("predictek_logo");}catch(e){}}
-  var TABS_P=[{id:"entreprise",l:"Informations entreprise"},{id:"taxes",l:"TPS / TVQ"},{id:"banque",l:"Coordonnees bancaires"},{id:"logo",l:"Logo et apparence"}];
-  var INP_S={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
-  function Lbl2(p){return <div style={{fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:5}}>{p.l}</div>;}
-  function F(p){return <div style={p.full?{gridColumn:"1/-1"}:{}}><Lbl2 l={p.l}/>{p.children}{p.hint&&<div style={{fontSize:10,color:T.muted,marginTop:3}}>{p.hint}</div>}</div>;}
-  return(
-    <div style={{padding:20}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <div>
-          <div style={{fontSize:16,fontWeight:800,color:T.navy}}>Parametres Predictek</div>
-          <div style={{fontSize:11,color:T.muted}}>Informations legales, fiscales et configuration de l entreprise</div>
-        </div>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          {savedMsg&&<span style={{fontSize:11,fontWeight:600,color:T.accent,background:T.accentL,padding:"4px 10px",borderRadius:20}}>{savedMsg}</span>}
-          <button onClick={sauvegarder} style={{background:T.accent,color:"#fff",border:"none",borderRadius:7,padding:"8px 18px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Sauvegarder</button>
-        </div>
-      </div>
-      <div style={{display:"flex",gap:3,marginBottom:16,background:T.surface,padding:4,borderRadius:10,border:"1px solid "+T.border}}>
-        {TABS_P.map(function(t){var a=ong===t.id;return(
-          <button key={t.id} onClick={function(){setOng(t.id);}} style={{background:a?T.navy:"transparent",border:"none",borderRadius:7,padding:"7px 14px",color:a?"#fff":T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400,whiteSpace:"nowrap"}}>{t.l}</button>
-        );})}
-      </div>
-      {ong==="entreprise"&&(
-        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:16}}>Informations de l entreprise</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <F l="Nom legal complet" full><input value={info.nomLegal} onChange={function(e){si("nomLegal",e.target.value);}} style={INP_S} placeholder="9999999 Canada Inc."/></F>
-            <F l="Nom commercial" full><input value={info.nomCommercial} onChange={function(e){si("nomCommercial",e.target.value);}} style={INP_S} placeholder="Predictek"/></F>
-            <F l="Adresse" full><input value={info.adr} onChange={function(e){si("adr",e.target.value);}} style={INP_S} placeholder="123 rue Principale"/></F>
-            <F l="Ville"><input value={info.ville} onChange={function(e){si("ville",e.target.value);}} style={INP_S} placeholder="Quebec"/></F>
-            <F l="Province"><select value={info.province} onChange={function(e){si("province",e.target.value);}} style={INP_S}><option>QC</option><option>ON</option><option>BC</option><option>AB</option></select></F>
-            <F l="Code postal"><input value={info.codePostal} onChange={function(e){si("codePostal",e.target.value.toUpperCase());}} style={INP_S} placeholder="G1K 1A1"/></F>
-            <F l="Telephone"><input value={info.tel} onChange={function(e){si("tel",e.target.value);}} style={INP_S} placeholder="418-555-0000"/></F>
-            <F l="Courriel principal"><input value={info.courriel} onChange={function(e){si("courriel",e.target.value);}} style={INP_S} placeholder="info@predictek.ca"/></F>
-            <F l="Site web"><input value={info.siteWeb} onChange={function(e){si("siteWeb",e.target.value);}} style={INP_S} placeholder="www.predictek.ca"/></F>
-            <F l="NEQ (Registre entreprises Quebec)" hint="Numero d entreprise Quebec — 10 chiffres"><input value={info.neq} onChange={function(e){si("neq",e.target.value);}} style={INP_S} placeholder="1234567890"/></F>
-            <F l="Debut exercice financier"><input type="date" value={info.exerciceDebut} onChange={function(e){si("exerciceDebut",e.target.value);}} style={INP_S}/></F>
-            <F l="Fin exercice financier"><input type="date" value={info.exerciceFin} onChange={function(e){si("exerciceFin",e.target.value);}} style={INP_S}/></F>
-          </div>
-        </div>
-      )}
-      {ong==="taxes"&&(
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-          <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:20}}>
-            <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:4}}>TPS — Agence du revenu Canada</div>
-            <div style={{fontSize:11,color:T.muted,marginBottom:16}}>Taxe sur les produits et services (5%)</div>
-            <div style={{display:"grid",gap:10}}>
-              <F l="Numero de TPS" hint="Format: 123456789 RT0001"><input value={info.noTPS} onChange={function(e){si("noTPS",e.target.value.toUpperCase());}} style={INP_S} placeholder="123456789 RT0001"/></F>
-              <F l="Numero de declarant"><input value={info.noDeclarantTPS} onChange={function(e){si("noDeclarantTPS",e.target.value);}} style={INP_S} placeholder="0001"/></F>
-              <F l="Courriel remises ARC"><input value={info.courrielRemiseARC} onChange={function(e){si("courrielRemiseARC",e.target.value);}} style={INP_S} placeholder="tps@predictek.ca"/></F>
-            </div>
-            <div style={{marginTop:12,background:T.blueL,borderRadius:8,padding:"9px 12px",fontSize:11,color:T.blue}}>
-              Ces numeros apparaissent automatiquement sur vos factures PDF et rapports TPS.
-            </div>
-          </div>
-          <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:20}}>
-            <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:4}}>TVQ — Revenu Quebec</div>
-            <div style={{fontSize:11,color:T.muted,marginBottom:16}}>Taxe de vente du Quebec (9.975%)</div>
-            <div style={{display:"grid",gap:10}}>
-              <F l="Numero de TVQ" hint="Format: 1234567890 TQ0001"><input value={info.noTVQ} onChange={function(e){si("noTVQ",e.target.value.toUpperCase());}} style={INP_S} placeholder="1234567890 TQ0001"/></F>
-              <F l="Numero de declarant"><input value={info.noDeclarantTVQ} onChange={function(e){si("noDeclarantTVQ",e.target.value);}} style={INP_S} placeholder="0001"/></F>
-              <F l="Courriel remises Revenu QC"><input value={info.courrielRemiseRQ} onChange={function(e){si("courrielRemiseRQ",e.target.value);}} style={INP_S} placeholder="tvq@predictek.ca"/></F>
-            </div>
-            <div style={{marginTop:12,background:T.blueL,borderRadius:8,padding:"9px 12px",fontSize:11,color:T.blue}}>
-              Ces numeros apparaissent automatiquement sur vos factures PDF et rapports TVQ.
-            </div>
-          </div>
-          <div style={{gridColumn:"1/-1",background:T.amberL,border:"1px solid #B8602044",borderRadius:10,padding:14}}>
-            <div style={{fontSize:12,fontWeight:700,color:T.amber,marginBottom:6}}>Rappel — Frequence de remise</div>
-            <div style={{fontSize:11,color:T.amber,lineHeight:1.8}}>
-              Mensuelle si revenus annuels TPS superieur a 1 500 000$<br/>
-              Trimestrielle si revenus entre 30 000$ et 1 500 000$ (cas typique Predictek)<br/>
-              Annuelle si revenus inferieurs a 30 000$
-            </div>
-          </div>
-        </div>
-      )}
-      {ong==="banque"&&(
-        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:4}}>Coordonnees bancaires</div>
-          <div style={{fontSize:11,color:T.muted,marginBottom:16}}>Utilisees pour les remises DAS, TPS/TVQ et les virements</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <F l="Institution financiere" full><input value={info.institutionBanque} onChange={function(e){si("institutionBanque",e.target.value);}} style={INP_S} placeholder="Desjardins / TD / BNC..."/></F>
-            <F l="Numero de transit" hint="5 chiffres"><input value={info.noTransit} onChange={function(e){si("noTransit",e.target.value);}} style={INP_S} placeholder="00000"/></F>
-            <F l="Numero d institution" hint="3 chiffres"><input value={info.noInstitution} onChange={function(e){si("noInstitution",e.target.value);}} style={INP_S} placeholder="000"/></F>
-            <F l="Numero de compte" full><input value={info.noCompte} onChange={function(e){si("noCompte",e.target.value);}} style={INP_S} placeholder="0000000000"/></F>
-          </div>
-          <div style={{marginTop:14,background:T.redL,borderRadius:8,padding:"9px 12px",fontSize:11,color:T.red}}>
-            Ces informations sont sauvegardees localement dans votre navigateur. Ne partagez pas ce code source.
-          </div>
-        </div>
-      )}
-      {ong==="logo"&&(
-        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:16}}>Logo et apparence</div>
-          <div style={{display:"flex",gap:24,alignItems:"flex-start"}}>
-            <div style={{flexShrink:0}}>
-              <Lbl2 l="Apercu actuel"/>
-              <div style={{width:100,height:100,borderRadius:12,background:info.logo?"#fff":"linear-gradient(135deg,#1B5E3B,#3CAF6E)",display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+T.border,overflow:"hidden"}}>
-                {info.logo?<img src={info.logo} alt="Logo" style={{width:"100%",height:"100%",objectFit:"contain",padding:4}}/>:<span style={{color:"#fff",fontWeight:900,fontSize:36,fontFamily:"Georgia,serif"}}>P</span>}
-              </div>
-              <div style={{fontSize:10,color:T.muted,marginTop:6,textAlign:"center"}}>{info.logo?"Logo personnalise":"Logo par defaut"}</div>
-            </div>
-            <div style={{flex:1}}>
-              <input type="file" accept="image/*" id="logoInputHub" onChange={handleLogo} style={{display:"none"}}/>
-              <div style={{display:"grid",gap:10}}>
-                <button onClick={function(){document.getElementById("logoInputHub").click();}} style={{background:T.accent,color:"#fff",border:"none",borderRadius:8,padding:"12px 20px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"inherit",textAlign:"left",display:"flex",alignItems:"center",gap:10}}>
-                  <span style={{fontSize:20,lineHeight:1}}>+</span>
-                  <div><div>Choisir un logo</div><div style={{fontSize:10,fontWeight:400,opacity:0.8}}>PNG, JPG ou SVG — recommande 200x200px</div></div>
-                </button>
-                {info.logo&&<button onClick={resetLogo} style={{background:"#FDECEA",color:"#B83232",border:"1px solid #B83232",borderRadius:8,padding:"10px 20px",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Retirer le logo</button>}
-              </div>
-              {info.logo?<div style={{marginTop:12,background:T.accentL,borderRadius:8,padding:"10px 14px",fontSize:11,color:T.accent}}>Logo actif — visible dans la barre de navigation.</div>:<div style={{marginTop:12,background:T.blueL,borderRadius:8,padding:"10px 14px",fontSize:11,color:T.blue}}>Cliquez pour ajouter votre logo. Il s affichera dans la barre de navigation.</div>}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 
 // ===== MODULE PRINCIPAL HUB =====
@@ -1491,7 +1334,7 @@ export default function Hub(){
       <div style={{fontFamily:"Georgia,serif"}}>
         <div style={{background:T.navy,display:"flex",alignItems:"center",gap:12,padding:"12px 20px"}}>
           <Btn sm bg={"#ffffff20"} tc={"#fff"} bdr={"1px solid #ffffff40"} onClick={function(){setShowParams(false);}}>Retour au syndicat</Btn>
-          <span style={{fontSize:13,fontWeight:700,color:"#fff"}}>{selSP?selSP.nom:""} â Parametres</span>
+          <span style={{fontSize:13,fontWeight:700,color:"#fff"}}>{selSP?selSP.nom:""} Ã¢ÂÂ Parametres</span>
         </div>
         {selSP&&<ParamsSyndicat syndicat={selSP.code}/>}
       </div>
@@ -1511,7 +1354,7 @@ export default function Hub(){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <div>
           <div style={{fontSize:18,fontWeight:800,color:T.navy}}>Administration Predictek</div>
-          <div style={{fontSize:11,color:T.muted}}>Vue globale â {actifs.length} syndicat(s) actif(s)</div>
+          <div style={{fontSize:11,color:T.muted}}>Vue globale Ã¢ÂÂ {actifs.length} syndicat(s) actif(s)</div>
         </div>
         {ong==="syndicats"&&<Btn onClick={function(){setCreer(true);}}>+ Nouveau syndicat</Btn>}
       </div>
@@ -1565,7 +1408,7 @@ export default function Hub(){
                   <div style={{fontSize:12,fontWeight:700,color:T.navy}}>{s.nom}</div>
                   <ScoreGlobal s={s}/>
                 </div>
-                <div style={{fontSize:11,color:T.muted,marginBottom:8}}>Dernier rapport: {s.dernierRapport||"â"}</div>
+                <div style={{fontSize:11,color:T.muted,marginBottom:8}}>Dernier rapport: {s.dernierRapport||"Ã¢ÂÂ"}</div>
                 <div style={{display:"grid",gap:6}}>
                   <ScoreBarre l="Financier" v={s.scoreFinancier}/>
                   <ScoreBarre l="Conformite" v={s.scoreConformite}/>
