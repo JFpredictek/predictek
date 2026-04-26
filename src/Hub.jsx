@@ -455,7 +455,7 @@ var PARAMS_DEFAUT={
   // Courriels
   courrielCA:"ca@syndicatpiedmont.com",
   courrielFacturesFournisseurs:"factures@syndicatpiedmont.com",
-  courrielCopropri--taires:"info@syndicatpiedmont.com",
+  courrielCoproprietaires:"info@syndicatpiedmont.com",
   courrielUrgences:"urgence@syndicatpiedmont.com",
   courrielComptabilite:"comptabilite@predictek.com",
   // Traitement auto
@@ -634,7 +634,7 @@ function ParamsSyndicat(p){
               {[
                 {k:"courrielCA",l:"Courriel du CA (notifications, PV, reunions)",ph:"ca@syndicat.com",desc:"Recoit les convocations, PV et alertes destinees aux administrateurs"},
                 {k:"courrielFacturesFournisseurs",l:"Courriel reception factures fournisseurs",ph:"factures@syndicat.com",desc:"Les fournisseurs envoient leurs factures a cette adresse pour traitement automatique"},
-                {k:"courrielCopropri--taires",l:"Courriel communications coproprietaires",ph:"info@syndicat.com",desc:"Adresse de contact general pour les coproprietaires"},
+                {k:"courrielCoproprietaires",l:"Courriel communications coproprietaires",ph:"info@syndicat.com",desc:"Adresse de contact general pour les coproprietaires"},
                 {k:"courrielUrgences",l:"Courriel urgences 24/7",ph:"urgence@syndicat.com",desc:"Notifie immediatement le CA en cas d urgence"},
                 {k:"courrielComptabilite",l:"Courriel comptabilite Predictek",ph:"comptabilite@predictek.com",desc:"Recoit les factures Predictek et les rapports financiers"},
               ].map(function(item){return(
@@ -765,7 +765,7 @@ function ParamsSyndicat(p){
 
 
 function StepIndicator(p){
-  var STEPS=["Syndicat","CA","Copropri--taires","Soldes","Documents","Carnet","Attestation","Confirmation"];
+  var STEPS=["Syndicat","CA","Coproprietaires","Soldes","Documents","Carnet","Attestation","Confirmation"];
   return(
     <div style={{display:"flex",marginBottom:24,overflowX:"auto"}}>
       {STEPS.map(function(s,i){
@@ -1268,7 +1268,7 @@ function Onboarding(p){
             {[
               {titre:"Syndicat",items:[{l:"Nom",v:data.nom},{l:"Code",v:data.code},{l:"Immatriculation",v:data.immat||"-"},{l:"Construction",v:data.anneeConstruction},{l:"Exercice",v:data.exercice}]},
               {titre:"CA",items:[{l:"Membres",v:data.nbMembresCA+" membres"},{l:"President",v:data.president||"-"},{l:"Secretaire",v:data.secretaire||"-"},{l:"Tresorier",v:data.tresorier||"-"}]},
-              {titre:"Copropri--taires",items:[{l:"Importes",v:copros.length||data.nbUnites||"0"},{l:"Cotisations/mois",v:totalCot>0?money(totalCot):"-"},{l:"Fraction totale",v:totalFraction>0?totalFraction.toFixed(3)+"%":"-"}]},
+              {titre:"Coproprietaires",items:[{l:"Importes",v:copros.length||data.nbUnites||"0"},{l:"Cotisations/mois",v:totalCot>0?money(totalCot):"-"},{l:"Fraction totale",v:totalFraction>0?totalFraction.toFixed(3)+"%":"-"}]},
               {titre:"Finances",items:[{l:"Exploitation",v:money(parseFloat(data.soldeOp)||0)},{l:"Prevoyance",v:money(parseFloat(data.soldePrev)||0)},{l:"Assurance",v:money(parseFloat(data.soldeAss)||0)},{l:"Budget annuel",v:data.budgetAnnuel?money(parseFloat(data.budgetAnnuel)):"-"}]},
               {titre:"Documents",items:[{l:"Importes",v:data.documents.length+" document(s)"},{l:"Declaration",v:data.documents.find(function(d){return d.cat==="declaration";})?"- Presente":"- Manquante"},{l:"Reglement",v:data.documents.find(function(d){return d.cat==="reglement";})?"- Present":"-"}]},
               {titre:"Carnet Loi 16",items:[{l:"Composantes",v:data.composantes.length+" total"},{l:"Completees",v:compOk+"/"+compOblig+" obligatoires"},{l:"Inspecteur",v:data.inspecteur||"-"},{l:"Date inspection",v:data.dateInspection||"-"}]},
