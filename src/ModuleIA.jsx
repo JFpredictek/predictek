@@ -26,7 +26,7 @@ async function callClaude(system, user, maxTokens){
 
 // ===== TAB ANALYSE SOUMISSIONS =====
 function TabAnalyseSoumissions(){
-  var s0=useState([]);var soumissions=s0[0];
+  var s0=useState([]);var soumissions=s0[0];var soumissions=s0[0];
   var soumissions=s0[0];var setSoumissions=s0[1];
   var s1=useState("");var analyse=s1[0];var setAnalyse=s1[1];
   var s2=useState(false);var loading=s2[0];var setLoading=s2[1];
@@ -208,8 +208,8 @@ function TabRedactionPV(){
 
 // ===== TAB DETECTION ANOMALIES =====
 function TabDetectionAnomalies(){
-  var FACTURES_ANOM_INIT=[{id:1,four:"Fournisseur A",date:"2026-04-10",mnt:850,desc:"Service standard",contrat:"Contrat annuel",statut:"analyser"},{id:2,four:"Fournisseur B",date:"2026-04-22",mnt:485,desc:"Reparation urgence",contrat:"Horaire",statut:"analyser"},{id:3,four:"Fournisseur C",date:"2026-04-05",mnt:3800,desc:"Travaux majeurs",contrat:"Horaire",statut:"analyser"}];
-  var s0=useState(FACTURES_ANOM_INIT);var factures=s0[0];var setFactures=s0[1];
+  var FACTURES_ANOM_INIT=[];
+  var s0=useState([]);var factures=s0[0];var setFactures=s0[1];
   var s1=useState({});var resultats=s1[0];var setResultats=s1[1];
   var s2=useState(null);var loading=s2[0];var setLoading=s2[1];
 
