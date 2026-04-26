@@ -894,7 +894,7 @@ function TabBudgetSynd(){
 
   var PRODUITS=[];
   var CHARGES=[];
-  var REEL={"Cotisations mensuelles"":0,"Honoraires Predictek"":0,"Deneigement"":0,"Paysagement"":0,"Electricite"":0,"Assurance syndicat"":0,"Plomberie et urgences"":0,"Entretien ascenseur"":0,"Chauffage"":0,"Fournitures et divers":940};
+  var REEL={"Cotisations mensuelles":0,"Honoraires Predictek":0,"Deneigement":0,"Paysagement":0,"Electricite":0,"Assurance syndicat":0,"Plomberie et urgences":0,"Entretien ascenseur":0,"Chauffage":0,"Fournitures et divers":940};
 
   function ligneTotal(k){return budget[k]?budget[k].reduce(function(a,v){return a+v;},0):0;}
   var totalProd=PRODUITS.reduce(function(a,k){return a+ligneTotal(k);},0);
