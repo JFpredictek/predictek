@@ -4,25 +4,25 @@ const STATS={"515":["1","2"],"517":["3"],"519":["4"],"521":["5"],"523":["8"],"52
 const ALL=[{u:"515",f:3.875,m:530.59,nom:"Michel Beaudoin"},{u:"517",f:2.666,m:365.05,nom:"Marilou Noreau"},{u:"519",f:2.666,m:365.05,nom:"Tommy Boulianne"},{u:"521",f:2.666,m:365.05,nom:"Jean-Francois Begin"},{u:"523",f:2.666,m:365.05,nom:"Joyce McCartney"},{u:"525",f:3.833,m:524.84,nom:"Simon Pellerin"},{u:"527",f:3.874,m:530.45,nom:"Fabienne Maltais"},{u:"529",f:2.133,m:292.06,nom:"K. Bolduc & A. Fortier"},{u:"531",f:2.133,m:292.06,nom:"J-F Laroche & M. Fredette"},{u:"533",f:2.389,m:327.12,nom:"D. Lemaire & K. Marchand"},{u:"535",f:2.133,m:292.06,nom:"Guillaume Rouillard"},{u:"537",f:2.133,m:292.06,nom:"Catherine Perreault"},{u:"539",f:3.840,m:525.80,nom:"Lucette Tremblay"},{u:"541",f:3.847,m:526.76,nom:"Emile Poulin"},{u:"543",f:2.133,m:292.06,nom:"Michel Salvas"},{u:"545",f:2.133,m:292.06,nom:"Julie Bergeron"},{u:"547",f:2.392,m:327.53,nom:"Denis Audet"},{u:"549",f:2.133,m:292.06,nom:"Nicolas Gignac"},{u:"551",f:2.133,m:292.06,nom:"M. Baril & M. Poisson"},{u:"553",f:3.865,m:529.22,nom:"Claude Pinard"},{u:"555",f:3.747,m:513.06,nom:"Robert Donnelly"},{u:"557",f:2.067,m:283.03,nom:"K. Villeneuve & J-S Gagnon"},{u:"559",f:2.067,m:283.03,nom:"B. Dufour & N. Massey"},{u:"561",f:2.328,m:318.77,nom:"Raymond April"},{u:"563",f:2.067,m:283.03,nom:"Luc-Andre Lussier"},{u:"565",f:2.067,m:283.03,nom:"M-A Gravel & C. Desjardins"},{u:"567",f:3.724,m:509.91,nom:"M-A Gravel & C. Desjardins"},{u:"569",f:3.569,m:488.69,nom:"Algest & A. Pelletier"},{u:"571",f:2.012,m:275.50,nom:"T. Martineau & C. Deschamps"},{u:"573",f:2.012,m:275.50,nom:"V. Tremblay & E. Blanchet"},{u:"575",f:2.264,m:310.00,nom:"Caroline Dompierre"},{u:"577",f:2.012,m:275.50,nom:"S. Gobeil & M-E Vaillancourt"},{u:"579",f:2.012,m:275.50,nom:"Sylvie Bergeron"},{u:"581",f:3.703,m:507.04,nom:"Doris Poitras"},{u:"583",f:4.353,m:596.04,nom:"S. Grondin & X. Grondin"},{u:"585",f:4.353,m:596.04,nom:"Y. Dusseault & A. Beauchesne"}];
 
 function mkU(c,x){
-  var b={u:c.u,f:c.f,m:c.m,props:[{prenom:c.nom.split(" ")[0],nom:c.nom.split(" ").slice(1).join(" "),tel:"",courriel:"",adresse:c.u+" ch. du Hibou",principal:true}],urgence:{nom:"",lien:"",tel:""},vehicules:[],stats:STATS[c.u]||[],casiers:[],animaux:[],loc:{actif:false,type:"long_terme",occ:[],debut:"",fin:"",loyer:""},banque:{inst:"815",transit:"06202",compte:"",tit:c.nom,ok:false,dateAut:""},ce:{marque:"",modele:"",serie:"",install:"",expiry:"",preuve:false,notes:""},ass:{cie:"",police:"",montant:2000000,expiry:"",preuve:false,notes:""},hist:[]};
+  var b={u:c.u,f:c.f,m:c.m,props:[{prenom:c.nom.split(" ")[0],nom:c.nom.split(" ").slice(1).join(" "),tel:"",courriel:"",adresse:c.u+" ch. du Hibou",principal:true}],urgence:{nom:"",lien:"",tel:""},vehicules:[],stats:STATS[c.u]||[],casiers:[],animaux:[],loc:{actif:false,type:"long_terme",occ:[],debut:"",fin:"",loyer:""},banque:{inst:"815",transit:"06202",compte:"",tit:c.nom,ok:false,dateAut:""},ce:{marque:"",modele:"",serie:"",install:"",expiry:"",preuve:false,notes:""},ass:{cie:"",police:"",montant:0,expiry:"",preuve:false,notes:""},hist:[]};
   if(x){Object.keys(x).forEach(function(k){b[k]=x[k];});}
   return b;
 }
 const XTRA={
-  "515":{props:[{prenom:"Michel",nom:"Beaudoin",tel:"418-555-0101",courriel:"m.beaudoin@email.com",adresse:"515 ch. du Hibou",principal:true}],urgence:{nom:"Sylvie Beaudoin",lien:"Conjointe",tel:"418-555-0102"},vehicules:[{plaque:"ABC-123",marque:"Toyota",modele:"Camry",couleur:"Gris",annee:"2022"}],banque:{inst:"815",transit:"06202",compte:"123456789",tit:"Michel Beaudoin",ok:true,dateAut:"2024-11-01"},ce:{marque:"Rheem",modele:"ECH2 50",serie:"SN515",install:"2019-03-15",expiry:"2029-03-15",preuve:true,notes:""},ass:{cie:"Intact",police:"POL-515",montant:2000000,expiry:"2026-12-31",preuve:true,notes:""},hist:[{date:"2019-08-15",vendeur:"Pierre Lavoie",acheteur:"Michel Beaudoin",prix:285000,notaire:"Me Gagnon",preuve:true}]},
-  "531":{props:[{prenom:"Jean-Francois",nom:"Laroche",tel:"819-479-4203",courriel:"jf.laroche@email.com",adresse:"531 ch. du Hibou",principal:true},{prenom:"Maryse",nom:"Fredette",tel:"418-555-0532",courriel:"m.fredette@email.com",adresse:"531 ch. du Hibou",principal:false}],urgence:{nom:"Robert Laroche",lien:"Pere",tel:"418-555-0533"},vehicules:[{plaque:"GHI-789",marque:"Ford",modele:"F-150",couleur:"Blanc",annee:"2023"}],casiers:["C-12"],animaux:[{nom:"Luna",espece:"Chat",race:"Siamois",couleur:"Creme"}],banque:{inst:"815",transit:"06202",compte:"456789123",tit:"Jean-Francois Laroche",ok:true,dateAut:"2024-11-01"},ce:{marque:"AO Smith",modele:"GPVH-50",serie:"SN531",install:"2020-09-10",expiry:"2030-09-10",preuve:true,notes:""},ass:{cie:"SSQ",police:"POL-531",montant:2000000,expiry:"2026-08-01",preuve:true,notes:"President CA"},hist:[{date:"2014-05-20",vendeur:"Promoteur Piedmont",acheteur:"J-F Laroche",prix:248000,notaire:"Me Gagnon",preuve:true}]},
-  "539":{props:[{prenom:"Lucette",nom:"Tremblay",tel:"418-555-0539",courriel:"l.tremblay@email.com",adresse:"539 ch. du Hibou",principal:true}],urgence:{nom:"Marc Tremblay",lien:"Fils",tel:"418-555-0540"},animaux:[{nom:"Minou",espece:"Chat",race:"Persan",couleur:"Blanc"},{nom:"Bijou",espece:"Chat",race:"Persan",couleur:"Gris"}],loc:{actif:true,type:"long_terme",occ:[{prenom:"Amelie",nom:"Cote",tel:"418-555-9001",courriel:"amelie.cote@email.com"}],debut:"2025-09-01",fin:"2026-08-31",loyer:1400},banque:{inst:"815",transit:"06202",compte:"321654987",tit:"Lucette Tremblay",ok:true,dateAut:"2024-11-01"},ce:{marque:"Giant",modele:"G6-E50",serie:"SN539",install:"2014-04-22",expiry:"2024-04-22",preuve:false,notes:"EXPIRE - action requise"},ass:{cie:"Promutuel",police:"POL-539",montant:2000000,expiry:"2026-06-15",preuve:false,notes:""},hist:[{date:"2010-11-01",vendeur:"Promoteur Piedmont",acheteur:"Rene Tremblay",prix:235000,notaire:"Me Lesage",preuve:true},{date:"2018-04-12",vendeur:"Rene Tremblay",acheteur:"Lucette Tremblay",prix:310000,notaire:"Me Gagnon",preuve:true}]},
-  "583":{props:[{prenom:"Sebastien",nom:"Grondin",tel:"418-555-0583",courriel:"s.grondin@email.com",adresse:"583 ch. du Hibou",principal:true},{prenom:"Xavier",nom:"Grondin",tel:"418-555-0584",courriel:"x.grondin@email.com",adresse:"583 ch. du Hibou",principal:false}],loc:{actif:true,type:"court_terme",occ:[],debut:"",fin:"",loyer:300},banque:{inst:"815",transit:"06202",compte:"654321789",tit:"Sebastien Grondin",ok:true,dateAut:"2024-11-01"},ce:{marque:"Rheem",modele:"ECH2 40",serie:"SN583",install:"2022-01-15",expiry:"2032-01-15",preuve:true,notes:""},ass:{cie:"Belair",police:"POL-583",montant:1500000,expiry:"2026-10-01",preuve:true,notes:"Montant < 2M$"},hist:[{date:"2021-07-30",vendeur:"Claudette Simard",acheteur:"S. Grondin & X. Grondin",prix:378000,notaire:"Me Gagnon",preuve:true}]}
+  "515":{props:[{prenom:"Michel",nom:"Beaudoin",tel:"418-555-0101",courriel:"m.beaudoin@email.com",adresse:"515 ch. du Hibou",principal:true}],urgence:{nom:"Sylvie Beaudoin",lien:"Conjointe",tel:"418-555-0102"},vehicules:[{plaque:"ABC-123",marque:"Toyota",modele:"Camry",couleur:"Gris",annee:"2022"}],banque:{inst:"815",transit:"06202",compte:"123456789",tit:"Michel Beaudoin",ok:true,dateAut:"2024-11-01"},ce:{marque:"Rheem",modele:"ECH2 50",serie:"SN515",install:"2019-03-15",expiry:"2029-03-15",preuve:true,notes:""},ass:{cie:"Intact",police:"POL-515",montant:0,expiry:"2026-12-31",preuve:true,notes:""},hist:[{date:"2019-08-15",vendeur:"Pierre Lavoie",acheteur:"Michel Beaudoin",prix:285000,notaire:"Me Gagnon",preuve:true}]},
+  "531":{props:[{prenom:"Jean-Francois",nom:"Laroche",tel:"819-479-4203",courriel:"jf.laroche@email.com",adresse:"531 ch. du Hibou",principal:true},{prenom:"Maryse",nom:"Fredette",tel:"418-555-0532",courriel:"m.fredette@email.com",adresse:"531 ch. du Hibou",principal:false}],urgence:{nom:"Robert Laroche",lien:"Pere",tel:"418-555-0533"},vehicules:[{plaque:"GHI-789",marque:"Ford",modele:"F-150",couleur:"Blanc",annee:"2023"}],casiers:["C-12"],animaux:[{nom:"Luna",espece:"Chat",race:"Siamois",couleur:"Creme"}],banque:{inst:"815",transit:"06202",compte:"456789123",tit:"Jean-Francois Laroche",ok:true,dateAut:"2024-11-01"},ce:{marque:"AO Smith",modele:"GPVH-50",serie:"SN531",install:"2020-09-10",expiry:"2030-09-10",preuve:true,notes:""},ass:{cie:"SSQ",police:"POL-531",montant:0,expiry:"2026-08-01",preuve:true,notes:"President CA"},hist:[{date:"2014-05-20",vendeur:"Promoteur Piedmont",acheteur:"J-F Laroche",prix:248000,notaire:"Me Gagnon",preuve:true}]},
+  "539":{props:[{prenom:"Lucette",nom:"Tremblay",tel:"418-555-0539",courriel:"l.tremblay@email.com",adresse:"539 ch. du Hibou",principal:true}],urgence:{nom:"Marc Tremblay",lien:"Fils",tel:"418-555-0540"},animaux:[{nom:"Minou",espece:"Chat",race:"Persan",couleur:"Blanc"},{nom:"Bijou",espece:"Chat",race:"Persan",couleur:"Gris"}],loc:{actif:true,type:"long_terme",occ:[{prenom:"Amelie",nom:"Cote",tel:"418-555-9001",courriel:"amelie.cote@email.com"}],debut:"2025-09-01",fin:"2026-08-31",loyer:1400},banque:{inst:"815",transit:"06202",compte:"321654987",tit:"Lucette Tremblay",ok:true,dateAut:"2024-11-01"},ce:{marque:"Giant",modele:"G6-E50",serie:"SN539",install:"2014-04-22",expiry:"2024-04-22",preuve:false,notes:"EXPIRE - action requise"},ass:{cie:"Promutuel",police:"POL-539",montant:0,expiry:"2026-06-15",preuve:false,notes:""},hist:[{date:"2010-11-01",vendeur:"Promoteur Piedmont",acheteur:"Rene Tremblay",prix:235000,notaire:"Me Lesage",preuve:true},{date:"2018-04-12",vendeur:"Rene Tremblay",acheteur:"Lucette Tremblay",prix:310000,notaire:"Me Gagnon",preuve:true}]},
+  "583":{props:[{prenom:"Sebastien",nom:"Grondin",tel:"418-555-0583",courriel:"s.grondin@email.com",adresse:"583 ch. du Hibou",principal:true},{prenom:"Xavier",nom:"Grondin",tel:"418-555-0584",courriel:"x.grondin@email.com",adresse:"583 ch. du Hibou",principal:false}],loc:{actif:true,type:"court_terme",occ:[],debut:"",fin:"",loyer:300},banque:{inst:"815",transit:"06202",compte:"654321789",tit:"Sebastien Grondin",ok:true,dateAut:"2024-11-01"},ce:{marque:"Rheem",modele:"ECH2 40",serie:"SN583",install:"2022-01-15",expiry:"2032-01-15",preuve:true,notes:""},ass:{cie:"Belair",police:"POL-583",montant:0,expiry:"2026-10-01",preuve:true,notes:"Montant < 2M$"},hist:[{date:"2021-07-30",vendeur:"Claudette Simard",acheteur:"S. Grondin & X. Grondin",prix:378000,notaire:"Me Gagnon",preuve:true}]}
 };
 const DINIT=(function(){var m={};ALL.forEach(function(c){m[c.u]=mkU(c,XTRA[c.u]);});return m;})();
 
-var money=function(n){if(!n&&n!==0)return"—";return(n<0?"-":"")+Math.abs(n).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
+var money=function(n){if(!n&&n!==0)return"â";return(n<0?"-":"")+Math.abs(n).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
 var du=function(d){return d?Math.ceil((new Date(d)-new Date())/86400000):9999;};
 var td=function(){return new Date().toISOString().slice(0,10);};
 var ini=function(n){return n.split(" ").filter(function(w){return w.length>1;}).map(function(w){return w[0];}).join("").slice(0,2).toUpperCase();};
 
 function expSt(d){
-  if(!d)return{c:T.muted,l:"—",bg:"transparent",i:"—"};
+  if(!d)return{c:T.muted,l:"â",bg:"transparent",i:"â"};
   var j=du(d);
   if(j<0)return{c:T.red,l:"EXPIRE",bg:T.redLight,i:"X"};
   if(j<=30)return{c:T.red,l:j+"j",bg:T.redLight,i:"!"};
@@ -84,8 +84,8 @@ function FicheUnite(p){
               <b style={{fontSize:12,color:T.text,display:"block",marginBottom:8}}>Animaux ({d.animaux.length}/2)</b>
               {d.animaux.map(function(a,i){return(
                 <div key={i} style={{display:"flex",gap:8,marginBottom:6,alignItems:"center"}}>
-                  <span style={{fontSize:16}}>🐾</span>
-                  <span style={{fontSize:12,color:T.text}}>{a.nom} — {a.espece} {a.race} ({a.couleur})</span>
+                  <span style={{fontSize:16}}>ð¾</span>
+                  <span style={{fontSize:12,color:T.text}}>{a.nom} â {a.espece} {a.race} ({a.couleur})</span>
                 </div>
               );})}
             </div>
@@ -94,7 +94,7 @@ function FicheUnite(p){
             <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14}}>
               <b style={{fontSize:12,color:T.text,display:"block",marginBottom:8}}>Vehicules</b>
               {d.vehicules.map(function(v,i){return(
-                <div key={i} style={{fontSize:12,color:T.text,marginBottom:4}}>{v.plaque} — {v.annee} {v.marque} {v.modele} ({v.couleur})</div>
+                <div key={i} style={{fontSize:12,color:T.text,marginBottom:4}}>{v.plaque} â {v.annee} {v.marque} {v.modele} ({v.couleur})</div>
               );})}
             </div>
           )}
@@ -151,7 +151,7 @@ function FicheUnite(p){
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:10}}>
             <div><div style={{fontSize:10,color:T.muted,marginBottom:2}}>Assureur</div><input value={d.ass?d.ass.cie:""} onChange={function(e){sf("ass",Object.assign({},d.ass,{cie:e.target.value}));}} style={inp}/></div>
             <div><div style={{fontSize:10,color:T.muted,marginBottom:2}}>No police</div><input value={d.ass?d.ass.police:""} onChange={function(e){sf("ass",Object.assign({},d.ass,{police:e.target.value}));}} style={inp}/></div>
-            <div><div style={{fontSize:10,color:T.muted,marginBottom:2}}>Montant (min 2M$)</div><input type="number" value={d.ass?d.ass.montant:2000000} onChange={function(e){sf("ass",Object.assign({},d.ass,{montant:parseInt(e.target.value)||0}));}} style={inp}/></div>
+            <div><div style={{fontSize:10,color:T.muted,marginBottom:2}}>Montant (min 2M$)</div><input type="number" value={d.ass?d.ass.montant:0} onChange={function(e){sf("ass",Object.assign({},d.ass,{montant:parseInt(e.target.value)||0}));}} style={inp}/></div>
             <div><div style={{fontSize:10,color:T.muted,marginBottom:2}}>Expiration</div><input type="date" value={d.ass?d.ass.expiry:""} onChange={function(e){sf("ass",Object.assign({},d.ass,{expiry:e.target.value}));}} style={inp}/></div>
             <div style={{display:"flex",alignItems:"center",gap:8,marginTop:16}}>
               <input type="checkbox" checked={!!(d.ass&&d.ass.preuve)} onChange={function(e){sf("ass",Object.assign({},d.ass,{preuve:e.target.checked}));}} id={"assp"+d.u}/>
@@ -188,7 +188,7 @@ function FicheUnite(p){
                 <div style={{background:T.surfaceAlt,borderRadius:8,padding:12,marginBottom:10}}>
                   <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:8}}>Locataire(s)</div>
                   {d.loc.occ.map(function(o,i){return(
-                    <div key={i} style={{fontSize:12,color:T.text,marginBottom:4}}>{o.prenom} {o.nom} — {o.tel} — {o.courriel}</div>
+                    <div key={i} style={{fontSize:12,color:T.text,marginBottom:4}}>{o.prenom} {o.nom} â {o.tel} â {o.courriel}</div>
                   );})}
                 </div>
               )}
@@ -203,10 +203,10 @@ function FicheUnite(p){
             d.hist.map(function(h,i){return(
               <div key={i} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14,marginBottom:8}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                  <b style={{fontSize:13,color:T.text}}>{h.date} — {money(h.prix)}</b>
+                  <b style={{fontSize:13,color:T.text}}>{h.date} â {money(h.prix)}</b>
                   <Badge bg={h.preuve?T.accentLight:T.redLight} c={h.preuve?T.accent:T.red}>{h.preuve?"Doc recu":"Manquant"}</Badge>
                 </div>
-                <div style={{fontSize:12,color:T.muted}}>{h.vendeur} → {h.acheteur} | Notaire: {h.notaire}</div>
+                <div style={{fontSize:12,color:T.muted}}>{h.vendeur} â {h.acheteur} | Notaire: {h.notaire}</div>
               </div>
             )})
           ):(
@@ -244,7 +244,7 @@ function LigneUnite(p){
       <td style={{padding:"8px 6px",fontSize:11,color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{d.f.toFixed(3)}%</td>
       <td style={{padding:"8px 6px",fontSize:12,fontWeight:600,color:T.text,textAlign:"right",whiteSpace:"nowrap"}}>{money(d.m)}</td>
       <td style={{padding:"8px 6px",textAlign:"center"}}>
-        <span style={{display:"inline-block",width:18,height:18,borderRadius:"50%",background:bankOk?T.accent:T.red,color:"#fff",fontSize:9,fontWeight:700,lineHeight:"18px",textAlign:"center"}}>{bankOk?"✓":"!"}</span>
+        <span style={{display:"inline-block",width:18,height:18,borderRadius:"50%",background:bankOk?T.accent:T.red,color:"#fff",fontSize:9,fontWeight:700,lineHeight:"18px",textAlign:"center"}}>{bankOk?"â":"!"}</span>
       </td>
       <td style={{padding:"8px 6px",textAlign:"center"}}>
         <span style={{fontSize:10,fontWeight:600,color:ceS.c,background:ceS.bg,padding:"2px 6px",borderRadius:10,whiteSpace:"nowrap"}}>{ceS.l}</span>
@@ -254,15 +254,15 @@ function LigneUnite(p){
       </td>
       <td style={{padding:"8px 6px",textAlign:"center"}}>
         {hasLoc&&<span style={{fontSize:9,fontWeight:700,padding:"2px 5px",borderRadius:8,background:d.loc.type==="court_terme"?T.redLight:T.amberLight,color:d.loc.type==="court_terme"?T.red:T.amber}}>{d.loc.type==="court_terme"?"AirBnb":"Loue"}</span>}
-        {!hasLoc&&<span style={{color:T.muted,fontSize:10}}>—</span>}
+        {!hasLoc&&<span style={{color:T.muted,fontSize:10}}>â</span>}
       </td>
       <td style={{padding:"8px 6px",textAlign:"center"}}>
-        {hasAnim&&<span title={d.animaux.map(function(a){return a.nom;}).join(", ")}>🐾 {d.animaux.length}</span>}
-        {!hasAnim&&<span style={{color:T.muted,fontSize:10}}>—</span>}
+        {hasAnim&&<span title={d.animaux.map(function(a){return a.nom;}).join(", ")}>ð¾ {d.animaux.length}</span>}
+        {!hasAnim&&<span style={{color:T.muted,fontSize:10}}>â</span>}
       </td>
       <td style={{padding:"8px 6px",textAlign:"center"}}>
         {alerts>0&&<span style={{fontSize:10,fontWeight:700,color:"#fff",background:T.red,padding:"2px 6px",borderRadius:10}}>{Math.ceil(alerts)}</span>}
-        {alerts===0&&<span style={{fontSize:10,color:T.accent}}>✓</span>}
+        {alerts===0&&<span style={{fontSize:10,color:T.accent}}>â</span>}
       </td>
     </tr>
   );
@@ -319,7 +319,7 @@ export default function Piedmont(){
           <button key={f[0]} onClick={function(){setFiltre(f[0]);}} style={{background:a?T.navy:"#fff",border:"1px solid "+(a?T.navy:T.border),borderRadius:20,padding:"5px 12px",color:a?"#fff":T.muted,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{f[1]}</button>
         );})}
         <div style={{marginLeft:"auto"}}>
-          <input value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Rechercher unité ou nom..." style={{border:"1px solid "+T.border,borderRadius:20,padding:"5px 14px",fontSize:11,fontFamily:"inherit",outline:"none",width:200}}/>
+          <input value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Rechercher unitÃ© ou nom..." style={{border:"1px solid "+T.border,borderRadius:20,padding:"5px 14px",fontSize:11,fontFamily:"inherit",outline:"none",width:200}}/>
         </div>
       </div>
 
