@@ -90,7 +90,7 @@ function pdfPrint(title,cols,rows,sub){
   win.document.write("<h2>"+title+"</h2>");
   if(sub)win.document.write("<div class='sub'>"+sub+"</div>");
   win.document.write("<table><thead><tr>"+ths+"</tr></thead><tbody>"+trs+"</tbody></table>");
-  win.document.write("<div class='foot'>Genere le "+new Date().toLocaleDateString("fr-CA") | Predictek</div>");
+  win.document.write("<div class='foot'>Genere le "+new Date().toLocaleDateString("fr-CA")+" | Predictek</div>");
   win.document.write("</body></html>");
   win.document.close();
 }
