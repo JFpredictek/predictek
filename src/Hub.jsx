@@ -1709,6 +1709,17 @@ function TabConfig(){
   );
 }
 
+
+function StatCard(p){return(
+  <div style={{background:p.bg||T.accentL,borderRadius:10,padding:"13px 15px",border:"1px solid "+(p.c||T.accent)+"33"}}>
+    <div style={{fontSize:9,color:p.c||T.accent,fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.07em"}}>{p.l}</div>
+    <div style={{fontSize:20,fontWeight:800,color:p.c||T.accent}}>{p.v}</div>
+    {p.sub&&<div style={{fontSize:10,color:(p.c||T.accent)+"99",marginTop:2}}>{p.sub}</div>}
+  </div>
+);}
+function Th(p){return <th style={{padding:"8px 12px",textAlign:p.r?"right":"left",fontSize:10,fontWeight:700,color:p.light?"#8da0bb":T.muted,background:p.dark?T.navy:T.alt,whiteSpace:"nowrap",borderBottom:"1px solid "+T.border}}>{p.children}</th>;}
+function Td(p){return <td style={{padding:"8px 12px",fontSize:12,color:p.c||T.text,fontWeight:p.bold?700:400,textAlign:p.r?"right":"left",borderBottom:"1px solid "+T.border,background:p.bg||"transparent"}}>{p.children}</td>;}
+
 function TabEmployes(){
   var EMPLOYES_INIT=[];
   var s0=useState(EMPLOYES_INIT);var employes=s0[0];var setEmployes=s0[1];
