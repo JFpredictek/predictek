@@ -318,9 +318,7 @@ function TabPaie(){
       <Modal show={showN} onClose={function(){setShowN(false);}} title="Generer un bulletin de paie" w={500}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
           <FRow l="Employe" full>
-            <select value={sim.employe||""} onChange={function(e){setSim(function(o){return Object.assign({},o,{employe:e.target.value});}); }}} style={INP}>
-              {EMPLOYES.length>0?EMPLOYES.map(function(e){return <option key={e.id}>{e.nom}</option>;}): <option value="">Aucun employe</option>}
-            </select>
+            <select value={sim.employe||""} onChange={function(e){setSim(function(o){return Object.assign({},o,{employe:e.target.value});});}}>{EMPLOYES.length>0?EMPLOYES.map(function(e){return <option key={e.id}>{e.nom}</option>;}): <option value="">Aucun employe</option>}</select>
           </FRow>
           <FRow l="Salaire brut ($)">
             <input type="number" value={sim.salaireBrut||""} onChange={function(e){
