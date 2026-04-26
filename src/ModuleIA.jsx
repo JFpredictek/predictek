@@ -26,11 +26,7 @@ async function callClaude(system, user, maxTokens){
 
 // ===== TAB ANALYSE SOUMISSIONS =====
 function TabAnalyseSoumissions(){
-  var s0=useState([
-    {id:1,fournisseur:"Deneigement Express",cat:"Deneigement",prix:22000,delai:"48h",garantie:"1 an",certifie:true,experience:"12 ans",note:"Partenaire actuel - tarif preferentiel multi-syndicats"},
-    {id:2,fournisseur:"NordBlanche Services",cat:"Deneigement",prix:19500,delai:"72h",garantie:"6 mois",certifie:true,experience:"4 ans",note:"Nouveau soumissionnaire - prix agressif"},
-    {id:3,fournisseur:"GeoNord Entretien",cat:"Deneigement",prix:21200,delai:"24h",garantie:"1 an",certifie:false,experience:"8 ans",note:"Pas de certification RBQ"},
-  ]);
+  var s0=useState([]);var soumissions=s0[0];
   var soumissions=s0[0];var setSoumissions=s0[1];
   var s1=useState("");var analyse=s1[0];var setAnalyse=s1[1];
   var s2=useState(false);var loading=s2[0];var setLoading=s2[1];
@@ -140,7 +136,7 @@ function TabRedactionPV(){
   var s0=useState("");var notes=s0[0];var setNotes=s0[1];
   var s1=useState("");var pv=s1[0];var setPV=s1[1];
   var s2=useState(false);var loading=s2[0];var setLoading=s2[1];
-  var s3=useState({date:"2026-05-15",heure:"19:00",lieu:"Salle communautaire Piedmont",president:"Jean-Francois Laroche",secretaire:"Maryse Fredette",type:"CA",presences:"Jean-Francois Laroche, Maryse Fredette, Claude Pinard, Robert Donnelly"});
+  var s3=useState({date:"",heure:"19:00",lieu:"",president:"",secretaire:"",type:"CA",presences:""});
   var meta=s3[0];var setMeta=s3[1];
   function sm(k,v){setMeta(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
 
@@ -213,7 +209,7 @@ function TabRedactionPV(){
 // ===== TAB DETECTION ANOMALIES =====
 function TabDetectionAnomalies(){
   var FACTURES_ANOM_INIT=[{id:1,four:"Fournisseur A",date:"2026-04-10",mnt:850,desc:"Service standard",contrat:"Contrat annuel",statut:"analyser"},{id:2,four:"Fournisseur B",date:"2026-04-22",mnt:485,desc:"Reparation urgence",contrat:"Horaire",statut:"analyser"},{id:3,four:"Fournisseur C",date:"2026-04-05",mnt:3800,desc:"Travaux majeurs",contrat:"Horaire",statut:"analyser"}];
-  var s0=useState(FACTURES_ANOM_INIT);var factures=s0[0];var setFactures=s0[1];var setFactures=s0[1];
+  var s0=useState(FACTURES_ANOM_INIT);var factures=s0[0];var setFactures=s0[1];
   var s1=useState({});var resultats=s1[0];var setResultats=s1[1];
   var s2=useState(null);var loading=s2[0];var setLoading=s2[1];
 
@@ -347,7 +343,7 @@ function TabChatbot(){
         <div style={{flex:1,overflowY:"auto",padding:12,background:T.alt,display:"flex",flexDirection:"column",gap:10}}>
           {msgs.length===0&&(
             <div style={{textAlign:"center",color:T.muted,padding:30,fontSize:12}}>
-              Bonjour! Je suis votre assistant Syndicat Piedmont.<br/>Comment puis-je vous aider aujourd hui?
+              Bonjour! Je suis votre assistant virtuel.<br/>Comment puis-je vous aider aujourd hui?
             </div>
           )}
           {msgs.map(function(m,i){var isUser=m.role==="user";return(
