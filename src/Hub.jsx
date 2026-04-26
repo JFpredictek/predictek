@@ -1412,6 +1412,135 @@ function ParamsPredictek(){
 }
 
 
+function TabEmployes(){
+  var EMPLOYES_INIT=[];
+  var s0=useState(EMPLOYES_INIT);var employes=s0[0];var setEmployes=s0[1];
+  var s1=useState(null);var sel=s1[0];var setSel=s1[1];
+  var s2=useState(false);var showN=s2[0];var setShowN=s2[1];
+  var s3=useState({});var nf=s3[0];var setNf=s3[1];
+  function snf(k,v){setNf(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
+
+  var actifs=employes.filter(function(e){return e.actif;});
+  var totalMasseSal=actifs.reduce(function(a,e){return a+e.salaire;},0);
+
+  var selE=sel?employes.find(function(e){return e.id===sel;}):null;
+
+  return(
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:18}}>
+        <StatCard l="Employes actifs" v={actifs.length} c={T.navy} bg={T.blueL}/>
+        <StatCard l="Masse salariale" v={money(totalMasseSal)} c={T.accent} bg={T.accentL} sub="annuelle"/>
+        <StatCard l="Masse salariale" v={money(totalMasseSal/26)} c={T.purple} bg={T.purpleL} sub="par periode (26)"/>
+        <StatCard l="Charges patronales" v={money(totalMasseSal*0.15)} c={T.amber} bg={T.amberL} sub="estimees ~15%"/>
+      </div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <b style={{fontSize:14,color:T.navy}}>Registre des employes</b>
+        <Btn sm onClick={function(){setNf({nom:"",prenom:"",poste:"",dept:"Operations",type:"TP",salaire:"",dateEmbauche:today(),tel:"",courriel:"",naiss:"",nas:"",adresse:"",federal:"M",provincial:"M",rrq:true,rqap:true,vacances:3,actif:true,notes:""});setShowN(true);}}>+ Nouvel employe</Btn>
+      </div>
+      <div style={{display:"flex",gap:14}}>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr><Th dark light>Employe</Th><Th dark light>Poste</Th><Th dark light>Dept</Th><Th dark light r>Salaire annuel</Th><Th dark light>Embauche</Th><Th dark light>Vacances</Th><Th dark light>Statut</Th></tr></thead>
+              <tbody>
+                {employes.map(function(e){return(
+                  <tr key={e.id} onClick={function(){setSel(e.id);}} style={{borderBottom:"1px solid "+T.border,background:sel===e.id?T.accentL:e.actif?T.surface:T.alt,cursor:"pointer"}}>
+                    <Td bold>{e.prenom} {e.nom}</Td>
+                    <Td c={T.muted}>{e.poste}</Td>
+                    <Td><Bdg bg={T.blueL} c={T.blue}>{e.dept}</Bdg></Td>
+                    <Td r bold>{money(e.salaire)}</Td>
+                    <Td c={T.muted}>{e.dateEmbauche}</Td>
+                    <Td>{e.vacances} sem.</Td>
+                    <Td><Bdg bg={e.actif?T.accentL:T.redL} c={e.actif?T.accent:T.red}>{e.actif?"Actif":"Inactif"}</Bdg></Td>
+                  </tr>
+                );})}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {selE&&(
+          <div style={{width:320,flexShrink:0}}>
+            <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+                <div>
+                  <div style={{fontSize:15,fontWeight:800,color:T.navy}}>{selE.prenom} {selE.nom}</div>
+                  <div style={{fontSize:12,color:T.muted}}>{selE.poste}</div>
+                </div>
+                <button onClick={function(){setSel(null);}} style={{background:"none",border:"none",cursor:"pointer",color:T.muted,fontSize:18,lineHeight:1}}>x</button>
+              </div>
+              <div style={{display:"grid",gap:0}}>
+                {[
+                  {l:"Departement",v:selE.dept},
+                  {l:"Type",v:selE.type==="TP"?"Temps plein":"Temps partiel"},
+                  {l:"Salaire annuel",v:money(selE.salaire)},
+                  {l:"Salaire bimensuel",v:money(Math.round(selE.salaire/26*100)/100)},
+                  {l:"Date d embauche",v:selE.dateEmbauche},
+                  {l:"Semaines vacances",v:selE.vacances+" semaines"},
+                  {l:"Telephone",v:selE.tel||"-"},
+                  {l:"Courriel",v:selE.courriel||"-"},
+                  {l:"Date de naissance",v:selE.naiss||"-"},
+                  {l:"Adresse",v:selE.adresse||"-"},
+                  {l:"Code federal",v:selE.federal},
+                  {l:"Code provincial",v:selE.provincial},
+                  {l:"RRQ",v:selE.rrq?"Cotisant":"Exempte"},
+                  {l:"RQAP",v:selE.rqap?"Cotisant":"Exempte"},
+                ].map(function(item,i){return(
+                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"7px 0",borderBottom:"1px solid "+T.border}}>
+                    <span style={{fontSize:10,color:T.muted,flexShrink:0,marginRight:8}}>{item.l}</span>
+                    <span style={{fontSize:11,fontWeight:500,color:T.text,textAlign:"right",wordBreak:"break-word"}}>{item.v}</span>
+                  </div>
+                );})}
+              </div>
+              {selE.notes&&<div style={{marginTop:10,background:T.alt,borderRadius:7,padding:"8px 10px",fontSize:11,color:T.muted}}>{selE.notes}</div>}
+              <div style={{marginTop:12,display:"flex",gap:6}}>
+                <Btn sm fw bg={selE.actif?T.redL:T.accentL} tc={selE.actif?T.red:T.accent} bdr={"1px solid "+(selE.actif?T.red:T.accent)} onClick={function(){setEmployes(function(prev){return prev.map(function(e){return e.id===selE.id?Object.assign({},e,{actif:!e.actif}):e;});});}}>
+                  {selE.actif?"Desactiver":"Reactiver"}
+                </Btn>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Modal show={showN} onClose={function(){setShowN(false);}} title="Nouvel employe" w={580}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+          <div><Lbl l="Prenom"/><input value={nf.prenom||""} onChange={function(e){snf("prenom",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Nom"/><input value={nf.nom||""} onChange={function(e){snf("nom",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Poste"/><input value={nf.poste||""} onChange={function(e){snf("poste",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Departement"/>
+            <select value={nf.dept||"Operations"} onChange={function(e){snf("dept",e.target.value);}} style={INP}>
+              {["Administration","Operations","Terrain","Comptabilite","Direction"].map(function(d){return <option key={d}>{d}</option>;})}
+            </select>
+          </div>
+          <div><Lbl l="Salaire annuel ($)"/><input type="number" value={nf.salaire||""} onChange={function(e){snf("salaire",parseFloat(e.target.value)||0);}} style={INP}/></div>
+          <div><Lbl l="Date d embauche"/><input type="date" value={nf.dateEmbauche||""} onChange={function(e){snf("dateEmbauche",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Telephone"/><input value={nf.tel||""} onChange={function(e){snf("tel",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Courriel"/><input value={nf.courriel||""} onChange={function(e){snf("courriel",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Date de naissance"/><input type="date" value={nf.naiss||""} onChange={function(e){snf("naiss",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Semaines de vacances"/>
+            <select value={nf.vacances||3} onChange={function(e){snf("vacances",parseInt(e.target.value));}} style={INP}>
+              {[2,3,4,5,6].map(function(n){return <option key={n} value={n}>{n} semaines</option>;})}
+            </select>
+          </div>
+          <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse"/><input value={nf.adresse||""} onChange={function(e){snf("adresse",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Code fiscal federal"/>
+            <select value={nf.federal||"M"} onChange={function(e){snf("federal",e.target.value);}} style={INP}><option value="M">M - Marie</option><option value="C">C - Celibataire</option><option value="E">E - Exempte</option></select>
+          </div>
+          <div><Lbl l="Code fiscal provincial"/>
+            <select value={nf.provincial||"M"} onChange={function(e){snf("provincial",e.target.value);}} style={INP}><option value="M">M - Marie</option><option value="C">C - Celibataire</option><option value="E">E - Exempte</option></select>
+          </div>
+          <div style={{gridColumn:"1/-1"}}><Lbl l="Notes"/><textarea value={nf.notes||""} onChange={function(e){snf("notes",e.target.value);}} rows={2} style={Object.assign({},INP,{resize:"vertical"})}/></div>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <Btn onClick={function(){if(!nf.nom||!nf.prenom)return;setEmployes(function(prev){return prev.concat([Object.assign({},nf,{id:Date.now(),type:"TP",nas:"***-***-***",actif:true})]);});setShowN(false);}}>Ajouter l employe</Btn>
+          <Btn onClick={function(){setShowN(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
 // ===== MODULE PRINCIPAL HUB =====
 export default function Hub(){
   var s0=useState("syndicats");var ong=s0[0];var setOng=s0[1];
@@ -1428,7 +1557,7 @@ export default function Hub(){
   var totalFact=actifs.reduce(function(a,s){return a+s.facturesEnAttente;},0);
   var scoreMoyen=actifs.length>0?Math.round(actifs.reduce(function(a,s){return a+Math.round((s.scoreFinancier+s.scoreConformite+s.scoreEntretien)/3);},0)/actifs.length):0;
 
-  var TABS=[{id:"syndicats",l:"Syndicats"},{id:"params_predictek",l:"Parametres Predictek"},{id:"usagers",l:"Usagers Predictek"},{id:"rapports",l:"Rapports consolides"}];
+  var TABS=[{id:"syndicats",l:"Syndicats"},{id:"employes",l:"Employes"},{id:"params_predictek",l:"Parametres Predictek"},{id:"usagers",l:"Usagers Predictek"},{id:"rapports",l:"Rapports consolides"}];
 
   if(creer){
     return(
@@ -1509,6 +1638,7 @@ export default function Hub(){
       )}
 
       {ong==="usagers"&&<GestionUsagers syndicats={syndicats}/>}
+      {ong==="employes"&&<TabEmployes/>}
       {ong==="params_predictek"&&<ParamsPredictek/>}
 
       {ong==="rapports"&&(
