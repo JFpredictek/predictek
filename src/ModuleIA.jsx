@@ -27,8 +27,8 @@ async function callClaude(system, user, maxTokens){
 // ===== TAB ANALYSE SOUMISSIONS =====
 function TabAnalyseSoumissions(){
   var s0=useState([
-    {id:1,fournisseur:"Deneigement Express",cat:"Deneigement",prix:22000,delai:"48h",garantie:"1 an",certifie:true,experience:"12 ans",note:"Partenaire actuel — tarif preferentiel multi-syndicats"},
-    {id:2,fournisseur:"NordBlanche Services",cat:"Deneigement",prix:19500,delai:"72h",garantie:"6 mois",certifie:true,experience:"4 ans",note:"Nouveau soumissionnaire — prix agressif"},
+    {id:1,fournisseur:"Deneigement Express",cat:"Deneigement",prix:22000,delai:"48h",garantie:"1 an",certifie:true,experience:"12 ans",note:"Partenaire actuel â tarif preferentiel multi-syndicats"},
+    {id:2,fournisseur:"NordBlanche Services",cat:"Deneigement",prix:19500,delai:"72h",garantie:"6 mois",certifie:true,experience:"4 ans",note:"Nouveau soumissionnaire â prix agressif"},
     {id:3,fournisseur:"GeoNord Entretien",cat:"Deneigement",prix:21200,delai:"24h",garantie:"1 an",certifie:false,experience:"8 ans",note:"Pas de certification RBQ"},
   ]);
   var soumissions=s0[0];var setSoumissions=s0[1];
@@ -179,7 +179,7 @@ function TabRedactionPV(){
               <div><Lbl l="Lieu"/><input value={meta.lieu} onChange={function(e){sm("lieu",e.target.value);}} style={INP}/></div>
               <div><Lbl l="President de seance"/><input value={meta.president} onChange={function(e){sm("president",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Secretaire"/><input value={meta.secretaire} onChange={function(e){sm("secretaire",e.target.value);}} style={INP}/></div>
-              <div style={{gridColumn:"1/-1"}}><Lbl l="Personnes presentes"/><input value={meta.presences} onChange={function(e){sm("presences",e.target.value);}} style={INP} placeholder="Noms separés par virgule"/></div>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Personnes presentes"/><input value={meta.presences} onChange={function(e){sm("presences",e.target.value);}} style={INP} placeholder="Noms separÃ©s par virgule"/></div>
             </div>
           </Card>
           <Card>
@@ -243,7 +243,7 @@ function TabDetectionAnomalies(){
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
         <div>
-          <b style={{fontSize:14,color:T.navy}}>Detection d anomalies — Factures fournisseurs</b>
+          <b style={{fontSize:14,color:T.navy}}>Detection d anomalies â Factures fournisseurs</b>
           <div style={{fontSize:11,color:T.muted,marginTop:2}}>L IA analyse chaque facture et detecte les irregularites potentielles</div>
         </div>
         <Btn dis={loading!==null} onClick={analyserToutes}>{loading!==null&&<Spinner/>}Analyser toutes</Btn>
@@ -269,7 +269,7 @@ function TabDetectionAnomalies(){
                     <div style={{fontSize:22,fontWeight:900,color:niv.c}}>{res.score}</div>
                     <div style={{fontSize:9,color:niv.c,fontWeight:700}}>SCORE</div>
                   </div>
-                ):<div style={{fontSize:11,color:T.muted}}>—</div>}
+                ):<div style={{fontSize:11,color:T.muted}}>â</div>}
               </div>
               <div>
                 {res?(
@@ -277,7 +277,7 @@ function TabDetectionAnomalies(){
                     <Bdg bg={niv.bg} c={niv.c}>{niv.l}</Bdg>
                     {res.anomalies&&res.anomalies.length>0&&(
                       <div style={{marginTop:6}}>
-                        {res.anomalies.map(function(a,i){return <div key={i} style={{fontSize:10,color:niv.c,marginTop:2}}>• {a}</div>;})}
+                        {res.anomalies.map(function(a,i){return <div key={i} style={{fontSize:10,color:niv.c,marginTop:2}}>â¢ {a}</div>;})}
                       </div>
                     )}
                     {res.recommandation&&<div style={{fontSize:10,color:T.muted,marginTop:4,fontStyle:"italic"}}>{res.recommandation}</div>}
@@ -296,7 +296,7 @@ function TabDetectionAnomalies(){
   );
 }
 
-// ===== TAB CHATBOT COPROPRIÉTAIRE =====
+// ===== TAB CHATBOT COPROPRIÃTAIRE =====
 function TabChatbot(){
   var s0=useState([]);var msgs=s0[0];var setMsgs=s0[1];
   var s1=useState("");var input=s1[0];var setInput=s1[1];
@@ -397,14 +397,14 @@ export default function ModuleIA(){
     {id:"soumissions",l:"Analyse soumissions"},
     {id:"pv",l:"Redaction PV"},
     {id:"anomalies",l:"Detection anomalies"},
-    {id:"chatbot",l:"Chatbot copropriétaire"},
+    {id:"chatbot",l:"Chatbot copropriÃ©taire"},
   ];
   return(
     <div style={{padding:16,fontFamily:"Georgia,serif"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <div>
           <div style={{fontSize:18,fontWeight:800,color:T.navy}}>Intelligence artificielle Predictek</div>
-          <div style={{fontSize:11,color:T.muted}}>Outils IA pour optimiser la gestion de vos syndicats — Propulse par Claude</div>
+          <div style={{fontSize:11,color:T.muted}}>Outils IA pour optimiser la gestion de vos syndicats â Propulse par Claude</div>
         </div>
         <Bdg bg={T.purpleL} c={T.purple}>Claude Sonnet 4</Bdg>
       </div>
