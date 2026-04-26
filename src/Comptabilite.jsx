@@ -36,32 +36,32 @@ function StatCard(p){return(
 var COMPTES_PLAN=[
   // ACTIF
   {no:"1010",nom:"Caisse",type:"actif",cat:"Actif a court terme",solde:0},
-  {no:"1020",nom:"Banque â Compte operations",type:"actif",cat:"Actif a court terme",solde:0},
-  {no:"1100",nom:"Comptes clients â Syndicats",type:"actif",cat:"Actif a court terme",solde:0},
+  {no:"1020",nom:"Banque - Compte operations",type:"actif",cat:"Actif a court terme",solde:0},
+  {no:"1100",nom:"Comptes clients - Syndicats",type:"actif",cat:"Actif a court terme",solde:0},
   {no:"1110",nom:"TPS a recevoir",type:"actif",cat:"Actif a court terme",solde:0},
   {no:"1111",nom:"TVQ a recevoir",type:"actif",cat:"Actif a court terme",solde:0},
   {no:"1200",nom:"Fournitures de bureau",type:"actif",cat:"Actif a court terme",solde:0},
   {no:"1500",nom:"Equipement informatique",type:"actif",cat:"Actif a long terme",solde:0},
-  {no:"1510",nom:"Amortissement cumule â Equipement",type:"actif",cat:"Actif a long terme",solde:0},
+  {no:"1510",nom:"Amortissement cumule - Equipement",type:"actif",cat:"Actif a long terme",solde:0},
   // PASSIF
   {no:"2010",nom:"Comptes fournisseurs",type:"passif",cat:"Passif a court terme",solde:0},
   {no:"2100",nom:"TPS a remettre",type:"passif",cat:"Passif a court terme",solde:0},
   {no:"2101",nom:"TVQ a remettre",type:"passif",cat:"Passif a court terme",solde:0},
   {no:"2200",nom:"Salaires a payer",type:"passif",cat:"Passif a court terme",solde:0},
-  {no:"2210",nom:"DAS a remettre â Federal",type:"passif",cat:"Passif a court terme",solde:0},
-  {no:"2211",nom:"DAS a remettre â Provincial",type:"passif",cat:"Passif a court terme",solde:0},
+  {no:"2210",nom:"DAS a remettre - Federal",type:"passif",cat:"Passif a court terme",solde:0},
+  {no:"2211",nom:"DAS a remettre - Provincial",type:"passif",cat:"Passif a court terme",solde:0},
   {no:"2220",nom:"RQAP a remettre",type:"passif",cat:"Passif a court terme",solde:0},
   {no:"2230",nom:"RRQ a remettre",type:"passif",cat:"Passif a court terme",solde:0},
   {no:"2240",nom:"CNESST a remettre",type:"passif",cat:"Passif a court terme",solde:0},
-  {no:"3000",nom:"Capital â Jean-Francois Laroche",type:"capitaux",cat:"Capitaux propres",solde:0},
+  {no:"3000",nom:"Capital - Jean-Francois Laroche",type:"capitaux",cat:"Capitaux propres",solde:0},
   {no:"3100",nom:"Benefices non repartis",type:"capitaux",cat:"Capitaux propres",solde:0},
   // PRODUITS
-  {no:"4010",nom:"Honoraires de gestion â Syndicats",type:"produit",cat:"Produits d exploitation",solde:0},
+  {no:"4010",nom:"Honoraires de gestion - Syndicats",type:"produit",cat:"Produits d exploitation",solde:0},
   {no:"4020",nom:"Services additionnels",type:"produit",cat:"Produits d exploitation",solde:0},
   {no:"4030",nom:"Frais administratifs facturas",type:"produit",cat:"Produits d exploitation",solde:0},
   // CHARGES
-  {no:"5010",nom:"Salaires â Gestionnaires",type:"charge",cat:"Charges d exploitation",solde:0},
-  {no:"5011",nom:"Salaires â Terrain",type:"charge",cat:"Charges d exploitation",solde:0},
+  {no:"5010",nom:"Salaires - Gestionnaires",type:"charge",cat:"Charges d exploitation",solde:0},
+  {no:"5011",nom:"Salaires - Terrain",type:"charge",cat:"Charges d exploitation",solde:0},
   {no:"5020",nom:"Charges sociales patronales",type:"charge",cat:"Charges d exploitation",solde:0},
   {no:"5030",nom:"Loyer bureau",type:"charge",cat:"Charges d exploitation",solde:0},
   {no:"5040",nom:"Telecommunications",type:"charge",cat:"Charges d exploitation",solde:0},
@@ -71,14 +71,19 @@ var COMPTES_PLAN=[
   {no:"5080",nom:"Formation et developpement",type:"charge",cat:"Charges d exploitation",solde:0},
   {no:"5090",nom:"Assurance entreprise",type:"charge",cat:"Charges d exploitation",solde:0},
   {no:"5100",nom:"Honoraires professionnels",type:"charge",cat:"Charges d exploitation",solde:0},
-  {no:"5200",nom:"Amortissement â Equipement",type:"charge",cat:"Charges d exploitation",solde:0},
+  {no:"5200",nom:"Amortissement - Equipement",type:"charge",cat:"Charges d exploitation",solde:0},
 ];
 
 // ===== FACTURES CLIENTS =====
 var FACTURES_CLIENTS=[];
 
 // ===== EMPLOYES =====
-var EMPLOYES=[];
+var EMPLOYES=[
+  {id:1,nom:"Marie Tremblay",poste:"Gestionnaire principal",salaire:52000,type:"annuel",federal:"M",provincial:"M",rqap:true,rrq:true,actif:true},
+  {id:2,nom:"Jean-Philippe Roy",poste:"Gestionnaire syndicats",salaire:46000,type:"annuel",federal:"M",provincial:"M",rqap:true,rrq:true,actif:true},
+  {id:3,nom:"Carlos Mendes",poste:"Technicien terrain",salaire:38000,type:"annuel",federal:"M",provincial:"M",rqap:true,rrq:true,actif:true},
+  {id:4,nom:"Sarah Bolduc",poste:"Gestionnaire syndicats",salaire:44000,type:"annuel",federal:"C",provincial:"C",rqap:true,rrq:true,actif:true},
+];
 
 // ===== PAIES =====
 var PAIES_INIT=[];
@@ -142,8 +147,8 @@ function TabFacturation(){
     <div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:18}}>
         <StatCard l="Revenus HT (2026)" v={money(totalHT)} c={T.accent} bg={T.accentL}/>
-        <StatCard l="TPS perÃ§ue" v={money(totalTPS)} c={T.blue} bg={T.blueL}/>
-        <StatCard l="TVQ perÃ§ue" v={money(totalTVQ)} c={T.purple} bg={T.purpleL}/>
+        <StatCard l="TPS percue" v={money(totalTPS)} c={T.blue} bg={T.blueL}/>
+        <StatCard l="TVQ percue" v={money(totalTVQ)} c={T.purple} bg={T.purpleL}/>
         <StatCard l="En attente paiement" v={money(enAttente)} c={T.amber} bg={T.amberL}/>
       </div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
@@ -370,7 +375,7 @@ function TabJournal(){
   var totalDebit=ecritures.reduce(function(a,e){return a+e.debit.reduce(function(b,d){return b+d.mnt;},0);},0);
   var totalCredit=ecritures.reduce(function(a,e){return a+e.credit.reduce(function(b,c){return b+c.mnt;},0);},0);
 
-  function getCptNom(no){var c=COMPTES_PLAN.find(function(x){return x.no===no;});return c?no+" â "+c.nom:no;}
+  function getCptNom(no){var c=COMPTES_PLAN.find(function(x){return x.no===no;});return c?no+" - "+c.nom:no;}
 
   return(
     <div>
@@ -395,8 +400,8 @@ function TabJournal(){
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead><tr style={{background:T.alt}}><Th>Compte</Th><Th r>Debit</Th><Th r>Credit</Th></tr></thead>
             <tbody>
-              {e.debit.map(function(d,i){return(<tr key={"d"+i}><Td>{getCptNom(d.cpt)}</Td><Td r bold c={T.navy}>{money(d.mnt)}</Td><Td r>â</Td></tr>);})}
-              {e.credit.map(function(c,i){return(<tr key={"c"+i}><Td><span style={{paddingLeft:24}}>{getCptNom(c.cpt)}</span></Td><Td r>â</Td><Td r bold c={T.accent}>{money(c.mnt)}</Td></tr>);})}
+              {e.debit.map(function(d,i){return(<tr key={"d"+i}><Td>{getCptNom(d.cpt)}</Td><Td r bold c={T.navy}>{money(d.mnt)}</Td><Td r>-</Td></tr>);})}
+              {e.credit.map(function(c,i){return(<tr key={"c"+i}><Td><span style={{paddingLeft:24}}>{getCptNom(c.cpt)}</span></Td><Td r>-</Td><Td r bold c={T.accent}>{money(c.mnt)}</Td></tr>);})}
             </tbody>
           </table>
         </div>
@@ -411,7 +416,7 @@ function TabJournal(){
           <div key={i} style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr",gap:8,marginBottom:8}}>
             <select value={l.cpt} onChange={function(e){setNf(function(o){var ls=[...o.lignes];ls[i]=Object.assign({},ls[i],{cpt:e.target.value});return Object.assign({},o,{lignes:ls});});}} style={INP}>
               <option value="">-- Choisir un compte --</option>
-              {COMPTES_PLAN.map(function(c){return <option key={c.no} value={c.no}>{c.no} â {c.nom}</option>;})}
+              {COMPTES_PLAN.map(function(c){return <option key={c.no} value={c.no}>{c.no} - {c.nom}</option>;})}
             </select>
             <input type="number" placeholder="Montant" value={l.mnt} onChange={function(e){setNf(function(o){var ls=[...o.lignes];ls[i]=Object.assign({},ls[i],{mnt:parseFloat(e.target.value)||0});return Object.assign({},o,{lignes:ls});});}} style={INP}/>
             <select value={l.sens} onChange={function(e){setNf(function(o){var ls=[...o.lignes];ls[i]=Object.assign({},ls[i],{sens:e.target.value});return Object.assign({},o,{lignes:ls});});}} style={INP}>
@@ -496,7 +501,7 @@ function TabEtats(){
       {ong==="resultats"&&(
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-            <b style={{fontSize:14,color:T.navy}}>Etat des resultats â Exercice 2025-2026</b>
+            <b style={{fontSize:14,color:T.navy}}>Etat des resultats - Exercice 2025-2026</b>
             <Btn sm bg={T.navy} onClick={function(){
               var html='<table><thead><tr><th>No</th><th>Compte</th><th style="text-align:right">Montant</th></tr></thead><tbody>';
               html+='<tr class="section"><td colspan="3">PRODUITS</td></tr>';
@@ -507,7 +512,7 @@ function TabEtats(){
               html+='<tr class="total"><td colspan="2">Total charges</td><td style="text-align:right">'+money(totalCharges)+'</td></tr>';
               html+='<tr class="total"><td colspan="2">BENEFICE NET</td><td style="text-align:right;color:#1B5E3B">'+money(beneficeNet)+'</td></tr>';
               html+='</tbody></table>';
-              printEtat("Etat des resultats â Predictek",html);
+              printEtat("Etat des resultats - Predictek",html);
             }}>Imprimer PDF</Btn>
           </div>
           <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
@@ -533,7 +538,7 @@ function TabEtats(){
       {ong==="bilan"&&(
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-            <b style={{fontSize:14,color:T.navy}}>Bilan â Au 30 avril 2026</b>
+            <b style={{fontSize:14,color:T.navy}}>Bilan - Au 30 avril 2026</b>
             <Btn sm bg={T.navy} onClick={function(){alert("Impression PDF bilan - a venir");}}>Imprimer PDF</Btn>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
@@ -572,7 +577,7 @@ function TabEtats(){
                 </table>
               </div>
               {Math.abs(totalActif-(totalPassif+totalCapitaux+beneficeNet))>0.01&&(
-                <div style={{background:T.redL,borderRadius:8,padding:"9px 14px",fontSize:11,color:T.red,marginTop:10}}>Bilan desequilibre â Verifier les ecritures</div>
+                <div style={{background:T.redL,borderRadius:8,padding:"9px 14px",fontSize:11,color:T.red,marginTop:10}}>Bilan desequilibre - Verifier les ecritures</div>
               )}
               {Math.abs(totalActif-(totalPassif+totalCapitaux+beneficeNet))<=0.01&&(
                 <div style={{background:T.accentL,borderRadius:8,padding:"9px 14px",fontSize:11,color:T.accent,marginTop:10}}>Bilan equilibre</div>
@@ -585,7 +590,7 @@ function TabEtats(){
       {ong==="balance"&&(
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-            <b style={{fontSize:14,color:T.navy}}>Balance de verification â 30 avril 2026</b>
+            <b style={{fontSize:14,color:T.navy}}>Balance de verification - 30 avril 2026</b>
             <Btn sm bg={T.navy} onClick={function(){alert("PDF balance de verification - a venir");}}>Imprimer PDF</Btn>
           </div>
           <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
@@ -610,8 +615,8 @@ function TabEtats(){
                       <Td>{c.no}</Td>
                       <Td>{c.nom}</Td>
                       <Td><Bdg bg={T.alt} c={T.muted}>{c.type}</Bdg></Td>
-                      <Td r bold={debit>0} c={debit>0?T.navy:T.muted}>{debit>0?money(debit):"â"}</Td>
-                      <Td r bold={credit>0} c={credit>0?T.accent:T.muted}>{credit>0?money(credit):"â"}</Td>
+                      <Td r bold={debit>0} c={debit>0?T.navy:T.muted}>{debit>0?money(debit):"-"}</Td>
+                      <Td r bold={credit>0} c={credit>0?T.accent:T.muted}>{credit>0?money(credit):"-"}</Td>
                     </tr>
                   );
                 })}
@@ -629,12 +634,12 @@ function TabEtats(){
       {ong==="tps"&&(
         <div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-            <b style={{fontSize:14,color:T.navy}}>Rapport TPS/TVQ â Periode avril 2026</b>
+            <b style={{fontSize:14,color:T.navy}}>Rapport TPS/TVQ - Periode avril 2026</b>
             <Btn sm bg={T.navy} onClick={function(){alert("Rapport TPS/TVQ PDF - a venir");}}>Imprimer</Btn>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
             <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
-              <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:14}}>TPS â Agence du revenu Canada</div>
+              <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:14}}>TPS - Agence du revenu Canada</div>
               {[
                 {l:"TPS percue sur ventes",v:FACTURES_CLIENTS.reduce(function(a,f){return a+f.tps;},0),c:T.accent},
                 {l:"TPS payee sur achats (ITCs)",v:910.00,c:T.red},
@@ -650,7 +655,7 @@ function TabEtats(){
               </div>
             </div>
             <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
-              <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:14}}>TVQ â Revenu Quebec</div>
+              <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:14}}>TVQ - Revenu Quebec</div>
               {[
                 {l:"TVQ percue sur ventes",v:FACTURES_CLIENTS.reduce(function(a,f){return a+f.tvq;},0),c:T.accent},
                 {l:"TVQ payee sur achats (ITRs)",v:1816.28,c:T.red},
@@ -670,9 +675,9 @@ function TabEtats(){
             <div style={{fontSize:13,fontWeight:700,color:T.amber,marginBottom:6}}>Remises a effectuer</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
               {[
-                {l:"TPS â ARC",v:money(FACTURES_CLIENTS.reduce(function(a,f){return a+f.tps;},0)-910),date:"2026-05-31"},
-                {l:"TVQ â Revenu Quebec",v:money(FACTURES_CLIENTS.reduce(function(a,f){return a+f.tvq;},0)-1816.28),date:"2026-05-31"},
-                {l:"DAS â Federal/Provincial",v:money(5000),date:"2026-04-25"},
+                {l:"TPS - ARC",v:money(FACTURES_CLIENTS.reduce(function(a,f){return a+f.tps;},0)-910),date:"2026-05-31"},
+                {l:"TVQ - Revenu Quebec",v:money(FACTURES_CLIENTS.reduce(function(a,f){return a+f.tvq;},0)-1816.28),date:"2026-05-31"},
+                {l:"DAS - Federal/Provincial",v:money(5000),date:"2026-04-25"},
               ].map(function(item,i){return(
                 <div key={i} style={{background:"#fff",borderRadius:8,padding:"10px 14px"}}>
                   <div style={{fontSize:10,color:T.amber,fontWeight:700,marginBottom:4}}>{item.l}</div>
@@ -691,39 +696,39 @@ function TabEtats(){
 
 // ===== PLAN DE COMPTES PREDICTEK =====
 var COMPTES=[
-  {no:"1010",nom:"Caisse",type:"actif",cat:"Actif court terme",solde:0},
-  {no:"1020",nom:"Banque â Compte operations",type:"actif",cat:"Actif court terme",solde:0},
-  {no:"1100",nom:"Comptes clients â Syndicats",type:"actif",cat:"Actif court terme",solde:0},
-  {no:"1110",nom:"TPS a recevoir",type:"actif",cat:"Actif court terme",solde:0},
-  {no:"1111",nom:"TVQ a recevoir",type:"actif",cat:"Actif court terme",solde:0},
-  {no:"1200",nom:"Fournitures de bureau",type:"actif",cat:"Actif court terme",solde:0},
-  {no:"1500",nom:"Equipement informatique",type:"actif",cat:"Actif long terme",solde:0},
-  {no:"1510",nom:"Amortissement cumule â Equipement",type:"actif",cat:"Actif long terme",solde:0},
-  {no:"2010",nom:"Comptes fournisseurs",type:"passif",cat:"Passif court terme",solde:0},
-  {no:"2100",nom:"TPS a remettre",type:"passif",cat:"Passif court terme",solde:0},
-  {no:"2101",nom:"TVQ a remettre",type:"passif",cat:"Passif court terme",solde:0},
-  {no:"2200",nom:"Salaires a payer",type:"passif",cat:"Passif court terme",solde:0},
-  {no:"2210",nom:"DAS a remettre â Federal",type:"passif",cat:"Passif court terme",solde:0},
-  {no:"2211",nom:"DAS a remettre â Provincial",type:"passif",cat:"Passif court terme",solde:0},
-  {no:"2220",nom:"RQAP a remettre",type:"passif",cat:"Passif court terme",solde:0},
-  {no:"2230",nom:"RRQ a remettre",type:"passif",cat:"Passif court terme",solde:0},
-  {no:"3000",nom:"Capital â Proprietaire",type:"capitaux",cat:"Capitaux propres",solde:0},
-  {no:"3100",nom:"Benefices non repartis",type:"capitaux",cat:"Capitaux propres",solde:0},
-  {no:"4010",nom:"Honoraires de gestion â Syndicats",type:"produit",cat:"Produits",solde:0},
-  {no:"4020",nom:"Services additionnels",type:"produit",cat:"Produits",solde:0},
-  {no:"4030",nom:"Frais administratifs",type:"produit",cat:"Produits",solde:0},
-  {no:"5010",nom:"Salaires â Gestionnaires",type:"charge",cat:"Charges",solde:0},
-  {no:"5011",nom:"Salaires â Terrain",type:"charge",cat:"Charges",solde:0},
-  {no:"5020",nom:"Charges sociales patronales",type:"charge",cat:"Charges",solde:0},
-  {no:"5030",nom:"Loyer bureau",type:"charge",cat:"Charges",solde:0},
-  {no:"5040",nom:"Telecommunications",type:"charge",cat:"Charges",solde:0},
-  {no:"5050",nom:"Logiciels et abonnements",type:"charge",cat:"Charges",solde:0},
-  {no:"5060",nom:"Fournitures de bureau",type:"charge",cat:"Charges",solde:0},
-  {no:"5070",nom:"Deplacement et kilometrage",type:"charge",cat:"Charges",solde:0},
-  {no:"5080",nom:"Formation et developpement",type:"charge",cat:"Charges",solde:0},
-  {no:"5090",nom:"Assurance entreprise",type:"charge",cat:"Charges",solde:0},
-  {no:"5100",nom:"Honoraires professionnels",type:"charge",cat:"Charges",solde:0},
-  {no:"5200",nom:"Amortissement â Equipement",type:"charge",cat:"Charges",solde:0},
+  {no:"1010",nom:"Caisse",type:"actif",cat:"Actif court terme",solde:8450.00},
+  {no:"1020",nom:"Banque - Compte operations",type:"actif",cat:"Actif court terme",solde:42380.75},
+  {no:"1100",nom:"Comptes clients - Syndicats",type:"actif",cat:"Actif court terme",solde:18200.00},
+  {no:"1110",nom:"TPS a recevoir",type:"actif",cat:"Actif court terme",solde:910.00},
+  {no:"1111",nom:"TVQ a recevoir",type:"actif",cat:"Actif court terme",solde:1816.28},
+  {no:"1200",nom:"Fournitures de bureau",type:"actif",cat:"Actif court terme",solde:340.00},
+  {no:"1500",nom:"Equipement informatique",type:"actif",cat:"Actif long terme",solde:12000.00},
+  {no:"1510",nom:"Amortissement cumule - Equipement",type:"actif",cat:"Actif long terme",solde:-2400.00},
+  {no:"2010",nom:"Comptes fournisseurs",type:"passif",cat:"Passif court terme",solde:3200.00},
+  {no:"2100",nom:"TPS a remettre",type:"passif",cat:"Passif court terme",solde:2100.00},
+  {no:"2101",nom:"TVQ a remettre",type:"passif",cat:"Passif court terme",solde:4190.25},
+  {no:"2200",nom:"Salaires a payer",type:"passif",cat:"Passif court terme",solde:4800.00},
+  {no:"2210",nom:"DAS a remettre - Federal",type:"passif",cat:"Passif court terme",solde:1840.00},
+  {no:"2211",nom:"DAS a remettre - Provincial",type:"passif",cat:"Passif court terme",solde:1120.00},
+  {no:"2220",nom:"RQAP a remettre",type:"passif",cat:"Passif court terme",solde:210.00},
+  {no:"2230",nom:"RRQ a remettre",type:"passif",cat:"Passif court terme",solde:680.00},
+  {no:"3000",nom:"Capital - Proprietaire",type:"capitaux",cat:"Capitaux propres",solde:25000.00},
+  {no:"3100",nom:"Benefices non repartis",type:"capitaux",cat:"Capitaux propres",solde:38157.78},
+  {no:"4010",nom:"Honoraires de gestion - Syndicats",type:"produit",cat:"Produits",solde:86400.00},
+  {no:"4020",nom:"Services additionnels",type:"produit",cat:"Produits",solde:8200.00},
+  {no:"4030",nom:"Frais administratifs",type:"produit",cat:"Produits",solde:2400.00},
+  {no:"5010",nom:"Salaires - Gestionnaires",type:"charge",cat:"Charges",solde:48000.00},
+  {no:"5011",nom:"Salaires - Terrain",type:"charge",cat:"Charges",solde:22000.00},
+  {no:"5020",nom:"Charges sociales patronales",type:"charge",cat:"Charges",solde:10800.00},
+  {no:"5030",nom:"Loyer bureau",type:"charge",cat:"Charges",solde:7200.00},
+  {no:"5040",nom:"Telecommunications",type:"charge",cat:"Charges",solde:1800.00},
+  {no:"5050",nom:"Logiciels et abonnements",type:"charge",cat:"Charges",solde:3600.00},
+  {no:"5060",nom:"Fournitures de bureau",type:"charge",cat:"Charges",solde:840.00},
+  {no:"5070",nom:"Deplacement et kilometrage",type:"charge",cat:"Charges",solde:2400.00},
+  {no:"5080",nom:"Formation et developpement",type:"charge",cat:"Charges",solde:1200.00},
+  {no:"5090",nom:"Assurance entreprise",type:"charge",cat:"Charges",solde:2400.00},
+  {no:"5100",nom:"Honoraires professionnels",type:"charge",cat:"Charges",solde:3600.00},
+  {no:"5200",nom:"Amortissement - Equipement",type:"charge",cat:"Charges",solde:2400.00},
 ];
 
 var ECRITURES_INIT=[];
@@ -760,7 +765,7 @@ function TabSoldesOuverture(){
         <StatCard l="Capitaux propres" v={money(totalCapitaux)} c={T.purple} bg={T.purpleL}/>
         <StatCard l="Balance" v={money(balance)} c={balanced?T.accent:T.red} bg={balanced?T.accentL:T.redL} sub={balanced?"Equilibree":"Desequilibre!"}/>
       </div>
-      {!balanced&&<div style={{background:T.redL,borderRadius:8,padding:"9px 14px",fontSize:12,color:T.red,marginBottom:14}}>Bilan desequilibre de {money(Math.abs(balance))} â Verifiez vos soldes d ouverture.</div>}
+      {!balanced&&<div style={{background:T.redL,borderRadius:8,padding:"9px 14px",fontSize:12,color:T.red,marginBottom:14}}>Bilan desequilibre de {money(Math.abs(balance))} - Verifiez vos soldes d ouverture.</div>}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
         <div style={{display:"flex",gap:6}}>
           {[["","Tous"],["actif","Actif"],["passif","Passif"],["capitaux","Capitaux"],["produit","Produits"],["charge","Charges"]].map(function(f){var a=filterType===f[0];return(
@@ -840,7 +845,7 @@ function TabGrandLivre(){
         <div>
           <Lbl l="Compte"/>
           <select value={selCpt} onChange={function(e){setSelCpt(e.target.value);}} style={INP}>
-            {COMPTES.map(function(c){return <option key={c.no} value={c.no}>{c.no} â {c.nom}</option>;})}
+            {COMPTES.map(function(c){return <option key={c.no} value={c.no}>{c.no} - {c.nom}</option>;})}
           </select>
         </div>
         <div><Lbl l="Du"/><input type="date" value={dateDebut} onChange={function(e){setDateDebut(e.target.value);}} style={INP}/></div>
@@ -848,7 +853,7 @@ function TabGrandLivre(){
       </div>
       <div style={{background:T.navy,color:"#fff",padding:"12px 16px",borderRadius:"10px 10px 0 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
-          <span style={{fontSize:16,fontWeight:800}}>{cpt.no} â {cpt.nom}</span>
+          <span style={{fontSize:16,fontWeight:800}}>{cpt.no} - {cpt.nom}</span>
           <Bdg bg={"#ffffff20"} c={"#fff"} sz={10} style={{marginLeft:8}}>{cpt.type}</Bdg>
         </div>
         <div style={{textAlign:"right"}}>
@@ -870,11 +875,11 @@ function TabGrandLivre(){
           </thead>
           <tbody>
             <tr style={{background:T.alt}}>
-              <Td c={T.muted}>â</Td>
-              <Td c={T.muted}>â</Td>
+              <Td c={T.muted}>-</Td>
+              <Td c={T.muted}>-</Td>
               <Td bold>Solde d ouverture</Td>
-              <Td r>â</Td>
-              <Td r>â</Td>
+              <Td r>-</Td>
+              <Td r>-</Td>
               <Td r bold c={T.navy}>{money(soldeInit)}</Td>
             </tr>
             {lignes.map(function(l,i){return(
@@ -882,8 +887,8 @@ function TabGrandLivre(){
                 <Td c={T.muted}>{l.date}</Td>
                 <Td c={T.accent}>{l.no}</Td>
                 <Td>{l.desc}</Td>
-                <Td r c={l.debit>0?T.navy:T.muted}>{l.debit>0?money(l.debit):"â"}</Td>
-                <Td r c={l.credit>0?T.red:T.muted}>{l.credit>0?money(l.credit):"â"}</Td>
+                <Td r c={l.debit>0?T.navy:T.muted}>{l.debit>0?money(l.debit):"-"}</Td>
+                <Td r c={l.credit>0?T.red:T.muted}>{l.credit>0?money(l.credit):"-"}</Td>
                 <Td r bold c={l.solde>=0?T.navy:T.red}>{money(l.solde)}</Td>
               </tr>
             );})}
@@ -999,134 +1004,7 @@ function TabBudget(){
 }
 
 // ===== TAB EMPLOYES =====
-function TabEmployes(){
-  var EMPLOYES_INIT=[];
-  var s0=useState(EMPLOYES_INIT);var employes=s0[0];var setEmployes=s0[1];
-  var s1=useState(null);var sel=s1[0];var setSel=s1[1];
-  var s2=useState(false);var showN=s2[0];var setShowN=s2[1];
-  var s3=useState({});var nf=s3[0];var setNf=s3[1];
-  function snf(k,v){setNf(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
 
-  var actifs=employes.filter(function(e){return e.actif;});
-  var totalMasseSal=actifs.reduce(function(a,e){return a+e.salaire;},0);
-
-  var selE=sel?employes.find(function(e){return e.id===sel;}):null;
-
-  return(
-    <div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:18}}>
-        <StatCard l="Employes actifs" v={actifs.length} c={T.navy} bg={T.blueL}/>
-        <StatCard l="Masse salariale" v={money(totalMasseSal)} c={T.accent} bg={T.accentL} sub="annuelle"/>
-        <StatCard l="Masse salariale" v={money(totalMasseSal/26)} c={T.purple} bg={T.purpleL} sub="par periode (26)"/>
-        <StatCard l="Charges patronales" v={money(totalMasseSal*0.15)} c={T.amber} bg={T.amberL} sub="estimees ~15%"/>
-      </div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <b style={{fontSize:14,color:T.navy}}>Registre des employes</b>
-        <Btn sm onClick={function(){setNf({nom:"",prenom:"",poste:"",dept:"Operations",type:"TP",salaire:"",dateEmbauche:today(),tel:"",courriel:"",naiss:"",nas:"",adresse:"",federal:"M",provincial:"M",rrq:true,rqap:true,vacances:3,actif:true,notes:""});setShowN(true);}}>+ Nouvel employe</Btn>
-      </div>
-      <div style={{display:"flex",gap:14}}>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
-            <table style={{width:"100%",borderCollapse:"collapse"}}>
-              <thead><tr><Th dark light>Employe</Th><Th dark light>Poste</Th><Th dark light>Dept</Th><Th dark light r>Salaire annuel</Th><Th dark light>Embauche</Th><Th dark light>Vacances</Th><Th dark light>Statut</Th></tr></thead>
-              <tbody>
-                {employes.map(function(e){return(
-                  <tr key={e.id} onClick={function(){setSel(e.id);}} style={{borderBottom:"1px solid "+T.border,background:sel===e.id?T.accentL:e.actif?T.surface:T.alt,cursor:"pointer"}}>
-                    <Td bold>{e.prenom} {e.nom}</Td>
-                    <Td c={T.muted}>{e.poste}</Td>
-                    <Td><Bdg bg={T.blueL} c={T.blue}>{e.dept}</Bdg></Td>
-                    <Td r bold>{money(e.salaire)}</Td>
-                    <Td c={T.muted}>{e.dateEmbauche}</Td>
-                    <Td>{e.vacances} sem.</Td>
-                    <Td><Bdg bg={e.actif?T.accentL:T.redL} c={e.actif?T.accent:T.red}>{e.actif?"Actif":"Inactif"}</Bdg></Td>
-                  </tr>
-                );})}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {selE&&(
-          <div style={{width:320,flexShrink:0}}>
-            <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
-                <div>
-                  <div style={{fontSize:15,fontWeight:800,color:T.navy}}>{selE.prenom} {selE.nom}</div>
-                  <div style={{fontSize:12,color:T.muted}}>{selE.poste}</div>
-                </div>
-                <button onClick={function(){setSel(null);}} style={{background:"none",border:"none",cursor:"pointer",color:T.muted,fontSize:18,lineHeight:1}}>x</button>
-              </div>
-              <div style={{display:"grid",gap:0}}>
-                {[
-                  {l:"Departement",v:selE.dept},
-                  {l:"Type",v:selE.type==="TP"?"Temps plein":"Temps partiel"},
-                  {l:"Salaire annuel",v:money(selE.salaire)},
-                  {l:"Salaire bimensuel",v:money(Math.round(selE.salaire/26*100)/100)},
-                  {l:"Date d embauche",v:selE.dateEmbauche},
-                  {l:"Semaines vacances",v:selE.vacances+" semaines"},
-                  {l:"Telephone",v:selE.tel||"â"},
-                  {l:"Courriel",v:selE.courriel||"â"},
-                  {l:"Date de naissance",v:selE.naiss||"â"},
-                  {l:"Adresse",v:selE.adresse||"â"},
-                  {l:"Code federal",v:selE.federal},
-                  {l:"Code provincial",v:selE.provincial},
-                  {l:"RRQ",v:selE.rrq?"Cotisant":"Exempte"},
-                  {l:"RQAP",v:selE.rqap?"Cotisant":"Exempte"},
-                ].map(function(item,i){return(
-                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"7px 0",borderBottom:"1px solid "+T.border}}>
-                    <span style={{fontSize:10,color:T.muted,flexShrink:0,marginRight:8}}>{item.l}</span>
-                    <span style={{fontSize:11,fontWeight:500,color:T.text,textAlign:"right",wordBreak:"break-word"}}>{item.v}</span>
-                  </div>
-                );})}
-              </div>
-              {selE.notes&&<div style={{marginTop:10,background:T.alt,borderRadius:7,padding:"8px 10px",fontSize:11,color:T.muted}}>{selE.notes}</div>}
-              <div style={{marginTop:12,display:"flex",gap:6}}>
-                <Btn sm fw bg={selE.actif?T.redL:T.accentL} tc={selE.actif?T.red:T.accent} bdr={"1px solid "+(selE.actif?T.red:T.accent)} onClick={function(){setEmployes(function(prev){return prev.map(function(e){return e.id===selE.id?Object.assign({},e,{actif:!e.actif}):e;});});}}>
-                  {selE.actif?"Desactiver":"Reactiver"}
-                </Btn>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <Modal show={showN} onClose={function(){setShowN(false);}} title="Nouvel employe" w={580}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-          <div><Lbl l="Prenom"/><input value={nf.prenom||""} onChange={function(e){snf("prenom",e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Nom"/><input value={nf.nom||""} onChange={function(e){snf("nom",e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Poste"/><input value={nf.poste||""} onChange={function(e){snf("poste",e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Departement"/>
-            <select value={nf.dept||"Operations"} onChange={function(e){snf("dept",e.target.value);}} style={INP}>
-              {["Administration","Operations","Terrain","Comptabilite","Direction"].map(function(d){return <option key={d}>{d}</option>;})}
-            </select>
-          </div>
-          <div><Lbl l="Salaire annuel ($)"/><input type="number" value={nf.salaire||""} onChange={function(e){snf("salaire",parseFloat(e.target.value)||0);}} style={INP}/></div>
-          <div><Lbl l="Date d embauche"/><input type="date" value={nf.dateEmbauche||""} onChange={function(e){snf("dateEmbauche",e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Telephone"/><input value={nf.tel||""} onChange={function(e){snf("tel",e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Courriel"/><input value={nf.courriel||""} onChange={function(e){snf("courriel",e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Date de naissance"/><input type="date" value={nf.naiss||""} onChange={function(e){snf("naiss",e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Semaines de vacances"/>
-            <select value={nf.vacances||3} onChange={function(e){snf("vacances",parseInt(e.target.value));}} style={INP}>
-              {[2,3,4,5,6].map(function(n){return <option key={n} value={n}>{n} semaines</option>;})}
-            </select>
-          </div>
-          <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse"/><input value={nf.adresse||""} onChange={function(e){snf("adresse",e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Code fiscal federal"/>
-            <select value={nf.federal||"M"} onChange={function(e){snf("federal",e.target.value);}} style={INP}><option value="M">M â Marie</option><option value="C">C â Celibataire</option><option value="E">E â Exempte</option></select>
-          </div>
-          <div><Lbl l="Code fiscal provincial"/>
-            <select value={nf.provincial||"M"} onChange={function(e){snf("provincial",e.target.value);}} style={INP}><option value="M">M â Marie</option><option value="C">C â Celibataire</option><option value="E">E â Exempte</option></select>
-          </div>
-          <div style={{gridColumn:"1/-1"}}><Lbl l="Notes"/><textarea value={nf.notes||""} onChange={function(e){snf("notes",e.target.value);}} rows={2} style={Object.assign({},INP,{resize:"vertical"})}/></div>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <Btn onClick={function(){if(!nf.nom||!nf.prenom)return;setEmployes(function(prev){return prev.concat([Object.assign({},nf,{id:Date.now(),type:"TP",nas:"***-***-***",actif:true})]);});setShowN(false);}}>Ajouter l employe</Btn>
-          <Btn onClick={function(){setShowN(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
-        </div>
-      </Modal>
-    </div>
-  );
-}
 
 
 
@@ -1136,7 +1014,7 @@ export default function Comptabilite(){
   var TABS=[
     {id:"facturation",l:"Facturation clients"},
     {id:"paie",l:"Paie et DAS"},
-    {id:"employes",l:"Employes"},
+    
     {id:"journal",l:"Journal comptable"},
     {id:"soldes",l:"Soldes d ouverture"},
     {id:"grandlivre",l:"Grand livre"},
@@ -1148,7 +1026,7 @@ export default function Comptabilite(){
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <div>
           <div style={{fontSize:18,fontWeight:800,color:T.navy}}>Comptabilite Predictek</div>
-          <div style={{fontSize:11,color:T.muted}}>Module interne â Facturation, paie, taxes et etats financiers</div>
+          <div style={{fontSize:11,color:T.muted}}>Module interne - Facturation, paie, taxes et etats financiers</div>
         </div>
         <div style={{display:"flex",gap:8}}>
           <Bdg bg={T.accentL} c={T.accent}>Exercice 2025-2026</Bdg>
@@ -1163,7 +1041,6 @@ export default function Comptabilite(){
       </div>
       {ong==="facturation"&&<TabFacturation/>}
       {ong==="paie"&&<TabPaie/>}
-      {ong==="employes"&&<TabEmployes/>}
       {ong==="journal"&&<TabJournal/>}
       {ong==="soldes"&&<TabSoldesOuverture/>}
       {ong==="grandlivre"&&<TabGrandLivre/>}
