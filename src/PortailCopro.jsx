@@ -1,6 +1,6 @@
 import { useState } from "react";
 var T={bg:"#F5F3EE",surface:"#FFF",surfaceAlt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentLight:"#E8F2EC",accentPop:"#3CAF6E",red:"#B83232",redLight:"#FDECEA",amber:"#B86020",amberLight:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueLight:"#EFF6FF",purple:"#6B3FA0",purpleLight:"#F3EEFF"};
-var money=function(n){if(!n&&n!==0)return"—";return Math.abs(n).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
+var money=function(n){if(!n&&n!==0)return"â";return Math.abs(n).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
 var td=function(){return new Date().toISOString().slice(0,10);};
 function Badge(p){return <span style={{fontSize:p.sz||10,fontWeight:600,padding:"2px 8px",borderRadius:20,background:p.bg||T.accentLight,color:p.c||T.accent,whiteSpace:"nowrap"}}>{p.children}</span>;}
 function Btn(p){return <button onClick={p.onClick} disabled={p.dis} style={{background:p.dis?"#ccc":p.bg||T.accent,border:"none",borderRadius:8,padding:p.sm?"5px 12px":"10px 20px",color:"#fff",fontSize:p.sm?11:13,fontWeight:600,cursor:p.dis?"not-allowed":"pointer",fontFamily:"inherit",width:p.fw?"100%":"auto",opacity:p.dis?0.6:1}}>{p.children}</button>;}
@@ -12,18 +12,18 @@ var UNITES={
     u:"531",nom:"Jean-Francois Laroche",nom2:"Maryse Fredette",
     tel:"819-479-4203",courriel:"jf.laroche@email.com",
     adresse:"531 ch. du Hibou, Stoneham QC G3C 1T1",
-    fraction:2.133,cotisation:292.06,role:"President CA",
+    fraction:0,cotisation:292.06,role:"President CA",
     banque:{ok:true,inst:"815",transit:"06202"},
     ce:{expiry:"2030-09-10",marque:"AO Smith"},
-    ass:{cie:"SSQ",expiry:"2026-08-01",montant:2000000},
+    ass:{cie:"SSQ",expiry:"2026-08-01",montant:0},
     stats:["15"],casiers:["C-12"],
     animaux:[{nom:"Luna",espece:"Chat"}],
     vehicules:[{plaque:"GHI-789",marque:"Ford",modele:"F-150",annee:"2023"}],
     paiements:[
-      {date:"2026-04-01",desc:"Cotisation avril 2026",montant:292.06,statut:"paye"},
-      {date:"2026-03-01",desc:"Cotisation mars 2026",montant:292.06,statut:"paye"},
-      {date:"2026-02-01",desc:"Cotisation fevrier 2026",montant:292.06,statut:"paye"},
-      {date:"2026-01-01",desc:"Cotisation janvier 2026",montant:292.06,statut:"paye"},
+      {date:"2026-04-01",desc:"Cotisation avril 2026",montant:0,statut:"paye"},
+      {date:"2026-03-01",desc:"Cotisation mars 2026",montant:0,statut:"paye"},
+      {date:"2026-02-01",desc:"Cotisation fevrier 2026",montant:0,statut:"paye"},
+      {date:"2026-01-01",desc:"Cotisation janvier 2026",montant:0,statut:"paye"},
     ],
     docs:[
       {nom:"Declaration de copropriete",date:"2013-09-01",type:"legal"},
@@ -38,15 +38,15 @@ var UNITES={
     u:"539",nom:"Lucette Tremblay",nom2:"",
     tel:"418-555-0539",courriel:"l.tremblay@email.com",
     adresse:"539 ch. du Hibou, Stoneham QC G3C 1T1",
-    fraction:3.840,cotisation:525.80,role:"Coproprietaire",
+    fraction:0,cotisation:525.80,role:"Coproprietaire",
     banque:{ok:true,inst:"815",transit:"06202"},
     ce:{expiry:"2024-04-22",marque:"Giant"},
-    ass:{cie:"Promutuel",expiry:"2026-06-15",montant:2000000},
+    ass:{cie:"Promutuel",expiry:"2026-06-15",montant:0},
     stats:["21","22"],casiers:[],animaux:[{nom:"Minou",espece:"Chat"},{nom:"Bijou",espece:"Chat"}],vehicules:[],
     loc:{actif:true,locataire:"Amelie Cote",tel:"418-555-9001",debut:"2025-09-01",fin:"2026-08-31"},
     paiements:[
-      {date:"2026-04-01",desc:"Cotisation avril 2026",montant:525.80,statut:"paye"},
-      {date:"2026-03-01",desc:"Cotisation mars 2026",montant:525.80,statut:"paye"},
+      {date:"2026-04-01",desc:"Cotisation avril 2026",montant:0,statut:"paye"},
+      {date:"2026-03-01",desc:"Cotisation mars 2026",montant:0,statut:"paye"},
     ],
     docs:[
       {nom:"Declaration de copropriete",date:"2013-09-01",type:"legal"},
@@ -100,7 +100,7 @@ function LoginScreen(p){
         </div>
         <div style={{marginBottom:20}}>
           <div style={{fontSize:11,color:T.muted,marginBottom:4}}>Code d acces</div>
-          <input type="password" value={code} onChange={function(e){setCode(e.target.value);setErr("");}} placeholder="••••" style={inp} onKeyDown={function(e){if(e.key==="Enter")login();}}/>
+          <input type="password" value={code} onChange={function(e){setCode(e.target.value);setErr("");}} placeholder="â¢â¢â¢â¢" style={inp} onKeyDown={function(e){if(e.key==="Enter")login();}}/>
         </div>
         {err&&<div style={{background:T.redLight,borderRadius:8,padding:"8px 12px",fontSize:11,color:T.red,marginBottom:14}}>{err}</div>}
         <Btn onClick={login} fw>Se connecter</Btn>
@@ -126,7 +126,7 @@ function SoumettreDemande(p){
       fournisseur:fournisseur,desc:form.desc,
       updates:[
         {date:td(),msg:"Demande recue et enregistree dans le systeme CRM"},
-        {date:td(),msg:"Assignee automatiquement a: "+fournisseur+(form.prio==="haute"||form.cat==="urgence_eau"?" — PRIORITE HAUTE: contact dans l heure":"")}
+        {date:td(),msg:"Assignee automatiquement a: "+fournisseur+(form.prio==="haute"||form.cat==="urgence_eau"?" â PRIORITE HAUTE: contact dans l heure":"")}
       ]
     };
     p.onAjouter(ticket);
@@ -300,11 +300,11 @@ function MonCompte(p){
         </Card>
         {d.animaux&&d.animaux.length>0&&<Card mb={0}>
           <div style={{fontSize:11,color:T.muted,fontWeight:600,marginBottom:10,textTransform:"uppercase"}}>Animaux ({d.animaux.length}/2)</div>
-          {d.animaux.map(function(a,i){return <div key={i} style={{fontSize:13,color:T.text,marginBottom:4}}>{a.nom} — {a.espece}</div>;})}
+          {d.animaux.map(function(a,i){return <div key={i} style={{fontSize:13,color:T.text,marginBottom:4}}>{a.nom} â {a.espece}</div>;})}
         </Card>}
         {d.vehicules&&d.vehicules.length>0&&<Card mb={0}>
           <div style={{fontSize:11,color:T.muted,fontWeight:600,marginBottom:10,textTransform:"uppercase"}}>Vehicules</div>
-          {d.vehicules.map(function(v,i){return <div key={i} style={{fontSize:12,color:T.text,marginBottom:4}}>{v.plaque} — {v.annee} {v.marque} {v.modele}</div>;})}
+          {d.vehicules.map(function(v,i){return <div key={i} style={{fontSize:12,color:T.text,marginBottom:4}}>{v.plaque} â {v.annee} {v.marque} {v.modele}</div>;})}
         </Card>}
       </div>
     </div>
@@ -391,7 +391,7 @@ export default function PortailCopro(){
             <span style={{color:"#fff",fontWeight:900,fontSize:14,fontFamily:"Georgia,serif"}}>P</span>
           </div>
           <div>
-            <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>Predictek — Portail Coproprietaire</div>
+            <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>Predictek â Portail Coproprietaire</div>
             <div style={{fontSize:9,color:"#3CAF6E"}}>Syndicat Piedmont | Unite {unite}</div>
           </div>
         </div>
