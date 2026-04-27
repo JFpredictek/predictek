@@ -1917,8 +1917,7 @@ function TabCommunicationsHub(){
 // ===== MODULE PRINCIPAL HUB =====
 export default function Hub(){
   var s0=useState("syndicats");var ong=s0[0];var setOng=s0[1];
-  var s1=useState([]);var syndicats=s1[0];var setSyndicats=s1[1];
-  var s1b=useState(false);var loadingSync=s1b[0];var setLoadingSync=s1b[1];
+  var s1=useState(SYNDICATS_INIT);var syndicats=s1[0];var setSyndicats=s1[1];
   var s2=useState(null);var detail=s2[0];var setDetail=s2[1];
   var s3=useState(false);var creer=s3[0];var setCreer=s3[1];
   var s4=useState(null);var setup=s4[0];var setSetup=s4[1];
@@ -1934,14 +1933,17 @@ export default function Hub(){
   var TABS=[{id:"syndicats",l:"Syndicats"},{id:"equipe",l:"Equipe et acces"},{id:"comms_hub",l:"Communications"},{id:"params_predictek",l:"Parametres"},{id:"rapports",l:"Rapports"}];
 
   useEffect(function(){
-    sb.select("syndicats",{order:"created_at.desc"}).then(function(res){
-      if(res.data&&res.data.length>0){
-        setSyndicats(res.data.map(function(s){
-          return {id:s.id,code:s.code,nom:s.nom,adr:s.adr||"",ville:s.ville||"",province:s.province||"QC",immat:s.immat||"",nbUnites:s.nb_unites||0,president:s.president||"",courriel:s.courriel||"",tel:s.tel||"",telUrgences:s.tel_urgences||"",courrielUrgences:s.courriel_urgences||"",statut:s.statut||"actif"};
-        }));
-      }
-    }).catch(function(){});
-    try{var logo=localStorage.getItem("predictek_logo");if(logo)setLogo(logo);}catch(e){}
+    try{
+      sb.select("syndicats",{order:"created_at.desc"}).then(function(res){
+        try{
+          if(res&&res.data&&Array.isArray(res.data)&&res.data.length>0){
+            setSyndicats(res.data.map(function(s){
+              return {id:s.id||"",code:s.code||"",nom:s.nom||"",adr:s.adr||"",ville:s.ville||"",province:s.province||"QC",immat:s.immat||"",nbUnites:s.nb_unites||0,president:s.president||"",courriel:s.courriel||"",tel:s.tel||"",statut:s.statut||"actif"};
+            }));
+          }
+        }catch(e2){}
+      }).catch(function(){});
+    }catch(e){}
   },[]);
 
   if(creer){
@@ -1951,13 +1953,15 @@ export default function Hub(){
           <Btn sm bg={"#ffffff20"} tc={"#fff"} bdr={"1px solid #ffffff40"} onClick={function(){setCreer(false);}}>Annuler</Btn>
         </div>
         <Onboarding onTermine={function(nouveau){
-          var row={code:nouveau.code,nom:nouveau.nom,adr:nouveau.adr||"",ville:nouveau.ville||"",province:nouveau.province||"QC",code_postal:nouveau.codePostal||"",immat:nouveau.immat||"",nb_unites:nouveau.nbUnites||0,president:nouveau.president||"",courriel:nouveau.courriel||"",tel:nouveau.tel||"",tel_urgences:nouveau.telUrgences||"",courriel_urgences:nouveau.courrielUrgences||"",statut:"actif"};
-          sb.insert("syndicats",row).then(function(res){
-            var saved=res.data?Object.assign({},nouveau,{id:res.data.id,statut:"actif"}):Object.assign({},nouveau,{statut:"actif"});
-            setSyndicats(function(prev){return prev.filter(function(s){return s.code!==nouveau.code;}).concat([saved]);});
-            sb.log("syndicat","creation","Nouveau syndicat: "+nouveau.nom,"Code: "+nouveau.code,nouveau.code);
-          }).catch(function(){setSyndicats(function(prev){return prev.filter(function(s){return s.code!==nouveau.code;}).concat([Object.assign({},nouveau,{statut:"actif"})]);});});
+          var saved=Object.assign({},nouveau,{statut:"actif"});
+          setSyndicats(function(prev){return prev.filter(function(s){return s.code!==nouveau.code;}).concat([saved]);});
           setCreer(false);
+          try{
+            var row={code:nouveau.code,nom:nouveau.nom,adr:nouveau.adr||"",ville:nouveau.ville||"",province:nouveau.province||"QC",immat:nouveau.immat||"",nb_unites:nouveau.nbUnites||0,president:nouveau.president||"",courriel:nouveau.courriel||"",tel:nouveau.tel||"",statut:"actif"};
+            sb.insert("syndicats",row).then(function(res){
+              try{if(res&&res.data&&res.data.id){setSyndicats(function(prev){return prev.map(function(s){return s.code===nouveau.code?Object.assign({},s,{id:res.data.id}):s;});});}}catch(e2){}
+            }).catch(function(){});
+          }catch(e){}
         }}/>
       </div>
     );
