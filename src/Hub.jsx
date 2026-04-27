@@ -1302,14 +1302,19 @@ function Onboarding(p){
 
 // ===== PARAMS PREDICTEK =====
 
+
+var PP={surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF"};
+var PP_FI={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
+function PpLb(p){return <div style={{fontSize:10,color:PP.muted,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:5}}>{p.l}</div>;}
+function PpFd(p){return <div style={p.full?{gridColumn:"1/-1"}:{}}><PpLb l={p.l}/>{p.children}{p.hint&&<div style={{fontSize:10,color:PP.muted,marginTop:3}}>{p.hint}</div>}</div>;}
+function PpBv(p){return <button onClick={p.onClick} disabled={p.dis} style={{background:p.dis?"#ccc":p.bg||PP.accent,border:"none",borderRadius:7,padding:"8px 18px",color:p.tc||"#fff",fontSize:12,fontWeight:600,cursor:p.dis?"not-allowed":"pointer",fontFamily:"inherit"}}>{p.children}</button>;}
+
 function ParamsPredictek(){
   function loadLocal(k,def){try{var v=localStorage.getItem("predictek_params_"+k);return v?JSON.parse(v):def;}catch(e){return def;}}
   function saveLocal(k,v){try{localStorage.setItem("predictek_params_"+k,JSON.stringify(v));}catch(e){}}
-  var P={surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF"};
-  var FI={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
-  function Lb(p){return <div style={{fontSize:10,color:P.muted,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:5}}>{p.l}</div>;}
-  function Fd(p){return <div style={p.full?{gridColumn:"1/-1"}:{}}><Lb l={p.l}/>{p.children}{p.hint&&<div style={{fontSize:10,color:P.muted,marginTop:3}}>{p.hint}</div>}</div>;}
-  function Bv(p){return <button onClick={p.onClick} disabled={p.dis} style={{background:p.dis?"#ccc":p.bg||P.accent,border:"none",borderRadius:7,padding:"8px 18px",color:p.tc||"#fff",fontSize:12,fontWeight:600,cursor:p.dis?"not-allowed":"pointer",fontFamily:"inherit"}}>{p.children}</button>;}
+}>{p.l}</div>;}
+:{}}><PpLb l={p.l}/>{p.children}{p.hint&&<div style={{fontSize:10,color:PP.muted,marginTop:3}}>{p.hint}</div>}</div>;}
+ disabled={p.dis} style={{background:p.dis?"#ccc":p.bg||PP.accent,border:"none",borderRadius:7,padding:"8px 18px",color:p.tc||"#fff",fontSize:12,fontWeight:600,cursor:p.dis?"not-allowed":"pointer",fontFamily:"inherit"}}>{p.children}</button>;}
 
   var DEF_INFO={nomLegal:"",nomCommercial:"Predictek",adr:"",ville:"",province:"QC",codePostal:"",siteWeb:"",courriel:"",telephone:"",neq:"",dateConstitution:"",exerciceDebut:"01-11",exerciceFin:"31-10"};
   var DEF_FISC={noTPS:"",noTVQ:"",noDeclarant:"",freqTPS:"trimestrielle",freqTVQ:"trimestrielle",regime:"regulier",inscritTPS:true,inscritTVQ:true};
@@ -1377,83 +1382,83 @@ function ParamsPredictek(){
   return(
     <div style={{padding:16,fontFamily:"Georgia,serif"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <div><div style={{fontSize:16,fontWeight:800,color:P.navy}}>Parametres Predictek</div><div style={{fontSize:11,color:P.muted}}>Sauvegarde dans Supabase</div></div>
+        <div><div style={{fontSize:16,fontWeight:800,color:PP.navy}}>Parametres Predictek</div><div style={{fontSize:11,color:PP.muted}}>Sauvegarde dans Supabase</div></div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          {savedOk&&<span style={{fontSize:11,color:P.accent,fontWeight:600,background:P.accentL,padding:"4px 12px",borderRadius:20}}>{savedOk}</span>}
-          <Bv onClick={sauver} dis={saving}>{saving?"Sauvegarde...":"Sauvegarder"}</Bv>
+          {savedOk&&<span style={{fontSize:11,color:PP.accent,fontWeight:600,background:PP.accentL,padding:"4px 12px",borderRadius:20}}>{savedOk}</span>}
+          <PpBv onClick={sauver} dis={saving}>{saving?"Sauvegarde...":"Sauvegarder"}</Bv>
         </div>
       </div>
-      <div style={{display:"flex",gap:3,marginBottom:16,background:P.surface,padding:4,borderRadius:10,border:"1px solid "+P.border}}>
-        {PTABS.map(function(t){var a=ong===t.id;return(<button key={t.id} onClick={function(){setOng(t.id);}} style={{background:a?P.navy:"transparent",border:"none",borderRadius:7,padding:"7px 16px",color:a?"#fff":P.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400}}>{t.l}</button>);})}
+      <div style={{display:"flex",gap:3,marginBottom:16,background:PP.surface,padding:4,borderRadius:10,border:"1px solid "+PP.border}}>
+        {PTABS.map(function(t){var a=ong===t.id;return(<button key={t.id} onClick={function(){setOng(t.id);}} style={{background:a?PP.navy:"transparent",border:"none",borderRadius:7,padding:"7px 16px",color:a?"#fff":PP.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400}}>{t.l}</button>);})}
       </div>
       {ong==="entreprise"&&(
-        <div style={{background:P.surface,border:"1px solid "+P.border,borderRadius:12,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,color:P.navy,marginBottom:14}}>Informations legales et coordonnees</div>
+        <div style={{background:PP.surface,border:"1px solid "+PP.border,borderRadius:12,padding:20}}>
+          <div style={{fontSize:13,fontWeight:700,color:PP.navy,marginBottom:14}}>Informations legales et coordonnees</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <Fd l="Nom legal" full><input value={infos.nomLegal} onChange={function(e){si(setInfos,"nomLegal")(e.target.value);}} style={FI} placeholder="9XXX-XXXX Quebec inc."/></Fd>
-            <Fd l="Nom commercial"><input value={infos.nomCommercial} onChange={function(e){si(setInfos,"nomCommercial")(e.target.value);}} style={FI} placeholder="Predictek"/></Fd>
-            <Fd l="NEQ" hint="10 chiffres"><input value={infos.neq} onChange={function(e){si(setInfos,"neq")(e.target.value);}} style={FI} placeholder="1234567890"/></Fd>
-            <Fd l="Date de constitution"><input type="date" value={infos.dateConstitution} onChange={function(e){si(setInfos,"dateConstitution")(e.target.value);}} style={FI}/></Fd>
-            <Fd l="Adresse" full><input value={infos.adr} onChange={function(e){si(setInfos,"adr")(e.target.value);}} style={FI} placeholder="123 rue Principale"/></Fd>
-            <Fd l="Ville"><input value={infos.ville} onChange={function(e){si(setInfos,"ville")(e.target.value);}} style={FI} placeholder="Quebec"/></Fd>
-            <Fd l="Province"><select value={infos.province} onChange={function(e){si(setInfos,"province")(e.target.value);}} style={FI}><option>QC</option><option>ON</option><option>BC</option><option>AB</option></select></Fd>
-            <Fd l="Code postal"><input value={infos.codePostal} onChange={function(e){si(setInfos,"codePostal")(e.target.value.toUpperCase());}} style={FI} placeholder="G1A 1A1"/></Fd>
-            <Fd l="Telephone"><input value={infos.telephone} onChange={function(e){si(setInfos,"telephone")(e.target.value);}} style={FI} placeholder="418-555-0000"/></Fd>
-            <Fd l="Courriel"><input value={infos.courriel} onChange={function(e){si(setInfos,"courriel")(e.target.value);}} style={FI} placeholder="info@predictek.ca"/></Fd>
-            <Fd l="Site web"><input value={infos.siteWeb} onChange={function(e){si(setInfos,"siteWeb")(e.target.value);}} style={FI} placeholder="app.predictek.ca"/></Fd>
-            <Fd l="Debut exercice"><input value={infos.exerciceDebut} onChange={function(e){si(setInfos,"exerciceDebut")(e.target.value);}} style={FI} placeholder="01-11"/></Fd>
-            <Fd l="Fin exercice"><input value={infos.exerciceFin} onChange={function(e){si(setInfos,"exerciceFin")(e.target.value);}} style={FI} placeholder="31-10"/></Fd>
+            <PpFd l="Nom legal" full><input value={infos.nomLegal} onChange={function(e){si(setInfos,"nomLegal")(e.target.value);}} style={PP_FI} placeholder="9XXX-XXXX Quebec inc."/></Fd>
+            <PpFd l="Nom commercial"><input value={infos.nomCommercial} onChange={function(e){si(setInfos,"nomCommercial")(e.target.value);}} style={PP_FI} placeholder="Predictek"/></Fd>
+            <PpFd l="NEQ" hint="10 chiffres"><input value={infos.neq} onChange={function(e){si(setInfos,"neq")(e.target.value);}} style={PP_FI} placeholder="1234567890"/></Fd>
+            <PpFd l="Date de constitution"><input type="date" value={infos.dateConstitution} onChange={function(e){si(setInfos,"dateConstitution")(e.target.value);}} style={PP_FI}/></Fd>
+            <PpFd l="Adresse" full><input value={infos.adr} onChange={function(e){si(setInfos,"adr")(e.target.value);}} style={PP_FI} placeholder="123 rue Principale"/></Fd>
+            <PpFd l="Ville"><input value={infos.ville} onChange={function(e){si(setInfos,"ville")(e.target.value);}} style={PP_FI} placeholder="Quebec"/></Fd>
+            <PpFd l="Province"><select value={infos.province} onChange={function(e){si(setInfos,"province")(e.target.value);}} style={PP_FI}><option>QC</option><option>ON</option><option>BC</option><option>AB</option></select></Fd>
+            <PpFd l="Code postal"><input value={infos.codePostal} onChange={function(e){si(setInfos,"codePostal")(e.target.value.toUpperCase());}} style={PP_FI} placeholder="G1A 1A1"/></Fd>
+            <PpFd l="Telephone"><input value={infos.telephone} onChange={function(e){si(setInfos,"telephone")(e.target.value);}} style={PP_FI} placeholder="418-555-0000"/></Fd>
+            <PpFd l="Courriel"><input value={infos.courriel} onChange={function(e){si(setInfos,"courriel")(e.target.value);}} style={PP_FI} placeholder="info@predictek.ca"/></Fd>
+            <PpFd l="Site web"><input value={infos.siteWeb} onChange={function(e){si(setInfos,"siteWeb")(e.target.value);}} style={PP_FI} placeholder="app.predictek.ca"/></Fd>
+            <PpFd l="Debut exercice"><input value={infos.exerciceDebut} onChange={function(e){si(setInfos,"exerciceDebut")(e.target.value);}} style={PP_FI} placeholder="01-11"/></Fd>
+            <PpFd l="Fin exercice"><input value={infos.exerciceFin} onChange={function(e){si(setInfos,"exerciceFin")(e.target.value);}} style={PP_FI} placeholder="31-10"/></Fd>
           </div>
         </div>
       )}
       {ong==="fiscalite"&&(
-        <div style={{background:P.surface,border:"1px solid "+P.border,borderRadius:12,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,color:P.navy,marginBottom:4}}>Numeros de taxes et parametres fiscaux</div>
-          <div style={{background:P.amberL,border:"1px solid "+P.amber+"44",borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:11,color:P.amber}}>Ces numeros apparaissent sur vos factures et rapports de taxes.</div>
+        <div style={{background:PP.surface,border:"1px solid "+PP.border,borderRadius:12,padding:20}}>
+          <div style={{fontSize:13,fontWeight:700,color:PP.navy,marginBottom:4}}>Numeros de taxes et parametres fiscaux</div>
+          <div style={{background:PP.amberL,border:"1px solid "+PP.amber+"44",borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:11,color:PP.amber}}>Ces numeros apparaissent sur vos factures et rapports de taxes.</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <div style={{gridColumn:"1/-1",background:P.accentL,border:"1px solid "+P.accent+"33",borderRadius:10,padding:14,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div style={{fontSize:12,fontWeight:700,color:P.accent,gridColumn:"1/-1"}}>TPS - Federal (5%)</div>
-              <Fd l="Numero TPS" hint="Format: 123456789 RT0001"><input value={fisc.noTPS} onChange={function(e){si(setFisc,"noTPS")(e.target.value.toUpperCase());}} style={FI} placeholder="123456789 RT0001"/></Fd>
-              <Fd l="Frequence"><select value={fisc.freqTPS} onChange={function(e){si(setFisc,"freqTPS")(e.target.value);}} style={FI}><option value="mensuelle">Mensuelle</option><option value="trimestrielle">Trimestrielle</option><option value="annuelle">Annuelle</option></select></Fd>
+            <div style={{gridColumn:"1/-1",background:PP.accentL,border:"1px solid "+PP.accent+"33",borderRadius:10,padding:14,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div style={{fontSize:12,fontWeight:700,color:PP.accent,gridColumn:"1/-1"}}>TPS - Federal (5%)</div>
+              <PpFd l="Numero TPS" hint="Format: 123456789 RT0001"><input value={fisc.noTPS} onChange={function(e){si(setFisc,"noTPS")(e.target.value.toUpperCase());}} style={PP_FI} placeholder="123456789 RT0001"/></Fd>
+              <PpFd l="Frequence"><select value={fisc.freqTPS} onChange={function(e){si(setFisc,"freqTPS")(e.target.value);}} style={PP_FI}><option value="mensuelle">Mensuelle</option><option value="trimestrielle">Trimestrielle</option><option value="annuelle">Annuelle</option></select></Fd>
               <div style={{gridColumn:"1/-1",display:"flex",alignItems:"center",gap:8}}><input type="checkbox" id="cbTPS" checked={!!fisc.inscritTPS} onChange={function(e){si(setFisc,"inscritTPS")(e.target.checked);}}/><label htmlFor="cbTPS" style={{fontSize:12}}>Inscrit a la TPS</label></div>
             </div>
-            <div style={{gridColumn:"1/-1",background:P.blueL,border:"1px solid "+P.blue+"33",borderRadius:10,padding:14,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div style={{fontSize:12,fontWeight:700,color:P.blue,gridColumn:"1/-1"}}>TVQ - Provincial (9.975%)</div>
-              <Fd l="Numero TVQ" hint="Format: 1234567890 TQ0001"><input value={fisc.noTVQ} onChange={function(e){si(setFisc,"noTVQ")(e.target.value.toUpperCase());}} style={FI} placeholder="1234567890 TQ0001"/></Fd>
-              <Fd l="No declarant"><input value={fisc.noDeclarant} onChange={function(e){si(setFisc,"noDeclarant")(e.target.value);}} style={FI} placeholder="1234567890"/></Fd>
-              <Fd l="Frequence"><select value={fisc.freqTVQ} onChange={function(e){si(setFisc,"freqTVQ")(e.target.value);}} style={FI}><option value="mensuelle">Mensuelle</option><option value="trimestrielle">Trimestrielle</option><option value="annuelle">Annuelle</option></select></Fd>
+            <div style={{gridColumn:"1/-1",background:PP.blueL,border:"1px solid "+PP.blue+"33",borderRadius:10,padding:14,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div style={{fontSize:12,fontWeight:700,color:PP.blue,gridColumn:"1/-1"}}>TVQ - Provincial (9.975%)</div>
+              <PpFd l="Numero TVQ" hint="Format: 1234567890 TQ0001"><input value={fisc.noTVQ} onChange={function(e){si(setFisc,"noTVQ")(e.target.value.toUpperCase());}} style={PP_FI} placeholder="1234567890 TQ0001"/></Fd>
+              <PpFd l="No declarant"><input value={fisc.noDeclarant} onChange={function(e){si(setFisc,"noDeclarant")(e.target.value);}} style={PP_FI} placeholder="1234567890"/></Fd>
+              <PpFd l="Frequence"><select value={fisc.freqTVQ} onChange={function(e){si(setFisc,"freqTVQ")(e.target.value);}} style={PP_FI}><option value="mensuelle">Mensuelle</option><option value="trimestrielle">Trimestrielle</option><option value="annuelle">Annuelle</option></select></Fd>
               <div style={{gridColumn:"1/-1",display:"flex",alignItems:"center",gap:8}}><input type="checkbox" id="cbTVQ" checked={!!fisc.inscritTVQ} onChange={function(e){si(setFisc,"inscritTVQ")(e.target.checked);}}/><label htmlFor="cbTVQ" style={{fontSize:12}}>Inscrit a la TVQ</label></div>
             </div>
           </div>
         </div>
       )}
       {ong==="banque"&&(
-        <div style={{background:P.surface,border:"1px solid "+P.border,borderRadius:12,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,color:P.navy,marginBottom:14}}>Coordonnees bancaires</div>
+        <div style={{background:PP.surface,border:"1px solid "+PP.border,borderRadius:12,padding:20}}>
+          <div style={{fontSize:13,fontWeight:700,color:PP.navy,marginBottom:14}}>Coordonnees bancaires</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <Fd l="Institution"><input value={banque.institution} onChange={function(e){si(setBanque,"institution")(e.target.value);}} style={FI} placeholder="Desjardins, RBC..."/></Fd>
-            <Fd l="Nom du compte"><input value={banque.nomCompte} onChange={function(e){si(setBanque,"nomCompte")(e.target.value);}} style={FI} placeholder="Compte operations"/></Fd>
-            <Fd l="Transit (5 chiffres)"><input value={banque.transit} onChange={function(e){si(setBanque,"transit")(e.target.value);}} style={FI} placeholder="12345"/></Fd>
-            <Fd l="No institution (3 chiffres)"><input value={banque.noInstitution} onChange={function(e){si(setBanque,"noInstitution")(e.target.value);}} style={FI} placeholder="815"/></Fd>
-            <Fd l="No de compte" full hint="Confidentiel"><input value={banque.noCompte} onChange={function(e){si(setBanque,"noCompte")(e.target.value);}} style={FI} placeholder="1234567"/></Fd>
+            <PpFd l="Institution"><input value={banque.institution} onChange={function(e){si(setBanque,"institution")(e.target.value);}} style={PP_FI} placeholder="Desjardins, RBC..."/></Fd>
+            <PpFd l="Nom du compte"><input value={banque.nomCompte} onChange={function(e){si(setBanque,"nomCompte")(e.target.value);}} style={PP_FI} placeholder="Compte operations"/></Fd>
+            <PpFd l="Transit (5 chiffres)"><input value={banque.transit} onChange={function(e){si(setBanque,"transit")(e.target.value);}} style={PP_FI} placeholder="12345"/></Fd>
+            <PpFd l="No institution (3 chiffres)"><input value={banque.noInstitution} onChange={function(e){si(setBanque,"noInstitution")(e.target.value);}} style={PP_FI} placeholder="815"/></Fd>
+            <PpFd l="No de compte" full hint="Confidentiel"><input value={banque.noCompte} onChange={function(e){si(setBanque,"noCompte")(e.target.value);}} style={PP_FI} placeholder="1234567"/></Fd>
           </div>
         </div>
       )}
       {ong==="logo"&&(
-        <div style={{background:P.surface,border:"1px solid "+P.border,borderRadius:12,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,color:P.navy,marginBottom:14}}>Logo et identite visuelle</div>
+        <div style={{background:PP.surface,border:"1px solid "+PP.border,borderRadius:12,padding:20}}>
+          <div style={{fontSize:13,fontWeight:700,color:PP.navy,marginBottom:14}}>Logo et identite visuelle</div>
           <div style={{display:"flex",gap:24,alignItems:"flex-start"}}>
-            <div style={{width:120,height:120,borderRadius:14,background:logo.url?"#fff":"linear-gradient(135deg,#1B5E3B,#3CAF6E)",display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+P.border,overflow:"hidden",flexShrink:0}}>
+            <div style={{width:120,height:120,borderRadius:14,background:logo.url?"#fff":"linear-gradient(135deg,#1B5E3B,#3CAF6E)",display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+PP.border,overflow:"hidden",flexShrink:0}}>
               {logo.url?<img src={logo.url} alt="Logo" style={{width:"100%",height:"100%",objectFit:"contain",padding:8}}/>:<span style={{color:"#fff",fontWeight:900,fontSize:48,fontFamily:"Georgia,serif"}}>P</span>}
             </div>
             <div style={{flex:1}}>
               <input type="file" accept="image/png,image/jpeg,image/svg+xml" id="lgUp" onChange={handleLogo} style={{display:"none"}}/>
               <div style={{display:"grid",gap:10,marginBottom:12}}>
-                <Bv onClick={function(){document.getElementById("lgUp").click();}}>{logo.url?"Remplacer":"Choisir un logo"}</Bv>
-                {logo.url&&<Bv bg={P.redL} tc={P.red} onClick={function(){setLogo({url:"",nom:""});try{localStorage.removeItem("predictek_logo");}catch(e){};}}>Retirer</Bv>}
+                <PpBv onClick={function(){document.getElementById("lgUp").click();}}>{logo.url?"Remplacer":"Choisir un logo"}</Bv>
+                {logo.url&&<PpBv bg={PP.redL} tc={PP.red} onClick={function(){setLogo({url:"",nom:""});try{localStorage.removeItem("predictek_logo");}catch(e){};}}>Retirer</Bv>}
               </div>
-              {logo.nom&&<div style={{fontSize:11,color:P.muted,marginBottom:8}}>{logo.nom}</div>}
-              <div style={{background:P.alt,borderRadius:8,padding:"10px 14px",fontSize:11,color:P.muted}}>PNG, JPG ou SVG. Fond transparent, min. 200x200px.</div>
+              {logo.nom&&<div style={{fontSize:11,color:PP.muted,marginBottom:8}}>{logo.nom}</div>}
+              <div style={{background:PP.alt,borderRadius:8,padding:"10px 14px",fontSize:11,color:PP.muted}}>PNG, JPG ou SVG. Fond transparent, min. 200x200px.</div>
             </div>
           </div>
         </div>
