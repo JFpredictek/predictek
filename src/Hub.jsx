@@ -838,6 +838,32 @@ var COMPOSANTES_LOI16=[
   {cat:"Interieur",nom:"Peinture - parties communes",dureeVie:10,anneeInstall:"",etat:"bon",notes:"",obligatoire:false},
 ];
 
+
+// Helpers Onboarding (definis hors de tout composant)
+function Field(p){
+  var st=p.full?{gridColumn:"1/-1"}:{};
+  var nc={muted:"#7C7568"};
+  return(
+    <div style={st}>
+      {p.l&&<div style={{fontSize:10,color:nc.muted,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:5}}>{p.l}</div>}
+      {p.children}
+      {p.hint&&<div style={{fontSize:10,color:nc.muted,marginTop:3}}>{p.hint}</div>}
+    </div>
+  );
+}
+function Check(p){
+  return(
+    <div style={{display:"flex",gap:10,alignItems:"flex-start",cursor:"pointer"}} onClick={p.onChange}>
+      <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(p.checked?"#1B5E3B":"#DDD9CF"),background:p.checked?"#1B5E3B":"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>
+        {p.checked&&<span style={{color:"#fff",fontSize:12,fontWeight:700}}>V</span>}
+      </div>
+      <div>
+        {p.label&&<div style={{fontSize:12,fontWeight:600,color:"#1C1A17",lineHeight:1.4}}>{p.label}</div>}
+        {p.desc&&<div style={{fontSize:11,color:"#7C7568",marginTop:3,lineHeight:1.4}}>{p.desc}</div>}
+      </div>
+    </div>
+  );
+}
 function Onboarding(p){
   var s0=useState(1);var step=s0[0];var setStep=s0[1];
   var s1=useState({
