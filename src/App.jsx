@@ -9,7 +9,7 @@ import PortailCopro from "./PortailCopro";
 import Notifications from "./Notifications";
 import Comptabilite from "./Comptabilite";
 import ModuleIA from "./ModuleIA";
-import ModuleHistorique from "./Historique";
+import ModuleHistorique from "./Historique"; // rebuild avec Supabase env vars
 
 var MODS=[
   {id:"hub",label:"Predictek",icon:"P"},
