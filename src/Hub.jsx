@@ -1,3 +1,4 @@
+import sb from "./lib/supabase";
 import { useState, useRef } from "react";
 var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",pop:"#3CAF6E",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",purple:"#6B3FA0",purpleL:"#F3EEFF"};
 var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
@@ -1916,7 +1917,8 @@ function TabCommunicationsHub(){
 // ===== MODULE PRINCIPAL HUB =====
 export default function Hub(){
   var s0=useState("syndicats");var ong=s0[0];var setOng=s0[1];
-  var s1=useState(SYNDICATS_INIT);var syndicats=s1[0];var setSyndicats=s1[1];
+  var s1=useState([]);var syndicats=s1[0];var setSyndicats=s1[1];
+  var s1b=useState(false);var loadingSync=s1b[0];var setLoadingSync=s1b[1];
   var s2=useState(null);var detail=s2[0];var setDetail=s2[1];
   var s3=useState(false);var creer=s3[0];var setCreer=s3[1];
   var s4=useState(null);var setup=s4[0];var setSetup=s4[1];
@@ -1931,13 +1933,32 @@ export default function Hub(){
 
   var TABS=[{id:"syndicats",l:"Syndicats"},{id:"equipe",l:"Equipe et acces"},{id:"comms_hub",l:"Communications"},{id:"params_predictek",l:"Parametres"},{id:"rapports",l:"Rapports"}];
 
+  useEffect(function(){
+    sb.select("syndicats",{order:"created_at.desc"}).then(function(res){
+      if(res.data&&res.data.length>0){
+        setSyndicats(res.data.map(function(s){
+          return {id:s.id,code:s.code,nom:s.nom,adr:s.adr||"",ville:s.ville||"",province:s.province||"QC",immat:s.immat||"",nbUnites:s.nb_unites||0,president:s.president||"",courriel:s.courriel||"",tel:s.tel||"",telUrgences:s.tel_urgences||"",courrielUrgences:s.courriel_urgences||"",statut:s.statut||"actif"};
+        }));
+      }
+    }).catch(function(){});
+    try{var logo=localStorage.getItem("predictek_logo");if(logo)setLogo(logo);}catch(e){}
+  },[]);
+
   if(creer){
     return(
       <div style={{fontFamily:"Georgia,serif"}}>
         <div style={{background:T.navy,display:"flex",alignItems:"center",gap:12,padding:"12px 20px"}}>
           <Btn sm bg={"#ffffff20"} tc={"#fff"} bdr={"1px solid #ffffff40"} onClick={function(){setCreer(false);}}>Annuler</Btn>
         </div>
-        <Onboarding onTermine={function(nouveau){setSyndicats(function(prev){return prev.filter(function(s){return s.code!==nouveau.code;}).concat([Object.assign({},nouveau,{statut:"actif"})]);});setCreer(false);}}/>
+        <Onboarding onTermine={function(nouveau){
+          var row={code:nouveau.code,nom:nouveau.nom,adr:nouveau.adr||"",ville:nouveau.ville||"",province:nouveau.province||"QC",code_postal:nouveau.codePostal||"",immat:nouveau.immat||"",nb_unites:nouveau.nbUnites||0,president:nouveau.president||"",courriel:nouveau.courriel||"",tel:nouveau.tel||"",tel_urgences:nouveau.telUrgences||"",courriel_urgences:nouveau.courrielUrgences||"",statut:"actif"};
+          sb.insert("syndicats",row).then(function(res){
+            var saved=res.data?Object.assign({},nouveau,{id:res.data.id,statut:"actif"}):Object.assign({},nouveau,{statut:"actif"});
+            setSyndicats(function(prev){return prev.filter(function(s){return s.code!==nouveau.code;}).concat([saved]);});
+            sb.log("syndicat","creation","Nouveau syndicat: "+nouveau.nom,"Code: "+nouveau.code,nouveau.code);
+          }).catch(function(){setSyndicats(function(prev){return prev.filter(function(s){return s.code!==nouveau.code;}).concat([Object.assign({},nouveau,{statut:"actif"})]);});});
+          setCreer(false);
+        }}/>
       </div>
     );
   }
