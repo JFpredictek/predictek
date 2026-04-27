@@ -1331,40 +1331,38 @@ function ParamsPredictek(){
   var s7=useState(null);var dbId=s7[0];var setDbId=s7[1];
 
   useEffect(function(){
-    // Charger depuis Supabase
-    (async function(){
-      try{
-        var res=await sb.selectOne("predictek_entreprise",{});
-        if(res.data&&res.data.id){
-          setDbId(res.data.id);
-          var d=res.data;
-          setInfos({nomLegal:d.nom_legal||"",nomCommercial:d.nom_commercial||"Predictek",adr:d.adr||"",ville:d.ville||"",province:d.province||"QC",codePostal:d.code_postal||"",siteWeb:d.site_web||"",courriel:d.courriel||"",telephone:d.telephone||"",neq:d.neq||"",dateConstitution:d.date_creation||"",exerciceDebut:d.exercice_debut||"01-11",exerciceFin:d.exercice_fin||"31-10"});
-          setFisc({noTPS:d.no_tps||"",noTVQ:d.no_tvq||"",noDeclarant:d.no_declarant||"",freqTPS:d.freq_tps||"trimestrielle",freqTVQ:d.freq_tvq||"trimestrielle",regime:"regulier",inscritTPS:d.inscrit_tps!==false,inscritTVQ:d.inscrit_tvq!==false});
-          setBanque({institution:d.banque_institution||"",transit:d.banque_transit||"",noInstitution:d.banque_no_institution||"",noCompte:d.banque_no_compte||"",nomCompte:""});
-          if(d.logo_url)setLogo({url:d.logo_url,nom:"logo"});
-        }
-      }catch(e){}
-    }());
+    sb.selectOne("predictek_entreprise",{}).then(function(res){
+      if(res.data&&res.data.id){
+        setDbId(res.data.id);
+        var d=res.data;
+        setInfos({nomLegal:d.nom_legal||"",nomCommercial:d.nom_commercial||"Predictek",adr:d.adr||"",ville:d.ville||"",province:d.province||"QC",codePostal:d.code_postal||"",siteWeb:d.site_web||"",courriel:d.courriel||"",telephone:d.telephone||"",neq:d.neq||"",dateConstitution:d.date_creation||"",exerciceDebut:d.exercice_debut||"01-11",exerciceFin:d.exercice_fin||"31-10"});
+        setFisc({noTPS:d.no_tps||"",noTVQ:d.no_tvq||"",noDeclarant:d.no_declarant||"",freqTPS:d.freq_tps||"trimestrielle",freqTVQ:d.freq_tvq||"trimestrielle",regime:"regulier",inscritTPS:d.inscrit_tps!==false,inscritTVQ:d.inscrit_tvq!==false});
+        setBanque({institution:d.banque_institution||"",transit:d.banque_transit||"",noInstitution:d.banque_no_institution||"",noCompte:d.banque_no_compte||"",nomCompte:""});
+        if(d.logo_url)setLogo({url:d.logo_url,nom:"logo"});
+      }
+    }).catch(function(e){});
   },[]);
 
   function si(setter,k){return function(v){setter(function(o){var n=Object.assign({},o);n[k]=v;return n;});};}
 
-  async function sauver(){
+  function sauver(){
     setSaving(true);
     var row={nom_legal:infos.nomLegal,nom_commercial:infos.nomCommercial,adr:infos.adr,ville:infos.ville,province:infos.province,code_postal:infos.codePostal,site_web:infos.siteWeb,courriel:infos.courriel,telephone:infos.telephone,neq:infos.neq,exercice_debut:infos.exerciceDebut,exercice_fin:infos.exerciceFin,no_tps:fisc.noTPS,no_tvq:fisc.noTVQ,no_declarant:fisc.noDeclarant,freq_tps:fisc.freqTPS,freq_tvq:fisc.freqTVQ,inscrit_tps:fisc.inscritTPS,inscrit_tvq:fisc.inscritTVQ,banque_institution:banque.institution,banque_transit:banque.transit,banque_no_institution:banque.noInstitution,banque_no_compte:banque.noCompte,logo_url:logo.url||""};
-    try{
-      var res;
-      if(dbId){res=await sb.update("predictek_entreprise",dbId,row);}
-      else{res=await sb.insert("predictek_entreprise",row);if(res.data&&res.data.id)setDbId(res.data.id);}
-      // Aussi sauvegarder localement
+    var p = dbId ? sb.update("predictek_entreprise",dbId,row) : sb.insert("predictek_entreprise",row);
+    p.then(function(res){
+      if(!dbId&&res.data&&res.data.id)setDbId(res.data.id);
       saveLocal("entreprise",infos);saveLocal("fiscalite",fisc);saveLocal("banque",banque);saveLocal("logo",logo);
       if(logo.url)try{localStorage.setItem("predictek_logo",logo.url);}catch(e){}
-      // Logger
-      await sb.log("systeme","modification","Parametres Predictek sauvegardes","","");
+      sb.log("systeme","modification","Parametres Predictek sauvegardes","","");
       setSavedOk("Sauvegarde dans Supabase!");
-    }catch(e){setSavedOk("Sauvegarde locale (hors ligne)");}
-    setSaving(false);
-    setTimeout(function(){setSavedOk("");},3000);
+      setSaving(false);
+      setTimeout(function(){setSavedOk("");},3000);
+    }).catch(function(e){
+      saveLocal("entreprise",infos);saveLocal("fiscalite",fisc);saveLocal("banque",banque);saveLocal("logo",logo);
+      setSavedOk("Sauvegarde locale");
+      setSaving(false);
+      setTimeout(function(){setSavedOk("");},3000);
+    });
   }
 
   function handleLogo(e){
