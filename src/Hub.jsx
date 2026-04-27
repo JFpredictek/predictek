@@ -1304,129 +1304,127 @@ function Onboarding(p){
 
 // ===== PARAMS PREDICTEK =====
 
-// ===== PARAMS PREDICTEK - Helpers =====
-var PP_COLORS={surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF"};
-var PP_INPUT={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
-function PpLb(p){return <div style={{fontSize:10,color:PP_COLORS.muted,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:5}}>{p.l}</div>;}
-function PpFd(p){return <div style={p.full?{gridColumn:"1/-1"}:{}}><PpLb l={p.l}/>{p.children}{p.hint&&<div style={{fontSize:10,color:PP_COLORS.muted,marginTop:3}}>{p.hint}</div>}</div>;}
-function PpBv(p){return <button onClick={p.onClick} disabled={p.dis} style={{background:p.dis?"#ccc":p.bg||PP_COLORS.accent,border:"none",borderRadius:7,padding:"8px 18px",color:p.tc||"#fff",fontSize:12,fontWeight:600,cursor:p.dis?"not-allowed":"pointer",fontFamily:"inherit"}}>{p.children}</button>;}
 
-// ===== PARAMS PREDICTEK =====
 function ParamsPredictek(){
-  function load(k,def){try{var v=localStorage.getItem("predictek_params_"+k);return v?JSON.parse(v):def;}catch(e){return def;}}
+  var NC={muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF"};
+  var NI={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
+  var NL={fontSize:10,color:"#7C7568",textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:5};
+  function load(k,d){try{var v=localStorage.getItem("predictek_params_"+k);return v?JSON.parse(v):d;}catch(e){return d;}}
   function save(k,v){try{localStorage.setItem("predictek_params_"+k,JSON.stringify(v));}catch(e){}}
-  var s0=useState(load("entreprise",{nomLegal:"",nomCommercial:"Predictek",adr:"",ville:"",province:"QC",codePostal:"",siteWeb:"",courriel:"",telephone:"",neq:"",exerciceDebut:"01-11",exerciceFin:"31-10"}));
+  var s0=useState(function(){return load("entreprise",{nomLegal:"",nomCommercial:"Predictek",adr:"",ville:"",province:"QC",codePostal:"",siteWeb:"",courriel:"",telephone:"",neq:"",exerciceDebut:"01-11",exerciceFin:"31-10"});});
   var infos=s0[0];var setInfos=s0[1];
-  var s1=useState(load("fiscalite",{noTPS:"",noTVQ:"",noDeclarant:"",freqTPS:"trimestrielle",freqTVQ:"trimestrielle",inscritTPS:true,inscritTVQ:true}));
+  var s1=useState(function(){return load("fiscalite",{noTPS:"",noTVQ:"",noDeclarant:"",freqTPS:"trimestrielle",freqTVQ:"trimestrielle",inscritTPS:true,inscritTVQ:true});});
   var fisc=s1[0];var setFisc=s1[1];
-  var s2=useState(load("banque",{institution:"",transit:"",noInstitution:"",noCompte:"",nomCompte:""}));
+  var s2=useState(function(){return load("banque",{institution:"",transit:"",noInstitution:"",noCompte:"",nomCompte:""});});
   var banque=s2[0];var setBanque=s2[1];
-  var s3=useState(load("logo",{url:"",nom:""}));
+  var s3=useState(function(){return load("logo",{url:"",nom:""});});
   var logo=s3[0];var setLogo=s3[1];
   var s4=useState("entreprise");var ong=s4[0];var setOng=s4[1];
-  var s5=useState("");var savedOk=s5[0];var setSavedOk=s5[1];
+  var s5=useState("");var ok=s5[0];var setOk=s5[1];
 
-  function siI(k){return function(e){setInfos(function(o){var n=Object.assign({},o);n[k]=e.target.value;return n;});};}
-  function siF(k){return function(e){setFisc(function(o){var n=Object.assign({},o);n[k]=e.target.value;return n;});};}
-  function siB(k){return function(e){setBanque(function(o){var n=Object.assign({},o);n[k]=e.target.value;return n;});};}
-  function siFChk(k){return function(e){setFisc(function(o){var n=Object.assign({},o);n[k]=e.target.checked;return n;});};}
+  var setI=function(k,v){setInfos(function(p){return Object.assign({},p,{[k]:v});});};
+  var setF=function(k,v){setFisc(function(p){return Object.assign({},p,{[k]:v});});};
+  var setB=function(k,v){setBanque(function(p){return Object.assign({},p,{[k]:v});});};
 
   function sauver(){
     save("entreprise",infos);save("fiscalite",fisc);save("banque",banque);save("logo",logo);
     try{if(logo.url)localStorage.setItem("predictek_logo",logo.url);}catch(e){}
-    setSavedOk("Sauvegarde!");
-    setTimeout(function(){setSavedOk("");},3000);
+    setOk("Sauvegarde!");setTimeout(function(){setOk("");},3000);
   }
-
   function handleLogo(e){
     var file=e.target.files[0];if(!file)return;
-    var reader=new FileReader();
-    reader.onload=function(ev){
-      setLogo({url:ev.target.result,nom:file.name});
-      try{localStorage.setItem("predictek_logo",ev.target.result);}catch(err){}
-    };
-    reader.readAsDataURL(file);
+    var r=new FileReader();
+    r.onload=function(ev){setLogo({url:ev.target.result,nom:file.name});try{localStorage.setItem("predictek_logo",ev.target.result);}catch(x){}};
+    r.readAsDataURL(file);
   }
 
-  var PTABS=[{id:"entreprise",l:"Entreprise"},{id:"fiscalite",l:"TPS / TVQ"},{id:"banque",l:"Banque"},{id:"logo",l:"Logo"}];
+  var TABS=[{id:"entreprise",l:"Entreprise"},{id:"fiscalite",l:"TPS / TVQ"},{id:"banque",l:"Banque"},{id:"logo",l:"Logo"}];
   return(
     <div style={{padding:16,fontFamily:"Georgia,serif"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <div><div style={{fontSize:16,fontWeight:800,color:PP_COLORS.navy}}>Parametres Predictek</div><div style={{fontSize:11,color:PP_COLORS.muted}}>Informations de votre entreprise</div></div>
+        <div>
+          <div style={{fontSize:16,fontWeight:800,color:NC.navy}}>Parametres Predictek</div>
+          <div style={{fontSize:11,color:NC.muted}}>Informations de votre entreprise</div>
+        </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          {savedOk&&<span style={{fontSize:11,color:PP_COLORS.accent,fontWeight:600,background:PP_COLORS.accentL,padding:"4px 12px",borderRadius:20}}>{savedOk}</span>}
-          <PpBv onClick={sauver}>Sauvegarder</PpBv>
+          {ok&&<span style={{fontSize:11,color:NC.accent,fontWeight:600,background:NC.accentL,padding:"4px 12px",borderRadius:20}}>{ok}</span>}
+          <button onClick={sauver} style={{background:NC.accent,border:"none",borderRadius:7,padding:"8px 18px",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Sauvegarder</button>
         </div>
       </div>
-      <div style={{display:"flex",gap:3,marginBottom:16,background:PP_COLORS.surface,padding:4,borderRadius:10,border:"1px solid "+PP_COLORS.border}}>
-        {PTABS.map(function(t){var a=ong===t.id;return(<button key={t.id} onClick={function(){setOng(t.id);}} style={{background:a?PP_COLORS.navy:"transparent",border:"none",borderRadius:7,padding:"7px 16px",color:a?"#fff":PP_COLORS.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400}}>{t.l}</button>);})}
+
+      <div style={{display:"flex",gap:3,marginBottom:16,background:NC.surface,padding:4,borderRadius:10,border:"1px solid "+NC.border}}>
+        {TABS.map(function(t){var a=ong===t.id;return(<button key={t.id} onClick={function(){setOng(t.id);}} style={{background:a?NC.navy:"transparent",border:"none",borderRadius:7,padding:"7px 16px",color:a?"#fff":NC.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400}}>{t.l}</button>);})}
       </div>
+
       {ong==="entreprise"&&(
-        <div style={{background:PP_COLORS.surface,border:"1px solid "+PP_COLORS.border,borderRadius:12,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,color:PP_COLORS.navy,marginBottom:14}}>Informations legales et coordonnees</div>
+        <div style={{background:NC.surface,border:"1px solid "+NC.border,borderRadius:12,padding:20}}>
+          <div style={{fontSize:13,fontWeight:700,color:NC.navy,marginBottom:14}}>Informations legales et coordonnees</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <PpFd l="Nom legal" full><input value={infos.nomLegal} onChange={siI("nomLegal")} style={PP_INPUT} placeholder="9XXX-XXXX Quebec inc."/></PpFd>
-            <PpFd l="Nom commercial"><input value={infos.nomCommercial} onChange={siI("nomCommercial")} style={PP_INPUT} placeholder="Predictek"/></PpFd>
-            <PpFd l="NEQ" hint="10 chiffres"><input value={infos.neq} onChange={siI("neq")} style={PP_INPUT} placeholder="1234567890"/></PpFd>
-            <PpFd l="Adresse" full><input value={infos.adr} onChange={siI("adr")} style={PP_INPUT} placeholder="123 rue Principale"/></PpFd>
-            <PpFd l="Ville"><input value={infos.ville} onChange={siI("ville")} style={PP_INPUT} placeholder="Quebec"/></PpFd>
-            <PpFd l="Province"><select value={infos.province} onChange={siI("province")} style={PP_INPUT}><option>QC</option><option>ON</option><option>BC</option><option>AB</option></select></PpFd>
-            <PpFd l="Code postal"><input value={infos.codePostal} onChange={siI("codePostal")} style={PP_INPUT} placeholder="G1A 1A1"/></PpFd>
-            <PpFd l="Telephone"><input value={infos.telephone} onChange={siI("telephone")} style={PP_INPUT} placeholder="418-555-0000"/></PpFd>
-            <PpFd l="Courriel"><input value={infos.courriel} onChange={siI("courriel")} style={PP_INPUT} placeholder="info@predictek.ca"/></PpFd>
-            <PpFd l="Site web"><input value={infos.siteWeb} onChange={siI("siteWeb")} style={PP_INPUT} placeholder="app.predictek.ca"/></PpFd>
-            <PpFd l="Debut exercice"><input value={infos.exerciceDebut} onChange={siI("exerciceDebut")} style={PP_INPUT} placeholder="01-11"/></PpFd>
-            <PpFd l="Fin exercice"><input value={infos.exerciceFin} onChange={siI("exerciceFin")} style={PP_INPUT} placeholder="31-10"/></PpFd>
+            <div style={{gridColumn:"1/-1"}}><div style={NL}>Nom legal</div><input value={infos.nomLegal} onChange={function(e){setI("nomLegal",e.target.value);}} style={NI} placeholder="9XXX-XXXX Quebec inc."/></div>
+            <div><div style={NL}>Nom commercial</div><input value={infos.nomCommercial} onChange={function(e){setI("nomCommercial",e.target.value);}} style={NI} placeholder="Predictek"/></div>
+            <div><div style={NL}>NEQ</div><input value={infos.neq} onChange={function(e){setI("neq",e.target.value);}} style={NI} placeholder="1234567890"/></div>
+            <div style={{gridColumn:"1/-1"}}><div style={NL}>Adresse</div><input value={infos.adr} onChange={function(e){setI("adr",e.target.value);}} style={NI} placeholder="123 rue Principale"/></div>
+            <div><div style={NL}>Ville</div><input value={infos.ville} onChange={function(e){setI("ville",e.target.value);}} style={NI} placeholder="Quebec"/></div>
+            <div><div style={NL}>Province</div><select value={infos.province} onChange={function(e){setI("province",e.target.value);}} style={NI}><option>QC</option><option>ON</option><option>BC</option><option>AB</option></select></div>
+            <div><div style={NL}>Code postal</div><input value={infos.codePostal} onChange={function(e){setI("codePostal",e.target.value.toUpperCase());}} style={NI} placeholder="G1A 1A1"/></div>
+            <div><div style={NL}>Telephone</div><input value={infos.telephone} onChange={function(e){setI("telephone",e.target.value);}} style={NI} placeholder="418-555-0000"/></div>
+            <div><div style={NL}>Courriel</div><input value={infos.courriel} onChange={function(e){setI("courriel",e.target.value);}} style={NI} placeholder="info@predictek.ca"/></div>
+            <div><div style={NL}>Site web</div><input value={infos.siteWeb} onChange={function(e){setI("siteWeb",e.target.value);}} style={NI} placeholder="app.predictek.ca"/></div>
+            <div><div style={NL}>Debut exercice</div><input value={infos.exerciceDebut} onChange={function(e){setI("exerciceDebut",e.target.value);}} style={NI} placeholder="01-11"/></div>
+            <div><div style={NL}>Fin exercice</div><input value={infos.exerciceFin} onChange={function(e){setI("exerciceFin",e.target.value);}} style={NI} placeholder="31-10"/></div>
           </div>
         </div>
       )}
+
       {ong==="fiscalite"&&(
-        <div style={{background:PP_COLORS.surface,border:"1px solid "+PP_COLORS.border,borderRadius:12,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,color:PP_COLORS.navy,marginBottom:4}}>Taxes et parametres fiscaux</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:12}}>
-            <div style={{gridColumn:"1/-1",background:PP_COLORS.accentL,borderRadius:10,padding:14,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div style={{fontSize:12,fontWeight:700,color:PP_COLORS.accent,gridColumn:"1/-1"}}>TPS - Federal (5%)</div>
-              <PpFd l="Numero TPS" hint="123456789 RT0001"><input value={fisc.noTPS} onChange={siF("noTPS")} style={PP_INPUT} placeholder="123456789 RT0001"/></PpFd>
-              <PpFd l="Frequence"><select value={fisc.freqTPS} onChange={siF("freqTPS")} style={PP_INPUT}><option value="mensuelle">Mensuelle</option><option value="trimestrielle">Trimestrielle</option><option value="annuelle">Annuelle</option></select></PpFd>
-              <div style={{gridColumn:"1/-1",display:"flex",alignItems:"center",gap:8}}><input type="checkbox" id="cbTPS" checked={!!fisc.inscritTPS} onChange={siFChk("inscritTPS")}/><label htmlFor="cbTPS" style={{fontSize:12}}>Inscrit a la TPS</label></div>
+        <div style={{background:NC.surface,border:"1px solid "+NC.border,borderRadius:12,padding:20}}>
+          <div style={{fontSize:13,fontWeight:700,color:NC.navy,marginBottom:14}}>Taxes et parametres fiscaux</div>
+          <div style={{display:"grid",gap:12}}>
+            <div style={{background:NC.accentL,borderRadius:10,padding:14,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div style={{fontSize:12,fontWeight:700,color:NC.accent,gridColumn:"1/-1"}}>TPS - Federal (5%)</div>
+              <div><div style={NL}>Numero TPS</div><input value={fisc.noTPS} onChange={function(e){setF("noTPS",e.target.value.toUpperCase());}} style={NI} placeholder="123456789 RT0001"/></div>
+              <div><div style={NL}>Frequence</div><select value={fisc.freqTPS} onChange={function(e){setF("freqTPS",e.target.value);}} style={NI}><option value="mensuelle">Mensuelle</option><option value="trimestrielle">Trimestrielle</option><option value="annuelle">Annuelle</option></select></div>
+              <div style={{gridColumn:"1/-1",display:"flex",alignItems:"center",gap:8}}><input type="checkbox" id="cbTPS" checked={!!fisc.inscritTPS} onChange={function(e){setF("inscritTPS",e.target.checked);}}/><label htmlFor="cbTPS" style={{fontSize:12}}>Inscrit a la TPS</label></div>
             </div>
-            <div style={{gridColumn:"1/-1",background:PP_COLORS.blueL,borderRadius:10,padding:14,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div style={{fontSize:12,fontWeight:700,color:PP_COLORS.blue,gridColumn:"1/-1"}}>TVQ - Provincial (9.975%)</div>
-              <PpFd l="Numero TVQ" hint="1234567890 TQ0001"><input value={fisc.noTVQ} onChange={siF("noTVQ")} style={PP_INPUT} placeholder="1234567890 TQ0001"/></PpFd>
-              <PpFd l="No declarant"><input value={fisc.noDeclarant} onChange={siF("noDeclarant")} style={PP_INPUT} placeholder="1234567890"/></PpFd>
-              <PpFd l="Frequence"><select value={fisc.freqTVQ} onChange={siF("freqTVQ")} style={PP_INPUT}><option value="mensuelle">Mensuelle</option><option value="trimestrielle">Trimestrielle</option><option value="annuelle">Annuelle</option></select></PpFd>
-              <div style={{gridColumn:"1/-1",display:"flex",alignItems:"center",gap:8}}><input type="checkbox" id="cbTVQ" checked={!!fisc.inscritTVQ} onChange={siFChk("inscritTVQ")}/><label htmlFor="cbTVQ" style={{fontSize:12}}>Inscrit a la TVQ</label></div>
+            <div style={{background:NC.blueL,borderRadius:10,padding:14,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div style={{fontSize:12,fontWeight:700,color:NC.blue,gridColumn:"1/-1"}}>TVQ - Provincial (9.975%)</div>
+              <div><div style={NL}>Numero TVQ</div><input value={fisc.noTVQ} onChange={function(e){setF("noTVQ",e.target.value.toUpperCase());}} style={NI} placeholder="1234567890 TQ0001"/></div>
+              <div><div style={NL}>No declarant</div><input value={fisc.noDeclarant} onChange={function(e){setF("noDeclarant",e.target.value);}} style={NI} placeholder="1234567890"/></div>
+              <div><div style={NL}>Frequence</div><select value={fisc.freqTVQ} onChange={function(e){setF("freqTVQ",e.target.value);}} style={NI}><option value="mensuelle">Mensuelle</option><option value="trimestrielle">Trimestrielle</option><option value="annuelle">Annuelle</option></select></div>
+              <div style={{gridColumn:"1/-1",display:"flex",alignItems:"center",gap:8}}><input type="checkbox" id="cbTVQ" checked={!!fisc.inscritTVQ} onChange={function(e){setF("inscritTVQ",e.target.checked);}}/><label htmlFor="cbTVQ" style={{fontSize:12}}>Inscrit a la TVQ</label></div>
             </div>
           </div>
         </div>
       )}
+
       {ong==="banque"&&(
-        <div style={{background:PP_COLORS.surface,border:"1px solid "+PP_COLORS.border,borderRadius:12,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,color:PP_COLORS.navy,marginBottom:14}}>Coordonnees bancaires</div>
+        <div style={{background:NC.surface,border:"1px solid "+NC.border,borderRadius:12,padding:20}}>
+          <div style={{fontSize:13,fontWeight:700,color:NC.navy,marginBottom:14}}>Coordonnees bancaires</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <PpFd l="Institution"><input value={banque.institution} onChange={siB("institution")} style={PP_INPUT} placeholder="Desjardins, RBC..."/></PpFd>
-            <PpFd l="Nom du compte"><input value={banque.nomCompte} onChange={siB("nomCompte")} style={PP_INPUT} placeholder="Compte operations"/></PpFd>
-            <PpFd l="Transit (5 chiffres)"><input value={banque.transit} onChange={siB("transit")} style={PP_INPUT} placeholder="12345"/></PpFd>
-            <PpFd l="No institution (3 chiffres)"><input value={banque.noInstitution} onChange={siB("noInstitution")} style={PP_INPUT} placeholder="815"/></PpFd>
-            <PpFd l="No de compte" full><input value={banque.noCompte} onChange={siB("noCompte")} style={PP_INPUT} placeholder="1234567"/></PpFd>
+            <div><div style={NL}>Institution</div><input value={banque.institution} onChange={function(e){setB("institution",e.target.value);}} style={NI} placeholder="Desjardins, RBC..."/></div>
+            <div><div style={NL}>Nom du compte</div><input value={banque.nomCompte} onChange={function(e){setB("nomCompte",e.target.value);}} style={NI} placeholder="Compte operations"/></div>
+            <div><div style={NL}>Transit (5 chiffres)</div><input value={banque.transit} onChange={function(e){setB("transit",e.target.value);}} style={NI} placeholder="12345"/></div>
+            <div><div style={NL}>No institution (3 chiffres)</div><input value={banque.noInstitution} onChange={function(e){setB("noInstitution",e.target.value);}} style={NI} placeholder="815"/></div>
+            <div style={{gridColumn:"1/-1"}}><div style={NL}>No de compte</div><input value={banque.noCompte} onChange={function(e){setB("noCompte",e.target.value);}} style={NI} placeholder="1234567"/></div>
           </div>
         </div>
       )}
+
       {ong==="logo"&&(
-        <div style={{background:PP_COLORS.surface,border:"1px solid "+PP_COLORS.border,borderRadius:12,padding:20}}>
-          <div style={{fontSize:13,fontWeight:700,color:PP_COLORS.navy,marginBottom:14}}>Logo et identite visuelle</div>
+        <div style={{background:NC.surface,border:"1px solid "+NC.border,borderRadius:12,padding:20}}>
+          <div style={{fontSize:13,fontWeight:700,color:NC.navy,marginBottom:14}}>Logo et identite visuelle</div>
           <div style={{display:"flex",gap:24,alignItems:"flex-start"}}>
-            <div style={{width:120,height:120,borderRadius:14,background:logo.url?"#fff":"linear-gradient(135deg,#1B5E3B,#3CAF6E)",display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+PP_COLORS.border,overflow:"hidden",flexShrink:0}}>
+            <div style={{width:120,height:120,borderRadius:14,background:logo.url?"#fff":"linear-gradient(135deg,#1B5E3B,#3CAF6E)",display:"flex",alignItems:"center",justifyContent:"center",border:"2px solid "+NC.border,overflow:"hidden",flexShrink:0}}>
               {logo.url?<img src={logo.url} alt="Logo" style={{width:"100%",height:"100%",objectFit:"contain",padding:8}}/>:<span style={{color:"#fff",fontWeight:900,fontSize:48,fontFamily:"Georgia,serif"}}>P</span>}
             </div>
             <div style={{flex:1}}>
               <input type="file" accept="image/png,image/jpeg,image/svg+xml" id="lgUp" onChange={handleLogo} style={{display:"none"}}/>
               <div style={{display:"grid",gap:10,marginBottom:12}}>
-                <PpBv onClick={function(){document.getElementById("lgUp").click();}}>{logo.url?"Remplacer":"Choisir un logo"}</PpBv>
-                {logo.url&&<PpBv bg={PP_COLORS.redL} tc={PP_COLORS.red} onClick={function(){setLogo({url:"",nom:""});try{localStorage.removeItem("predictek_logo");}catch(e){};}}>Retirer</PpBv>}
+                <button onClick={function(){document.getElementById("lgUp").click();}} style={{background:NC.accent,border:"none",borderRadius:7,padding:"8px 18px",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{logo.url?"Remplacer":"Choisir un logo"}</button>
+                {logo.url&&<button onClick={function(){setLogo({url:"",nom:""});try{localStorage.removeItem("predictek_logo");}catch(e){};}} style={{background:NC.redL,border:"none",borderRadius:7,padding:"8px 18px",color:NC.red,fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Retirer</button>}
               </div>
-              {logo.nom&&<div style={{fontSize:11,color:PP_COLORS.muted,marginBottom:8}}>{logo.nom}</div>}
-              <div style={{background:PP_COLORS.alt,borderRadius:8,padding:"10px 14px",fontSize:11,color:PP_COLORS.muted}}>PNG, JPG ou SVG. Min 200x200px.</div>
+              {logo.nom&&<div style={{fontSize:11,color:NC.muted,marginBottom:8}}>{logo.nom}</div>}
+              <div style={{background:NC.alt,borderRadius:8,padding:"10px 14px",fontSize:11,color:NC.muted}}>PNG, JPG ou SVG. Min 200x200px.</div>
             </div>
           </div>
         </div>
@@ -1434,6 +1432,7 @@ function ParamsPredictek(){
     </div>
   );
 }
+
 
 
 
