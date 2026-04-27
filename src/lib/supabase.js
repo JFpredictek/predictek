@@ -1,6 +1,6 @@
-// Predictek - Client Supabase leger (sans SDK npm)
-var SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL || "";
-var SUPABASE_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY || "";
+// Predictek - Client Supabase
+var SUPABASE_URL = "https://yzbauupamxbwcnnuiunf.supabase.co";
+var SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6YmF1dXBhbXhid2NubnVpdW5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMzY0NzIsImV4cCI6MjA5MjgxMjQ3Mn0.ZcoZtbeej2wol4TFyuOUg4vv8QVAI5efKlWbLu4H6L4";
 
 var _token = null;
 try { _token = localStorage.getItem("predictek_token"); } catch(e) {}
@@ -17,8 +17,6 @@ var sb = {
   _rest: function(table) {
     return SUPABASE_URL + "/rest/v1/" + table;
   },
-
-  // SELECT rows
   select: async function(table, opts) {
     var url = this._rest(table) + "?select=" + (opts && opts.cols ? opts.cols : "*");
     if(opts && opts.eq) {
@@ -34,14 +32,10 @@ var sb = {
       return {data: Array.isArray(d) ? d : [], error: d.message ? d : null};
     } catch(e) { return {data: [], error: e}; }
   },
-
-  // SELECT single row
   selectOne: async function(table, opts) {
     var res = await this.select(table, Object.assign({}, opts, {limit: 1}));
     return {data: res.data && res.data[0] ? res.data[0] : null, error: res.error};
   },
-
-  // INSERT
   insert: async function(table, row) {
     try {
       var r = await fetch(this._rest(table), {
@@ -51,8 +45,6 @@ var sb = {
       return {data: Array.isArray(d) ? d[0] : d, error: d.message ? d : null};
     } catch(e) { return {data: null, error: e}; }
   },
-
-  // UPDATE
   update: async function(table, id, changes) {
     try {
       var r = await fetch(this._rest(table) + "?id=eq." + id, {
@@ -62,8 +54,6 @@ var sb = {
       return {data: Array.isArray(d) ? d[0] : d, error: d.message ? d : null};
     } catch(e) { return {data: null, error: e}; }
   },
-
-  // DELETE
   delete: async function(table, id) {
     try {
       await fetch(this._rest(table) + "?id=eq." + id, {
@@ -72,8 +62,6 @@ var sb = {
       return {error: null};
     } catch(e) { return {error: e}; }
   },
-
-  // AUTH login
   login: async function(email, password) {
     try {
       var r = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=password", {
@@ -87,18 +75,17 @@ var sb = {
         try {
           localStorage.setItem("predictek_token", d.access_token);
           localStorage.setItem("predictek_user", JSON.stringify({
-            id: d.user.id, email: d.user.email,
+            id: d.user.id,
+            email: d.user.email,
             nom: d.user.user_metadata ? (d.user.user_metadata.nom || d.user.email) : d.user.email,
             role: d.user.user_metadata ? (d.user.user_metadata.role || "employe") : "employe"
           }));
         } catch(e) {}
         return {data: d, error: null};
       }
-      return {data: null, error: {message: d.error_description || "Identifiants invalides"}};
-    } catch(e) { return {data: null, error: {message: "Erreur de connexion au serveur"}}; }
+      return {data: null, error: {message: d.error_description || d.msg || "Identifiants invalides"}};
+    } catch(e) { return {data: null, error: {message: "Erreur de connexion"}}; }
   },
-
-  // AUTH logout
   logout: function() {
     _token = null;
     try {
@@ -106,26 +93,24 @@ var sb = {
       localStorage.removeItem("predictek_user");
     } catch(e) {}
   },
-
-  // Get current user
   getUser: function() {
     try {
       var u = localStorage.getItem("predictek_user");
       return u ? JSON.parse(u) : null;
     } catch(e) { return null; }
   },
-
-  // Log to historique table
   log: async function(cat, action, description, details, syndicat_code) {
     var user = this.getUser();
-    await this.insert("historique", {
-      utilisateur_nom: user ? user.nom : "Systeme",
-      categorie: cat || "systeme",
-      action: action || "modification",
-      description: description || "",
-      details: details || "",
-      syndicat_code: syndicat_code || ""
-    });
+    try {
+      await this.insert("historique", {
+        utilisateur_nom: user ? user.nom : "Systeme",
+        categorie: cat || "systeme",
+        action: action || "modification",
+        description: description || "",
+        details: details || "",
+        syndicat_code: syndicat_code || ""
+      });
+    } catch(e) {}
   }
 };
 
