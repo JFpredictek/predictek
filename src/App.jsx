@@ -11,6 +11,9 @@ import Comptabilite from "./Comptabilite";
 import ModuleIA from "./ModuleIA";
 import ModuleHistorique from "./Historique";
 import GestionAuto from "./GestionAuto";
+import MembresCA from "./MembresCA";
+import GestionDocuments from "./GestionDocuments";
+import BudgetCompta from "./BudgetCompta";
 import GestionDocuments from "./GestionDocuments";
 import BudgetCompta from "./BudgetCompta";
 
@@ -23,6 +26,9 @@ var MODS=[
   {id:"notif",label:"Notifications",icon:"N"},
   {id:"compta",label:"Comptabilite",icon:"CPA"},
   {id:"gestion",label:"Gestion Auto",icon:"GA"},
+  {id:"ca",label:"Membres CA",icon:"MC"},
+  {id:"docs",label:"Documents",icon:"DO"},
+  {id:"budget",label:"Budget",icon:"BU"},
   {id:"docs",label:"Documents",icon:"DO"},
   {id:"budget",label:"Budget",icon:"BU"},
   {id:"ia",label:"Intelligence IA",icon:"IA"},
@@ -97,6 +103,9 @@ export default function App(){
         {active==="notif"&&<Notifications/>}
         {active==="compta"&&<Comptabilite/>}
         {active==="gestion"&&<GestionAuto/>}
+        {active==="ca"&&<MembresCA/>}
+        {active==="docs"&&<GestionDocuments/>}
+        {active==="budget"&&<BudgetCompta/>}
         {active==="docs"&&<GestionDocuments/>}
         {active==="budget"&&<BudgetCompta/>}
         {active==="ia"&&<ModuleIA/>}
