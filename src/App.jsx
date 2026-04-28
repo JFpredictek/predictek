@@ -11,6 +11,8 @@ import Comptabilite from "./Comptabilite";
 import ModuleIA from "./ModuleIA";
 import ModuleHistorique from "./Historique";
 import GestionAuto from "./GestionAuto";
+import GestionDocuments from "./GestionDocuments";
+import BudgetCompta from "./BudgetCompta";
 
 var MODS=[
   {id:"hub",label:"Predictek",icon:"P"},
@@ -21,6 +23,8 @@ var MODS=[
   {id:"notif",label:"Notifications",icon:"N"},
   {id:"compta",label:"Comptabilite",icon:"CPA"},
   {id:"gestion",label:"Gestion Auto",icon:"GA"},
+  {id:"docs",label:"Documents",icon:"DO"},
+  {id:"budget",label:"Budget",icon:"BU"},
   {id:"ia",label:"Intelligence IA",icon:"IA"},
   {id:"historique",label:"Historique",icon:"HIS"},
 ];
@@ -93,6 +97,8 @@ export default function App(){
         {active==="notif"&&<Notifications/>}
         {active==="compta"&&<Comptabilite/>}
         {active==="gestion"&&<GestionAuto/>}
+        {active==="docs"&&<GestionDocuments/>}
+        {active==="budget"&&<BudgetCompta/>}
         {active==="ia"&&<ModuleIA/>}
         {active==="historique"&&<ModuleHistorique/>}
       </div>
