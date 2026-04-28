@@ -29,6 +29,7 @@ import ModuleAssurances from "./ModuleAssurances";
 import RelevesCompte from "./RelevesCompte";
 import GestionUtilisateurs from "./GestionUtilisateurs";
 import RechercheGlobale from "./RechercheGlobale";
+import AgendaCalendrier from "./AgendaCalendrier";
 
 var MODS=[
   {id:"dashboard",label:"Accueil",icon:"P",color:"#3CAF6E"},
@@ -57,6 +58,7 @@ var MODS=[
   {id:"compta",label:"Comptabilite",icon:"CPA",color:"#13233A"},
   {id:"ia",label:"Intelligence IA",icon:"IA",color:"#9C6FD0"},
   {id:"historique",label:"Historique",icon:"HIS",color:"#B86020"},
+  {id:"agenda",label:"Agenda",icon:"AGD",color:"#1A56DB"},
   {id:"usagers",label:"Utilisateurs",icon:"USR",color:"#6B3FA0"},
 ];
 
@@ -136,6 +138,7 @@ export default function App(){
         {active==="compta"&&<Comptabilite/>}
         {active==="ia"&&<ModuleIA/>}
         {active==="historique"&&<Historique/>}
+        {active==="agenda"&&<AgendaCalendrier/>}
         {active==="usagers"&&<GestionUtilisateurs/>}
       </div>
     </div>
