@@ -14,8 +14,6 @@ import GestionAuto from "./GestionAuto";
 import MembresCA from "./MembresCA";
 import GestionDocuments from "./GestionDocuments";
 import BudgetCompta from "./BudgetCompta";
-import GestionDocuments from "./GestionDocuments";
-import BudgetCompta from "./BudgetCompta";
 
 var MODS=[
   {id:"hub",label:"Predictek",icon:"P"},
@@ -29,39 +27,31 @@ var MODS=[
   {id:"ca",label:"Membres CA",icon:"MC"},
   {id:"docs",label:"Documents",icon:"DO"},
   {id:"budget",label:"Budget",icon:"BU"},
-  {id:"docs",label:"Documents",icon:"DO"},
-  {id:"budget",label:"Budget",icon:"BU"},
   {id:"ia",label:"Intelligence IA",icon:"IA"},
   {id:"historique",label:"Historique",icon:"HIS"},
 ];
 
 export default function App(){
   var s0=useState(null);var user=s0[0];var setUser=s0[1];
-  var s1=useState(false);var checking=s1[0];var setChecking=s1[1];
+  var s1=useState(true);var checking=s1[0];var setChecking=s1[1];
   var s2=useState("hub");var active=s2[0];var setActive=s2[1];
   var s3=useState(null);var logo=s3[0];var setLogo=s3[1];
 
   useEffect(function(){
-    setChecking(true);
     var u=sb.getUser();
     if(u)setUser(u);
     setChecking(false);
     try{var saved=localStorage.getItem("predictek_logo");if(saved)setLogo(saved);}catch(e){}
   },[]);
 
-  function handleLogin(u){
-    setUser(u);
-    sb.log("securite","connexion","Connexion utilisateur: "+u.email,"","");
-  }
-
-  function handleLogout(){
-    sb.log("securite","deconnexion","Deconnexion: "+(user?user.email:""),"","");
-    sb.logout();
-    setUser(null);
-  }
+  function handleLogin(u){setUser(u);}
+  function handleLogout(){sb.logout();setUser(null);}
 
   if(checking)return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Georgia,serif",color:"#7C7568"}}>Chargement...</div>;
   if(!user)return <Login onLogin={handleLogin}/>;
+
+  var COLORS={hub:"#3CAF6E",ia:"#9C6FD0",historique:"#B86020",gestion:"#1A56DB",ca:"#6B3FA0",docs:"#B86020",budget:"#1B5E3B"};
+  var IBGS={hub:"#1B5E3B",ia:"#6B3FA0",historique:"#8B4A0F",gestion:"#1A56DB",ca:"#6B3FA0",docs:"#8B4A0F",budget:"#1B5E3B"};
 
   return(
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
@@ -78,9 +68,8 @@ export default function App(){
         <div style={{display:"flex",height:"100%",overflowX:"auto",flex:1}}>
           {MODS.map(function(m){
             var a=active===m.id;
-            var isPred=m.id==="hub";var isIA=m.id==="ia";var isHIS=m.id==="historique";
-            var bc=isPred?"#3CAF6E":isIA?"#9C6FD0":isHIS?"#B86020":"#3CAF6E";
-            var ib=isPred?"#1B5E3B":isIA?"#6B3FA0":isHIS?"#B86020":"#3CAF6E";
+            var bc=COLORS[m.id]||"#3CAF6E";
+            var ib=IBGS[m.id]||"#1B5E3B";
             return(
               <button key={m.id} onClick={function(){setActive(m.id);}} style={{display:"flex",alignItems:"center",gap:6,padding:"0 12px",height:"100%",background:a?"#ffffff12":"none",border:"none",borderBottom:a?"2px solid "+bc:"2px solid transparent",cursor:"pointer",fontFamily:"Georgia,serif",whiteSpace:"nowrap",flexShrink:0}}>
                 <div style={{width:22,height:22,borderRadius:6,background:a?ib:"#ffffff18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,color:a?"#fff":"#8da0bb",flexShrink:0}}>{m.icon}</div>
@@ -104,8 +93,6 @@ export default function App(){
         {active==="compta"&&<Comptabilite/>}
         {active==="gestion"&&<GestionAuto/>}
         {active==="ca"&&<MembresCA/>}
-        {active==="docs"&&<GestionDocuments/>}
-        {active==="budget"&&<BudgetCompta/>}
         {active==="docs"&&<GestionDocuments/>}
         {active==="budget"&&<BudgetCompta/>}
         {active==="ia"&&<ModuleIA/>}
