@@ -1,4 +1,5 @@
-import { useState } from "react";
+import sb from "./lib/supabase";
+import { useState, useEffect } from "react";
 var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",pop:"#3CAF6E",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",purple:"#6B3FA0",purpleL:"#F3EEFF"};
 var fmt=function(n){if(!n&&n!==0)return"-";return Math.abs(n).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
 var today=function(){return new Date().toISOString().slice(0,10);};
@@ -105,7 +106,7 @@ function TabBord(p){
   var prochR=p.reun.filter(function(r){return r.statut==="planifiee";}).sort(function(a,b){return a.date.localeCompare(b.date);})[0];
   var altC=p.carnet.filter(function(c){return carnetSt(c).pct>=80;}).length;
   var stats=[
-    {l:"Solde total",v:fmt(totS),c:T.accent,bg:T.accentL,sub:COMPTES.length+" compte(s) bancaire(s)"},
+    {l:"Solde total",v:fmt(totS),c:T.accent,bg:T.accentL,sub:"3 comptes bancaires"},
     {l:"Factures en attente",v:fatts.length,c:fatts.length>0?T.amber:T.accent,bg:fatts.length>0?T.amberL:T.accentL,sub:fmt(fatts.reduce(function(a,f){return a+f.mnt;},0))},
     {l:"Budget utilise",v:Math.round(totR/totB*100)+"%",c:T.navy,bg:T.blueL,sub:fmt(totR)+" sur "+fmt(totB)},
     {l:"Alertes carnet",v:altC,c:altC>0?T.red:T.accent,bg:altC>0?T.redL:T.accentL,sub:"composantes plus de 80 pct"},
