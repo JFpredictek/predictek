@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import sb from "./lib/supabase";
 import Login from "./Login";
 import HubDashboard from "./HubDashboard";
-import Hub from "./Hub";
 import CRM from "./CRM";
 import FournisseursAdmin from "./FournisseursAdmin";
 import Gestionnaire from "./Gestionnaire";
@@ -32,7 +31,6 @@ import RechercheGlobale from "./RechercheGlobale";
 
 var MODS=[
   {id:"dashboard",label:"Accueil",icon:"P",color:"#3CAF6E"},
-  {id:"onboarding",label:"Onboarding",icon:"HUB",color:"#3CAF6E"},
   {id:"tableau",label:"Tableau CA",icon:"TB",color:"#1A56DB"},
   {id:"copros",label:"Coproprietaires",icon:"CP",color:"#1A56DB"},
   {id:"gestion",label:"Gestion Auto",icon:"GA",color:"#1A56DB"},
@@ -111,7 +109,6 @@ export default function App(){
       </div>
       <div style={{flex:1,background:"#F5F3EE",overflow:"auto"}}>
         {active==="dashboard"&&<HubDashboard onNavigate={setActive}/>}
-        {active==="onboarding"&&<Hub/>}
         {active==="tableau"&&<TableauBordCA/>}
         {active==="copros"&&<GestionCopros/>}
         {active==="gestion"&&<GestionAuto/>}
