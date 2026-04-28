@@ -1117,6 +1117,11 @@ function TabEmployes(){
           <div><Lbl l="Code fiscal provincial"/>
             <select value={nf.provincial||"M"} onChange={function(e){snf("provincial",e.target.value);}} style={INP}><option value="M">M - Marie</option><option value="C">C - Celibataire</option><option value="E">E - Exempte</option></select>
           </div>
+                    <div style={{gridColumn:"1/-1",background:"#FEF3E2",border:"1px solid #B8602044",borderRadius:8,padding:"10px 14px",fontSize:11,color:"#B86020",marginBottom:4}}>Informations confidentielles - T4 et Releve 1</div>
+          <div><Lbl l="NAS (No assurance sociale)" hint="9 chiffres - confidentiel"/><input value={nf.nas||""} onChange={function(e){snf("nas",e.target.value.replace(/\D/g,"").slice(0,9));}} style={INP} placeholder="000 000 000" maxLength={9}/></div>
+          <div><Lbl l="Type de remuneration"/><select value={nf.typeRem||"annuel"} onChange={function(e){snf("typeRem",e.target.value);}} style={INP}><option value="annuel">Salaire annuel</option><option value="horaire">Taux horaire</option></select></div>
+          <div><Lbl l="Taux horaire ($)" hint="Si remuneration horaire"/><input type="number" step="0.01" value={nf.tauxHoraire||""} onChange={function(e){snf("tauxHoraire",parseFloat(e.target.value)||0);}} style={INP} placeholder="22.50"/></div>
+          <div><Lbl l="Heures assurables/semaine" hint="Pour calcul AE - max 35h"/><input type="number" min="0" max="60" value={nf.heuresAssurables||""} onChange={function(e){snf("heuresAssurables",parseInt(e.target.value)||0);}} style={INP} placeholder="35"/></div>
           <div style={{gridColumn:"1/-1"}}><Lbl l="Notes"/><textarea value={nf.notes||""} onChange={function(e){snf("notes",e.target.value);}} rows={2} style={Object.assign({},INP,{resize:"vertical"})}/></div>
         </div>
         <div style={{display:"flex",gap:8}}>
