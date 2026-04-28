@@ -1,4 +1,5 @@
-import { useState } from "react";
+import sb from "./lib/supabase";
+import { useState, useEffect } from "react";
 var T={bg:"#F5F3EE",surface:"#FFF",surfaceAlt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentLight:"#E8F2EC",accentPop:"#3CAF6E",red:"#B83232",redLight:"#FDECEA",amber:"#B86020",amberLight:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueLight:"#EFF6FF",purple:"#6B3FA0",purpleLight:"#F3EEFF"};
 var money=function(n){if(!n&&n!==0)return"-";return Math.abs(n).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
 var td=function(){return new Date().toISOString().slice(0,10);};
@@ -10,16 +11,16 @@ function Card(p){return <div style={{background:T.surface,border:"1px solid "+T.
 var UNITES={};
 
 var FOURNISSEURS_CAT={
-  "plomberie":"-",
-  "electricite":"-",
-  "chauffage":"-",
-  "serrurerie":"-",
-  "urgence_eau":"-",
-  "ascenseur":"-",
-  "nettoyage":"-",
-  "paysagement":"-",
-  "deneigement":"-",
-  "autre":"-"
+  "plomberie":"Plomberie ProFlo",
+  "electricite":"ElectroServ QC",
+  "chauffage":"ChauFroid Expert",
+  "serrurerie":"Serrurier Express",
+  "urgence_eau":"Plomberie ProFlo",
+  "ascenseur":"AscenseurTech QC",
+  "nettoyage":"Nettoyage Prestige",
+  "paysagement":"Paysagement Horizon",
+  "deneigement":"Deneigement Express",
+  "autre":"Predictek Support"
 };
 
 var TICKETS_INIT=[];
@@ -33,8 +34,8 @@ function LoginScreen(p){
   var s3=useState(""); var err=s3[0]; var setErr=s3[1];
   var inp={width:"100%",border:"1px solid "+T.border,borderRadius:8,padding:"10px 14px",fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"};
   function login(){
-    if(UNITES[unite]&&code==="1234"){p.onLogin(unite);}
-    else{setErr("Unite ou code invalide.");}
+    if(({u:unite.trim(),nom:"Coproprietaire",solde:0,cotisation:0,paiements:[],docs:[],tickets:[]})&&code==="1234"){p.onLogin(unite);}
+    else{setErr("Unite ou code d acces invalide.");}
   }
   return(
     <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f1d2e 0%,#1B5E3B 100%)",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -45,11 +46,11 @@ function LoginScreen(p){
           </div>
           <div style={{fontSize:20,fontWeight:800,color:T.navy,fontFamily:"Georgia,serif"}}>Predictek</div>
           <div style={{fontSize:12,color:T.muted,marginTop:2}}>Portail Coproprietaire</div>
-          <div style={{fontSize:11,color:T.accent,marginTop:4}}>Syndicat Piedmont</div>
+          
         </div>
         <div style={{marginBottom:14}}>
           <div style={{fontSize:11,color:T.muted,marginBottom:4}}>Numero d unite</div>
-          <input value={unite} onChange={function(e){setUnite(e.target.value);setErr("");}} placeholder="ex: 101" style={inp} onKeyDown={function(e){if(e.key==="Enter")login();}}/>
+          <input value={unite} onChange={function(e){setUnite(e.target.value);setErr("");}} placeholder="No unite" style={inp} onKeyDown={function(e){if(e.key==="Enter")login();}}/>
         </div>
         <div style={{marginBottom:20}}>
           <div style={{fontSize:11,color:T.muted,marginBottom:4}}>Code d acces</div>
@@ -57,7 +58,7 @@ function LoginScreen(p){
         </div>
         {err&&<div style={{background:T.redLight,borderRadius:8,padding:"8px 12px",fontSize:11,color:T.red,marginBottom:14}}>{err}</div>}
         <Btn onClick={login} fw>Se connecter</Btn>
-        <div style={{textAlign:"center",marginTop:16,fontSize:11,color:T.muted}}>Entrez votre numero d unite et votre code d acces</div>
+        
       </div>
     </div>
   );
@@ -82,7 +83,7 @@ function SoumettreDemande(p){
   ];
   function soumettre(){
     if(!form.titre||!form.desc){return;}
-    var fournisseur=FOURNISSEURS_CAT[form.cat]||"-";
+    var fournisseur=FOURNISSEURS_CAT[form.cat]||"Predictek Support";
     var ticket={
       id:Date.now(),unite:p.unite,titre:form.titre,cat:form.cat,prio:form.prio,
       statut:form.cat==="urgence_eau"?"urgent":"nouveau",date:td(),
@@ -132,7 +133,7 @@ function SoumettreDemande(p){
           <div style={{fontSize:11,color:T.muted,marginBottom:4}}>Description detaillee *</div>
           <textarea value={form.desc} onChange={function(e){sf("desc",e.target.value);}} placeholder="Decrivez le probleme en detail..." rows={4} style={Object.assign({},inp,{resize:"vertical"})}/>
         </div>
-        {form.cat==="urgence_eau"&&<div style={{background:T.redLight,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,fontWeight:600}}>URGENCE: Un technicien sera contacte immediatement. Pour urgence extreme, appelez le 1-800-XXX-XXXX.</div>}
+        {form.cat==="urgence_eau"&&<div style={{background:T.redLight,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,fontWeight:600}}>URGENCE: Un technicien sera contacte immediatement. Pour urgence extreme, appelez le 418-555-0911.</div>}
         <div style={{background:T.accentLight,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.accent}}>Sera assigne automatiquement a: <b>{FOURNISSEURS_CAT[form.cat]}</b></div>
         <Btn onClick={soumettre} dis={!form.titre||!form.desc} fw>Envoyer la demande</Btn>
       </div>
@@ -333,7 +334,7 @@ export default function PortailCopro(){
 
   if(!unite)return <LoginScreen onLogin={function(u){setUnite(u);}}/>;
 
-  var d=UNITES[unite];
+  var d=({u:unite.trim(),nom:"Coproprietaire",solde:0,cotisation:0,paiements:[],docs:[],tickets:[]});
   var mesTickets=tickets.filter(function(t){return t.unite===unite;});
   var ticketsOuverts=mesTickets.filter(function(t){return t.statut!=="ferme";}).length;
   var urgences=mesTickets.filter(function(t){return t.statut==="urgent";}).length;
@@ -361,7 +362,7 @@ export default function PortailCopro(){
           </div>
           <div>
             <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>Predictek - Portail Coproprietaire</div>
-            <div style={{fontSize:9,color:"#3CAF6E"}}>Syndicat Piedmont | Unite {unite}</div>
+            <div style={{fontSize:9,color:"#3CAF6E"}}>Unite {unite}</div>
           </div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
