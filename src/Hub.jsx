@@ -868,11 +868,11 @@ function Onboarding(p){
   var s0=useState(1);var step=s0[0];var setStep=s0[1];
   var s1=useState({
     // Etape 1 - Syndicat
-    acteNom:"",nom:"",code:"",adr:"",ville:"",province:"QC",codePostal:"",immat:"",
+    reqNom:"",acteNom:"",nom:"",code:"",adr:"",ville:"",province:"QC",codePostal:"",immat:"",
     anneeConstruction:"",nbUnites:"",exercice:"1 nov au 31 oct",
     quorumCA:"majorite",quorumAGO:25,
     // Etape 2 - CA
-    nbMembresCA:5,president:"",secretaire:"",tresorier:"",membresCA:[],
+    nbMembresCA:5,president:"",presDateDebut:"",presDateFin:"",secretaire:"",tresorier:"",membresCA:[],
     courrielCA:"",courrielFactures:"",courrielCopros:"",courrielUrgences:"",
     // Etape 4 - Soldes
     soldeOp:"",soldePrev:"",soldeAss:"",dateOuverture:"",
@@ -961,13 +961,23 @@ function Onboarding(p){
         <div>
           <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 1 - Acte de copropriete et informations du syndicaticat</div>
           <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Importez votre acte de copropriete (PDF) - les informations seront extraites automatiquement. Vous pourrez les modifier avant de continuer.</div>
-          <div style={{background:"#E8F2EC",border:"2px dashed #1B5E3B",borderRadius:10,padding:16,marginBottom:16,textAlign:"center"}}>
-            <div style={{fontSize:13,fontWeight:600,color:"#1B5E3B",marginBottom:8}}>Acte de copropriete (PDF)</div>
-            <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f)sd("acteNom",f.name);}} style={{display:"none"}}/>
-            <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:7,padding:"8px 18px",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",marginBottom:8}}>{data.acteNom?"Changer l acte":"Importer l acte"}</button>
-            {data.acteNom&&<div style={{fontSize:11,color:"#1B5E3B",marginTop:6}}>Fichier: {data.acteNom}</div>}
-            <div style={{fontSize:11,color:"#7C7568",marginTop:6}}>Optionnel - vous pouvez aussi remplir manuellement ci-dessous</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+            <div style={{background:"#EFF6FF",border:"2px dashed #1A56DB",borderRadius:10,padding:14,textAlign:"center"}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#1A56DB",marginBottom:4}}>1. Registre entreprises (REQ)</div>
+              <div style={{fontSize:10,color:"#7C7568",marginBottom:10}}>Administrateurs, NEQ, adresse officielle</div>
+              <input type="file" accept=".pdf,.PDF" id="reqUpload" onChange={function(e){var f=e.target.files[0];if(f)sd("reqNom",f.name);}} style={{display:"none"}}/>
+              <button onClick={function(){document.getElementById("reqUpload").click();}} style={{background:"#1A56DB",border:"none",borderRadius:7,padding:"7px 14px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{data.reqNom?"Changer":"Importer REQ"}</button>
+              {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}>{data.reqNom}</div>}
+            </div>
+            <div style={{background:"#E8F2EC",border:"2px dashed #1B5E3B",borderRadius:10,padding:14,textAlign:"center"}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#1B5E3B",marginBottom:4}}>2. Declaration de copropriete</div>
+              <div style={{fontSize:10,color:"#7C7568",marginBottom:10}}>Fractions, reglement, droits et obligations</div>
+              <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f)sd("acteNom",f.name);}} style={{display:"none"}}/>
+              <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:7,padding:"7px 14px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{data.acteNom?"Changer":"Importer declaration"}</button>
+              {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}>{data.acteNom}</div>}
+            </div>
           </div>
+          <div style={{background:"#FEF3E2",border:"1px solid #B8602044",borderRadius:8,padding:"8px 14px",marginBottom:16,fontSize:11,color:"#B86020"}}>Optionnel pour l instant - l extraction automatique IA sera disponible prochainement. Remplissez les champs manuellement ci-dessous.</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <Field l="Nom officiel du syndicat" full hint="Nom tel qu il apparait dans votre acte de copropriete"><input value={data.nom} onChange={function(e){sd("nom",e.target.value);}} style={INP} placeholder="Syndicat Piedmont"/></Field>
             <Field l="Code court (4 lettres)" hint="Identifiant interne Predictek"><input value={data.code} onChange={function(e){sd("code",e.target.value.toUpperCase().slice(0,4));}} style={INP} placeholder="PIED" maxLength={4}/></Field>
