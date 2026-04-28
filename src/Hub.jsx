@@ -838,11 +838,37 @@ var COMPOSANTES_LOI16=[
   {cat:"Interieur",nom:"Peinture - parties communes",dureeVie:10,anneeInstall:"",etat:"bon",notes:"",obligatoire:false},
 ];
 
+
+// Helpers Onboarding
+var FINP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
+function Field(p){
+  return(
+    <div style={p.full?{gridColumn:"1/-1"}:{}}>
+      {p.l&&<div style={{fontSize:10,color:"#7C7568",textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:5}}>{p.l}</div>}
+      {p.children}
+      {p.hint&&<div style={{fontSize:10,color:"#7C7568",marginTop:3}}>{p.hint}</div>}
+    </div>
+  );
+}
+function Check(p){
+  return(
+    <div style={{display:"flex",gap:10,alignItems:"flex-start",cursor:"pointer",marginBottom:8}} onClick={p.onChange}>
+      <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(p.checked?"#1B5E3B":"#DDD9CF"),background:p.checked?"#1B5E3B":"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>
+        {p.checked&&<span style={{color:"#fff",fontSize:11,fontWeight:700}}>V</span>}
+      </div>
+      <div>
+        {p.label&&<div style={{fontSize:12,fontWeight:600,color:"#1C1A17",lineHeight:1.4}}>{p.label}</div>}
+        {p.desc&&<div style={{fontSize:11,color:"#7C7568",marginTop:2,lineHeight:1.4}}>{p.desc}</div>}
+      </div>
+    </div>
+  );
+}
+
 function Onboarding(p){
   var s0=useState(1);var step=s0[0];var setStep=s0[1];
   var s1=useState({
     // Etape 1 - Syndicat
-    nom:"",code:"",adr:"",ville:"",province:"QC",codePostal:"",immat:"",
+    acteNom:"",nom:"",code:"",adr:"",ville:"",province:"QC",codePostal:"",immat:"",
     anneeConstruction:"",nbUnites:"",exercice:"1 nov au 31 oct",
     quorumCA:"majorite",quorumAGO:25,
     // Etape 2 - CA
@@ -933,10 +959,17 @@ function Onboarding(p){
 
       {step===1&&(
         <div>
-          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 1 - Informations du syndicat</div>
-          <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Ces informations proviennent de votre declaration de copropriete et du Registre foncier du Quebec.</div>
+          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 1 - Acte de copropriete et informations du syndicaticat</div>
+          <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Importez votre acte de copropriete (PDF) - les informations seront extraites automatiquement. Vous pourrez les modifier avant de continuer.</div>
+          <div style={{background:"#E8F2EC",border:"2px dashed #1B5E3B",borderRadius:10,padding:16,marginBottom:16,textAlign:"center"}}>
+            <div style={{fontSize:13,fontWeight:600,color:"#1B5E3B",marginBottom:8}}>Acte de copropriete (PDF)</div>
+            <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f)sd("acteNom",f.name);}} style={{display:"none"}}/>
+            <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:7,padding:"8px 18px",color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit",marginBottom:8}}>{data.acteNom?"Changer l acte":"Importer l acte"}</button>
+            {data.acteNom&&<div style={{fontSize:11,color:"#1B5E3B",marginTop:6}}>Fichier: {data.acteNom}</div>}
+            <div style={{fontSize:11,color:"#7C7568",marginTop:6}}>Optionnel - vous pouvez aussi remplir manuellement ci-dessous</div>
+          </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <Field l="Nom officiel du syndicat" full hint="Ex: Syndicat des coproprietaires du Ch. du Hibou"><input value={data.nom} onChange={function(e){sd("nom",e.target.value);}} style={INP} placeholder="Syndicat Piedmont"/></Field>
+            <Field l="Nom officiel du syndicat" full hint="Nom tel qu il apparait dans votre acte de copropriete"><input value={data.nom} onChange={function(e){sd("nom",e.target.value);}} style={INP} placeholder="Syndicat Piedmont"/></Field>
             <Field l="Code court (4 lettres)" hint="Identifiant interne Predictek"><input value={data.code} onChange={function(e){sd("code",e.target.value.toUpperCase().slice(0,4));}} style={INP} placeholder="PIED" maxLength={4}/></Field>
             <Field l="Annee de construction"><input type="number" value={data.anneeConstruction} onChange={function(e){sd("anneeConstruction",e.target.value);}} style={INP} placeholder="2013"/></Field>
             <Field l="Adresse de l immeuble" full><input value={data.adr} onChange={function(e){sd("adr",e.target.value);}} style={INP} placeholder="123 Chemin du Hibou"/></Field>
