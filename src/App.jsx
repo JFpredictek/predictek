@@ -10,7 +10,6 @@ import Notifications from "./Notifications";
 import Comptabilite from "./Comptabilite";
 import ModuleIA from "./ModuleIA";
 import ModuleHistorique from "./Historique";
-import GestionAuto from "./GestionAuto";
 
 var MODS=[
   {id:"hub",label:"Predictek",icon:"P"},
@@ -21,7 +20,7 @@ var MODS=[
   {id:"notif",label:"Notifications",icon:"N"},
   {id:"compta",label:"Comptabilite",icon:"CPA"},
   {id:"ia",label:"Intelligence IA",icon:"IA"},
-  {id:"gestion",label:"Gestion Auto",icon:"GA"},{id:"historique",label:"Historique",icon:"HIS"},
+  {id:"historique",label:"Historique",icon:"HIS"},
 ];
 
 export default function App(){
@@ -92,7 +91,6 @@ export default function App(){
         {active==="notif"&&<Notifications/>}
         {active==="compta"&&<Comptabilite/>}
         {active==="ia"&&<ModuleIA/>}
-        {active==="gestion"&&<GestionAuto/>}
         {active==="historique"&&<ModuleHistorique/>}
       </div>
     </div>
