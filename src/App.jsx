@@ -21,8 +21,7 @@ var MODS=[
   {id:"notif",label:"Notifications",icon:"N"},
   {id:"compta",label:"Comptabilite",icon:"CPA"},
   {id:"ia",label:"Intelligence IA",icon:"IA"},
-  {id:"gestion",label:"Gestion Auto",icon:"GA"},
-  {id:"historique",label:"Historique",icon:"HIS"},
+  {id:"gestion",label:"Gestion Auto",icon:"GA"},{id:"historique",label:"Historique",icon:"HIS"},
 ];
 
 export default function App(){
@@ -69,7 +68,7 @@ export default function App(){
           {MODS.map(function(m){
             var a=active===m.id;
             var isPred=m.id==="hub";var isIA=m.id==="ia";var isHIS=m.id==="historique";
-            var isGA=m.id==="gestion";var bc=isPred?"#3CAF6E":isIA?"#9C6FD0":isHIS?"#B86020":isGA?"#1A56DB":"#3CAF6E";
+            var bc=isPred?"#3CAF6E":isIA?"#9C6FD0":isHIS?"#B86020":"#3CAF6E";
             var ib=isPred?"#1B5E3B":isIA?"#6B3FA0":isHIS?"#B86020":"#3CAF6E";
             return(
               <button key={m.id} onClick={function(){setActive(m.id);}} style={{display:"flex",alignItems:"center",gap:6,padding:"0 12px",height:"100%",background:a?"#ffffff12":"none",border:"none",borderBottom:a?"2px solid "+bc:"2px solid transparent",cursor:"pointer",fontFamily:"Georgia,serif",whiteSpace:"nowrap",flexShrink:0}}>
