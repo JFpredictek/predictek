@@ -127,7 +127,7 @@ function TabBudget(p){
           <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:12}}>Nouvel exercice financier</div>
           <div style={{display:"flex",gap:10,marginBottom:12}}>
             <div><Lbl l="Annee debut"/><input type="number" value={newB.annee_debut} onChange={function(e){setNewB(function(pr){return Object.assign({},pr,{annee_debut:e.target.value});});}} style={Object.assign({},INP,{width:120})}/></div>
-            <div><Lbl l="Annee fin"/><input type="number" value={newB.annee_fin} onChange={function(e){setNewB(function(pr){return Object.assign({},pr,{annee_fin:e.target.value}});});}} style={Object.assign({},INP,{width:120})}/></div>
+            <div><Lbl l="Annee fin"/><input type="number" value={newB.annee_fin} onChange={function(e){setNewB(function(pr){return Object.assign({},pr,{annee_fin:e.target.value});});}} style={Object.assign({},INP,{width:120})}/></div>
           </div>
           <div style={{display:"flex",gap:8}}>
             <Btn onClick={creerBudget}>Creer le budget</Btn>
