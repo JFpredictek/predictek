@@ -120,8 +120,7 @@ export default function GestionCopros(){
   function exporterCSV(){
     var lignes=["Unite,Nom,Prenom,Courriel,Telephone,Cotisation,PAP,Statut,CE Expiry,Ass Expiry"];
     copros.forEach(function(c){lignes.push([c.unite,c.nom,c.prenom||"",c.courriel||"",c.telephone||"",c.cotisation_mensuelle||0,c.pap?"Oui":"Non",c.statut,c.ce_expiry||"",c.ass_expiry||""].join(","));});
-    var blob=new Blob([lignes.join("
-")],{type:"text/csv"});
+    var blob=new Blob([lignes.join("\n")],{type:"text/csv"});
     var url=URL.createObjectURL(blob);
     var a=document.createElement("a");a.href=url;a.download="copropri-taires_"+(sel?sel.nom:"")+"_"+new Date().toISOString().substring(0,10)+".csv";a.click();URL.revokeObjectURL(url);
   }
