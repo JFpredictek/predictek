@@ -1,4 +1,5 @@
-import { useState } from "react";
+import sb from "./lib/supabase";
+import { useState, useEffect } from "react";
 var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",pop:"#3CAF6E",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",purple:"#6B3FA0",purpleL:"#F3EEFF"};
 var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
 var money=function(n){return(n<0?"-":"")+Math.abs(n||0).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
@@ -1001,7 +1002,16 @@ function TabBudget(){
 // ===== TAB EMPLOYES =====
 function TabEmployes(){
   var EMPLOYES_INIT=[];
-  var s0=useState(EMPLOYES_INIT);var employes=s0[0];var setEmployes=s0[1];
+  var s0=useState([]);var employes=s0[0];var setEmployes=s0[1];
+  useEffect(function(){
+    sb.select("employes",{order:"nom.asc"}).then(function(res){
+      if(res&&res.data&&res.data.length>0){
+        setEmployes(res.data.map(function(e){
+          return {id:e.id,nom:e.nom||"",prenom:e.prenom||"",poste:e.poste||"",dept:e.departement||"Operations",salaire:e.salaire||0,typeRem:e.type_salaire||"annuel",tauxHoraire:e.taux_horaire||0,heuresAssurables:e.heures_assurables||35,dateEmbauche:e.date_embauche||"",tel:e.telephone||"",courriel:e.courriel||"",naiss:e.date_naissance||"",vacances:e.semaines_vacances||3,adresse:e.adresse||"",federal:e.federal||"M",provincial:e.provincial||"M",nas:e.nas||"",notes:e.notes||"",actif:e.actif!==false};
+        }));
+      }
+    }).catch(function(){});
+  },[]);
   var s1=useState(null);var sel=s1[0];var setSel=s1[1];
   var s2=useState(false);var showN=s2[0];var setShowN=s2[1];
   var s3=useState({});var nf=s3[0];var setNf=s3[1];
