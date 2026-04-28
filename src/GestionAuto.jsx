@@ -238,7 +238,13 @@ function TabReunions({syndicat}){
   var s0=useState([]);var reunions=s0[0];var setReunions=s0[1];
   var s1=useState(false);var showN=s1[0];var setShowN=s1[1];
   var s2=useState({type:"CA",heure:"19:00",lieu:"",ordre:""});var nf=s2[0];var setNf=s2[1];
-  function sn(k,v){setNf(function(p){return Object.assign({},p,{[k]:v});});}
+  function sn(k,v){
+    if(k==="type")setNf(function(p){return Object.assign({},p,{type:v});});
+    else if(k==="date_reunion")setNf(function(p){return Object.assign({},p,{date_reunion:v});});
+    else if(k==="heure")setNf(function(p){return Object.assign({},p,{heure:v});});
+    else if(k==="lieu")setNf(function(p){return Object.assign({},p,{lieu:v});});
+    else if(k==="ordre")setNf(function(p){return Object.assign({},p,{ordre:v});});
+  }
 
   useEffect(function(){
     if(!syndicat)return;
