@@ -241,8 +241,7 @@ function TabPAP(p){
     var lines=["Unite,Nom,Montant,Date"];
     papCopros.forEach(function(c){lines.push((c.unite||"")+","+(c.nom||"")+","+Number(c.cotisation_mensuelle||0).toFixed(2)+","+datePrev);});
     lines.push("TOTAL,,"+totalPAP.toFixed(2));
-    var blob=new Blob([lines.join("
-")],{type:"text/csv"});
+    var blob=new Blob([lines.join("")],{type:"text/csv"});
     var url=URL.createObjectURL(blob);
     var a=document.createElement("a");a.href=url;a.download="PAP_"+datePrev+".csv";a.click();
     URL.revokeObjectURL(url);
