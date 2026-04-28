@@ -34,24 +34,7 @@ export default function Historique(){
 
   function exporter(){
     var lignes=["Date,Categorie,Action,Description,Details"];
-    filtres.forEach(function(l){lignes.push([l.created_at?l.created_at.substring(0,19):"",l.categorie||"",l.action||"",l.description||"",l.details||""].map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(","));});
-    var blob=new Blob([lignes.join("
-")],{type:"text/csv;charset=utf-8"});
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement("a");a.href=url;a.download="historique_"+new Date().toISOString().substring(0,10)+".csv";a.click();URL.revokeObjectURL(url);
-  }
-
-  var filtres=logs.filter(function(l){
-    var matchCat=catFiltre==="tout"||l.categorie===catFiltre;
-    var matchText=!recherche||(l.action||"").toLowerCase().includes(recherche.toLowerCase())||(l.description||"").toLowerCase().includes(recherche.toLowerCase());
-    return matchCat&&matchText;
-  });
-
-  var statsParCat={};logs.forEach(function(l){var c=l.categorie||"autre";if(!statsParCat[c])statsParCat[c]=0;statsParCat[c]++;});
-  var top3=Object.entries(statsParCat).sort(function(a,b){return b[1]-a[1];}).slice(0,3);
-
-  return(
-    <div style={{fontFamily:"Georgia,serif",minHeight:"100vh",background:T.bg}}>
+    filtres.forEach(function(l){var r=[wrap(l.created_at?l.created_at.substring(0,19):""),wrap(l.categorie),wrap(l.action),wrap(l.description),wrap(l.details)];rows.push(r.join(sep));});
       <div style={{background:T.navy,padding:"14px 20px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
         <div style={{fontSize:14,fontWeight:800,color:"#fff"}}>Historique et audit</div>
         {syndicats.length>0&&(
