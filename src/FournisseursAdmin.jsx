@@ -1,283 +1,161 @@
-import { useState } from "react";
-var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",pop:"#3CAF6E",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",purple:"#6B3FA0",purpleL:"#F3EEFF"};
+
+import sb from "./lib/supabase";
+import { useState, useEffect } from "react";
+
+var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",amber:"#B86020",amberL:"#FEF3E2",red:"#B83232",redL:"#FDECEA"};
 var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
-var money=function(n){return Math.abs(n||0).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
-function Bdg(p){return <span style={{fontSize:p.sz||10,fontWeight:600,padding:"2px 8px",borderRadius:20,background:p.bg||T.accentL,color:p.c||T.accent,whiteSpace:"nowrap",display:"inline-block"}}>{p.children}</span>;}
-function Btn(p){return <button onClick={p.onClick} style={{background:p.bg||T.accent,border:p.bdr||"none",borderRadius:7,padding:p.sm?"5px 11px":"8px 16px",color:p.tc||"#fff",fontSize:p.sm?10:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>{p.children}</button>;}
+
 function Lbl(p){return <div style={{fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:5}}>{p.l}</div>;}
-function FRow(p){return <div style={p.full?{gridColumn:"1/-1"}:{}}><Lbl l={p.l}/>{p.children}</div>;}
-function Modal(p){
-  if(!p.show)return null;
+function Btn(p){return <button onClick={p.onClick} disabled={p.dis} style={{background:p.dis?"#ccc":p.bg||T.accent,border:p.bdr||"none",borderRadius:7,padding:p.sm?"5px 12px":"8px 18px",color:p.tc||"#fff",fontSize:p.sm?11:12,fontWeight:600,cursor:p.dis?"not-allowed":"pointer",fontFamily:"inherit"}}>{p.children}</button>;}
+
+var CATEGORIES=["Entretien","Plomberie","Electricite","Chauffage","Nettoyage","Paysagement","Deneigement","Securite","Ascenseur","Assurance","Services professionnels","Informatique","Autre"];
+
+var VIDE={nom:"",categorie:"Entretien",telephone:"",courriel:"",adresse:"",site_web:"",notes:""};
+
+function CarteFournisseur(p){
+  var f=p.fournisseur;
   return(
-    <div onClick={function(e){if(e.target===e.currentTarget)p.onClose();}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}}>
-      <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:14,padding:24,width:p.w||540,maxWidth:"94vw",maxHeight:"90vh",overflowY:"auto"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-          <b style={{fontSize:14,color:T.text}}>{p.title}</b>
-          <button onClick={p.onClose} style={{background:"none",border:"none",fontSize:18,cursor:"pointer",color:T.muted,lineHeight:1}}>x</button>
+    <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:16,marginBottom:10}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div style={{flex:1}}>
+          <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:6}}>
+            <div style={{width:36,height:36,borderRadius:8,background:T.accentL,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <span style={{fontSize:14,fontWeight:800,color:T.accent}}>{f.nom.charAt(0).toUpperCase()}</span>
+            </div>
+            <div>
+              <div style={{fontSize:13,fontWeight:700,color:T.navy}}>{f.nom}</div>
+              <span style={{background:T.blueL,color:T.blue,borderRadius:20,padding:"1px 8px",fontSize:10,fontWeight:600}}>{f.categorie}</span>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,fontSize:11,color:T.muted,paddingLeft:46}}>
+            {f.telephone&&<div>Tel: <span style={{color:T.navy}}>{f.telephone}</span></div>}
+            {f.courriel&&<div>Courriel: <span style={{color:T.navy}}>{f.courriel}</span></div>}
+            {f.adresse&&<div style={{gridColumn:"1/-1"}}>Adresse: <span style={{color:T.navy}}>{f.adresse}</span></div>}
+            {f.site_web&&<div style={{gridColumn:"1/-1"}}>Web: <a href={f.site_web} target="_blank" rel="noreferrer" style={{color:T.blue}}>{f.site_web}</a></div>}
+            {f.notes&&<div style={{gridColumn:"1/-1",color:T.muted,fontStyle:"italic"}}>{f.notes}</div>}
+          </div>
         </div>
-        {p.children}
+        <div style={{display:"flex",gap:6,flexShrink:0,marginLeft:12}}>
+          <Btn sm onClick={function(){p.onEdit(f);}}>Modifier</Btn>
+          <Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red+"44"} onClick={function(){p.onToggle(f.id,!f.actif);}}>
+            {f.actif?"Archiver":"Reactiver"}
+          </Btn>
+        </div>
       </div>
     </div>
   );
 }
 
-var CATS=["Deneigement","Paysagement","Plomberie","Electricite","Chauffage","Ascenseur","Nettoyage","Serrurerie","Peinture","Toiture","Construction","Autre"];
-
-var FOURNISSEURS_INIT=[];
-
-var BONS_GLOBAUX=[];
-
 export default function FournisseursAdmin(){
-  var s0=useState("repertoire");var ong=s0[0];var setOng=s0[1];
-  var s1=useState(FOURNISSEURS_INIT);var fournisseurs=s1[0];var setFournisseurs=s1[1];
-  var s2=useState(null);var sel=s2[0];var setSel=s2[1];
-  var s3=useState("");var search=s3[0];var setSearch=s3[1];
-  var s4=useState("tous");var filtreCat=s4[0];var setFiltreCat=s4[1];
-  var s5=useState("tous");var filtreSynd=s5[0];var setFiltreSynd=s5[1];
-  var s6=useState(false);var showN=s6[0];var setShowN=s6[1];
-  var s7=useState({});var nf=s7[0];var setNf=s7[1];
-  function snf(k,v){setNf(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
+  var s0=useState([]);var fournisseurs=s0[0];var setFournisseurs=s0[1];
+  var s1=useState(false);var showForm=s1[0];var setShowForm=s1[1];
+  var s2=useState(VIDE);var nf=s2[0];var setNf=s2[1];
+  var s3=useState(null);var editId=s3[0];var setEditId=s3[1];
+  var s4=useState("");var recherche=s4[0];var setRecherche=s4[1];
+  var s5=useState("tout");var catFiltre=s5[0];var setCatFiltre=s5[1];
+  var s6=useState(false);var showArchives=s6[0];var setShowArchives=s6[1];
+  var s7=useState(false);var saving=s7[0];var setSaving=s7[1];
 
-  var SYNDS=["PIED","ERAB","BELV"];
+  useEffect(function(){
+    sb.select("fournisseurs",{order:"nom.asc"}).then(function(res){
+      if(res&&res.data)setFournisseurs(res.data);
+    }).catch(function(){});
+  },[]);
+
+  function setN(k,v){setNf(function(pr){
+    if(k==="nom")return Object.assign({},pr,{nom:v});
+    if(k==="categorie")return Object.assign({},pr,{categorie:v});
+    if(k==="telephone")return Object.assign({},pr,{telephone:v});
+    if(k==="courriel")return Object.assign({},pr,{courriel:v});
+    if(k==="adresse")return Object.assign({},pr,{adresse:v});
+    if(k==="site_web")return Object.assign({},pr,{site_web:v});
+    if(k==="notes")return Object.assign({},pr,{notes:v});
+    return pr;
+  });}
+
+  function sauvegarder(){
+    if(!nf.nom)return;
+    setSaving(true);
+    var row={nom:nf.nom,categorie:nf.categorie||"Autre",telephone:nf.telephone||"",courriel:nf.courriel||"",adresse:nf.adresse||"",site_web:nf.site_web||"",notes:nf.notes||"",actif:true};
+    var op=editId?sb.update("fournisseurs",editId,row):sb.insert("fournisseurs",row);
+    op.then(function(res){
+      if(editId){
+        setFournisseurs(function(prev){return prev.map(function(f){return f.id===editId?Object.assign({},f,row):f;});});
+      }else if(res&&res.data){
+        setFournisseurs(function(prev){return [res.data].concat(prev);});
+      }
+      setShowForm(false);setNf(VIDE);setEditId(null);setSaving(false);
+    }).catch(function(){setSaving(false);});
+  }
+
+  function editer(f){
+    setNf({nom:f.nom||"",categorie:f.categorie||"Entretien",telephone:f.telephone||"",courriel:f.courriel||"",adresse:f.adresse||"",site_web:f.site_web||"",notes:f.notes||""});
+    setEditId(f.id);setShowForm(true);
+  }
+
+  function toggleActif(id,actif){
+    sb.update("fournisseurs",id,{actif:actif}).then(function(){
+      setFournisseurs(function(prev){return prev.map(function(f){return f.id===id?Object.assign({},f,{actif:actif}):f;});});
+    }).catch(function(){});
+  }
+
   var actifs=fournisseurs.filter(function(f){return f.actif;});
-  var totalFacture=actifs.reduce(function(a,f){return a+f.totalFacture;},0);
-  var noteMoy=actifs.length>0?Math.round(actifs.reduce(function(a,f){return a+f.note;},0)/actifs.length*10)/10:0;
+  var archives=fournisseurs.filter(function(f){return !f.actif;});
 
-  var liste=fournisseurs.filter(function(f){
-    if(search&&!(f.nom.toLowerCase().includes(search.toLowerCase())||f.cat.toLowerCase().includes(search.toLowerCase())))return false;
-    if(filtreCat!=="tous"&&f.cat!==filtreCat)return false;
-    if(filtreSynd!=="tous"&&!f.syndicats.includes(filtreSynd))return false;
-    return true;
+  var filtres=actifs.filter(function(f){
+    var matchCat=catFiltre==="tout"||f.categorie===catFiltre;
+    var matchText=!recherche||f.nom.toLowerCase().includes(recherche.toLowerCase())||(f.notes&&f.notes.toLowerCase().includes(recherche.toLowerCase()));
+    return matchCat&&matchText;
   });
 
-  var selF=sel?fournisseurs.find(function(f){return f.id===sel;}):null;
-
-  function etoiles(n){var s="";for(var i=0;i<5;i++)s+=i<Math.floor(n)?"*":i<n?"~":"_";return s;}
-
   return(
-    <div style={{padding:16,fontFamily:"Georgia,serif"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <div>
-          <div style={{fontSize:17,fontWeight:800,color:T.navy}}>Fournisseurs — Vue globale Predictek</div>
-          <div style={{fontSize:11,color:T.muted}}>Repertoire centralise — tous syndicats confondus</div>
+    <div style={{fontFamily:"Georgia,serif",minHeight:"100vh",background:T.bg}}>
+      <div style={{background:T.navy,padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{fontSize:14,fontWeight:800,color:"#fff"}}>Repertoire fournisseurs</div>
+        <Btn onClick={function(){setNf(VIDE);setEditId(null);setShowForm(true);}}>+ Ajouter fournisseur</Btn>
+      </div>
+
+      <div style={{padding:20}}>
+        <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
+          <input value={recherche} onChange={function(e){setRecherche(e.target.value);}} placeholder="Rechercher..." style={Object.assign({},INP,{flex:1,minWidth:160})}/>
+          <select value={catFiltre} onChange={function(e){setCatFiltre(e.target.value);}} style={Object.assign({},INP,{width:180})}>
+            <option value="tout">Toutes categories</option>
+            {CATEGORIES.map(function(c){return <option key={c}>{c}</option>;})}
+          </select>
         </div>
-        <Btn onClick={function(){setNf({nom:"",cat:"Plomberie",tel:"",courriel:"",contact:"",syndicats:[],actif:true,note:0,nbContrats:0,totalFacture:0,certifie:false,assurance:false,rbq:"",notes:""});setShowN(true);}}>+ Nouveau fournisseur</Btn>
-      </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
-        {[
-          {l:"Fournisseurs actifs",v:actifs.length,c:T.navy,bg:T.blueL},
-          {l:"Total facture (cumul)",v:money(totalFacture),c:T.accent,bg:T.accentL},
-          {l:"Note moyenne",v:noteMoy+"/5",c:noteMoy>=4.5?T.accent:noteMoy>=4?T.amber:T.red,bg:noteMoy>=4.5?T.accentL:noteMoy>=4?T.amberL:T.redL},
-          {l:"Categories actives",v:new Set(actifs.map(function(f){return f.cat;})).size,c:T.purple,bg:T.purpleL},
-        ].map(function(st,i){return(
-          <div key={i} style={{background:st.bg,borderRadius:10,padding:"11px 13px",border:"1px solid "+st.c+"33"}}>
-            <div style={{fontSize:9,color:st.c,fontWeight:700,marginBottom:3,textTransform:"uppercase"}}>{st.l}</div>
-            <div style={{fontSize:17,fontWeight:800,color:st.c}}>{st.v}</div>
-          </div>
-        );})}
-      </div>
-
-      <div style={{display:"flex",gap:3,marginBottom:14,background:T.surface,padding:5,borderRadius:10,border:"1px solid "+T.border}}>
-        {[["repertoire","Repertoire"],["bons","Bons de travail globaux"],["performance","Performance"]].map(function(t){var a=ong===t[0];return(
-          <button key={t[0]} onClick={function(){setOng(t[0]);}} style={{background:a?T.navy:"transparent",border:"none",borderRadius:7,padding:"7px 14px",color:a?"#fff":T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400,whiteSpace:"nowrap"}}>{t[1]}</button>
-        );})}
-      </div>
-
-      {ong==="repertoire"&&(
-        <div>
-          <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap",alignItems:"center"}}>
-            <input value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Rechercher..." style={{border:"1px solid "+T.border,borderRadius:20,padding:"4px 12px",fontSize:11,fontFamily:"inherit",outline:"none",width:180}}/>
-            <select value={filtreCat} onChange={function(e){setFiltreCat(e.target.value);}} style={{border:"1px solid "+T.border,borderRadius:20,padding:"4px 10px",fontSize:11,fontFamily:"inherit",outline:"none",background:"#fff"}}>
-              <option value="tous">Toutes categories</option>
-              {CATS.map(function(c){return <option key={c} value={c}>{c}</option>;})}
-            </select>
-            <select value={filtreSynd} onChange={function(e){setFiltreSynd(e.target.value);}} style={{border:"1px solid "+T.border,borderRadius:20,padding:"4px 10px",fontSize:11,fontFamily:"inherit",outline:"none",background:"#fff"}}>
-              <option value="tous">Tous syndicats</option>
-              {SYNDS.map(function(s){return <option key={s} value={s}>{s}</option>;})}
-            </select>
-            <span style={{fontSize:11,color:T.muted,marginLeft:"auto"}}>{liste.length} fournisseur(s)</span>
-          </div>
-
-          <div style={{display:"flex",gap:12}}>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
-                <table style={{width:"100%",borderCollapse:"collapse"}}>
-                  <thead>
-                    <tr style={{background:T.navy}}>
-                      {["Nom","Categorie","Contact","Syndicats","Note","Facture total","Cert.","Statut"].map(function(h){return <th key={h} style={{padding:"7px 10px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>;})}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {liste.map(function(f){return(
-                      <tr key={f.id} onClick={function(){setSel(f.id);}} style={{borderBottom:"1px solid "+T.border,background:sel===f.id?T.accentL:f.actif?T.surface:T.alt,cursor:"pointer"}}>
-                        <td style={{padding:"8px 10px",fontWeight:600,color:T.text,fontSize:12}}>{f.nom}</td>
-                        <td style={{padding:"8px 10px"}}><Bdg bg={T.alt} c={T.muted}>{f.cat}</Bdg></td>
-                        <td style={{padding:"8px 10px",fontSize:11,color:T.muted}}>{f.contact}</td>
-                        <td style={{padding:"8px 10px"}}>
-                          <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
-                            {f.syndicats.map(function(s){return <Bdg key={s} bg={T.blueL} c={T.blue}>{s}</Bdg>;})}
-                          </div>
-                        </td>
-                        <td style={{padding:"8px 10px"}}>
-                          <span style={{fontSize:12,fontWeight:700,color:f.note>=4.5?T.accent:f.note>=4?T.amber:T.red}}>{f.note}</span>
-                          <span style={{fontSize:9,color:T.muted}}>/5</span>
-                        </td>
-                        <td style={{padding:"8px 10px",fontSize:11,fontWeight:600,color:T.text}}>{money(f.totalFacture)}</td>
-                        <td style={{padding:"8px 10px",textAlign:"center"}}>
-                          {f.certifie&&<span style={{fontSize:9,fontWeight:700,color:T.accent,background:T.accentL,padding:"1px 5px",borderRadius:8}}>RBQ</span>}
-                        </td>
-                        <td style={{padding:"8px 10px"}}><Bdg bg={f.actif?T.accentL:T.redL} c={f.actif?T.accent:T.red}>{f.actif?"Actif":"Inactif"}</Bdg></td>
-                      </tr>
-                    );})}
-                  </tbody>
-                </table>
-              </div>
+        {showForm&&(
+          <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:14,padding:20,marginBottom:20}}>
+            <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:16}}>{editId?"Modifier le fournisseur":"Nouveau fournisseur"}</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Nom du fournisseur"/><input value={nf.nom} onChange={function(e){setN("nom",e.target.value);}} style={INP} placeholder="Nom de l entreprise..."/></div>
+              <div><Lbl l="Categorie"/><select value={nf.categorie} onChange={function(e){setN("categorie",e.target.value);}} style={INP}>{CATEGORIES.map(function(c){return <option key={c}>{c}</option>;})}</select></div>
+              <div><Lbl l="Telephone"/><input value={nf.telephone} onChange={function(e){setN("telephone",e.target.value);}} style={INP} placeholder="418-555-0000"/></div>
+              <div><Lbl l="Courriel"/><input type="email" value={nf.courriel} onChange={function(e){setN("courriel",e.target.value);}} style={INP} placeholder="info@fournisseur.ca"/></div>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse"/><input value={nf.adresse} onChange={function(e){setN("adresse",e.target.value);}} style={INP} placeholder="123 rue Principale, Quebec QC"/></div>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Site web"/><input value={nf.site_web} onChange={function(e){setN("site_web",e.target.value);}} style={INP} placeholder="https://www.fournisseur.ca"/></div>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Notes internes"/><textarea value={nf.notes} onChange={function(e){setN("notes",e.target.value);}} style={Object.assign({},INP,{minHeight:60,resize:"vertical"})} placeholder="Specialites, tarifs, contacts preferes..."/></div>
             </div>
-
-            {selF&&(
-              <div style={{width:280,flexShrink:0}}>
-                <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-                    <div>
-                      <div style={{fontSize:14,fontWeight:700,color:T.navy,marginBottom:2}}>{selF.nom}</div>
-                      <Bdg bg={T.alt} c={T.muted}>{selF.cat}</Bdg>
-                    </div>
-                    <button onClick={function(){setSel(null);}} style={{background:"none",border:"none",cursor:"pointer",color:T.muted,fontSize:16,lineHeight:1}}>x</button>
-                  </div>
-                  {[
-                    {l:"Contact",v:selF.contact},
-                    {l:"Telephone",v:selF.tel},
-                    {l:"Courriel",v:selF.courriel},
-                    {l:"No RBQ",v:selF.rbq||"—"},
-                    {l:"Nb contrats",v:selF.nbContrats},
-                    {l:"Total facture",v:money(selF.totalFacture)},
-                  ].map(function(item,i){return(
-                    <div key={i} style={{padding:"6px 0",borderBottom:"1px solid "+T.border,display:"flex",justifyContent:"space-between"}}>
-                      <span style={{fontSize:10,color:T.muted}}>{item.l}</span>
-                      <span style={{fontSize:11,fontWeight:500,color:T.text}}>{item.v}</span>
-                    </div>
-                  );})}
-                  <div style={{marginTop:10,display:"flex",gap:6,flexWrap:"wrap"}}>
-                    <Bdg bg={selF.certifie?T.accentL:T.alt} c={selF.certifie?T.accent:T.muted}>{selF.certifie?"Certifie RBQ":"Non certifie"}</Bdg>
-                    <Bdg bg={selF.assurance?T.accentL:T.redL} c={selF.assurance?T.accent:T.red}>{selF.assurance?"Assure":"Non assure"}</Bdg>
-                  </div>
-                  {selF.notes&&<div style={{marginTop:10,background:T.alt,borderRadius:7,padding:"8px 10px",fontSize:11,color:T.muted,lineHeight:1.5}}>{selF.notes}</div>}
-                  <div style={{marginTop:10}}>
-                    <Lbl l="Syndicats assignes"/>
-                    <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                      {SYNDS.map(function(s){var on=selF.syndicats.includes(s);return(
-                        <button key={s} onClick={function(){setFournisseurs(function(prev){return prev.map(function(f){if(f.id!==selF.id)return f;var ns=on?f.syndicats.filter(function(x){return x!==s;}):f.syndicats.concat([s]);return Object.assign({},f,{syndicats:ns});});});}} style={{padding:"3px 9px",border:"1px solid "+(on?T.accent:T.border),borderRadius:20,background:on?T.accentL:T.surface,color:on?T.accent:T.muted,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:on?600:400}}>{s}</button>
-                      );})}
-                    </div>
-                  </div>
-                  <div style={{marginTop:10,display:"flex",gap:6}}>
-                    <Btn sm bg={selF.actif?T.redL:T.accentL} tc={selF.actif?T.red:T.accent} bdr={"1px solid "+(selF.actif?T.red:T.accent)} onClick={function(){setFournisseurs(function(prev){return prev.map(function(f){return f.id===selF.id?Object.assign({},f,{actif:!f.actif}):f;});});}}>
-                      {selF.actif?"Desactiver":"Reactiver"}
-                    </Btn>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {ong==="bons"&&(
-        <div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-            <b style={{fontSize:13,color:T.navy}}>Bons de travail — tous syndicats</b>
-          </div>
-          <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
-            <table style={{width:"100%",borderCollapse:"collapse"}}>
-              <thead>
-                <tr style={{background:T.navy}}>
-                  {["Syndicat","Fournisseur","Unite","Description","Date","Montant","Statut"].map(function(h){return <th key={h} style={{padding:"7px 12px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>;})}
-                </tr>
-              </thead>
-              <tbody>
-                {BONS_GLOBAUX.map(function(b){return(
-                  <tr key={b.id} style={{borderBottom:"1px solid "+T.border}}>
-                    <td style={{padding:"9px 12px"}}><Bdg bg={T.blueL} c={T.blue}>{b.syndicat}</Bdg></td>
-                    <td style={{padding:"9px 12px",fontSize:12,fontWeight:600,color:T.text}}>{b.fournisseur}</td>
-                    <td style={{padding:"9px 12px",fontSize:11,color:T.muted}}>{b.unite}</td>
-                    <td style={{padding:"9px 12px",fontSize:12,color:T.text}}>{b.desc}</td>
-                    <td style={{padding:"9px 12px",fontSize:11,color:T.muted,whiteSpace:"nowrap"}}>{b.date}</td>
-                    <td style={{padding:"9px 12px",fontSize:12,fontWeight:600}}>{money(b.mnt)}</td>
-                    <td style={{padding:"9px 12px"}}><Bdg bg={b.statut==="complete"?T.accentL:T.amberL} c={b.statut==="complete"?T.accent:T.amber}>{b.statut==="complete"?"Complete":"Approuve"}</Bdg></td>
-                  </tr>
-                );})}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {ong==="performance"&&(
-        <div>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
-            {actifs.sort(function(a,b){return b.note-a.note;}).map(function(f){return(
-              <div key={f.id} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                  <div>
-                    <div style={{fontSize:12,fontWeight:700,color:T.text,marginBottom:2}}>{f.nom}</div>
-                    <Bdg bg={T.alt} c={T.muted}>{f.cat}</Bdg>
-                  </div>
-                  <div style={{textAlign:"center"}}>
-                    <div style={{fontSize:20,fontWeight:800,color:f.note>=4.5?T.accent:f.note>=4?T.amber:T.red}}>{f.note}</div>
-                    <div style={{fontSize:8,color:T.muted}}>sur 5</div>
-                  </div>
-                </div>
-                <div style={{height:4,background:T.border,borderRadius:2,overflow:"hidden",marginBottom:10}}>
-                  <div style={{width:(f.note/5*100)+"%",height:"100%",background:f.note>=4.5?T.accent:f.note>=4?T.amber:T.red,borderRadius:2}}/>
-                </div>
-                <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:T.muted}}>
-                  <span>{f.nbContrats} contrats</span>
-                  <span>{money(f.totalFacture)}</span>
-                </div>
-                <div style={{marginTop:8,display:"flex",gap:3,flexWrap:"wrap"}}>
-                  {f.syndicats.map(function(s){return <Bdg key={s} bg={T.blueL} c={T.blue}>{s}</Bdg>;})}
-                </div>
-              </div>
-            );})}
-          </div>
-        </div>
-      )}
-
-      <Modal show={showN} onClose={function(){setShowN(false);}} title="Nouveau fournisseur" w={560}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-          <FRow l="Nom" full><input value={nf.nom||""} onChange={function(e){snf("nom",e.target.value);}} style={INP}/></FRow>
-          <FRow l="Categorie">
-            <select value={nf.cat||"Plomberie"} onChange={function(e){snf("cat",e.target.value);}} style={INP}>
-              {CATS.map(function(c){return <option key={c} value={c}>{c}</option>;})}
-            </select>
-          </FRow>
-          <FRow l="Contact"><input value={nf.contact||""} onChange={function(e){snf("contact",e.target.value);}} style={INP}/></FRow>
-          <FRow l="Telephone"><input value={nf.tel||""} onChange={function(e){snf("tel",e.target.value);}} style={INP}/></FRow>
-          <FRow l="Courriel" full><input value={nf.courriel||""} onChange={function(e){snf("courriel",e.target.value);}} style={INP}/></FRow>
-          <FRow l="No RBQ"><input value={nf.rbq||""} onChange={function(e){snf("rbq",e.target.value);}} style={INP}/></FRow>
-          <FRow l="Syndicats" full>
-            <div style={{display:"flex",gap:6}}>
-              {SYNDS.map(function(s){var on=(nf.syndicats||[]).includes(s);return(
-                <button key={s} onClick={function(){var cur=nf.syndicats||[];snf("syndicats",on?cur.filter(function(x){return x!==s;}):cur.concat([s]));}} style={{padding:"4px 12px",border:"1px solid "+(on?T.accent:T.border),borderRadius:20,background:on?T.accentL:T.surface,color:on?T.accent:T.muted,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:on?600:400}}>{s}</button>
-              );})}
+            <div style={{display:"flex",gap:8}}>
+              <Btn onClick={sauvegarder} dis={saving||!nf.nom}>{saving?"Sauvegarde...":"Sauvegarder"}</Btn>
+              <Btn onClick={function(){setShowForm(false);setEditId(null);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
             </div>
-          </FRow>
-          <FRow l="Notes" full><textarea value={nf.notes||""} onChange={function(e){snf("notes",e.target.value);}} rows={3} style={Object.assign({},INP,{resize:"vertical"})}/></FRow>
-          <div style={{display:"flex",gap:14}}>
-            <label style={{display:"flex",gap:6,alignItems:"center",fontSize:12,cursor:"pointer"}}>
-              <input type="checkbox" checked={!!nf.certifie} onChange={function(e){snf("certifie",e.target.checked);}}/>Certifie RBQ
-            </label>
-            <label style={{display:"flex",gap:6,alignItems:"center",fontSize:12,cursor:"pointer"}}>
-              <input type="checkbox" checked={!!nf.assurance} onChange={function(e){snf("assurance",e.target.checked);}}/>Assure
-            </label>
           </div>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <Btn onClick={function(){if(!nf.nom)return;setFournisseurs(function(prev){return prev.concat([Object.assign({},nf,{id:Date.now(),note:0,nbContrats:0,totalFacture:0})]);});setShowN(false);}}>Ajouter</Btn>
-          <Btn onClick={function(){setShowN(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
-        </div>
-      </Modal>
+        )}
+
+        <div style={{fontSize:12,color:T.muted,marginBottom:12}}>{filtres.length} fournisseur(s) actif(s){catFiltre!=="tout"?" - "+catFiltre:""}</div>
+        {filtres.map(function(f){return <CarteFournisseur key={f.id} fournisseur={f} onEdit={editer} onToggle={toggleActif}/>;})}
+        {filtres.length===0&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucun fournisseur{recherche?" pour cette recherche":""}</div>}
+
+        {archives.length>0&&(
+          <div style={{marginTop:20}}>
+            <button onClick={function(){setShowArchives(!showArchives);}} style={{background:"none",border:"none",color:T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+              {showArchives?"Masquer":"Afficher"} les archives ({archives.length})
+            </button>
+            {showArchives&&archives.map(function(f){return <CarteFournisseur key={f.id} fournisseur={f} onEdit={editer} onToggle={toggleActif}/>;})}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
