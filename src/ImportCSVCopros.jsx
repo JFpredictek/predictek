@@ -22,12 +22,7 @@ function parseCSV(texte){
   var lignes=texte.split("\n").map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
   if(lignes.length<2)return {erreur:"Le fichier doit avoir au moins 2 lignes (entete + donnees)",lignes:[]};
   var sep=lignes[0].includes(";")?";":",";
-  var entetes=lignes[0].split(sep).map(function(h){return h.trim().replace(/"/g,"").toLowerCase();});
-  var data=[];
-  for(var i=1;i<lignes.length;i++){
-    var cols=lignes[i].split(sep).map(function(c){return c.trim().replace(/"/g,"");});
-    var row={};
-    entetes.forEach(function(h,j){row[h]=cols[j]||"";});
+  var entetes=lignes[0].split(sep).map(function(h){return h.trim().replace(/"/g,"").toLowerCase();});\nvar data=[];\nfor(var i=1;i<lignes.length;i++){\nvar cols=lignes[i].split(sep).map(function(c){return c.trim().replace(/"/g,"");});\nvar row={};\nentetes.forEach(function(h,j){row[h]=cols[j]||"";});
     data.push(row);
   }
   return {entetes:entetes,lignes:data,erreur:null};
