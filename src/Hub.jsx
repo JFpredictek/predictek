@@ -838,32 +838,6 @@ var COMPOSANTES_LOI16=[
   {cat:"Interieur",nom:"Peinture - parties communes",dureeVie:10,anneeInstall:"",etat:"bon",notes:"",obligatoire:false},
 ];
 
-
-// Helpers Onboarding (definis hors de tout composant)
-function Field(p){
-  var st=p.full?{gridColumn:"1/-1"}:{};
-  var nc={muted:"#7C7568"};
-  return(
-    <div style={st}>
-      {p.l&&<div style={{fontSize:10,color:nc.muted,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:5}}>{p.l}</div>}
-      {p.children}
-      {p.hint&&<div style={{fontSize:10,color:nc.muted,marginTop:3}}>{p.hint}</div>}
-    </div>
-  );
-}
-function Check(p){
-  return(
-    <div style={{display:"flex",gap:10,alignItems:"flex-start",cursor:"pointer"}} onClick={p.onChange}>
-      <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(p.checked?"#1B5E3B":"#DDD9CF"),background:p.checked?"#1B5E3B":"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:2}}>
-        {p.checked&&<span style={{color:"#fff",fontSize:12,fontWeight:700}}>V</span>}
-      </div>
-      <div>
-        {p.label&&<div style={{fontSize:12,fontWeight:600,color:"#1C1A17",lineHeight:1.4}}>{p.label}</div>}
-        {p.desc&&<div style={{fontSize:11,color:"#7C7568",marginTop:3,lineHeight:1.4}}>{p.desc}</div>}
-      </div>
-    </div>
-  );
-}
 function Onboarding(p){
   var s0=useState(1);var step=s0[0];var setStep=s0[1];
   var s1=useState({
@@ -1463,9 +1437,28 @@ function ParamsPredictek(){
 
 
 
-var HISTORIQUE_INIT=[];
-var TEMPLATES=[];
-var DESTINATAIRES=[];
+var HISTORIQUE_INIT=[
+  {id:1,date:"2026-04-25 09:15",type:"courriel",dest:"jf.laroche@email.com",sujet:"Rapport mensuel avril 2026",statut:"simule",syndicat:"PIED",moyen:"courriel"},
+  {id:2,date:"2026-04-24 14:30",type:"sms",dest:"+1 418-555-0539",sujet:"Rappel cotisation en retard - Unite 539",statut:"simule",syndicat:"PIED",moyen:"sms"},
+  {id:3,date:"2026-04-22 10:00",type:"courriel",dest:"ca@syndicatpiedmont.com",sujet:"Convocation reunion CA - 15 mai 2026",statut:"simule",syndicat:"PIED",moyen:"courriel"},
+  {id:4,date:"2026-04-20 16:45",type:"courriel",dest:"m.beaudoin@email.com",sujet:"Alerte chauffe-eau - Unite 515",statut:"simule",syndicat:"PIED",moyen:"courriel"},
+  {id:5,date:"2026-04-18 11:20",type:"portail",dest:"Coproprietaires portail actif (3)",sujet:"Avis travaux deneigement",statut:"simule",syndicat:"PIED",moyen:"portail"},
+];
+var TEMPLATES=[
+  {id:1,cat:"Cotisations",nom:"Rappel cotisation J+5",sujet:"[{{syndicat}}] Cotisation en retard - Unite {{unite}}",corps:"Madame, Monsieur,\n\nNous constatons que votre cotisation mensuelle pour l unite {{unite}} d un montant de {{montant}} $ n a pas ete recue.\n\nMerci de regulariser sous 10 jours.\n\nCordialement,\nAdministration {{syndicat}}\nGere par Predictek",moyens:["courriel"],auto:true},
+  {id:2,cat:"Conformite",nom:"Alerte chauffe-eau expire",sujet:"[{{syndicat}}] Action requise - Chauffe-eau Unite {{unite}}",corps:"Madame, Monsieur,\n\nVotre chauffe-eau de l unite {{unite}} est arrive a son terme de vie.\n\nVous devez proceder a son remplacement dans les 60 jours et nous transmettre la preuve d installation.\n\nCordialement,\nAdministration {{syndicat}}",moyens:["courriel","sms"],auto:false},
+  {id:3,cat:"Reunions",nom:"Convocation CA",sujet:"[{{syndicat}}] Convocation - Reunion CA le {{date}}",corps:"Madame, Monsieur,\n\nVous etes convoques a la reunion du CA le {{date}} a {{heure}} - {{lieu}}.\n\nOrdre du jour:\n{{ordre_du_jour}}\n\nMerci de confirmer votre presence.\n\nCordialement,\n{{president}}, President\n{{syndicat}}",moyens:["courriel"],auto:false},
+  {id:4,cat:"Documents",nom:"Nouveau document disponible",sujet:"[{{syndicat}}] Nouveau document disponible sur votre portail",corps:"Madame, Monsieur,\n\nUn nouveau document est maintenant disponible sur votre portail coproprietaire:\n\n{{nom_document}}\n\nConnectez-vous sur app.predictek.ca pour y acceder.\n\nCordialement,\nAdministration {{syndicat}}",moyens:["courriel","portail"],auto:true},
+  {id:5,cat:"Urgences",nom:"Alerte urgence immeuble",sujet:"URGENT - {{syndicat}}: {{titre_urgence}}",corps:"ALERTE URGENCE\n\n{{description}}\n\nAction requise: {{action}}\n\nContacter immediatement: {{contact_urgence}}\n\nAdministration {{syndicat}}",moyens:["courriel","sms"],auto:false},
+  {id:6,cat:"Finances",nom:"Rapport mensuel CA",sujet:"[{{syndicat}}] Rapport mensuel - {{mois}} {{annee}}",corps:"Rapport mensuel - {{mois}} {{annee}}\n\nSoldes:\n- Exploitation: {{solde_op}} $\n- Prevoyance: {{solde_prev}} $\n\nCotisations recues: {{cot_recues}} $\nFactures approuvees: {{fact_approuvees}}\n\nRapport genere automatiquement par Predictek",moyens:["courriel"],auto:true},
+];
+var DESTINATAIRES=[
+  {id:1,nom:"Jean-Francois Laroche",unite:"531",courriel:"jf.laroche@email.com",tel:"819-479-4203",groupes:["CA","president"]},
+  {id:2,nom:"Maryse Fredette",unite:"",courriel:"m.fredette@email.com",tel:"418-555-0301",groupes:["CA","secretaire"]},
+  {id:3,nom:"Michel Beaudoin",unite:"515",courriel:"m.beaudoin@email.com",tel:"418-555-0101",groupes:["copros_portail"]},
+  {id:4,nom:"Lucette Tremblay",unite:"539",courriel:"l.tremblay@email.com",tel:"418-555-0539",groupes:["copros_portail","retard"]},
+  {id:5,nom:"CA Syndicat Piedmont",unite:"",courriel:"ca@syndicatpiedmont.com",tel:"",groupes:["CA","liste_ca"]},
+];
 
 function TabEnvoiManuel(){
   var s0=useState(null);var tmpl=s0[0];var setTmpl=s0[1];
