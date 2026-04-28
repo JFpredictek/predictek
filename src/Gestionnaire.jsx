@@ -28,7 +28,7 @@ function Modal(p){
 }
 
 // ===== DONNEES =====
-var SYNDICAT={nom:"",adr:"",president:"",courriel:"",tel:"",immat:"",nbUnites:0,cotMensuelle:0};
+var SYNDICAT={nom:"",adr:"",president:"",courriel:"",tel:"",immat:"",nbUnites:0};
 var COMPTES=[];
 var BUDGET=[];
 var FACT0=[];
