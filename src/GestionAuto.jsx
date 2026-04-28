@@ -278,12 +278,7 @@ function TabReunions({syndicat}){
     html+="<p style='text-align:center'>"+(r.lieu||"Lieu a confirmer")+"</p>";
     html+="<p><b>Ordre du jour:</b></p>";
     html+="<ol>";
-    var points=(r.ordre_du_jour||"Ouverture de la seance
-Adoption de l ordre du jour
-Adoption du PV precedent
-Divers
-Fermeture de la seance").split("
-");
+    var points=(r.ordre_du_jour||"Ouverture\nAdoption ordre du jour\nDivers\nFermeture").split("\n");
     points.forEach(function(p){if(p.trim())html+="<li>"+p.trim()+"</li>";});
     html+="</ol>";
     html+="<div class='signature'><p>Le secretaire du conseil d administration,</p><p>&nbsp;</p><p>___________________________</p><p>Date: "+new Date().toLocaleDateString("fr-CA")+"</p></div>";
@@ -309,30 +304,7 @@ Fermeture de la seance").split("
             <div><Lbl l="Date"/><input type="date" value={nf.date_reunion||""} onChange={function(e){sn("date_reunion",e.target.value);}} style={INP}/></div>
             <div><Lbl l="Heure"/><input value={nf.heure||"19:00"} onChange={function(e){sn("heure",e.target.value);}} style={INP} placeholder="19:00"/></div>
             <div><Lbl l="Lieu"/><input value={nf.lieu||""} onChange={function(e){sn("lieu",e.target.value);}} style={INP} placeholder="Salle communautaire..."/></div>
-            <div style={{gridColumn:"1/-1"}}><Lbl l="Ordre du jour (1 point par ligne)"/><textarea value={nf.ordre||""} onChange={function(e){sn("ordre",e.target.value);}} style={Object.assign({},INP,{minHeight:80,resize:"vertical"})} placeholder={"Ouverture de la seance
-Adoption de l ordre du jour
-Budget 2025-2026
-Divers
-Fermeture"}/></div>
-          </div>
-          <div style={{display:"flex",gap:8}}>
-            <Btn onClick={ajouterReunion}>Planifier</Btn>
-            <Btn onClick={function(){setShowN(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
-          </div>
-        </Card>
-      )}
-
-      {prochaines.length>0&&(
-        <div style={{marginBottom:16}}>
-          <div style={{fontSize:11,fontWeight:700,color:T.muted,textTransform:"uppercase",marginBottom:8}}>Prochaines reunions</div>
-          {prochaines.map(function(r){
-            return(
-              <Card key={r.id} p={14}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                  <div>
-                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:6}}>
-                      <Badge l={r.type} c="bleu"/>
-                      <span style={{fontSize:13,fontWeight:700,color:T.navy}}>{new Date(r.date_reunion).toLocaleDateString("fr-CA",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</span>
+            <div style={{gridColumn:"1/-1"}}><Lbl l="Ordre du jour (1 point par ligne)"/><textarea value={nf.ordre||""} onChange={function(e){sn("ordre",e.target.value);}} style={Object.assign({},INP,{minHeight:80,resize:"vertical"})} placeholder={"Ouverture de la seance\nAdoption de l ordre du jour\nBudget 2025-2026\nDivers\nFermeture"}/></div>\n          </div>\n          <div style={{display:"flex",gap:8}}>\n            <Btn onClick={ajouterReunion}>Planifier</Btn>\n            <Btn onClick={function(){setShowN(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>\n          </div>\n        </Card>\n      )}\n\n      {prochaines.length>0&&(\n        <div style={{marginBottom:16}}>\n          <div style={{fontSize:11,fontWeight:700,color:T.muted,textTransform:"uppercase",marginBottom:8}}>Prochaines reunions</div>\n          {prochaines.map(function(r){\n            return(\n              <Card key={r.id} p={14}>\n                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>\n                  <div>\n                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:6}}>\n                      <Badge l={r.type} c="bleu"/>\n                      <span style={{fontSize:13,fontWeight:700,color:T.navy}}>{new Date(r.date_reunion).toLocaleDateString("fr-CA",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</span>
                       <span style={{fontSize:12,color:T.muted}}>a {r.heure}</span>
                     </div>
                     <div style={{fontSize:12,color:T.muted}}>{r.lieu||"Lieu a confirmer"}</div>
