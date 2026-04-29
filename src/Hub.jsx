@@ -228,7 +228,7 @@ function CreerSyndicat(p){
   function sf(k,v){setForm(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
 
   function parseCSV(text){
-    var lines=text.trim().split("\n");
+    var lines=text.trim().split("");
     if(lines.length<2)return 0;
     return lines.length-1;
   }
@@ -792,9 +792,9 @@ function StepIndicator(p){
 
 // CSV Parser
 function parseCSV(text){
-  var lines=text.trim().split("\n");
+  var lines=text.trim().split("");
   if(lines.length<2)return{ok:false,msg:"Fichier vide ou invalide",rows:[]};
-  var headers=lines[0].split(",").map(function(h){return h.trim().replace(/"/g,"").toLowerCase();});;var rows=[];var errors=[];for(var i=1;i<lines.length;i++){var cols=lines[i].split(",").map(function(c){return c.trim().replace(/"/g,"");});if(cols.length<3)continue;var row={};headers.forEach(function(h,j){row[h]=cols[j]||"";});
+  var headers=lines[0].split(",").map(function(h){return h.trim().replace(/"/g,"").toLowerCase();});var rows=[];var errors=[];for(var i=1;i<lines.length;i++){var cols=lines[i].split(",").map(function(c){return c.trim().replace(/"/g,"");});if(cols.length<3)continue;var row={};headers.forEach(function(h,j){row[h]=cols[j]||"";});
     // Normalize common field names
     var unite=row["unite"]||row["unit"]||row["no_unite"]||row["numero"]||"";
     var prenom=row["prenom"]||row["first_name"]||row["firstname"]||"";
@@ -1481,12 +1481,12 @@ var HISTORIQUE_INIT=[
   {id:5,date:"2026-04-18 11:20",type:"portail",dest:"Coproprietaires portail actif (3)",sujet:"Avis travaux deneigement",statut:"simule",syndicat:"PIED",moyen:"portail"},
 ];
 var TEMPLATES=[
-  {id:1,cat:"Cotisations",nom:"Rappel cotisation J+5",sujet:"[{{syndicat}}] Cotisation en retard - Unite {{unite}}",corps:"Madame, Monsieur,\n\nNous constatons que votre cotisation mensuelle pour l unite {{unite}} d un montant de {{montant}} $ n a pas ete recue.\n\nMerci de regulariser sous 10 jours.\n\nCordialement,\nAdministration {{syndicat}}\nGere par Predictek",moyens:["courriel"],auto:true},
-  {id:2,cat:"Conformite",nom:"Alerte chauffe-eau expire",sujet:"[{{syndicat}}] Action requise - Chauffe-eau Unite {{unite}}",corps:"Madame, Monsieur,\n\nVotre chauffe-eau de l unite {{unite}} est arrive a son terme de vie.\n\nVous devez proceder a son remplacement dans les 60 jours et nous transmettre la preuve d installation.\n\nCordialement,\nAdministration {{syndicat}}",moyens:["courriel","sms"],auto:false},
-  {id:3,cat:"Reunions",nom:"Convocation CA",sujet:"[{{syndicat}}] Convocation - Reunion CA le {{date}}",corps:"Madame, Monsieur,\n\nVous etes convoques a la reunion du CA le {{date}} a {{heure}} - {{lieu}}.\n\nOrdre du jour:\n{{ordre_du_jour}}\n\nMerci de confirmer votre presence.\n\nCordialement,\n{{president}}, President\n{{syndicat}}",moyens:["courriel"],auto:false},
-  {id:4,cat:"Documents",nom:"Nouveau document disponible",sujet:"[{{syndicat}}] Nouveau document disponible sur votre portail",corps:"Madame, Monsieur,\n\nUn nouveau document est maintenant disponible sur votre portail coproprietaire:\n\n{{nom_document}}\n\nConnectez-vous sur app.predictek.ca pour y acceder.\n\nCordialement,\nAdministration {{syndicat}}",moyens:["courriel","portail"],auto:true},
-  {id:5,cat:"Urgences",nom:"Alerte urgence immeuble",sujet:"URGENT - {{syndicat}}: {{titre_urgence}}",corps:"ALERTE URGENCE\n\n{{description}}\n\nAction requise: {{action}}\n\nContacter immediatement: {{contact_urgence}}\n\nAdministration {{syndicat}}",moyens:["courriel","sms"],auto:false},
-  {id:6,cat:"Finances",nom:"Rapport mensuel CA",sujet:"[{{syndicat}}] Rapport mensuel - {{mois}} {{annee}}",corps:"Rapport mensuel - {{mois}} {{annee}}\n\nSoldes:\n- Exploitation: {{solde_op}} $\n- Prevoyance: {{solde_prev}} $\n\nCotisations recues: {{cot_recues}} $\nFactures approuvees: {{fact_approuvees}}\n\nRapport genere automatiquement par Predictek",moyens:["courriel"],auto:true},
+  {id:1,cat:"Cotisations",nom:"Rappel cotisation J+5",sujet:"[{{syndicat}}] Cotisation en retard - Unite {{unite}}",corps:"Madame, Monsieur,Nous constatons que votre cotisation mensuelle pour l unite {{unite}} d un montant de {{montant}} $ n a pas ete recue.Merci de regulariser sous 10 jours.Cordialement,Administration {{syndicat}}Gere par Predictek",moyens:["courriel"],auto:true},
+  {id:2,cat:"Conformite",nom:"Alerte chauffe-eau expire",sujet:"[{{syndicat}}] Action requise - Chauffe-eau Unite {{unite}}",corps:"Madame, Monsieur,Votre chauffe-eau de l unite {{unite}} est arrive a son terme de vie.Vous devez proceder a son remplacement dans les 60 jours et nous transmettre la preuve d installation.Cordialement,Administration {{syndicat}}",moyens:["courriel","sms"],auto:false},
+  {id:3,cat:"Reunions",nom:"Convocation CA",sujet:"[{{syndicat}}] Convocation - Reunion CA le {{date}}",corps:"Madame, Monsieur,Vous etes convoques a la reunion du CA le {{date}} a {{heure}} - {{lieu}}.Ordre du jour:{{ordre_du_jour}}Merci de confirmer votre presence.Cordialement,{{president}}, President{{syndicat}}",moyens:["courriel"],auto:false},
+  {id:4,cat:"Documents",nom:"Nouveau document disponible",sujet:"[{{syndicat}}] Nouveau document disponible sur votre portail",corps:"Madame, Monsieur,Un nouveau document est maintenant disponible sur votre portail coproprietaire:{{nom_document}}Connectez-vous sur app.predictek.ca pour y acceder.Cordialement,Administration {{syndicat}}",moyens:["courriel","portail"],auto:true},
+  {id:5,cat:"Urgences",nom:"Alerte urgence immeuble",sujet:"URGENT - {{syndicat}}: {{titre_urgence}}",corps:"ALERTE URGENCE{{description}}Action requise: {{action}}Contacter immediatement: {{contact_urgence}}Administration {{syndicat}}",moyens:["courriel","sms"],auto:false},
+  {id:6,cat:"Finances",nom:"Rapport mensuel CA",sujet:"[{{syndicat}}] Rapport mensuel - {{mois}} {{annee}}",corps:"Rapport mensuel - {{mois}} {{annee}}Soldes:- Exploitation: {{solde_op}} $- Prevoyance: {{solde_prev}} $Cotisations recues: {{cot_recues}} $Factures approuvees: {{fact_approuvees}}Rapport genere automatiquement par Predictek",moyens:["courriel"],auto:true},
 ];
 var DESTINATAIRES=[
   {id:1,nom:"Jean-Francois Laroche",unite:"531",courriel:"jf.laroche@email.com",tel:"819-479-4203",groupes:["CA","president"]},
@@ -1742,7 +1742,7 @@ function TabConfig(){
             <div><Lbl l="Destinataire (courriel ou tel)"/><input value={testDest} onChange={function(e){setTestDest(e.target.value);}} style={INP} placeholder="test@email.com ou +14181234567"/></div>
             <div><Lbl l="Message test"/><input value={testMsg} onChange={function(e){setTestMsg(e.target.value);}} style={INP} placeholder="Ceci est un test Predictek"/></div>
           </div>
-          <Btn sm fw onClick={function(){if(!testDest||!testMsg)return;alert("Test envoye (simulation) a: "+testDest+"\nConnectez SendGrid/Twilio pour envois reels.");}} dis={!testDest||!testMsg}>Envoyer test</Btn>
+          <Btn sm fw onClick={function(){if(!testDest||!testMsg)return;alert("Test envoye (simulation) a: "+testDest+"Connectez SendGrid/Twilio pour envois reels.");}} dis={!testDest||!testMsg}>Envoyer test</Btn>
         </div>
 
         <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
