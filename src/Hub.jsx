@@ -524,7 +524,7 @@ function ParamsSyndicat(p){
         if(ex.gestionnaire)sd("gestionnaire",ex.gestionnaire);
         var n=Object.values(ex).filter(function(v){return v&&v!==""&&v!==0;}).length;
         setIaSuccess(n+" champs extraits - verifiez et completez si necessaire");
-      }catch(e){setIaError("RÃÂÃÂ©ponse IA non lisible. Remplissez les champs manuellement.");}
+      }catch(e){setIaError("RÃÂÃÂÃÂÃÂ©ponse IA non lisible. Remplissez les champs manuellement.");}
       setIaLoading(false);
     }).catch(function(e){setIaError("Erreur reseau: "+e.message);setIaLoading(false);});
   }
@@ -916,6 +916,9 @@ function Onboarding(p){
   var s3=useState("");var csvMsg=s3[0];var setCSVMsg=s3[1];
   var s4=useState([]);var csvErrors=s4[0];var setCSVErrors=s4[1];
   var s5=useState("");var newMembre=s5[0];var setNewMembre=s5[1];
+  var s6=useState(false);var iaLoading=s6[0];var setIaLoading=s6[1];
+  var s7=useState("");var iaError=s7[0];var setIaError=s7[1];
+  var s8=useState("");var iaSuccess=s8[0];var setIaSuccess=s8[1];
   var fileRef=useRef(null);
   var docRef=useRef(null);
   var anneeConstruction=parseInt(data.anneeConstruction)||new Date().getFullYear();
@@ -923,6 +926,42 @@ function Onboarding(p){
   function sd(k,v){setData(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
   function sdComp(i,k,v){setData(function(o){var comps=o.composantes.slice();comps[i]=Object.assign({},comps[i]);comps[i][k]=v;return Object.assign({},o,{composantes:comps});});}
 
+  function extraireIAOnb(){
+    if(iaLoading)return;
+    setIaLoading(true);setIaError("");setIaSuccess("");
+    var files=[];
+    if(window._reqFileOnb)files.push({b:window._reqFileOnb,t:"REQ"});
+    if(window._acteFileOnb)files.push({b:window._acteFileOnb,t:"Acte"});
+    if(files.length===0){setIaLoading(false);setIaError("Selectionnez un PDF REQ ou declaration.");return;}
+    Promise.all(files.map(function(item){
+      return new Promise(function(resolve){
+        var r=new FileReader();
+        r.onload=function(ev){resolve({b64:ev.target.result.split(",")[1],t:item.t});};
+        r.readAsDataURL(item.b);
+      });
+    })).then(function(docs){
+      var cnt=docs.map(function(d){return {type:"document",source:{type:"base64",media_type:"application/pdf",data:d.b64}};});
+      cnt.push({type:"text",text:"Analyse ce document. Reponds avec un JSON valide uniquement. Champs: nom (string), immat (string NEQ 11 chiffres), adr (string), ville (string), province (2 lettres), codePostal (string), nbUnites (entier), gestionnaire (string). Vide si absent."});
+      return fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,messages:[{role:"user",content:cnt}]})});
+    }).then(function(r){return r.json();}).then(function(resp){
+      if(resp.error){setIaError("Erreur IA: "+resp.error.message);setIaLoading(false);return;}
+      var txt=(resp.content&&resp.content[0]&&resp.content[0].text)||"";
+      try{
+        var ex=JSON.parse(txt.replace(/```json|```/g,"").trim());
+        if(ex.nom)sd("nom",ex.nom);
+        if(ex.immat)sd("immat",ex.immat);
+        if(ex.adr)sd("adr",ex.adr);
+        if(ex.ville)sd("ville",ex.ville);
+        if(ex.province&&ex.province.length===2)sd("province",ex.province);
+        if(ex.codePostal)sd("codePostal",ex.codePostal);
+        if(ex.nbUnites&&parseInt(ex.nbUnites)>0)sd("nbUnites",parseInt(ex.nbUnites));
+        if(ex.gestionnaire)sd("gestionnaire",ex.gestionnaire);
+        var n=Object.values(ex).filter(function(v){return v&&v!==""&&v!==0;}).length;
+        setIaSuccess(n+" champs extraits - verifiez et completez si necessaire");
+      }catch(e){setIaError("Reponse IA illisible. Remplissez manuellement.");}
+      setIaLoading(false);
+    }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});
+  }
   function handleCSV(e){
     var file=e.target.files[0];
     if(!file)return;
@@ -988,25 +1027,36 @@ function Onboarding(p){
           <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 1 - Acte de copropriete et informations du syndicaticat</div>
           <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Importez votre acte de copropriete (PDF) - les informations seront extraites automatiquement. Vous pourrez les modifier avant de continuer.</div>
           <div style={{background:"#F0F7FF",border:"1px solid #1A56DB33",borderRadius:10,padding:14,marginBottom:16}}>
-            <div style={{fontSize:12,fontWeight:700,color:T.navy,marginBottom:10}}>Documents officiels (optionnel)</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <div>
+                <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:2}}>Documents officiels du syndicat</div>
+                <div style={{fontSize:11,color:T.muted}}>Optionnel — Importez vos PDF pour remplir les champs automatiquement</div>
+              </div>
+              {(data.reqNom||data.acteNom)&&!iaLoading&&(
+                <button onClick={extraireIAOnb} style={{background:"linear-gradient(135deg,#1A56DB,#3CAF6E)",border:"none",borderRadius:8,padding:"8px 14px",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",marginLeft:10}}>&#10022; Extraire avec l'IA</button>
+              )}
+              {iaLoading&&<div style={{fontSize:11,color:"#1A56DB",fontWeight:600,marginLeft:10}}>Analyse en cours...</div>}
+            </div>
+            {iaError&&<div style={{background:"#FDECEA",border:"1px solid #B8323233",borderRadius:6,padding:"6px 10px",fontSize:11,color:"#B83232",marginBottom:8}}>{iaError}</div>}
+            {iaSuccess&&<div style={{background:"#E8F2EC",border:"1px solid #1B5E3B33",borderRadius:6,padding:"6px 10px",fontSize:11,color:"#1B5E3B",fontWeight:600,marginBottom:8}}>&#10003; {iaSuccess}</div>}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <div style={{background:"#EFF6FF",border:"2px dashed "+(data.reqNom?"#1A56DB":"#1A56DB66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
                 <div style={{fontSize:11,fontWeight:700,color:"#1A56DB",marginBottom:3}}>1. Registre entreprises (REQ)</div>
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>NEQ, administrateurs, adresse</div>
-                <input type="file" accept=".pdf,.PDF" id="reqUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("reqNom",f.name);window._reqFile=f;}}} style={{display:"none"}}/>
+                <input type="file" accept=".pdf,.PDF" id="reqUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("reqNom",f.name);window._reqFileOnb=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("reqUpload").click();}} style={{background:"#1A56DB",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.reqNom?"ÃÂ¢ÃÂÃÂ Changer":"ÃÂ°ÃÂÃÂÃÂ SÃÂÃÂ©lectionner PDF"}
+                  {data.reqNom?"ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Changer":"ÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂ SÃÂÃÂÃÂÃÂ©lectionner PDF"}
                 </button>
-                {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}>ÃÂ¢ÃÂÃÂ {data.reqNom}</div>}
+                {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}>ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ {data.reqNom}</div>}
               </div>
               <div style={{background:"#E8F2EC",border:"2px dashed "+(data.acteNom?"#1B5E3B":"#1B5E3B66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>2. DÃÂÃÂ©claration de copropriÃÂÃÂ©tÃÂÃÂ©</div>
-                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Fractions, rÃÂÃÂ¨glement, droits</div>
-                <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFile=f;}}} style={{display:"none"}}/>
+                <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>2. DÃÂÃÂÃÂÃÂ©claration de copropriÃÂÃÂÃÂÃÂ©tÃÂÃÂÃÂÃÂ©</div>
+                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Fractions, rÃÂÃÂÃÂÃÂ¨glement, droits</div>
+                <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFileOnb=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.acteNom?"ÃÂ¢ÃÂÃÂ Changer":"ÃÂ°ÃÂÃÂÃÂ SÃÂÃÂ©lectionner PDF"}
+                  {data.acteNom?"ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Changer":"ÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂ SÃÂÃÂÃÂÃÂ©lectionner PDF"}
                 </button>
-                {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}>ÃÂ¢ÃÂÃÂ {data.acteNom}</div>}
+                {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}>ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ {data.acteNom}</div>}
               </div>
             </div>
           </div>
