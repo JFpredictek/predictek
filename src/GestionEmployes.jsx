@@ -1,4 +1,3 @@
-// GestionEmployes v2.2
 import { useState } from "react";
 import sb from "./lib/supabase";
 
@@ -30,11 +29,7 @@ var ACCES_MENUS={
 var DEPTS=["Direction","Administration","Operations","Comptabilite","Terrain","Support"];
 var STATUTS=["actif","inactif","conge","essai"];
 
-var EMP_INIT=[
-  {id:1,prenom:"Jean-Francois",nom:"Predictek",courriel:"jf@predictek.ca",tel:"418-555-0001",poste:"Directeur general",dept:"Direction",role:"admin",statut:"actif",salaire:95000,dateEmbauche:"2020-01-15",notes:"Fondateur"},
-  {id:2,prenom:"Marie",nom:"Tremblay",courriel:"mtremblay@predictek.ca",tel:"418-555-0002",poste:"Gestionnaire senior",dept:"Operations",role:"gestionnaire",statut:"actif",salaire:72000,dateEmbauche:"2021-03-01",notes:""},
-  {id:3,prenom:"Luc",nom:"Gagnon",courriel:"lgagnon@predictek.ca",tel:"418-555-0003",poste:"Comptable",dept:"Comptabilite",role:"comptable",statut:"actif",salaire:68000,dateEmbauche:"2022-06-15",notes:"CPA"},
-];
+var EMP_INIT=[];
 
 var EMP_VIDE={prenom:"",nom:"",courriel:"",tel:"",poste:"",dept:"Administration",role:"gestionnaire",statut:"actif",salaire:"",dateEmbauche:"",notes:""};
 
