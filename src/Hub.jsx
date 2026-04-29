@@ -524,7 +524,7 @@ function ParamsSyndicat(p){
         if(ex.gestionnaire)sd("gestionnaire",ex.gestionnaire);
         var n=Object.values(ex).filter(function(v){return v&&v!==""&&v!==0;}).length;
         setIaSuccess(n+" champs extraits - verifiez et completez si necessaire");
-      }catch(e){setIaError("RÃÂ©ponse IA non lisible. Remplissez les champs manuellement.");}
+      }catch(e){setIaError("RÃÂÃÂ©ponse IA non lisible. Remplissez les champs manuellement.");}
       setIaLoading(false);
     }).catch(function(e){setIaError("Erreur reseau: "+e.message);setIaLoading(false);});
   }
@@ -988,46 +988,25 @@ function Onboarding(p){
           <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 1 - Acte de copropriete et informations du syndicaticat</div>
           <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Importez votre acte de copropriete (PDF) - les informations seront extraites automatiquement. Vous pourrez les modifier avant de continuer.</div>
           <div style={{background:"#F0F7FF",border:"1px solid #1A56DB33",borderRadius:10,padding:14,marginBottom:16}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <div>
-                <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:2}}>Documents officiels du syndicat</div>
-                <div style={{fontSize:11,color:T.muted}}>Optionnel Ã¢ÂÂ Importez vos PDF pour remplir automatiquement les champs avec l'IA</div>
-              </div>
-              {(data.reqNom||data.acteNom)&&!iaLoading&&(
-                <button onClick={extraireIA} style={{background:"linear-gradient(135deg,#1A56DB,#3CAF6E)",border:"none",borderRadius:8,padding:"8px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{fontSize:16}}>Ã¢ÂÂ¦</span> Extraire avec l'IA
-                </button>
-              )}
-              {iaLoading&&(
-                <div style={{background:"#EFF6FF",border:"1px solid #1A56DB44",borderRadius:8,padding:"8px 14px",fontSize:11,color:"#1A56DB",fontWeight:600}}>
-                  IA en cours d'analyse...
-                </div>
-              )}
-            </div>
-            {iaError&&(
-              <div style={{background:"#FDECEA",border:"1px solid #B8323244",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#B83232",marginBottom:10}}>{iaError}</div>
-            )}
-            {iaSuccess&&(
-              <div style={{background:"#E8F2EC",border:"1px solid #1B5E3B44",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#1B5E3B",marginBottom:10,fontWeight:600}}>Ã¢ÂÂ {iaSuccess}</div>
-            )}
+            <div style={{fontSize:12,fontWeight:700,color:T.navy,marginBottom:10}}>Documents officiels (optionnel)</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <div style={{background:"#EFF6FF",border:"2px dashed "+(data.reqNom?"#1A56DB":"#1A56DB66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
                 <div style={{fontSize:11,fontWeight:700,color:"#1A56DB",marginBottom:3}}>1. Registre entreprises (REQ)</div>
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>NEQ, administrateurs, adresse</div>
                 <input type="file" accept=".pdf,.PDF" id="reqUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("reqNom",f.name);window._reqFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("reqUpload").click();}} style={{background:"#1A56DB",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.reqNom?"Ã¢ÂÂ Changer":"Ã°ÂÂÂ SÃÂ©lectionner PDF"}
+                  {data.reqNom?"ÃÂ¢ÃÂÃÂ Changer":"ÃÂ°ÃÂÃÂÃÂ SÃÂÃÂ©lectionner PDF"}
                 </button>
-                {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}>Ã¢ÂÂ {data.reqNom}</div>}
+                {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}>ÃÂ¢ÃÂÃÂ {data.reqNom}</div>}
               </div>
               <div style={{background:"#E8F2EC",border:"2px dashed "+(data.acteNom?"#1B5E3B":"#1B5E3B66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>2. DÃÂ©claration de copropriÃÂ©tÃÂ©</div>
-                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Fractions, rÃÂ¨glement, droits</div>
+                <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>2. DÃÂÃÂ©claration de copropriÃÂÃÂ©tÃÂÃÂ©</div>
+                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Fractions, rÃÂÃÂ¨glement, droits</div>
                 <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.acteNom?"Ã¢ÂÂ Changer":"Ã°ÂÂÂ SÃÂ©lectionner PDF"}
+                  {data.acteNom?"ÃÂ¢ÃÂÃÂ Changer":"ÃÂ°ÃÂÃÂÃÂ SÃÂÃÂ©lectionner PDF"}
                 </button>
-                {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}>Ã¢ÂÂ {data.acteNom}</div>}
+                {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}>ÃÂ¢ÃÂÃÂ {data.acteNom}</div>}
               </div>
             </div>
           </div>
