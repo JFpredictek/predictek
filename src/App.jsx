@@ -41,7 +41,7 @@ var SECTIONS=[
     bg:"#1B5E3B",
     modules:[
       {id:"dashboard",label:"Accueil",icon:"P"},
-      {id:"onboarding",label:"Onboarding",icon:"HUB"},
+      {id:"onboarding",label:"Configuration",icon:"CFG"},
       {id:"copros",label:"Coproprietaires",icon:"CP"},
       {id:"gestion",label:"Gestion Auto",icon:"GA"},
       {id:"usagers",label:"Utilisateurs",icon:"USR"},
