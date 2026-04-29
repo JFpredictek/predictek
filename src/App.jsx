@@ -1,4 +1,4 @@
-// Predictek v2.1 - Navbar 3 sections
+// Predictek v2.1 - Navbar 3 sections - Configuration
 import { useState, useEffect } from "react";
 import sb from "./lib/supabase";
 import Login from "./Login";
