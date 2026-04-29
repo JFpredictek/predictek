@@ -1,4 +1,3 @@
-// Predictek v2.1 - Navbar 3 sections - Configuration
 import { useState, useEffect } from "react";
 import sb from "./lib/supabase";
 import Login from "./Login";
@@ -31,6 +30,7 @@ import RelevesCompte from "./RelevesCompte";
 import GestionUtilisateurs from "./GestionUtilisateurs";
 import RechercheGlobale from "./RechercheGlobale";
 import AgendaCalendrier from "./AgendaCalendrier";
+import GestionEmployes from "./GestionEmployes";
 import ImportCSVCopros from "./ImportCSVCopros";
 
 var SECTIONS=[
@@ -46,6 +46,7 @@ var SECTIONS=[
       {id:"gestion",label:"Gestion Auto",icon:"GA"},
       {id:"usagers",label:"Utilisateurs",icon:"USR"},
       {id:"historique",label:"Historique",icon:"HIS"},
+      {id:"employes",label:"Employes",icon:"EMP"},
       {id:"ia",label:"IA",icon:"IA"},
     ]
   },
@@ -184,10 +185,10 @@ export default function App(){
         {active==="compta"&&<Comptabilite/>}
         {active==="ia"&&<ModuleIA/>}
         {active==="historique"&&<Historique/>}
+        {active==="employes"&&<GestionEmployes/>}
         {active==="usagers"&&<GestionUtilisateurs/>}
         {active==="agenda"&&<AgendaCalendrier/>}
       </div>
     </div>
   );
 }
- 
