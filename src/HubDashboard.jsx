@@ -76,7 +76,8 @@ export default function HubDashboard(p){
           var assExpires=copros.filter(function(c){return c.ass_expiry&&Math.round((new Date(c.ass_expiry)-today)/(1000*60*60*24))<60;}).length;
           var facturesRetard=facts.filter(function(f){return f.date_echeance&&new Date(f.date_echeance)<today&&f.statut!=="payee"&&f.statut!=="annulee";}).length;
           var facturesEnAttente=facts.filter(function(f){return f.statut==="en_attente_approbation";}).length;
-          var totalCot=copros.filter(function(c){return c.statut==="actif";}).reduce(function(a,c){return a+Number(c.cotisation_mensuelle||0);},0);return {id:s.id,totalCot:totalCot,nbCopros:copros.filter(function(c){return c.statut==="actif";}).length,tauxPerception:totalMois>0?Math.round(payesMois/totalMois*100):0,ceExpires:ceExpires,assExpires:assExpires,facturesRetard:facturesRetard,facturesEnAttente:facturesEnAttente};
+          var totalCot=copros.filter(function(c){return c.statut==="actif";}).reduce(function(a,c){return a+Number(c.cotisation_mensuelle||0);},0);
+          return {id:s.id,totalCot:totalCot,nbCopros:copros.filter(function(c){return c.statut==="actif";}).length,tauxPerception:totalMois>0?Math.round(payesMois/totalMois*100):0,ceExpires:ceExpires,assExpires:assExpires,facturesRetard:facturesRetard,facturesEnAttente:facturesEnAttente};
         });
       });
       Promise.all(promises).then(function(allStats){
