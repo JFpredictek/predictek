@@ -1375,7 +1375,7 @@ function ParamsPredictek(){
     r.readAsDataURL(file);
   }
 
-  var TABS=[{id:"entreprise",l:"Entreprise"},{id:"fiscalite",l:"TPS / TVQ"},{id:"banque",l:"Banque"},{id:"logo",l:"Logo"}];
+  var TABS=[{id:"entreprise",l:"Informations legales"},{id:"fiscalite",l:"TPS / TVQ"},{id:"banque",l:"Banque"},{id:"logo",l:"Logo"}];
   return(
     <div style={{padding:16,fontFamily:"Georgia,serif"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -1985,7 +1985,7 @@ export default function Hub(){
   var totalFact=actifs.reduce(function(a,s){return a+s.facturesEnAttente;},0);
   var scoreMoyen=actifs.length>0?Math.round(actifs.reduce(function(a,s){return a+Math.round((s.scoreFinancier+s.scoreConformite+s.scoreEntretien)/3);},0)/actifs.length):0;
 
-  var TABS=[{id:"syndicats",l:"Syndicats"},{id:"comms_hub",l:"Communications"},{id:"params_predictek",l:"Parametres"},{id:"rapports",l:"Rapports"}];
+  var TABS=[{id:"syndicats",l:"Syndicats"},{id:"comms_hub",l:"Communications"},{id:"params_predictek",l:"Entreprise"},{id:"rapports",l:"Rapports"}];
 
   if(creer){
     return(
