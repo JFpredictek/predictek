@@ -970,7 +970,7 @@ function Onboarding(p){
               {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}>{data.acteNom}</div>}
             </div>
           </div>
-          <div style={{background:"#FEF3E2",border:"1px solid #B8602044",borderRadius:8,padding:"8px 14px",marginBottom:16,fontSize:11,color:"#B86020"}}>Conseil: Utilisez le module "Lire docs IA" pour extraire automatiquement les informations de votre REQ et de votre acte de copropriete en quelques secondes!</div>
+          <div style={{background:"#FEF3E2",border:"1px solid #B8602044",borderRadius:8,padding:"8px 14px",marginBottom:16,fontSize:11,color:"#B86020"}}>Optionnel pour l instant - l extraction automatique IA sera disponible prochainement. Remplissez les champs manuellement ci-dessous.</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <Field l="Nom officiel du syndicat" full hint="Nom tel qu il apparait dans votre acte de copropriete"><input value={data.nom} onChange={function(e){sd("nom",e.target.value);}} style={INP} placeholder="Syndicat Piedmont"/></Field>
             <Field l="Code court (4 lettres)" hint="Identifiant interne Predictek"><input value={data.code} onChange={function(e){sd("code",e.target.value.toUpperCase().slice(0,4));}} style={INP} placeholder="PIED" maxLength={4}/></Field>
@@ -1375,7 +1375,7 @@ function ParamsPredictek(){
     r.readAsDataURL(file);
   }
 
-  var TABS=[{id:"entreprise",l:"Informations legales"},{id:"fiscalite",l:"TPS / TVQ"},{id:"banque",l:"Banque"},{id:"logo",l:"Logo"}];
+  var TABS=[{id:"entreprise",l:"Entreprise"},{id:"fiscalite",l:"TPS / TVQ"},{id:"banque",l:"Banque"},{id:"logo",l:"Logo"}];
   return(
     <div style={{padding:16,fontFamily:"Georgia,serif"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -1985,7 +1985,7 @@ export default function Hub(){
   var totalFact=actifs.reduce(function(a,s){return a+s.facturesEnAttente;},0);
   var scoreMoyen=actifs.length>0?Math.round(actifs.reduce(function(a,s){return a+Math.round((s.scoreFinancier+s.scoreConformite+s.scoreEntretien)/3);},0)/actifs.length):0;
 
-  var TABS=[{id:"syndicats",l:"Syndicats"},{id:"comms_hub",l:"Communications"},{id:"params_predictek",l:"Entreprise"},{id:"rapports",l:"Rapports"}];
+  var TABS=[{id:"syndicats",l:"Syndicats"},{id:"equipe",l:"Equipe et acces"},{id:"comms_hub",l:"Communications"},{id:"params_predictek",l:"Parametres"},{id:"rapports",l:"Rapports"}];
 
   if(creer){
     return(
@@ -2033,7 +2033,7 @@ export default function Hub(){
     <div style={{padding:16,fontFamily:"Georgia,serif"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <div>
-          <div style={{fontSize:18,fontWeight:800,color:T.navy}}>Administration Predictek</div>
+          <div style={{fontSize:18,fontWeight:800,color:T.navy}}>Configuration Predictek</div>
           <div style={{fontSize:11,color:T.muted}}>Vue globale - {actifs.length} syndicat(s) actif(s)</div>
         </div>
         {ong==="syndicats"&&<Btn onClick={function(){setCreer(true);}}>+ Nouveau syndicat</Btn>}
@@ -2076,6 +2076,7 @@ export default function Hub(){
       )}
 
       
+      {ong==="equipe"&&<TabEquipeAcces/>}
       {ong==="comms_hub"&&<TabCommunicationsHub/>}
       {ong==="params_predictek"&&<ParamsPredictek/>}
 
