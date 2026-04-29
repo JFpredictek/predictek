@@ -970,7 +970,7 @@ function Onboarding(p){
               {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}>{data.acteNom}</div>}
             </div>
           </div>
-          <div style={{background:"#FEF3E2",border:"1px solid #B8602044",borderRadius:8,padding:"8px 14px",marginBottom:16,fontSize:11,color:"#B86020"}}>Optionnel pour l instant - l extraction automatique IA sera disponible prochainement. Remplissez les champs manuellement ci-dessous.</div>
+          <div style={{background:"#FEF3E2",border:"1px solid #B8602044",borderRadius:8,padding:"8px 14px",marginBottom:16,fontSize:11,color:"#B86020"}}>Conseil: Utilisez le module "Lire docs IA" pour extraire automatiquement les informations de votre REQ et de votre acte de copropriete en quelques secondes!</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <Field l="Nom officiel du syndicat" full hint="Nom tel qu il apparait dans votre acte de copropriete"><input value={data.nom} onChange={function(e){sd("nom",e.target.value);}} style={INP} placeholder="Syndicat Piedmont"/></Field>
             <Field l="Code court (4 lettres)" hint="Identifiant interne Predictek"><input value={data.code} onChange={function(e){sd("code",e.target.value.toUpperCase().slice(0,4));}} style={INP} placeholder="PIED" maxLength={4}/></Field>
