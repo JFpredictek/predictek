@@ -14,35 +14,35 @@ var TEMPLATES=[
     l:"Avis de cotisation mensuelle",
     icon:"$",
     sujet:"Avis de cotisation - {mois} {annee} - Unite {unite}",
-    corps:"Madame, Monsieur,\n\nVeuillez trouver ci-joint votre avis de cotisation mensuelle pour la periode de {mois} {annee}.\n\nMontant: {montant} $\nDate d echeance: {echeance}\nMode de paiement: {mode}\n\nPour toute question, contactez votre gestionnaire.\n\nCordialement,\nLe Conseil d administration\n{syndicat}"
+    corps:"Madame, Monsieur,Veuillez trouver ci-joint votre avis de cotisation mensuelle pour la periode de {mois} {annee}.Montant: {montant} $Date d echeance: {echeance}Mode de paiement: {mode}Pour toute question, contactez votre gestionnaire.Cordialement,Le Conseil d administration{syndicat}"
   },
   {
     id:"convocation",
     l:"Convocation reunion CA",
     icon:"C",
     sujet:"Convocation - Reunion du Conseil d administration - {date}",
-    corps:"Madame, Monsieur,\n\nVous etes convoque(e) a une reunion du Conseil d administration qui se tiendra:\n\nDate: {date}\nHeure: {heure}\nLieu: {lieu}\n\nOrdre du jour:\n{ordre_du_jour}\n\nVotre presence est importante pour le quorum.\n\nCordialement,\nLe Secretaire du CA\n{syndicat}"
+    corps:"Madame, Monsieur,Vous etes convoque(e) a une reunion du Conseil d administration qui se tiendra:Date: {date}Heure: {heure}Lieu: {lieu}Ordre du jour:{ordre_du_jour}Votre presence est importante pour le quorum.Cordialement,Le Secretaire du CA{syndicat}"
   },
   {
     id:"retard",
     l:"Rappel paiement en retard",
     icon:"!",
     sujet:"RAPPEL - Paiement en retard - Unite {unite}",
-    corps:"Madame, Monsieur,\n\nNous vous rappelons que votre cotisation du mois de {mois} est toujours en attente de paiement.\n\nMontant du: {montant} $\nDate d echeance initiale: {echeance}\n\nVeuillez regulariser votre situation dans les plus brefs delais.\nDes frais de retard pourraient s appliquer apres 30 jours.\n\nCordialement,\nLe Conseil d administration\n{syndicat}"
+    corps:"Madame, Monsieur,Nous vous rappelons que votre cotisation du mois de {mois} est toujours en attente de paiement.Montant du: {montant} $Date d echeance initiale: {echeance}Veuillez regulariser votre situation dans les plus brefs delais.Des frais de retard pourraient s appliquer apres 30 jours.Cordialement,Le Conseil d administration{syndicat}"
   },
   {
     id:"bienvenue",
     l:"Lettre de bienvenue coproprietaire",
     icon:"B",
     sujet:"Bienvenue dans votre syndicat de copropriete - Unite {unite}",
-    corps:"Madame, Monsieur,\n\nAu nom du Conseil d administration, nous vous souhaitons la bienvenue dans notre syndicat.\n\nVos informations de connexion au portail coproprietaire:\nNumero d unite: {unite}\nCode d acces: {code_acces}\nPortail: https://app.predictek.ca\n\nVotre cotisation mensuelle est de {montant} $.\n\nN hesitez pas a nous contacter pour toute question.\n\nCordialement,\nLe Conseil d administration\n{syndicat}"
+    corps:"Madame, Monsieur,Au nom du Conseil d administration, nous vous souhaitons la bienvenue dans notre syndicat.Vos informations de connexion au portail coproprietaire:Numero d unite: {unite}Code d acces: {code_acces}Portail: https://app.predictek.caVotre cotisation mensuelle est de {montant} $.N hesitez pas a nous contacter pour toute question.Cordialement,Le Conseil d administration{syndicat}"
   },
   {
     id:"ago",
     l:"Convocation Assemblee generale (AGO)",
     icon:"A",
     sujet:"CONVOCATION - Assemblee generale ordinaire {annee} - {syndicat}",
-    corps:"Madame, Monsieur,\n\nConformement a la declaration de copropriete et a la Loi sur la copropriete divise, vous etes convoque(e) a l assemblee generale ordinaire annuelle:\n\nDate: {date}\nHeure: {heure}\nLieu: {lieu}\n\nOrdre du jour:\n1. Ouverture de l assemblee et verification du quorum\n2. Adoption de l ordre du jour\n3. Adoption du proces-verbal de la derniere AGO\n4. Rapport annuel du Conseil d administration\n5. Adoption des etats financiers\n6. Adoption du budget\n7. Election des administrateurs\n8. Divers\n9. Fermeture de l assemblee\n\nNote: Le quorum est de {quorum}% des voix.\n\nCordialement,\nLe Secretaire du CA\n{syndicat}"
+    corps:"Madame, Monsieur,Conformement a la declaration de copropriete et a la Loi sur la copropriete divise, vous etes convoque(e) a l assemblee generale ordinaire annuelle:Date: {date}Heure: {heure}Lieu: {lieu}Ordre du jour:1. Ouverture de l assemblee et verification du quorum2. Adoption de l ordre du jour3. Adoption du proces-verbal de la derniere AGO4. Rapport annuel du Conseil d administration5. Adoption des etats financiers6. Adoption du budget7. Election des administrateurs8. Divers9. Fermeture de l assembleeNote: Le quorum est de {quorum}% des voix.Cordialement,Le Secretaire du CA{syndicat}"
   },
 ];
 
