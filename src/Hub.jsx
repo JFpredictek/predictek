@@ -507,7 +507,7 @@ function ParamsSyndicat(p){
         r.readAsDataURL(item.b);
       });
     })).then(function(docs){
-      var msgs=[{role:"user",content:docs.map(function(d){return {type:"document",source:{type:"base64",media_type:"application/pdf",data:d.b64}};}).concat([{type:"text",text:"Analyse ce document d'un syndicat de copropriété québécois. Réponds UNIQUEMENT avec un objet JSON valide (sans markdown ni explication): {"nom":"","immat":"","adr":"","ville":"","province":"","codePostal":"","nbUnites":0,"gestionnaire":""}"}])}];
+      content.push({type:"text",text:"Analyse ce document. JSON uniquement en reponse (sans guillemets imbriques): retourne les champs nom, immat, adr, ville, province, codePostal, nbUnites et gestionnaire."});
       return fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,messages:msgs})});
     }).then(function(r){return r.json();}).then(function(resp){
       if(resp.error){setIaError("Erreur IA: "+resp.error.message);setIaLoading(false);return;}
@@ -524,7 +524,7 @@ function ParamsSyndicat(p){
         if(ex.gestionnaire)sd("gestionnaire",ex.gestionnaire);
         var n=Object.values(ex).filter(function(v){return v&&v!==""&&v!==0;}).length;
         setIaSuccess(n+" champs extraits - verifiez et completez si necessaire");
-      }catch(e){setIaError("Réponse IA non lisible. Remplissez les champs manuellement.");}
+      }catch(e){setIaError("RÃ©ponse IA non lisible. Remplissez les champs manuellement.");}
       setIaLoading(false);
     }).catch(function(e){setIaError("Erreur reseau: "+e.message);setIaLoading(false);});
   }
@@ -995,11 +995,11 @@ function Onboarding(p){
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
               <div>
                 <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:2}}>Documents officiels du syndicat</div>
-                <div style={{fontSize:11,color:T.muted}}>Optionnel — Importez vos PDF pour remplir automatiquement les champs avec l'IA</div>
+                <div style={{fontSize:11,color:T.muted}}>Optionnel â Importez vos PDF pour remplir automatiquement les champs avec l'IA</div>
               </div>
               {(data.reqNom||data.acteNom)&&!iaLoading&&(
                 <button onClick={extraireIA} style={{background:"linear-gradient(135deg,#1A56DB,#3CAF6E)",border:"none",borderRadius:8,padding:"8px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{fontSize:16}}>✦</span> Extraire avec l'IA
+                  <span style={{fontSize:16}}>â¦</span> Extraire avec l'IA
                 </button>
               )}
               {iaLoading&&(
@@ -1012,7 +1012,7 @@ function Onboarding(p){
               <div style={{background:"#FDECEA",border:"1px solid #B8323244",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#B83232",marginBottom:10}}>{iaError}</div>
             )}
             {iaSuccess&&(
-              <div style={{background:"#E8F2EC",border:"1px solid #1B5E3B44",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#1B5E3B",marginBottom:10,fontWeight:600}}>✓ {iaSuccess}</div>
+              <div style={{background:"#E8F2EC",border:"1px solid #1B5E3B44",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#1B5E3B",marginBottom:10,fontWeight:600}}>â {iaSuccess}</div>
             )}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <div style={{background:"#EFF6FF",border:"2px dashed "+(data.reqNom?"#1A56DB":"#1A56DB66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
@@ -1020,18 +1020,18 @@ function Onboarding(p){
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>NEQ, administrateurs, adresse</div>
                 <input type="file" accept=".pdf,.PDF" id="reqUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("reqNom",f.name);window._reqFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("reqUpload").click();}} style={{background:"#1A56DB",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.reqNom?"✓ Changer":"📄 Sélectionner PDF"}
+                  {data.reqNom?"â Changer":"ð SÃ©lectionner PDF"}
                 </button>
-                {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}>✓ {data.reqNom}</div>}
+                {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}>â {data.reqNom}</div>}
               </div>
               <div style={{background:"#E8F2EC",border:"2px dashed "+(data.acteNom?"#1B5E3B":"#1B5E3B66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>2. Déclaration de copropriété</div>
-                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Fractions, règlement, droits</div>
+                <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>2. DÃ©claration de copropriÃ©tÃ©</div>
+                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Fractions, rÃ¨glement, droits</div>
                 <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.acteNom?"✓ Changer":"📄 Sélectionner PDF"}
+                  {data.acteNom?"â Changer":"ð SÃ©lectionner PDF"}
                 </button>
-                {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}>✓ {data.acteNom}</div>}
+                {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}>â {data.acteNom}</div>}
               </div>
             </div>
           </div>
