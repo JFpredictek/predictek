@@ -31,6 +31,7 @@ import GestionUtilisateurs from "./GestionUtilisateurs";
 import RechercheGlobale from "./RechercheGlobale";
 import AgendaCalendrier from "./AgendaCalendrier";
 import GestionEmployes from "./GestionEmployes";
+import GestionRoles from "./GestionRoles";
 import ImportCSVCopros from "./ImportCSVCopros";
 
 var SECTIONS=[
@@ -47,6 +48,8 @@ var SECTIONS=[
       {id:"usagers",label:"Utilisateurs",icon:"USR"},
       {id:"historique",label:"Historique",icon:"HIS"},
       {id:"employes",label:"Employes",icon:"EMP"},
+      {id:"roles",label:"Roles",icon:"ROL"},
+      {id:"crm",label:"CRM",icon:"CRM"},
       {id:"ia",label:"IA",icon:"IA"},
     ]
   },
@@ -80,7 +83,6 @@ var SECTIONS=[
     modules:[
       {id:"copro",label:"Mon portail",icon:"CO"},
       {id:"releves",label:"Releves",icon:"RL"},
-      {id:"crm",label:"Mes demandes",icon:"C"},
       {id:"reconn",label:"Lire docs IA",icon:"LD"},
       {id:"notif",label:"Notifications",icon:"N"},
     ]
@@ -186,6 +188,7 @@ export default function App(){
         {active==="ia"&&<ModuleIA/>}
         {active==="historique"&&<Historique/>}
         {active==="employes"&&<GestionEmployes/>}
+        {active==="roles"&&<GestionRoles/>}
         {active==="usagers"&&<GestionUtilisateurs/>}
         {active==="agenda"&&<AgendaCalendrier/>}
       </div>
