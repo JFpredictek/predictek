@@ -1,4 +1,3 @@
-// Hub v2.3
 import sb from "./lib/supabase";
 import { useState, useRef, useEffect } from "react";
 var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",pop:"#3CAF6E",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",purple:"#6B3FA0",purpleL:"#F3EEFF"};
@@ -2038,21 +2037,6 @@ export default function Hub(){
           <div style={{fontSize:11,color:T.muted}}>Vue globale - {actifs.length} syndicat(s) actif(s)</div>
         </div>
         {ong==="syndicats"&&<Btn onClick={function(){setCreer(true);}}>+ Nouveau syndicat</Btn>}
-      </div>
-
-      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:16}}>
-        {[
-          {l:"Syndicats actifs",v:actifs.length,c:T.navy,bg:T.blueL},
-          {l:"Total unites",v:totalUnites,c:T.accent,bg:T.accentL},
-          {l:"Cotisations/mois",v:money(totalCot),c:T.blue,bg:T.blueL},
-          {l:"Alertes actives",v:totalAlertes,c:totalAlertes>0?T.red:T.accent,bg:totalAlertes>0?T.redL:T.accentL},
-          {l:"Score moyen sante",v:scoreMoyen+"%",c:scoreMoyen>=85?T.accent:scoreMoyen>=70?T.amber:T.red,bg:scoreMoyen>=85?T.accentL:scoreMoyen>=70?T.amberL:T.redL},
-        ].map(function(st,i){return(
-          <div key={i} style={{background:st.bg,borderRadius:10,padding:"11px 13px",border:"1px solid "+st.c+"33"}}>
-            <div style={{fontSize:9,color:st.c,fontWeight:700,marginBottom:3,textTransform:"uppercase"}}>{st.l}</div>
-            <div style={{fontSize:17,fontWeight:800,color:st.c}}>{st.v}</div>
-          </div>
-        );})}
       </div>
 
       {totalFact>0&&(
