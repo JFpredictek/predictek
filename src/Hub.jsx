@@ -499,7 +499,7 @@ function ParamsSyndicat(p){
     var files=[];
     if(window._reqFile)files.push({b:window._reqFile,t:"REQ"});
     if(window._acteFile)files.push({b:window._acteFile,t:"Acte"});
-    if(files.length===0){setIaLoading(false);setIaError("Sélectionnez d'abord au moins un PDF.");return;}
+    if(files.length===0){setIaLoading(false);setIaError("Selectionnez un PDF d'abord au moins un PDF.");return;}
     Promise.all(files.map(function(item){
       return new Promise(function(resolve){
         var r=new FileReader();
@@ -523,10 +523,10 @@ function ParamsSyndicat(p){
         if(ex.nbUnites&&parseInt(ex.nbUnites)>0)sd("nbUnites",parseInt(ex.nbUnites));
         if(ex.gestionnaire)sd("gestionnaire",ex.gestionnaire);
         var n=Object.values(ex).filter(function(v){return v&&v!==""&&v!==0;}).length;
-        setIaSuccess(n+" champs extraits — vérifiez et complétez si nécessaire");
+        setIaSuccess(n+" champs extraits - verifiez et completez si necessaire");
       }catch(e){setIaError("Réponse IA non lisible. Remplissez les champs manuellement.");}
       setIaLoading(false);
-    }).catch(function(e){setIaError("Erreur réseau: "+e.message);setIaLoading(false);});
+    }).catch(function(e){setIaError("Erreur reseau: "+e.message);setIaLoading(false);});
   }
 
   var s7=useState(false);var iaLoading=s7[0];var setIaLoading=s7[1];
@@ -552,7 +552,7 @@ function ParamsSyndicat(p){
     });
     Promise.all(promises).then(function(docs){
       var content=docs.map(function(d){return {type:"document",source:{type:"base64",media_type:"application/pdf",data:d.b64},title:d.type+" - "+d.name};});
-      content.push({type:"text",text:"Analyse ces documents officiels d'un syndicat de copropriété québécois. Extrait les informations suivantes au format JSON strict (uniquement le JSON, sans texte avant ou après): {"nom": "Nom officiel du syndicat", "immat": "Numéro NEQ 11 chiffres", "adr": "Adresse de l'immeuble", "ville": "Ville", "province": "Province 2 lettres", "codePostal": "Code postal", "nbUnites": nombre_entier, "exercice": "période exercice financier", "gestionnaire": "Nom gestionnaire si mentionné ou vide"}. Si une info est absente, mets une chaîne vide ou null."});
+      content.push({type:"text",text:"Analyse ce document officiel. Reponds UNIQUEMENT avec un objet JSON valide (sans backtick ni markdown). Format: {nom: string, immat: string, adr: string, ville: string, province: string 2 lettres, codePostal: string, nbUnites: nombre entier, gestionnaire: string}. Chaine vide si info absente."});
       return fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:content}]})});
     }).then(function(r){return r.json();}).then(function(resp){
       if(resp.error){setIaError("Erreur IA: "+resp.error.message);setIaLoading(false);return;}
