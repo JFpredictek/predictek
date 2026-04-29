@@ -533,56 +533,6 @@ function ParamsSyndicat(p){
   var s8=useState("");var iaError=s8[0];var setIaError=s8[1];
   var s9=useState("");var iaSuccess=s9[0];var setIaSuccess=s9[1];
 
-  function extraireIA(){
-    if(iaLoading)return;
-    setIaLoading(true);setIaError("");setIaSuccess("");
-    var files=[];
-    if(window._reqFile)files.push({f:window._reqFile,type:"REQ"});
-    if(window._acteFile)files.push({f:window._acteFile,type:"acte"});
-    if(files.length===0){setIaLoading(false);setIaError("Veuillez d'abord sélectionner au moins un document PDF.");return;}
-    var promises=files.map(function(item){
-      return new Promise(function(resolve){
-        var reader=new FileReader();
-        reader.onload=function(ev){
-          var b64=ev.target.result.split(",")[1];
-          resolve({b64:b64,type:item.type,name:item.f.name});
-        };
-        reader.readAsDataURL(item.f);
-      });
-    });
-    Promise.all(promises).then(function(docs){
-      var content=docs.map(function(d){return {type:"document",source:{type:"base64",media_type:"application/pdf",data:d.b64},title:d.type+" - "+d.name};});
-      content.push({type:"text",text:"Analyse ce document officiel. Reponds UNIQUEMENT avec un objet JSON valide (sans backtick ni markdown). Format: {nom: string, immat: string, adr: string, ville: string, province: string 2 lettres, codePostal: string, nbUnites: nombre entier, gestionnaire: string}. Chaine vide si info absente."});
-      return fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:content}]})});
-    }).then(function(r){return r.json();}).then(function(resp){
-      if(resp.error){setIaError("Erreur IA: "+resp.error.message);setIaLoading(false);return;}
-      var text=resp.content&&resp.content[0]&&resp.content[0].text||"";
-      try{
-        var clean=text.replace(/```json|```/g,"").trim();
-        var extracted=JSON.parse(clean);
-        if(extracted.nom)sd("nom",extracted.nom);
-        if(extracted.immat)sd("immat",extracted.immat);
-        if(extracted.adr)sd("adr",extracted.adr);
-        if(extracted.ville)sd("ville",extracted.ville);
-        if(extracted.province)sd("province",extracted.province);
-        if(extracted.codePostal)sd("codePostal",extracted.codePostal);
-        if(extracted.nbUnites&&parseInt(extracted.nbUnites)>0)sd("nbUnites",parseInt(extracted.nbUnites));
-        if(extracted.exercice)sd("exercice",extracted.exercice);
-        if(extracted.gestionnaire)sd("gestionnaire",extracted.gestionnaire);
-        var count=Object.values(extracted).filter(function(v){return v&&v!=="";}).length;
-        setIaSuccess(count+" champs extraits automatiquement — vérifiez et complétez au besoin");
-      }catch(e){setIaError("Impossible d'analyser la réponse IA. Remplissez les champs manuellement.");}
-      setIaLoading(false);
-    }).catch(function(e){setIaError("Erreur connexion: "+e.message);setIaLoading(false);});
-  }
-
-
-  function sp(k,v){setParams(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
-  function sauvegarder(){
-    try{localStorage.setItem("predictek_params_"+syndicat,JSON.stringify(params));}catch(e){}
-    setSavedMsg("Parametres sauvegardes!");
-    setTimeout(function(){setSavedMsg("");},3000);
-  }
   function handleDoc(e){
     var file=e.target.files[0];
     if(!file)return;
