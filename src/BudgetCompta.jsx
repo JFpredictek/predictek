@@ -239,6 +239,82 @@ function TabJournal(p){
   );
 }
 
+
+function TabSoldes(p){
+  var syndicat = p.syndicat;
+  var s0=useState({soldeOp:"",soldePrev:"",soldeAss:"",dateOuverture:"",budgetAnnuel:"",cotisationMoyenne:""});
+  var form=s0[0];var setForm=s0[1];
+  var s1=useState(false);var saved=s1[0];var setSaved=s1[1];
+  function sf(k,v){setForm(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
+  var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",amber:"#B86020",amberL:"#FEF3E2",red:"#B83232",redL:"#FDECEA"};
+  var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
+  var money=function(n){return Math.abs(parseFloat(n)||0).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
+  var total=(parseFloat(form.soldeOp)||0)+(parseFloat(form.soldePrev)||0)+(parseFloat(form.soldeAss)||0);
+
+  function sauvegarder(){
+    if(!syndicat)return;
+    sb.upsert("syndicats_soldes",[Object.assign({},form,{syndicat_id:syndicat.id,updated_at:new Date().toISOString()})]).then(function(){
+      setSaved(true);setTimeout(function(){setSaved(false);},3000);
+    });
+  }
+
+  return(
+    <div style={{padding:20}}>
+      <div style={{fontSize:16,fontWeight:800,color:T.navy,fontFamily:"Georgia,serif",marginBottom:4}}>Soldes d ouverture et Budget</div>
+      <div style={{fontSize:12,color:T.muted,marginBottom:20}}>Saisissez les soldes initiaux lors de la prise en charge du syndicat dans Predictek</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:20}}>
+        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
+          <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:12}}>Soldes d ouverture</div>
+          <div style={{marginBottom:10}}>
+            <div style={{fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:4}}>Compte d exploitation ($)</div>
+            <input type="number" value={form.soldeOp} onChange={function(e){sf("soldeOp",e.target.value);}} style={INP} placeholder="0.00"/>
+          </div>
+          <div style={{marginBottom:10}}>
+            <div style={{fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:4}}>Fonds de prevoyance ($)</div>
+            <input type="number" value={form.soldePrev} onChange={function(e){sf("soldePrev",e.target.value);}} style={INP} placeholder="0.00"/>
+          </div>
+          <div style={{marginBottom:10}}>
+            <div style={{fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:4}}>Fonds d assurance ($)</div>
+            <input type="number" value={form.soldeAss} onChange={function(e){sf("soldeAss",e.target.value);}} style={INP} placeholder="0.00"/>
+          </div>
+          <div style={{marginBottom:10}}>
+            <div style={{fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:4}}>Date d ouverture des comptes</div>
+            <input type="date" value={form.dateOuverture} onChange={function(e){sf("dateOuverture",e.target.value);}} style={INP}/>
+          </div>
+          <div style={{background:T.accentL,border:"1px solid "+T.accent+"33",borderRadius:8,padding:"10px 14px",marginTop:12}}>
+            <div style={{fontSize:10,color:T.accent,textTransform:"uppercase",fontWeight:700,marginBottom:2}}>Total soldes</div>
+            <div style={{fontSize:20,fontWeight:800,color:T.accent}}>{money(total)}</div>
+          </div>
+        </div>
+        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
+          <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:12}}>Budget annuel</div>
+          <div style={{marginBottom:10}}>
+            <div style={{fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:4}}>Budget annuel total ($)</div>
+            <input type="number" value={form.budgetAnnuel} onChange={function(e){sf("budgetAnnuel",e.target.value);}} style={INP} placeholder="0.00"/>
+          </div>
+          <div style={{marginBottom:10}}>
+            <div style={{fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.07em",marginBottom:4}}>Cotisation moyenne mensuelle ($)</div>
+            <input type="number" value={form.cotisationMoyenne} onChange={function(e){sf("cotisationMoyenne",e.target.value);}} style={INP} placeholder="0.00"/>
+          </div>
+          {form.budgetAnnuel&&form.cotisationMoyenne&&(
+            <div style={{background:T.blueL,border:"1px solid #1A56DB33",borderRadius:8,padding:"10px 14px",marginTop:12}}>
+              <div style={{fontSize:11,color:"#1A56DB",fontWeight:600,marginBottom:4}}>Projection annuelle</div>
+              <div style={{fontSize:12,color:T.navy}}>Revenu cotisations: <b>{money((parseFloat(form.cotisationMoyenne)||0)*12)}/an</b></div>
+              <div style={{fontSize:12,color:(parseFloat(form.cotisationMoyenne)*12-(parseFloat(form.budgetAnnuel)||0))>=0?T.accent:T.red,marginTop:4}}>
+                {(parseFloat(form.cotisationMoyenne)*12-(parseFloat(form.budgetAnnuel)||0))>=0?"Surplus":"Deficit"}: <b>{money(Math.abs(parseFloat(form.cotisationMoyenne)*12-(parseFloat(form.budgetAnnuel)||0)))}/an</b>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      {saved&&<div style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:8,padding:"8px 14px",fontSize:12,color:T.accent,fontWeight:600,marginBottom:12}}>Soldes sauvegardes avec succes</div>}
+      <button onClick={sauvegarder} disabled={!syndicat} style={{background:T.accent,border:"none",borderRadius:8,padding:"10px 20px",color:"#fff",fontSize:13,fontWeight:700,cursor:syndicat?"pointer":"not-allowed",opacity:syndicat?1:0.5}}>
+        Sauvegarder les soldes
+      </button>
+    </div>
+  );
+}
+
 export default function BudgetCompta(){
   var s0=useState([]);var syndicats=s0[0];var setSyndicats=s0[1];
   var s1=useState(null);var sel=s1[0];var setSel=s1[1];
@@ -250,7 +326,7 @@ export default function BudgetCompta(){
     }).catch(function(){});
   },[]);
 
-  var TABS=[{id:"budget",l:"Budget"},{id:"journal",l:"Journal"}];
+  var TABS=[{id:"soldes",l:"Soldes d ouverture"},{id:"budget",l:"Budget"},{id:"journal",l:"Journal"}];
 
   if(syndicats.length===0)return <div style={{padding:40,textAlign:"center",fontFamily:"Georgia,serif",color:"#7C7568"}}>Aucun syndicat. Creez d abord un syndicat dans Predictek.</div>;
 
@@ -266,6 +342,7 @@ export default function BudgetCompta(){
         </div>
       </div>
       <div style={{padding:20}}>
+        {ong==="soldes"&&<TabSoldes syndicat={sel}/>}
         {ong==="budget"&&<TabBudget syndicat={sel}/>}
         {ong==="journal"&&<TabJournal syndicat={sel}/>}
       </div>
