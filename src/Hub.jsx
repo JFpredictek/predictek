@@ -911,7 +911,7 @@ function Onboarding(p){
     reqNom:"",acteNom:"",nom:"",code:"",adr:"",ville:"",province:"QC",codePostal:"",immat:"",
     anneeConstruction:"",nbUnites:"",exercice:"1 nov au 31 oct",
     quorumCA:"majorite",quorumAGO:25,typeCopro:"horizontale",
-    // Etape 1b - Courriels syndicat (deplacés de étape 2)
+    // Etape 1b - Courriels syndicat (deplacÃ©s de Ã©tape 2)
     courrielCA:"",courrielFactures:"",courrielCopros:"",courrielUrgences:"",
     gestionnaire:"",
     // Etape 2 - CA
@@ -937,7 +937,7 @@ function Onboarding(p){
   var s6=useState(false);var iaLoading=s6[0];var setIaLoading=s6[1];
   var s7=useState("");var iaError=s7[0];var setIaError=s7[1];
   var s8=useState("");var iaSuccess=s8[0];var setIaSuccess=s8[1];
-    var fileRef=useRef(null);
+  var fileRef=useRef(null);
   var docRef=useRef(null);
   var anneeConstruction=parseInt(data.anneeConstruction)||new Date().getFullYear();
 
