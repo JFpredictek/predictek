@@ -507,14 +507,12 @@ function ParamsSyndicat(p){
         r.readAsDataURL(item.b);
       });
     })).then(function(docs){
-      var content=docs.map(function(d){return {type:"document",source:{type:"base64",media_type:"application/pdf",data:d.b64}};});
-      content.push({type:"text",text:"Analyse ce document. JSON valide uniquement: {nom,immat,adr,ville,province,codePostal,nbUnites,gestionnaire}"});
-      return fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,messages:[{role:"user",content:content}]})});
+      return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({docs:docs})});
     }).then(function(r){return r.json();}).then(function(resp){
-      if(resp.error){setIaError("Erreur IA: "+resp.error.message);setIaLoading(false);return;}
-      var txt=(resp.content&&resp.content[0]&&resp.content[0].text)||"";
+      if(resp.error){setIaError("Erreur: "+resp.error);setIaLoading(false);return;}
+      if(!resp.ok){setIaError("Erreur serveur.");setIaLoading(false);return;}
       try{
-        var ex=JSON.parse(txt.replace(/```json|```/g,"").trim());
+        var ex=resp.data;
         if(ex.nom)sd("nom",ex.nom);
         if(ex.immat)sd("immat",ex.immat);
         if(ex.adr)sd("adr",ex.adr);
@@ -943,13 +941,12 @@ function Onboarding(p){
         r.readAsDataURL(item.b);
       });
     })).then(function(docs){
-      var msgs=[{role:"user",content:docs.map(function(d){return {type:"document",source:{type:"base64",media_type:"application/pdf",data:d.b64}};}).concat([{type:"text",text:"Analyse ce document de syndicat de copropriete quebecois. Reponds uniquement avec un objet JSON valide sans texte autour. Cles: nom, immat, adr, ville, province, codePostal, nbUnites, gestionnaire. Vide si absent."}])}];
-      return fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,messages:msgs})});
+      return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({docs:docs})});
     }).then(function(r){return r.json();}).then(function(resp){
-      if(resp.error){setIaError("IA: "+resp.error.message);setIaLoading(false);return;}
-      var txt=(resp.content&&resp.content[0]&&resp.content[0].text)||"";
+      if(resp.error){setIaError("Erreur: "+resp.error);setIaLoading(false);return;}
+      if(!resp.ok){setIaError("Erreur serveur.");setIaLoading(false);return;}
       try{
-        var ex=JSON.parse(txt.replace(/```json|```/g,"").trim());
+        var ex=resp.data;
         if(ex.nom)sd("nom",ex.nom);
         if(ex.immat)sd("immat",ex.immat);
         if(ex.adr)sd("adr",ex.adr);
