@@ -14,18 +14,19 @@ export default async function handler(req, res) {
 
     var prompt = "Voici le texte extrait de documents officiels d un syndicat de copropriete quebecois (REQ et/ou declaration de copropriete):\n\n"
       + texte.substring(0,10000)
-      + "\n\nExtrait les informations et reponds UNIQUEMENT avec un objet JSON valide sans texte autour. Cles requises:\n"
+      + "\n\nExtrait les informations suivantes et reponds UNIQUEMENT avec un objet JSON valide sans texte autour:\n"
       + "nom: nom officiel du syndicat,\n"
       + "immat: numero NEQ 11 chiffres (REQ),\n"
-      + "adr: adresse du domicile inscrite au REQ (pas l adresse de l immeuble),\n"
+      + "adr: adresse du domicile inscrite au REQ (adresse postale du syndicat),\n"
       + "ville: ville du domicile,\n"
-      + "province: 2 lettres (QC),\n"
-      + "codePostal: code postal du domicile,\n"
+      + "province: 2 lettres (ex: QC),\n"
+      + "codePostal: code postal,\n"
       + "nbUnites: nombre total d unites (entier),\n"
       + "gestionnaire: nom du gestionnaire si present,\n"
-      + "quorumAGO: pourcentage entier requis pour AGO selon declaration (ex: 50),\n"
-      + "anneeConstruction: annee de construction selon declaration (entier ex: 1985),\n"
-      + "admins: tableau des administrateurs du REQ, chaque element contient: {prenom, nom, adr, ville, province, codePostal}. Tableau vide si non trouve.\n"
+      + "quorumAGO: pourcentage entier requis pour tenir une AGO selon la declaration (ex: 50),\n"
+      + "anneeConstruction: annee de construction de l immeuble selon la declaration (entier ex: 1985),\n"
+      + "typeCopro: type de structure legale selon la declaration - exactement l un de: horizontale, verticale, mixte,\n"
+      + "admins: tableau des administrateurs du REQ - chaque element: {prenom, nom, adr, ville, province, codePostal}. Tableau vide si non trouve.\n"
       + "Valeur vide ou 0 si information absente.";
 
     var anthropicRes = await fetch("https://api.anthropic.com/v1/messages",{
