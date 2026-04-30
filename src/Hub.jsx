@@ -509,7 +509,7 @@ function ParamsSyndicat(p){
     })).then(function(docs){
       return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({docs:docs})});
     }).then(function(r){
-      if(r.status===413){setIaError("PDF trop volumineux - utilisez un fichier de moins de 5MB.");setIaLoading(false);throw "413";}
+      if(r.status===413){setIaError("PDF trop volumineux - utilisez un fichier de moins de 20MB.");setIaLoading(false);throw "413";}
       return r.json();
     }).then(function(resp){
       if(!resp)return;
@@ -939,8 +939,8 @@ function Onboarding(p){
     if(window._acteFile)files.push({b:window._acteFile,t:"Acte"});
     if(files.length===0){setIaLoading(false);setIaError("Selectionnez un PDF.");return;}
     var totalSize=files.reduce(function(a,f){return a+f.b.size;},0);
-    if(totalSize>5000000){
-      setIaError("PDF trop volumineux ("+Math.round(totalSize/1024/1024)+"MB). Maximum 5MB.");
+    if(totalSize>20000000){
+      setIaError("PDF trop volumineux ("+Math.round(totalSize/1024/1024)+"MB). Maximum 20MB.");
       setIaLoading(false);return;
     }
     Promise.all(files.map(function(item){
@@ -1044,11 +1044,11 @@ function Onboarding(p){
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
               <div>
                 <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:2}}>Documents officiels du syndicat</div>
-                <div style={{fontSize:11,color:T.muted}}>Optionnel — Importez vos PDF pour remplir automatiquement les champs avec l'IA</div>
+                <div style={{fontSize:11,color:T.muted}}>Optionnel â Importez vos PDF pour remplir automatiquement les champs avec l'IA</div>
               </div>
               {(data.reqNom||data.acteNom)&&!iaLoading&&(
                 <button onClick={extraireIA} style={{background:"linear-gradient(135deg,#1A56DB,#3CAF6E)",border:"none",borderRadius:8,padding:"8px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{fontSize:16}}>✦</span> Extraire avec l'IA
+                  <span style={{fontSize:16}}>â¦</span> Extraire avec l'IA
                 </button>
               )}
               {iaLoading&&(
@@ -1061,7 +1061,7 @@ function Onboarding(p){
               <div style={{background:"#FDECEA",border:"1px solid #B8323244",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#B83232",marginBottom:10}}>{iaError}</div>
             )}
             {iaSuccess&&(
-              <div style={{background:"#E8F2EC",border:"1px solid #1B5E3B44",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#1B5E3B",marginBottom:10,fontWeight:600}}>✓ {iaSuccess}</div>
+              <div style={{background:"#E8F2EC",border:"1px solid #1B5E3B44",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#1B5E3B",marginBottom:10,fontWeight:600}}>â {iaSuccess}</div>
             )}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <div style={{background:"#EFF6FF",border:"2px dashed "+(data.reqNom?"#1A56DB":"#1A56DB66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
@@ -1069,18 +1069,18 @@ function Onboarding(p){
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>NEQ, administrateurs, adresse</div>
                 <input type="file" accept=".pdf,.PDF" id="reqUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("reqNom",f.name);window._reqFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("reqUpload").click();}} style={{background:"#1A56DB",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.reqNom?"✓ Changer":"📄 Sélectionner PDF"}
+                  {data.reqNom?"â Changer":"ð SÃ©lectionner PDF"}
                 </button>
-                {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}>✓ {data.reqNom}</div>}
+                {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}>â {data.reqNom}</div>}
               </div>
               <div style={{background:"#E8F2EC",border:"2px dashed "+(data.acteNom?"#1B5E3B":"#1B5E3B66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>2. Déclaration de copropriété</div>
-                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Fractions, règlement, droits</div>
+                <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>2. DÃ©claration de copropriÃ©tÃ©</div>
+                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Fractions, rÃ¨glement, droits</div>
                 <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.acteNom?"✓ Changer":"📄 Sélectionner PDF"}
+                  {data.acteNom?"â Changer":"ð SÃ©lectionner PDF"}
                 </button>
-                {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}>✓ {data.acteNom}</div>}
+                {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}>â {data.acteNom}</div>}
               </div>
             </div>
           </div>
