@@ -935,23 +935,45 @@ function Onboarding(p){
     if(iaLoading)return;
     setIaLoading(true);setIaError("");setIaSuccess("");
     var files=[];
-    if(window._reqFile)files.push({b:window._reqFile,t:"REQ"});
-    if(window._acteFile)files.push({b:window._acteFile,t:"Acte"});
+    if(window._reqFile)files.push(window._reqFile);
+    if(window._acteFile)files.push(window._acteFile);
     if(files.length===0){setIaLoading(false);setIaError("Selectionnez un PDF.");return;}
-    var totalSize=files.reduce(function(a,f){return a+f.b.size;},0);
-    if(totalSize>20000000){
-      setIaError("PDF trop volumineux ("+Math.round(totalSize/1024/1024)+"MB). Maximum 20MB.");
-      setIaLoading(false);return;
-    }
-    Promise.all(files.map(function(item){
-      return new Promise(function(resolve){
-        var r=new FileReader();
-        r.onload=function(ev){resolve({b64:ev.target.result.split(",")[1],t:item.t});};
-        r.readAsDataURL(item.b);
+    Promise.all(files.map(function(file){
+      return new Promise(function(resolve,reject){
+        var reader=new FileReader();
+        reader.onload=function(ev){
+          var typedarray=new Uint8Array(ev.target.result);
+          if(typeof pdfjsLib==="undefined"){
+            var script=document.createElement("script");
+            script.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+            script.onload=function(){
+              pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+              pdfjsLib.getDocument({data:typedarray}).promise.then(function(pdf){
+                var pages=[];
+                var total=Math.min(pdf.numPages,15);
+                for(var p=1;p<=total;p++)pages.push(p);
+                return Promise.all(pages.map(function(n){return pdf.getPage(n).then(function(pg){return pg.getTextContent().then(function(tc){return tc.items.map(function(i){return i.str;}).join(" ");});});}));
+              }).then(function(texts){resolve(texts.join("\n"));}).catch(reject);
+            };
+            document.head.appendChild(script);
+          } else {
+            pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+            pdfjsLib.getDocument({data:typedarray}).promise.then(function(pdf){
+              var pages=[];
+              var total=Math.min(pdf.numPages,15);
+              for(var p=1;p<=total;p++)pages.push(p);
+              return Promise.all(pages.map(function(n){return pdf.getPage(n).then(function(pg){return pg.getTextContent().then(function(tc){return tc.items.map(function(i){return i.str;}).join(" ");});});}));
+            }).then(function(texts){resolve(texts.join("\n"));}).catch(reject);
+          }
+        };
+        reader.readAsArrayBuffer(file);
       });
-    })).then(function(docs){
-      return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({docs:docs})});
-    }).then(function(r){return r.json();}).then(function(resp){
+    })).then(function(textes){
+      var texte=textes.join("\n\n");
+      if(!texte.trim()){setIaError("Impossible de lire le texte du PDF. Verifiez que le PDF n'est pas une image scannee.");setIaLoading(false);return;}
+      return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:texte})});
+    }).then(function(r){if(!r)return;return r.json();}).then(function(resp){
+      if(!resp)return;
       if(resp.error){setIaError("Erreur: "+resp.error);setIaLoading(false);return;}
       if(!resp.ok){setIaError("Erreur serveur.");setIaLoading(false);return;}
       try{
@@ -968,10 +990,7 @@ function Onboarding(p){
         setIaSuccess(n+" champs extraits - verifiez et completez");
       }catch(e){setIaError("Reponse IA illisible.");}
       setIaLoading(false);
-    }).catch(function(e){
-      if(e!=="too_large")setIaError("Erreur: "+e.message);
-      setIaLoading(false);
-    });
+    }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});
   }
 
   function sdComp(i,k,v){setData(function(o){var comps=o.composantes.slice();comps[i]=Object.assign({},comps[i]);comps[i][k]=v;return Object.assign({},o,{composantes:comps});});}
@@ -1044,11 +1063,11 @@ function Onboarding(p){
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
               <div>
                 <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:2}}>Documents officiels du syndicat</div>
-                <div style={{fontSize:11,color:T.muted}}>Optionnel â Importez vos PDF pour remplir automatiquement les champs avec l'IA</div>
+                <div style={{fontSize:11,color:T.muted}}>Optionnel Ã¢ÂÂ Importez vos PDF pour remplir automatiquement les champs avec l'IA</div>
               </div>
               {(data.reqNom||data.acteNom)&&!iaLoading&&(
                 <button onClick={extraireIA} style={{background:"linear-gradient(135deg,#1A56DB,#3CAF6E)",border:"none",borderRadius:8,padding:"8px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{fontSize:16}}>â¦</span> Extraire avec l'IA
+                  <span style={{fontSize:16}}>Ã¢ÂÂ¦</span> Extraire avec l'IA
                 </button>
               )}
               {iaLoading&&(
@@ -1061,7 +1080,7 @@ function Onboarding(p){
               <div style={{background:"#FDECEA",border:"1px solid #B8323244",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#B83232",marginBottom:10}}>{iaError}</div>
             )}
             {iaSuccess&&(
-              <div style={{background:"#E8F2EC",border:"1px solid #1B5E3B44",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#1B5E3B",marginBottom:10,fontWeight:600}}>â {iaSuccess}</div>
+              <div style={{background:"#E8F2EC",border:"1px solid #1B5E3B44",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#1B5E3B",marginBottom:10,fontWeight:600}}>Ã¢ÂÂ {iaSuccess}</div>
             )}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <div style={{background:"#EFF6FF",border:"2px dashed "+(data.reqNom?"#1A56DB":"#1A56DB66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
@@ -1069,18 +1088,18 @@ function Onboarding(p){
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>NEQ, administrateurs, adresse</div>
                 <input type="file" accept=".pdf,.PDF" id="reqUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("reqNom",f.name);window._reqFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("reqUpload").click();}} style={{background:"#1A56DB",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.reqNom?"â Changer":"ð SÃ©lectionner PDF"}
+                  {data.reqNom?"Ã¢ÂÂ Changer":"Ã°ÂÂÂ SÃÂ©lectionner PDF"}
                 </button>
-                {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}>â {data.reqNom}</div>}
+                {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}>Ã¢ÂÂ {data.reqNom}</div>}
               </div>
               <div style={{background:"#E8F2EC",border:"2px dashed "+(data.acteNom?"#1B5E3B":"#1B5E3B66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>2. DÃ©claration de copropriÃ©tÃ©</div>
-                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Fractions, rÃ¨glement, droits</div>
+                <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>2. DÃÂ©claration de copropriÃÂ©tÃÂ©</div>
+                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Fractions, rÃÂ¨glement, droits</div>
                 <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.acteNom?"â Changer":"ð SÃ©lectionner PDF"}
+                  {data.acteNom?"Ã¢ÂÂ Changer":"Ã°ÂÂÂ SÃÂ©lectionner PDF"}
                 </button>
-                {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}>â {data.acteNom}</div>}
+                {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}>Ã¢ÂÂ {data.acteNom}</div>}
               </div>
             </div>
           </div>
