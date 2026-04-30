@@ -508,9 +508,7 @@ function ParamsSyndicat(p){
       });
     })).then(function(docs){
       return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({docs:docs})});
-    }).then(function(r){
-      if(r.status===413){setIaError("PDF trop volumineux - utilisez moins de 5MB.");setIaLoading(false);throw new Error("413");}
-      return r.text().then(function(t){try{return JSON.parse(t);}catch(e){throw new Error("Reponse invalide: "+t.substring(0,100));}}).then(function(resp){
+    }).then(function(r){return r.json();}).then(function(resp){
       if(resp.error){setIaError("Erreur: "+resp.error);setIaLoading(false);return;}
       if(!resp.ok){setIaError("Erreur serveur.");setIaLoading(false);return;}
       try{
@@ -524,8 +522,8 @@ function ParamsSyndicat(p){
         if(ex.nbUnites&&parseInt(ex.nbUnites)>0)sd("nbUnites",parseInt(ex.nbUnites));
         if(ex.gestionnaire)sd("gestionnaire",ex.gestionnaire);
         var n=Object.values(ex).filter(function(v){return v&&v!==""&&v!==0;}).length;
-        setIaSuccess(n+" champs extraits - verifiez et completez si necessaire");
-      }catch(e){setIaError("Reponse IA non lisible. Remplissez les champs manuellement.");}
+        setIaSuccess(n+" champs extraits");
+      }catch(e){setIaError("Reponse IA illisible.");}
       setIaLoading(false);
     }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});
   }
@@ -944,11 +942,7 @@ function Onboarding(p){
       });
     })).then(function(docs){
       return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({docs:docs})});
-    }).then(function(r){
-      if(r.status===413){setIaError("PDF trop volumineux - moins de 5MB svp.");setIaLoading(false);throw "413";}
-      return r.json();
-    }).then(function(resp){
-      if(!resp)return;
+    }).then(function(r){return r.json();}).then(function(resp){
       if(resp.error){setIaError("Erreur: "+resp.error);setIaLoading(false);return;}
       if(!resp.ok){setIaError("Erreur serveur.");setIaLoading(false);return;}
       try{
