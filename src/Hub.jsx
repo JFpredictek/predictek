@@ -904,9 +904,16 @@ function Onboarding(p){
     reqNom:"",acteNom:"",nom:"",code:"",adr:"",ville:"",province:"QC",codePostal:"",immat:"",
     anneeConstruction:"",nbUnites:"",exercice:"1 nov au 31 oct",
     quorumCA:"majorite",quorumAGO:25,
-    // Etape 2 - CA
-    nbMembresCA:5,president:"",presDateDebut:"",presDateFin:"",secretaire:"",tresorier:"",membresCA:[],
+    // Etape 1b - Courriels syndicat (deplacés de étape 2)
     courrielCA:"",courrielFactures:"",courrielCopros:"",courrielUrgences:"",
+    gestionnaire:"",
+    // Etape 2 - CA
+    nbMembresCA:3,
+    admins:[
+      {nom:"",prenom:"",adr:"",ville:"",province:"QC",codePostal:"",courriel:"",mobile:"",dateDebut:"",nas:""},
+      {nom:"",prenom:"",adr:"",ville:"",province:"QC",codePostal:"",courriel:"",mobile:"",dateDebut:"",nas:""},
+      {nom:"",prenom:"",adr:"",ville:"",province:"QC",codePostal:"",courriel:"",mobile:"",dateDebut:"",nas:""},
+    ],
     // Etape 4 - Soldes
     soldeOp:"",soldePrev:"",soldeAss:"",dateOuverture:"",
     budgetAnnuel:"",cotisationMoyenne:"",
@@ -931,6 +938,18 @@ function Onboarding(p){
   var anneeConstruction=parseInt(data.anneeConstruction)||new Date().getFullYear();
 
   function sd(k,v){setData(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
+  function sadmin(i,k,v){setData(function(o){
+    var admins=o.admins.slice();
+    admins[i]=Object.assign({},admins[i]);
+    admins[i][k]=v;
+    return Object.assign({},o,{admins:admins});
+  });}
+  function setNbAdmins(n){setData(function(o){
+    var cur=o.admins.slice();
+    while(cur.length<n) cur.push({nom:"",prenom:"",adr:"",ville:"",province:"QC",codePostal:"",courriel:"",mobile:"",dateDebut:"",nas:""});
+    while(cur.length>n) cur.pop();
+    return Object.assign({},o,{nbMembresCA:n,admins:cur});
+  });}
   function extraireIA(){
     if(iaLoading)return;
     setIaLoading(true);setIaError("");setIaSuccess("");
@@ -966,6 +985,15 @@ function Onboarding(p){
         if(ex.gestionnaire)sd("gestionnaire",ex.gestionnaire);
         if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)sd("quorumAGO",parseInt(ex.quorumAGO));
         if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)sd("anneeConstruction",parseInt(ex.anneeConstruction));
+        if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
+          var nb=ex.admins.length;
+          setData(function(o){
+            var newAdmins=ex.admins.map(function(a){
+              return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:"",nas:""};
+            });
+            return Object.assign({},o,{nbMembresCA:nb,admins:newAdmins});
+          });
+        }
         var n=Object.values(ex).filter(function(v){return v&&v!==""&&v!==0;}).length;
         setIaSuccess(n+" champs extraits - verifiez et completez");
       }catch(e){setIaError("Reponse IA illisible.");}
@@ -1098,6 +1126,16 @@ function Onboarding(p){
             <Field l="Exercice financier"><select value={data.exercice} onChange={function(e){sd("exercice",e.target.value);}} style={INP}><option value="1 nov au 31 oct">1 nov au 31 oct</option><option value="1 jan au 31 dec">1 jan au 31 dec</option><option value="1 avr au 31 mars">1 avr au 31 mars</option><option value="1 juil au 30 juin">1 juil au 30 juin</option></select></Field>
             <Field l="Quorum AGO % (déclaration)"><input type="number" min="10" max="75" value={data.quorumAGO} onChange={function(e){sd("quorumAGO",parseInt(e.target.value)||25);}} style={INP}/></Field>
           </div>
+          <div style={{marginTop:16}}>
+            <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:4}}>Courriels du syndicat</div>
+            <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Ces adresses seront utilisees pour les communications automatiques</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              <Field l="Courriel du CA" hint="Communications CA"><input value={data.courrielCA} onChange={function(e){sd("courrielCA",e.target.value);}} style={INP} placeholder="ca@syndicat.com"/></Field>
+              <Field l="Courriel factures fournisseurs" hint="Traitement automatique"><input value={data.courrielFactures} onChange={function(e){sd("courrielFactures",e.target.value);}} style={INP} placeholder="factures@syndicat.com"/></Field>
+              <Field l="Courriel copropietaires"><input value={data.courrielCopros} onChange={function(e){sd("courrielCopros",e.target.value);}} style={INP} placeholder="copros@syndicat.com"/></Field>
+              <Field l="Courriel urgences 24/7"><input value={data.courrielUrgences} onChange={function(e){sd("courrielUrgences",e.target.value);}} style={INP} placeholder="urgences@syndicat.com"/></Field>
+            </div>
+          </div>
           <div style={{display:"flex",justifyContent:"flex-end",marginTop:20}}>
             <Btn dis={!data.nom||!data.code||!data.ville} onClick={function(){setStep(2);}}>Continuer -</Btn>
           </div>
@@ -1106,46 +1144,37 @@ function Onboarding(p){
 
       {step===2&&(
         <div>
-          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 2 - Conseil d administration</div>
-          <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Composition du CA selon la declaration de copropriete. Le nombre de membres doit etre impair.</div>
-          <div style={{marginBottom:14}}>
-            <Lbl l="Nombre de membres du CA"/>
-            <div style={{display:"flex",gap:10,marginBottom:4}}>
-              {[3,5,7,9].map(function(n){var a=data.nbMembresCA===n;return(
-                <button key={n} onClick={function(){sd("nbMembresCA",n);}} style={{width:56,height:56,borderRadius:10,border:"2px solid "+(a?T.accent:T.border),background:a?T.accentL:T.surface,color:a?T.accent:T.muted,fontSize:20,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{n}</button>
-              );})}
-            </div>
-            <div style={{fontSize:11,color:T.muted}}>Quorum: {Math.ceil(data.nbMembresCA/2)} membres requis</div>
+          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 2 - Administrateurs du CA</div>
+          <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Selon le REQ et la declaration de copropriete. Le NAS est chiffre et securise.</div>
+          <div style={{marginBottom:16}}>
+            <Lbl l="Nombre d administrateurs"/>
+            <div style={{display:"flex",gap:10,marginBottom:4}}>{[3,5,7,9].map(function(n){var a=data.nbMembresCA===n;return(
+              <button key={n} onClick={function(){setNbAdmins(n);}} style={{width:52,height:52,borderRadius:10,border:"2px solid "+(a?T.accent:T.border),background:a?T.accentL:T.surface,fontWeight:700,fontSize:16,cursor:"pointer",color:a?T.accent:T.text}}>{n}</button>
+            );})}</div>
+            <div style={{fontSize:11,color:T.muted}}>Nombre impair requis — {data.nbMembresCA} administrateur(s) selectionne(s)</div>
           </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
-            <Field l="President"><input value={data.president} onChange={function(e){sd("president",e.target.value);}} style={INP}/></Field>
-            <Field l="Secretaire"><input value={data.secretaire} onChange={function(e){sd("secretaire",e.target.value);}} style={INP}/></Field>
-            <Field l="Tresorier"><input value={data.tresorier} onChange={function(e){sd("tresorier",e.target.value);}} style={INP}/></Field>
-          </div>
-          <div style={{marginBottom:14}}>
-            <Lbl l="Liste complete des membres du CA"/>
-            <div style={{minHeight:40,background:T.alt,borderRadius:8,padding:"6px 8px",display:"flex",flexWrap:"wrap",gap:4,marginBottom:8}}>
-              {data.membresCA.map(function(m,i){return(
-                <span key={i} style={{display:"inline-flex",alignItems:"center",gap:6,background:T.surface,border:"1px solid "+T.border,borderRadius:20,padding:"3px 10px",fontSize:11}}>
-                  {m}<button onClick={function(){sd("membresCA",data.membresCA.filter(function(_,j){return j!==i;}));}} style={{background:"none",border:"none",cursor:"pointer",color:T.muted,fontSize:13,lineHeight:1,padding:0}}>x</button>
-                </span>
-              );})}
-              {data.membresCA.length===0&&<span style={{fontSize:11,color:T.muted,padding:"4px 8px"}}>Ajoutez les membres du CA</span>}
-            </div>
-            <div style={{display:"flex",gap:8}}>
-              <input value={newMembre} onChange={function(e){setNewMembre(e.target.value);}} onKeyDown={function(e){if(e.key==="Enter"&&newMembre.trim()){sd("membresCA",data.membresCA.concat([newMembre.trim()]));setNewMembre("");}}} placeholder="Nom du membre..." style={Object.assign({},INP,{flex:1})}/>
-              <Btn sm onClick={function(){if(newMembre.trim()){sd("membresCA",data.membresCA.concat([newMembre.trim()]));setNewMembre("");}}}> Ajouter</Btn>
-            </div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
-            <Field l="Courriel du CA"><input value={data.courrielCA} onChange={function(e){sd("courrielCA",e.target.value);}} style={INP} placeholder="ca@syndicat.com"/></Field>
-            <Field l="Courriel factures fournisseurs" hint="Traitement automatique"><input value={data.courrielFactures} onChange={function(e){sd("courrielFactures",e.target.value);}} style={INP} placeholder="factures@syndicat.com"/></Field>
-            <Field l="Courriel coproprietaires"><input value={data.courrielCopros} onChange={function(e){sd("courrielCopros",e.target.value);}} style={INP} placeholder="info@syndicat.com"/></Field>
-            <Field l="Courriel urgences 24/7"><input value={data.courrielUrgences} onChange={function(e){sd("courrielUrgences",e.target.value);}} style={INP} placeholder="urgence@syndicat.com"/></Field>
+          <div style={{marginBottom:8}}>
+            {data.admins.map(function(admin,i){return(
+              <div key={i} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14,marginBottom:12}}>
+                <div style={{fontSize:12,fontWeight:700,color:T.navy,marginBottom:10}}>Administrateur {i+1}{i===0?" (President / Representant)":i===1?" (Secretaire)":i===2?" (Tresorier)":""}</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  <Field l="Prenom"><input value={admin.prenom} onChange={function(e){sadmin(i,"prenom",e.target.value);}} style={INP}/></Field>
+                  <Field l="Nom"><input value={admin.nom} onChange={function(e){sadmin(i,"nom",e.target.value);}} style={INP}/></Field>
+                  <Field l="Adresse postale" full><input value={admin.adr} onChange={function(e){sadmin(i,"adr",e.target.value);}} style={INP} placeholder="123 rue Exemple"/></Field>
+                  <Field l="Ville"><input value={admin.ville} onChange={function(e){sadmin(i,"ville",e.target.value);}} style={INP}/></Field>
+                  <Field l="Province"><select value={admin.province} onChange={function(e){sadmin(i,"province",e.target.value);}} style={INP}><option>QC</option><option>ON</option><option>BC</option><option>AB</option><option>MB</option><option>SK</option><option>NB</option><option>NS</option><option>PE</option><option>NL</option></select></Field>
+                  <Field l="Code postal"><input value={admin.codePostal} onChange={function(e){sadmin(i,"codePostal",e.target.value.toUpperCase());}} style={INP} placeholder="G1A 1A1"/></Field>
+                  <Field l="Courriel"><input type="email" value={admin.courriel} onChange={function(e){sadmin(i,"courriel",e.target.value);}} style={INP} placeholder="nom@exemple.com"/></Field>
+                  <Field l="Mobile"><input type="tel" value={admin.mobile} onChange={function(e){sadmin(i,"mobile",e.target.value);}} style={INP} placeholder="418-555-0000"/></Field>
+                  <Field l="Debut du mandat"><input type="date" value={admin.dateDebut} onChange={function(e){sadmin(i,"dateDebut",e.target.value);}} style={INP}/></Field>
+                  <Field l="NAS (chiffre)" hint="Stocke chiffre - jamais affiche en clair"><input type="password" value={admin.nas} onChange={function(e){sadmin(i,"nas",e.target.value);}} style={INP} placeholder="000-000-000" maxLength={11}/></Field>
+                </div>
+              </div>
+            );})}
           </div>
           <div style={{display:"flex",justifyContent:"space-between",marginTop:20}}>
             <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(1);}}>- Retour</Btn>
-            <Btn dis={!data.president} onClick={function(){setStep(3);}}>Continuer -</Btn>
+            <Btn dis={!data.admins[0]||!data.admins[0].nom} onClick={function(){setStep(3);}}>Continuer -</Btn>
           </div>
         </div>
       )}
