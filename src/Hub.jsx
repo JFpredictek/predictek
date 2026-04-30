@@ -509,7 +509,7 @@ function ParamsSyndicat(p){
     })).then(function(docs){
       return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({docs:docs})});
     }).then(function(r){
-      if(r.status===413){setIaError("PDF trop volumineux - utilisez un fichier de moins de 5MB.");setIaLoading(false);throw "413";}
+      if(r.status===413){setIaError("PDF trop volumineux - utilisez un fichier de moins de 20MB.");setIaLoading(false);throw "413";}
       return r.json();
     }).then(function(resp){
       if(!resp)return;
@@ -588,6 +588,11 @@ function ParamsSyndicat(p){
               <div><Lbl l="Immatriculation REQ"/><input value={params.immat} onChange={function(e){sp("immat",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Annee de construction"/><input value={params.anneeConstruction} onChange={function(e){sp("anneeConstruction",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Nombre d unites"/><input type="number" value={params.nbUnites} onChange={function(e){sp("nbUnites",e.target.value);}} style={INP}/></div>
+              <div style={{gridColumn:"1/-1"}}>
+                <Lbl l="Resume des reglements (declaration de copropriete)"/>
+                <div style={{fontSize:10,color:T.muted,marginBottom:4}}>Extrait automatiquement depuis la declaration - modifiable - disponible dans le CRM pour consultation par les employes et l'IA</div>
+                <textarea value={params.resumeReglements||""} onChange={function(e){sp("resumeReglements",e.target.value);}} rows={6} style={Object.assign({},INP,{resize:"vertical",fontFamily:"inherit"})} placeholder="Ex: Art. 1 - Horaires quietude: 22h-7h. Art. 2 - Animaux: max 1 animal de compagnie de moins de 15kg. Art. 3 - Stationnement: 1 place par unite..."/>
+              </div>
               <div><Lbl l="Exercice financier"/>
                 <select value={params.exercice} onChange={function(e){sp("exercice",e.target.value);}} style={INP}>
                   <option value="1 nov au 31 oct">1 nov au 31 oct</option>
@@ -995,7 +1000,6 @@ function Onboarding(p){
       }catch(e){setIaError("Reponse IA illisible.");}
       setIaLoading(false);
     }).catch(function(e){setIaError("Erreur: "+(e&&e.message?e.message:e));setIaLoading(false);});
-  }
   }
   function handleLogo(e){
     var file=e.target.files[0];if(!file)return;
