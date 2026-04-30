@@ -841,10 +841,12 @@ function parseCSV(text){
     var nom=row["nom"]||row["last_name"]||row["lastname"]||row["name"]||"";
     var courriel=row["courriel"]||row["email"]||row["e-mail"]||"";
     var tel=row["tel"]||row["telephone"]||row["phone"]||"";
-    var fraction=parseFloat(row["fraction"]||row["quote_part"]||row["quotient"]||"0")||0;
+    var fraction=parseFloat(row["fraction"]||row["quote_part"]||row["quotient"]||row["quotepart"]||"0")||0;
+    var cadastre=row["cadastre"]||row["no_cadastre"]||row["numero_cadastre"]||"";
+    var quotePart=parseFloat(row["quote_part"]||row["quotepart"]||row["quote part"]||row["fraction"]||"0")||0;
     var cotisation=parseFloat(row["cotisation"]||row["mensualite"]||row["contribution"]||"0")||0;
     if(!unite){errors.push("Ligne "+(i+1)+": numero d unite manquant");continue;}
-    rows.push({unite:unite,prenom:prenom,nom:nom,courriel:courriel,tel:tel,fraction:fraction,cotisation:cotisation,pap:false,ce:"",ass:"",loc:false,animaux:0});
+    rows.push({unite:unite,prenom:prenom,nom:nom,courriel:courriel,tel:tel,fraction:fraction,quotePart:quotePart,cadastre:cadastre,cotisation:cotisation,pap:false,ce:"",ass:"",loc:false,animaux:0});
   }
   return{ok:rows.length>0,msg:rows.length+" coproprietaires importes"+(errors.length>0?" ("+errors.length+" erreurs)":""),rows:rows,errors:errors};
 }
@@ -903,7 +905,7 @@ function Onboarding(p){
     // Etape 1 - Syndicat
     reqNom:"",acteNom:"",nom:"",code:"",adr:"",ville:"",province:"QC",codePostal:"",immat:"",
     anneeConstruction:"",nbUnites:"",exercice:"1 nov au 31 oct",
-    quorumCA:"majorite",quorumAGO:25,
+    quorumCA:"majorite",quorumAGO:25,typeCopro:"horizontale",
     // Etape 1b - Courriels syndicat (deplacés de étape 2)
     courrielCA:"",courrielFactures:"",courrielCopros:"",courrielUrgences:"",
     gestionnaire:"",
@@ -985,6 +987,7 @@ function Onboarding(p){
         if(ex.gestionnaire)sd("gestionnaire",ex.gestionnaire);
         if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)sd("quorumAGO",parseInt(ex.quorumAGO));
         if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)sd("anneeConstruction",parseInt(ex.anneeConstruction));
+        if(ex.typeCopro&&["horizontale","verticale","mixte"].includes(ex.typeCopro))sd("typeCopro",ex.typeCopro);
         if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
           var nb=ex.admins.length;
           setData(function(o){
@@ -1126,6 +1129,22 @@ function Onboarding(p){
             <Field l="Exercice financier"><select value={data.exercice} onChange={function(e){sd("exercice",e.target.value);}} style={INP}><option value="1 nov au 31 oct">1 nov au 31 oct</option><option value="1 jan au 31 dec">1 jan au 31 dec</option><option value="1 avr au 31 mars">1 avr au 31 mars</option><option value="1 juil au 30 juin">1 juil au 30 juin</option></select></Field>
             <Field l="Quorum AGO % (déclaration)"><input type="number" min="10" max="75" value={data.quorumAGO} onChange={function(e){sd("quorumAGO",parseInt(e.target.value)||25);}} style={INP}/></Field>
           </div>
+          <div style={{background:T.amberL,border:"1px solid "+T.amber+"44",borderRadius:10,padding:14,marginTop:16,marginBottom:4}}>
+            <div style={{fontSize:13,fontWeight:700,color:T.amber,marginBottom:6}}>Structure légale de la copropriété</div>
+            <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Déterminée par la déclaration de copropriété — a des impacts juridiques importants sur la gestion</div>
+            <div style={{display:"flex",gap:10}}>
+              {[
+                {v:"horizontale",l:"Horizontale",desc:"Unités côte à côte (maisons, condos au sol)"},
+                {v:"verticale",l:"Verticale",desc:"Unités superposées (tours, immeubles)"},
+                {v:"mixte",l:"Mixte",desc:"Combinaison des deux types"},
+              ].map(function(t){var a=data.typeCopro===t.v;return(
+                <div key={t.v} onClick={function(){sd("typeCopro",t.v);}} style={{flex:1,border:"2px solid "+(a?T.amber:T.border),borderRadius:8,padding:"10px 12px",cursor:"pointer",background:a?T.amberL:"#fff",transition:"all 0.15s"}}>
+                  <div style={{fontWeight:700,fontSize:12,color:a?T.amber:T.text,marginBottom:2}}>{t.l}</div>
+                  <div style={{fontSize:10,color:T.muted}}>{t.desc}</div>
+                </div>
+              );})}
+            </div>
+          </div>
           <div style={{marginTop:16}}>
             <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:4}}>Courriels du syndicat</div>
             <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Ces adresses seront utilisees pour les communications automatiques</div>
@@ -1187,9 +1206,9 @@ function Onboarding(p){
           <div style={{background:T.blueL,border:"1px solid "+T.blue+"44",borderRadius:10,padding:14,marginBottom:16}}>
             <div style={{fontSize:12,fontWeight:700,color:T.blue,marginBottom:8}}>Format CSV accepte (colonnes flexibles)</div>
             <div style={{fontSize:11,color:T.blue,fontFamily:"monospace",lineHeight:1.9}}>
-              unite, prenom, nom, courriel, telephone, fraction, cotisation<br/>
-              531, Jean-Francois, Laroche, jf@email.com, 819-479-4203, 2.133, 292.06<br/>
-              539, Lucette, Tremblay, l.tremblay@email.com, 418-555-0539, 3.840, 525.80
+              unite, cadastre, prenom, nom, courriel, telephone, quote_part, cotisation<br/>
+              531, 1234567, Jean-Francois, Laroche, jf@email.com, 819-479-4203, 2.133, 292.06<br/>
+              539, 1234568, Lucette, Tremblay, l.tremblay@email.com, 418-555-0539, 3.840, 525.80
             </div>
             <div style={{fontSize:10,color:T.blue,marginTop:6}}>Colonnes obligatoires: unite. Toutes les autres sont optionnelles.</div>
           </div>
@@ -1218,16 +1237,17 @@ function Onboarding(p){
               </div>
               <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden",maxHeight:280,overflowY:"auto"}}>
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
-                  <thead><tr style={{background:T.navy}}>{["Unite","Prenom","Nom","Courriel","Tel","Fraction","Cotisation"].map(function(h){return <th key={h} style={{padding:"6px 10px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left"}}>{h}</th>;})}</tr></thead>
+                  <thead><tr style={{background:T.navy}}>{["Unite","Cadastre","Prenom","Nom","Courriel","Tel","Quote-part %","Cotisation"].map(function(h){return <th key={h} style={{padding:"6px 10px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left"}}>{h}</th>;})}</tr></thead>
                   <tbody>
                     {copros.map(function(c,i){return(
                       <tr key={i} style={{borderBottom:"1px solid "+T.border,background:i%2===0?T.surface:T.alt}}>
                         <td style={{padding:"6px 10px",fontWeight:700,color:T.navy,fontSize:11}}>{c.unite}</td>
+                        <td style={{padding:"6px 10px",fontSize:10,color:T.muted}}>{c.cadastre||"-"}</td>
                         <td style={{padding:"6px 10px",fontSize:11}}>{c.prenom}</td>
                         <td style={{padding:"6px 10px",fontSize:11}}>{c.nom}</td>
                         <td style={{padding:"6px 10px",fontSize:10,color:T.muted}}>{c.courriel}</td>
                         <td style={{padding:"6px 10px",fontSize:10,color:T.muted}}>{c.tel}</td>
-                        <td style={{padding:"6px 10px",fontSize:11,textAlign:"right"}}>{c.fraction?c.fraction+"%":""}</td>
+                        <td style={{padding:"6px 10px",fontSize:11,textAlign:"right"}}>{c.quotePart?c.quotePart+"%":c.fraction?c.fraction+"%":""}</td>
                         <td style={{padding:"6px 10px",fontSize:11,textAlign:"right",fontWeight:600}}>{c.cotisation?money(c.cotisation):""}</td>
                       </tr>
                     );})}
