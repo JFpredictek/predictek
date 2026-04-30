@@ -509,7 +509,7 @@ function ParamsSyndicat(p){
     })).then(function(docs){
       return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({docs:docs})});
     }).then(function(r){
-      if(r.status===413){setIaError("PDF trop volumineux - utilisez un fichier de moins de 5MB.");setIaLoading(false);throw "413";}
+      if(r.status===413){setIaError("PDF trop volumineux - utilisez un fichier de moins de 20MB.");setIaLoading(false);throw "413";}
       return r.json();
     }).then(function(resp){
       if(!resp)return;
@@ -906,7 +906,7 @@ function Onboarding(p){
     reqNom:"",acteNom:"",nom:"",code:"",adr:"",ville:"",province:"QC",codePostal:"",immat:"",
     anneeConstruction:"",nbUnites:"",exercice:"1 nov au 31 oct",
     quorumCA:"majorite",quorumAGO:25,typeCopro:"horizontale",
-    // Etape 1b - Courriels syndicat (deplacés de étape 2)
+    // Etape 1b - Courriels syndicat (deplacÃ©s de Ã©tape 2)
     courrielCA:"",courrielFactures:"",courrielCopros:"",courrielUrgences:"",
     gestionnaire:"",
     // Etape 2 - CA
@@ -960,8 +960,8 @@ function Onboarding(p){
     if(window._acteFile)files.push({b:window._acteFile,t:"Acte"});
     if(files.length===0){setIaLoading(false);setIaError("Selectionnez un PDF.");return;}
     var totalSize=files.reduce(function(a,f){return a+f.b.size;},0);
-    if(totalSize>5000000){
-      setIaError("PDF trop volumineux ("+Math.round(totalSize/1024/1024)+"MB). Maximum 5MB.");
+    if(totalSize>20000000){
+      setIaError("PDF trop volumineux ("+Math.round(totalSize/1024/1024)+"MB). Maximum 20MB.");
       setIaLoading(false);return;
     }
     Promise.all(files.map(function(item){
@@ -1077,11 +1077,11 @@ function Onboarding(p){
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
               <div>
                 <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:2}}>Documents officiels du syndicat</div>
-                <div style={{fontSize:11,color:T.muted}}>Optionnel — Importez vos PDF pour remplir automatiquement les champs avec l'IA</div>
+                <div style={{fontSize:11,color:T.muted}}>Optionnel â Importez vos PDF pour remplir automatiquement les champs avec l'IA</div>
               </div>
               {(data.reqNom||data.acteNom)&&!iaLoading&&(
                 <button onClick={extraireIA} style={{background:"linear-gradient(135deg,#1A56DB,#3CAF6E)",border:"none",borderRadius:8,padding:"8px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{fontSize:16}}>✦</span> Extraire avec l'IA
+                  <span style={{fontSize:16}}>â¦</span> Extraire avec l'IA
                 </button>
               )}
               {iaLoading&&(
@@ -1094,7 +1094,7 @@ function Onboarding(p){
               <div style={{background:"#FDECEA",border:"1px solid #B8323244",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#B83232",marginBottom:10}}>{iaError}</div>
             )}
             {iaSuccess&&(
-              <div style={{background:"#E8F2EC",border:"1px solid #1B5E3B44",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#1B5E3B",marginBottom:10,fontWeight:600}}>✓ {iaSuccess}</div>
+              <div style={{background:"#E8F2EC",border:"1px solid #1B5E3B44",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#1B5E3B",marginBottom:10,fontWeight:600}}>â {iaSuccess}</div>
             )}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <div style={{background:"#EFF6FF",border:"2px dashed "+(data.reqNom?"#1A56DB":"#1A56DB66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
@@ -1102,40 +1102,40 @@ function Onboarding(p){
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>NEQ, administrateurs, adresse domicile</div>
                 <input type="file" accept=".pdf,.PDF" id="reqUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("reqNom",f.name);window._reqFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("reqUpload").click();}} style={{background:"#1A56DB",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.reqNom?"✓ Changer":"📄 Sélectionner PDF"}
+                  {data.reqNom?"â Changer":"ð SÃ©lectionner PDF"}
                 </button>
-                {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}>✓ {data.reqNom}</div>}
+                {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}>â {data.reqNom}</div>}
               </div>
               <div style={{background:"#E8F2EC",border:"2px dashed "+(data.acteNom?"#1B5E3B":"#1B5E3B66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>2. Déclaration de copropriété</div>
-                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Quorum, année construction, fractions</div>
+                <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>2. DÃ©claration de copropriÃ©tÃ©</div>
+                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Quorum, annÃ©e construction, fractions</div>
                 <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.acteNom?"✓ Changer":"📄 Sélectionner PDF"}
+                  {data.acteNom?"â Changer":"ð SÃ©lectionner PDF"}
                 </button>
-                {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}>✓ {data.acteNom}</div>}
+                {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}>â {data.acteNom}</div>}
               </div>
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <Field l="Nom officiel du syndicat" full hint="Nom tel qu il apparait dans votre acte de copropriete"><input value={data.nom} onChange={function(e){sd("nom",e.target.value);}} style={INP} placeholder="Syndicat Piedmont"/></Field>
             <Field l="Code court (4 lettres)" hint="Identifiant interne Predictek"><input value={data.code} onChange={function(e){sd("code",e.target.value.toUpperCase().slice(0,4));}} style={INP} placeholder="PIED" maxLength={4}/></Field>
-            <Field l="Année de construction (déclaration)"><input type="number" value={data.anneeConstruction} onChange={function(e){sd("anneeConstruction",e.target.value);}} style={INP} placeholder="2013"/></Field>
+            <Field l="AnnÃ©e de construction (dÃ©claration)"><input type="number" value={data.anneeConstruction} onChange={function(e){sd("anneeConstruction",e.target.value);}} style={INP} placeholder="2013"/></Field>
             <Field l="Adresse du syndicat" full hint="Adresse du domicile tel qu inscrit au REQ"><input value={data.adr} onChange={function(e){sd("adr",e.target.value);}} style={INP} placeholder="123 Chemin du Hibou"/></Field>
             <Field l="Ville"><input value={data.ville} onChange={function(e){sd("ville",e.target.value);}} style={INP} placeholder="Stoneham-et-Tewkesbury"/></Field>
             <Field l="Province"><select value={data.province} onChange={function(e){sd("province",e.target.value);}} style={INP}><option>QC</option><option>ON</option><option>BC</option><option>AB</option></select></Field>
             <Field l="Code postal"><input value={data.codePostal} onChange={function(e){sd("codePostal",e.target.value.toUpperCase());}} style={INP} placeholder="G3C 1T1"/></Field>
             <Field l="Numero immatriculation REQ" hint="11 chiffres - registre entreprises Quebec"><input value={data.immat} onChange={function(e){sd("immat",e.target.value);}} style={INP} placeholder="1144524577"/></Field>
             <Field l="Exercice financier"><select value={data.exercice} onChange={function(e){sd("exercice",e.target.value);}} style={INP}><option value="1 nov au 31 oct">1 nov au 31 oct</option><option value="1 jan au 31 dec">1 jan au 31 dec</option><option value="1 avr au 31 mars">1 avr au 31 mars</option><option value="1 juil au 30 juin">1 juil au 30 juin</option></select></Field>
-            <Field l="Quorum AGO % (déclaration)"><input type="number" min="10" max="75" value={data.quorumAGO} onChange={function(e){sd("quorumAGO",parseInt(e.target.value)||25);}} style={INP}/></Field>
+            <Field l="Quorum AGO % (dÃ©claration)"><input type="number" min="10" max="75" value={data.quorumAGO} onChange={function(e){sd("quorumAGO",parseInt(e.target.value)||25);}} style={INP}/></Field>
           </div>
           <div style={{background:T.amberL,border:"1px solid "+T.amber+"44",borderRadius:10,padding:14,marginTop:16,marginBottom:4}}>
-            <div style={{fontSize:13,fontWeight:700,color:T.amber,marginBottom:6}}>Structure légale de la copropriété</div>
-            <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Déterminée par la déclaration de copropriété — a des impacts juridiques importants sur la gestion</div>
+            <div style={{fontSize:13,fontWeight:700,color:T.amber,marginBottom:6}}>Structure lÃ©gale de la copropriÃ©tÃ©</div>
+            <div style={{fontSize:11,color:T.muted,marginBottom:12}}>DÃ©terminÃ©e par la dÃ©claration de copropriÃ©tÃ© â a des impacts juridiques importants sur la gestion</div>
             <div style={{display:"flex",gap:10}}>
               {[
-                {v:"horizontale",l:"Horizontale",desc:"Unités côte à côte (maisons, condos au sol)"},
-                {v:"verticale",l:"Verticale",desc:"Unités superposées (tours, immeubles)"},
+                {v:"horizontale",l:"Horizontale",desc:"UnitÃ©s cÃ´te Ã  cÃ´te (maisons, condos au sol)"},
+                {v:"verticale",l:"Verticale",desc:"UnitÃ©s superposÃ©es (tours, immeubles)"},
                 {v:"mixte",l:"Mixte",desc:"Combinaison des deux types"},
               ].map(function(t){var a=data.typeCopro===t.v;return(
                 <div key={t.v} onClick={function(){sd("typeCopro",t.v);}} style={{flex:1,border:"2px solid "+(a?T.amber:T.border),borderRadius:8,padding:"10px 12px",cursor:"pointer",background:a?T.amberL:"#fff",transition:"all 0.15s"}}>
@@ -1170,7 +1170,7 @@ function Onboarding(p){
             <div style={{display:"flex",gap:10,marginBottom:4}}>{[3,5,7,9].map(function(n){var a=data.nbMembresCA===n;return(
               <button key={n} onClick={function(){setNbAdmins(n);}} style={{width:52,height:52,borderRadius:10,border:"2px solid "+(a?T.accent:T.border),background:a?T.accentL:T.surface,fontWeight:700,fontSize:16,cursor:"pointer",color:a?T.accent:T.text}}>{n}</button>
             );})}</div>
-            <div style={{fontSize:11,color:T.muted}}>Nombre impair requis — {data.nbMembresCA} administrateur(s) selectionne(s)</div>
+            <div style={{fontSize:11,color:T.muted}}>Nombre impair requis â {data.nbMembresCA} administrateur(s) selectionne(s)</div>
           </div>
           <div style={{marginBottom:8}}>
             {data.admins.map(function(admin,i){return(
