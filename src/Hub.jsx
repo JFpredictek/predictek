@@ -509,7 +509,7 @@ function ParamsSyndicat(p){
     })).then(function(docs){
       return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({docs:docs})});
     }).then(function(r){
-      if(r.status===413){setIaError("PDF trop volumineux - utilisez un fichier de moins de 20MB.");setIaLoading(false);throw "413";}
+      if(r.status===413){setIaError("PDF trop volumineux - utilisez un fichier de moins de 5MB.");setIaLoading(false);throw "413";}
       return r.json();
     }).then(function(resp){
       if(!resp)return;
@@ -581,7 +581,7 @@ function ParamsSyndicat(p){
             <CardSub>Informations de base du syndicat telles qu inscrites au Registre foncier</CardSub>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div style={{gridColumn:"1/-1"}}><Lbl l="Nom du syndicat"/><input value={params.nom} onChange={function(e){sp("nom",e.target.value);}} style={INP}/></div>
-              <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse de l immeuble"/><input value={params.adr} onChange={function(e){sp("adr",e.target.value);}} style={INP}/></div>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse du syndicat"/><input value={params.adr} onChange={function(e){sp("adr",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Ville"/><input value={params.ville} onChange={function(e){sp("ville",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Province"/><input value={params.province} onChange={function(e){sp("province",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Code postal"/><input value={params.codePostal} onChange={function(e){sp("codePostal",e.target.value);}} style={INP}/></div>
@@ -935,45 +935,23 @@ function Onboarding(p){
     if(iaLoading)return;
     setIaLoading(true);setIaError("");setIaSuccess("");
     var files=[];
-    if(window._reqFile)files.push(window._reqFile);
-    if(window._acteFile)files.push(window._acteFile);
+    if(window._reqFile)files.push({b:window._reqFile,t:"REQ"});
+    if(window._acteFile)files.push({b:window._acteFile,t:"Acte"});
     if(files.length===0){setIaLoading(false);setIaError("Selectionnez un PDF.");return;}
-    Promise.all(files.map(function(file){
-      return new Promise(function(resolve,reject){
-        var reader=new FileReader();
-        reader.onload=function(ev){
-          var typedarray=new Uint8Array(ev.target.result);
-          if(typeof pdfjsLib==="undefined"){
-            var script=document.createElement("script");
-            script.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-            script.onload=function(){
-              pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-              pdfjsLib.getDocument({data:typedarray}).promise.then(function(pdf){
-                var pages=[];
-                var total=Math.min(pdf.numPages,15);
-                for(var p=1;p<=total;p++)pages.push(p);
-                return Promise.all(pages.map(function(n){return pdf.getPage(n).then(function(pg){return pg.getTextContent().then(function(tc){return tc.items.map(function(i){return i.str;}).join(" ");});});}));
-              }).then(function(texts){resolve(texts.join("\n"));}).catch(reject);
-            };
-            document.head.appendChild(script);
-          } else {
-            pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-            pdfjsLib.getDocument({data:typedarray}).promise.then(function(pdf){
-              var pages=[];
-              var total=Math.min(pdf.numPages,15);
-              for(var p=1;p<=total;p++)pages.push(p);
-              return Promise.all(pages.map(function(n){return pdf.getPage(n).then(function(pg){return pg.getTextContent().then(function(tc){return tc.items.map(function(i){return i.str;}).join(" ");});});}));
-            }).then(function(texts){resolve(texts.join("\n"));}).catch(reject);
-          }
-        };
-        reader.readAsArrayBuffer(file);
+    var totalSize=files.reduce(function(a,f){return a+f.b.size;},0);
+    if(totalSize>5000000){
+      setIaError("PDF trop volumineux ("+Math.round(totalSize/1024/1024)+"MB). Maximum 5MB.");
+      setIaLoading(false);return;
+    }
+    Promise.all(files.map(function(item){
+      return new Promise(function(resolve){
+        var r=new FileReader();
+        r.onload=function(ev){resolve({b64:ev.target.result.split(",")[1],t:item.t});};
+        r.readAsDataURL(item.b);
       });
-    })).then(function(textes){
-      var texte=textes.join("\n\n");
-      if(!texte.trim()){setIaError("Impossible de lire le texte du PDF. Verifiez que le PDF n'est pas une image scannee.");setIaLoading(false);return;}
-      return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:texte})});
-    }).then(function(r){if(!r)return;return r.json();}).then(function(resp){
-      if(!resp)return;
+    })).then(function(docs){
+      return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({docs:docs})});
+    }).then(function(r){return r.json();}).then(function(resp){
       if(resp.error){setIaError("Erreur: "+resp.error);setIaLoading(false);return;}
       if(!resp.ok){setIaError("Erreur serveur.");setIaLoading(false);return;}
       try{
@@ -986,11 +964,16 @@ function Onboarding(p){
         if(ex.codePostal)sd("codePostal",ex.codePostal);
         if(ex.nbUnites&&parseInt(ex.nbUnites)>0)sd("nbUnites",parseInt(ex.nbUnites));
         if(ex.gestionnaire)sd("gestionnaire",ex.gestionnaire);
+        if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)sd("quorumAGO",parseInt(ex.quorumAGO));
+        if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)sd("anneeConstruction",parseInt(ex.anneeConstruction));
         var n=Object.values(ex).filter(function(v){return v&&v!==""&&v!==0;}).length;
         setIaSuccess(n+" champs extraits - verifiez et completez");
       }catch(e){setIaError("Reponse IA illisible.");}
       setIaLoading(false);
-    }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});
+    }).catch(function(e){
+      if(e!=="too_large")setIaError("Erreur: "+e.message);
+      setIaLoading(false);
+    });
   }
 
   function sdComp(i,k,v){setData(function(o){var comps=o.composantes.slice();comps[i]=Object.assign({},comps[i]);comps[i][k]=v;return Object.assign({},o,{composantes:comps});});}
@@ -1063,11 +1046,11 @@ function Onboarding(p){
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
               <div>
                 <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:2}}>Documents officiels du syndicat</div>
-                <div style={{fontSize:11,color:T.muted}}>Optionnel Ã¢ÂÂ Importez vos PDF pour remplir automatiquement les champs avec l'IA</div>
+                <div style={{fontSize:11,color:T.muted}}>Optionnel — Importez vos PDF pour remplir automatiquement les champs avec l'IA</div>
               </div>
               {(data.reqNom||data.acteNom)&&!iaLoading&&(
                 <button onClick={extraireIA} style={{background:"linear-gradient(135deg,#1A56DB,#3CAF6E)",border:"none",borderRadius:8,padding:"8px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{fontSize:16}}>Ã¢ÂÂ¦</span> Extraire avec l'IA
+                  <span style={{fontSize:16}}>✦</span> Extraire avec l'IA
                 </button>
               )}
               {iaLoading&&(
@@ -1080,40 +1063,40 @@ function Onboarding(p){
               <div style={{background:"#FDECEA",border:"1px solid #B8323244",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#B83232",marginBottom:10}}>{iaError}</div>
             )}
             {iaSuccess&&(
-              <div style={{background:"#E8F2EC",border:"1px solid #1B5E3B44",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#1B5E3B",marginBottom:10,fontWeight:600}}>Ã¢ÂÂ {iaSuccess}</div>
+              <div style={{background:"#E8F2EC",border:"1px solid #1B5E3B44",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#1B5E3B",marginBottom:10,fontWeight:600}}>✓ {iaSuccess}</div>
             )}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <div style={{background:"#EFF6FF",border:"2px dashed "+(data.reqNom?"#1A56DB":"#1A56DB66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
                 <div style={{fontSize:11,fontWeight:700,color:"#1A56DB",marginBottom:3}}>1. Registre entreprises (REQ)</div>
-                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>NEQ, administrateurs, adresse</div>
+                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>NEQ, administrateurs, adresse domicile</div>
                 <input type="file" accept=".pdf,.PDF" id="reqUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("reqNom",f.name);window._reqFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("reqUpload").click();}} style={{background:"#1A56DB",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.reqNom?"Ã¢ÂÂ Changer":"Ã°ÂÂÂ SÃÂ©lectionner PDF"}
+                  {data.reqNom?"✓ Changer":"📄 Sélectionner PDF"}
                 </button>
-                {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}>Ã¢ÂÂ {data.reqNom}</div>}
+                {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}>✓ {data.reqNom}</div>}
               </div>
               <div style={{background:"#E8F2EC",border:"2px dashed "+(data.acteNom?"#1B5E3B":"#1B5E3B66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>2. DÃÂ©claration de copropriÃÂ©tÃÂ©</div>
-                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Fractions, rÃÂ¨glement, droits</div>
+                <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>2. Déclaration de copropriété</div>
+                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Quorum, année construction, fractions</div>
                 <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.acteNom?"Ã¢ÂÂ Changer":"Ã°ÂÂÂ SÃÂ©lectionner PDF"}
+                  {data.acteNom?"✓ Changer":"📄 Sélectionner PDF"}
                 </button>
-                {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}>Ã¢ÂÂ {data.acteNom}</div>}
+                {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}>✓ {data.acteNom}</div>}
               </div>
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <Field l="Nom officiel du syndicat" full hint="Nom tel qu il apparait dans votre acte de copropriete"><input value={data.nom} onChange={function(e){sd("nom",e.target.value);}} style={INP} placeholder="Syndicat Piedmont"/></Field>
             <Field l="Code court (4 lettres)" hint="Identifiant interne Predictek"><input value={data.code} onChange={function(e){sd("code",e.target.value.toUpperCase().slice(0,4));}} style={INP} placeholder="PIED" maxLength={4}/></Field>
-            <Field l="Annee de construction"><input type="number" value={data.anneeConstruction} onChange={function(e){sd("anneeConstruction",e.target.value);}} style={INP} placeholder="2013"/></Field>
-            <Field l="Adresse de l immeuble" full><input value={data.adr} onChange={function(e){sd("adr",e.target.value);}} style={INP} placeholder="123 Chemin du Hibou"/></Field>
+            <Field l="Année de construction (déclaration)"><input type="number" value={data.anneeConstruction} onChange={function(e){sd("anneeConstruction",e.target.value);}} style={INP} placeholder="2013"/></Field>
+            <Field l="Adresse du syndicat" full hint="Adresse du domicile tel qu inscrit au REQ"><input value={data.adr} onChange={function(e){sd("adr",e.target.value);}} style={INP} placeholder="123 Chemin du Hibou"/></Field>
             <Field l="Ville"><input value={data.ville} onChange={function(e){sd("ville",e.target.value);}} style={INP} placeholder="Stoneham-et-Tewkesbury"/></Field>
             <Field l="Province"><select value={data.province} onChange={function(e){sd("province",e.target.value);}} style={INP}><option>QC</option><option>ON</option><option>BC</option><option>AB</option></select></Field>
             <Field l="Code postal"><input value={data.codePostal} onChange={function(e){sd("codePostal",e.target.value.toUpperCase());}} style={INP} placeholder="G3C 1T1"/></Field>
             <Field l="Numero immatriculation REQ" hint="11 chiffres - registre entreprises Quebec"><input value={data.immat} onChange={function(e){sd("immat",e.target.value);}} style={INP} placeholder="1144524577"/></Field>
             <Field l="Exercice financier"><select value={data.exercice} onChange={function(e){sd("exercice",e.target.value);}} style={INP}><option value="1 nov au 31 oct">1 nov au 31 oct</option><option value="1 jan au 31 dec">1 jan au 31 dec</option><option value="1 avr au 31 mars">1 avr au 31 mars</option><option value="1 juil au 30 juin">1 juil au 30 juin</option></select></Field>
-            <Field l="Quorum AGO (% des voix)"><input type="number" min="10" max="75" value={data.quorumAGO} onChange={function(e){sd("quorumAGO",parseInt(e.target.value)||25);}} style={INP}/></Field>
+            <Field l="Quorum AGO % (déclaration)"><input type="number" min="10" max="75" value={data.quorumAGO} onChange={function(e){sd("quorumAGO",parseInt(e.target.value)||25);}} style={INP}/></Field>
           </div>
           <div style={{display:"flex",justifyContent:"flex-end",marginTop:20}}>
             <Btn dis={!data.nom||!data.code||!data.ville} onClick={function(){setStep(2);}}>Continuer -</Btn>
