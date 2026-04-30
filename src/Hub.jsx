@@ -911,7 +911,7 @@ function Onboarding(p){
     reqNom:"",acteNom:"",nom:"",code:"",adr:"",ville:"",province:"QC",codePostal:"",immat:"",
     anneeConstruction:"",nbUnites:"",exercice:"1 nov au 31 oct",
     quorumCA:"majorite",quorumAGO:25,typeCopro:"horizontale",
-    // Etape 1b - Courriels syndicat (deplacÃ©s de Ã©tape 2)
+    // Etape 1b - Courriels syndicat (deplacÃÂ©s de ÃÂ©tape 2)
     courrielCA:"",courrielFactures:"",courrielCopros:"",courrielUrgences:"",
     gestionnaire:"",
     // Etape 2 - CA
