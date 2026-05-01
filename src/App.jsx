@@ -60,7 +60,7 @@ var SECTIONS=[
     modules:[
       {id:"tableau",label:"Tableau CA",icon:"TB"},
       {id:"copros",label:"Coproprietaires",icon:"CP"},
-      {id:"factures",label:"Factures",icon:"FA"},
+            {id:"factures",label:"Factures",icon:"FA"},
       {id:"budget",label:"Budget",icon:"BU"},
       {id:"bons",label:"Bons travaux",icon:"BT"},
       {id:"comm",label:"Communications",icon:"CO"},
