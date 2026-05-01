@@ -55,7 +55,7 @@ var SECTIONS=[
   },
   {
     id:"ca",
-    label:"Conseil d'administration",
+    label:"Conseil d administration",
     icon:"CA",
     color:"#64B5F6",
     bg:"#1A3A5C",
@@ -79,7 +79,7 @@ var SECTIONS=[
   },
   {
     id:"portail",
-    label:"Portail Copropriétaire",
+    label:"Portail CopropriÃ©taire",
     icon:"CP",
     color:"#FFB74D",
     bg:"#4A2800",
