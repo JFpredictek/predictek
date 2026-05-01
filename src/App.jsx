@@ -43,7 +43,6 @@ var SECTIONS=[
     modules:[
       {id:"dashboard",label:"Accueil",icon:"P"},
       {id:"onboarding",label:"Configuration",icon:"CFG"},
-      {id:"copros",label:"Coproprietaires",icon:"CP"},
       {id:"gestion",label:"Gestion Auto",icon:"GA"},
       {id:"usagers",label:"Utilisateurs",icon:"USR"},
       {id:"historique",label:"Historique",icon:"HIS"},
@@ -60,6 +59,7 @@ var SECTIONS=[
     bg:"#1A3A5C",
     modules:[
       {id:"tableau",label:"Tableau CA",icon:"TB"},
+      {id:"copros",label:"Coproprietaires",icon:"CP"},
       {id:"factures",label:"Factures",icon:"FA"},
       {id:"budget",label:"Budget",icon:"BU"},
       {id:"bons",label:"Bons travaux",icon:"BT"},
