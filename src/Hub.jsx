@@ -296,7 +296,7 @@ function CreerSyndicat(p){
             <div style={{fontSize:24,marginBottom:8,color:T.muted}}>CSV</div>
             <div style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:4}}>Cliquez pour selectionner votre fichier</div>
             <div style={{fontSize:11,color:T.muted}}>Formats acceptes: .csv, .txt</div>
-            <input id="csvCreer" type="file" accept=".csv,.txt,.xlsx" onChange={handleCSV} style={{display:"none"}}/>
+            <input id="csvCreer" type="file" accept=".xlsx,.csv,.txt" onChange={handleCSV} style={{display:"none"}}/>
           </div>
           {importMsg&&(
             <div style={{background:importMsg.includes("Erreur")?T.redL:T.accentL,color:importMsg.includes("Erreur")?T.red:T.accent,borderRadius:8,padding:"9px 13px",fontSize:12,marginBottom:14}}>{importMsg}</div>
@@ -308,7 +308,7 @@ function CreerSyndicat(p){
         </div>
       )}
 
-      {etape===3&&(
+      {etape===3&&({syndicats&&syndicats.length>1&&(<div style={{marginBottom:14}}><div style={{fontSize:12,fontWeight:700,color:T.navy,marginBottom:6}}>Syndicat cible</div><select value={selId||""} onChange={function(e){setSelId(e.target.value);}} style={{width:"100%",border:"1px solid "+T.border,borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit"}}><option value="">Selectionnez un syndicat...</option>{syndicats.map(function(s){return(<option key={s.id} value={s.id}>{s.nom}</option>);})}</select></div>)}
         <div>
           <div style={{fontSize:14,fontWeight:700,color:T.navy,marginBottom:16}}>Confirmation</div>
           <div style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:10,padding:16,marginBottom:16}}>
@@ -1104,7 +1104,7 @@ function Onboarding(p){
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>NEQ, administrateurs, adresse du domicile</div>
                 <input type="file" accept=".pdf,.PDF" id="reqUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("reqNom",f.name);window._reqFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("reqUpload").click();}} style={{background:"#1A56DB",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.reqNom?" Changer":"° Slectionner PDF"}
+                  {data.reqNom?" Changer":"Â° Slectionner PDF"}
                 </button>
                 {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}> {data.reqNom}</div>}
               </div>
@@ -1113,7 +1113,7 @@ function Onboarding(p){
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Quorum AGO, annee construction, structure legale</div>
                 <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.acteNom?" Changer":"° Slectionner PDF"}
+                  {data.acteNom?" Changer":"Â° Slectionner PDF"}
                 </button>
                 {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}> {data.acteNom}</div>}
               </div>
@@ -1136,7 +1136,7 @@ function Onboarding(p){
             <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Dtermine par la dclaration de coproprit  a des impacts juridiques importants sur la gestion</div>
             <div style={{display:"flex",gap:10}}>
               {[
-                {v:"horizontale",l:"Horizontale",desc:"Units c´te  c´te (maisons, condos au sol)"},
+                {v:"horizontale",l:"Horizontale",desc:"Units cÂ´te  cÂ´te (maisons, condos au sol)"},
                 {v:"verticale",l:"Verticale",desc:"Units superposes (tours, immeubles)"},
                 {v:"mixte",l:"Mixte",desc:"Combinaison des deux types"},
               ].map(function(t){var a=data.typeCopro===t.v;return(
