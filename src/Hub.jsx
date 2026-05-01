@@ -1001,7 +1001,7 @@ function Onboarding(p){
       if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)sd("anneeConstruction",parseInt(ex.anneeConstruction));
       if(ex.typeCopro&&["horizontale","verticale","mixte"].includes(ex.typeCopro))sd("typeCopro",ex.typeCopro);
       if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
-        setData(function(o){var na=ex.admins.map(function(a){return{nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:"",nas:""};});return Object.assign({},o,{nbMembresCA:ex.admins.length,admins:na});});
+        setData(function(o){var na=ex.admins.map(function(a){return{nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});return Object.assign({},o,{nbMembresCA:ex.admins.length,admins:na});});
       }
       var n=Object.values(ex).filter(function(v){return v&&v!==""&&v!==0&&!Array.isArray(v);}).length;
       setIaSuccess(n+" champs extraits");
@@ -1104,7 +1104,7 @@ function Onboarding(p){
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>NEQ, administrateurs, adresse du domicile</div>
                 <input type="file" accept=".pdf,.PDF" id="reqUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("reqNom",f.name);window._reqFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("reqUpload").click();}} style={{background:"#1A56DB",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.reqNom?" Changer":"° Slectionner PDF"}
+                  {data.reqNom?" Changer":"Â° Slectionner PDF"}
                 </button>
                 {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}> {data.reqNom}</div>}
               </div>
@@ -1113,7 +1113,7 @@ function Onboarding(p){
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Quorum AGO, annee construction, structure legale</div>
                 <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.acteNom?" Changer":"° Slectionner PDF"}
+                  {data.acteNom?" Changer":"Â° Slectionner PDF"}
                 </button>
                 {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}> {data.acteNom}</div>}
               </div>
@@ -1136,7 +1136,7 @@ function Onboarding(p){
             <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Dtermine par la dclaration de coproprit  a des impacts juridiques importants sur la gestion</div>
             <div style={{display:"flex",gap:10}}>
               {[
-                {v:"horizontale",l:"Horizontale",desc:"Units c´te  c´te (maisons, condos au sol)"},
+                {v:"horizontale",l:"Horizontale",desc:"Units cÂ´te  cÂ´te (maisons, condos au sol)"},
                 {v:"verticale",l:"Verticale",desc:"Units superposes (tours, immeubles)"},
                 {v:"mixte",l:"Mixte",desc:"Combinaison des deux types"},
               ].map(function(t){var a=data.typeCopro===t.v;return(
