@@ -1001,7 +1001,8 @@ function Onboarding(p){
       if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)sd("anneeConstruction",parseInt(ex.anneeConstruction));
       if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)sd("typeCopro",ex.typeCopro);
       if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){setData(function(o){var na=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});return Object.assign({},o,{nbMembresCA:ex.admins.length,admins:na});});}
-      setIaSuccess(n+" champs extraits");
+      var n=[ex.nom,ex.immat,ex.adr,ex.ville,ex.codePostal].filter(function(v){return v&&v!=="";}).length+(ex.quorumAGO?1:0)+(ex.anneeConstruction?1:0)+(ex.nbUnites?1:0)+(ex.admins&&ex.admins.length?ex.admins.length:0);
+      setIaSuccess(n+" champs extraits - verifiez et completez");
       setIaLoading(false);
     }).catch(function(e){if(e!=="vide")setIaError("Erreur: "+(e&&e.message?e.message:String(e)));setIaLoading(false);});
   }
