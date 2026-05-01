@@ -79,7 +79,7 @@ var SECTIONS=[
   },
   {
     id:"portail",
-    label:"Portail CopropriÃ©taire",
+    label:"Portail CopropriÃtaire",
     icon:"CP",
     color:"#FFB74D",
     bg:"#4A2800",
