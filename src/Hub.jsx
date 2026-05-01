@@ -999,11 +999,8 @@ function Onboarding(p){
       if(ex.gestionnaire)sd("gestionnaire",ex.gestionnaire);
       if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)sd("quorumAGO",parseInt(ex.quorumAGO));
       if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)sd("anneeConstruction",parseInt(ex.anneeConstruction));
-      if(ex.typeCopro&&["horizontale","verticale","mixte"].includes(ex.typeCopro))sd("typeCopro",ex.typeCopro);
-      if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
-        setData(function(o){var na=ex.admins.map(function(a){return{nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});return Object.assign({},o,{nbMembresCA:ex.admins.length,admins:na});});
-      }
-      var n=Object.values(ex).filter(function(v){return v&&v!==""&&v!==0&&!Array.isArray(v);}).length;
+      if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)sd("typeCopro",ex.typeCopro);
+      if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){setData(function(o){var na=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});return Object.assign({},o,{nbMembresCA:ex.admins.length,admins:na});});}
       setIaSuccess(n+" champs extraits");
       setIaLoading(false);
     }).catch(function(e){if(e!=="vide")setIaError("Erreur: "+(e&&e.message?e.message:String(e)));setIaLoading(false);});
