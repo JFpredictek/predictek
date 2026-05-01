@@ -959,33 +959,36 @@ function Onboarding(p){
     if(window._reqFile)files.push(window._reqFile);
     if(window._acteFile)files.push(window._acteFile);
     if(files.length===0){setIaLoading(false);setIaError("Selectionnez un PDF.");return;}
-    function lirePDF(file){
+    Promise.all(files.map(function(file){
       return new Promise(function(resolve,reject){
         var reader=new FileReader();
         reader.onload=function(ev){
-          var arr=new Uint8Array(ev.target.result);
-          function run(){
-            pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-            pdfjsLib.getDocument({data:arr}).promise.then(function(pdf){
-              var ps=[];for(var p=1;p<=Math.min(pdf.numPages,20);p++)ps.push(p);
-              return Promise.all(ps.map(function(n){return pdf.getPage(n).then(function(pg){return pg.getTextContent().then(function(tc){return tc.items.map(function(i){return i.str;}).join(" ");});});}));
+          var typedarray=new Uint8Array(ev.target.result);
+          function extractText(pdfLib){
+            pdfLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+            pdfLib.getDocument({data:typedarray}).promise.then(function(pdf){
+              var pages=[];for(var p=1;p<=Math.min(pdf.numPages,20);p++)pages.push(p);
+              return Promise.all(pages.map(function(n){return pdf.getPage(n).then(function(pg){return pg.getTextContent().then(function(tc){return tc.items.map(function(i){return i.str;}).join(" ");});});}));
             }).then(function(texts){resolve(texts.join("\n"));}).catch(reject);
           }
-          if(typeof pdfjsLib!=="undefined"){run();}else{
-            var s=document.createElement("script");
-            s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-            s.onload=run;document.head.appendChild(s);
+          if(typeof pdfjsLib!=="undefined"){extractText(pdfjsLib);}
+          else{
+            var script=document.createElement("script");
+            script.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+            script.onload=function(){extractText(pdfjsLib);};
+            document.head.appendChild(script);
           }
         };
         reader.readAsArrayBuffer(file);
       });
-    }
-    Promise.all(files.map(lirePDF)).then(function(textes){
+    })).then(function(textes){
       var texte=textes.join("\n\n");
-      if(!texte.trim()){setIaError("PDF illisible.");setIaLoading(false);return Promise.reject("vide");}
-      return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:texte})});
-    }).then(function(r){if(!r)return;return r.json();})
-    .then(function(resp){
+      if(!texte||!texte.trim()){setIaError("PDF non-textuel (image scannee). Saisissez manuellement.");setIaLoading(false);return;}
+      return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:texte,mode:"syndicat"})});
+    }).then(function(r){
+      if(!r)return;
+      return r.json();
+    }).then(function(resp){
       if(!resp)return;
       if(resp.error){setIaError("Erreur: "+resp.error);setIaLoading(false);return;}
       var ex=resp.data||{};
@@ -1000,11 +1003,13 @@ function Onboarding(p){
       if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)sd("quorumAGO",parseInt(ex.quorumAGO));
       if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)sd("anneeConstruction",parseInt(ex.anneeConstruction));
       if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)sd("typeCopro",ex.typeCopro);
-      if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){setData(function(o){var na=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});return Object.assign({},o,{nbMembresCA:ex.admins.length,admins:na});});}
-      var n=[ex.nom,ex.immat,ex.adr,ex.ville,ex.codePostal].filter(function(v){return v&&v!=="";}).length+(ex.quorumAGO?1:0)+(ex.anneeConstruction?1:0)+(ex.nbUnites?1:0)+(ex.admins&&ex.admins.length?ex.admins.length:0);
-      setIaSuccess(n+" champs extraits - verifiez et completez");
+      if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
+        setData(function(o){var na=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});return Object.assign({},o,{nbMembresCA:ex.admins.length,admins:na});});
+      }
+      var count=[ex.nom,ex.immat,ex.adr,ex.ville,ex.codePostal,ex.gestionnaire].filter(function(v){return v&&v!=="";}).length+(ex.quorumAGO?1:0)+(ex.anneeConstruction?1:0)+(ex.nbUnites?1:0)+(ex.typeCopro?1:0)+(ex.admins&&ex.admins.length?ex.admins.length:0);
+      setIaSuccess(count+" champs extraits - verifiez et completez");
       setIaLoading(false);
-    }).catch(function(e){if(e!=="vide")setIaError("Erreur: "+(e&&e.message?e.message:String(e)));setIaLoading(false);});
+    }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});
   }
 
   function sdComp(i,k,v){setData(function(o){var comps=o.composantes.slice();comps[i]=Object.assign({},comps[i]);comps[i][k]=v;return Object.assign({},o,{composantes:comps});});}
