@@ -38,6 +38,7 @@ var SECTIONS=[
   {
     id:"predictek",
     label:"Predictek",
+    icon:"P",
     color:"#3CAF6E",
     bg:"#1B5E3B",
     modules:[
@@ -54,7 +55,8 @@ var SECTIONS=[
   },
   {
     id:"ca",
-    label:"Conseil d administration",
+    label:"Conseil d'administration",
+    icon:"CA",
     color:"#64B5F6",
     bg:"#1A3A5C",
     modules:[
@@ -77,7 +79,8 @@ var SECTIONS=[
   },
   {
     id:"portail",
-    label:"Portail Copropri-taire",
+    label:"Portail Copropriétaire",
+    icon:"CP",
     color:"#FFB74D",
     bg:"#4A2800",
     modules:[
