@@ -497,45 +497,84 @@ function ParamsSyndicat(p){
     if(iaLoading)return;
     setIaLoading(true);setIaError("");setIaSuccess("");
     var files=[];
-    if(window._reqFile)files.push({b:window._reqFile,t:"REQ"});
-    if(window._acteFile)files.push({b:window._acteFile,t:"Acte"});
-    if(files.length===0){setIaLoading(false);setIaError("Selectionnez un PDF REQ ou declaration.");return;}
-    Promise.all(files.map(function(item){
-      return new Promise(function(resolve){
-        var r=new FileReader();
-        r.onload=function(ev){resolve({b64:ev.target.result.split(",")[1],t:item.t});};
-        r.readAsDataURL(item.b);
+    if(window._reqFile)files.push(window._reqFile);
+    if(window._acteFile)files.push(window._acteFile);
+    if(files.length===0){setIaError("Selectionnez au moins un PDF.");setIaLoading(false);return;}
+    function lirePDF(file){
+      return new Promise(function(res,rej){
+        var reader=new FileReader();
+        reader.onerror=function(){rej(new Error("Lecture impossible"));};
+        reader.onload=function(ev){
+          var arr=new Uint8Array(ev.target.result);
+          function run(){
+            pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+            pdfjsLib.getDocument({data:arr}).promise.then(function(pdf){
+              var pages=[];for(var p=1;p<=Math.min(pdf.numPages,20);p++)pages.push(p);
+              return Promise.all(pages.map(function(n){
+                return pdf.getPage(n).then(function(pg){
+                  return pg.getTextContent().then(function(tc){
+                    return tc.items.map(function(it){return it.str;}).join(" ");
+                  });
+                });
+              }));
+            }).then(function(t){res(t.join("\n"));}).catch(rej);
+          }
+          if(typeof pdfjsLib==="undefined"){
+            var s=document.createElement("script");
+            s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+            s.onload=run;s.onerror=function(){rej(new Error("PDF.js indisponible"));};
+            document.head.appendChild(s);
+          }else{run();}
+        };
+        reader.readAsArrayBuffer(file);
       });
-    })).then(function(docs){
-      return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({docs:docs})});
+    }
+    Promise.all(files.map(lirePDF)).then(function(textes){
+      var texte=textes.join("\n\n");
+      if(!texte||texte.trim().length<20){
+        setIaError("PDF non-textuel (image scannee). Saisissez manuellement.");
+        setIaLoading(false);return null;
+      }
+      return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:texte,mode:"syndicat"})});
     }).then(function(r){
-      if(r.status===413){setIaError("PDF trop volumineux - utilisez un fichier de moins de 20MB.");setIaLoading(false);throw "413";}
+      if(!r)return;
+      if(!r.ok){setIaError("Erreur serveur "+r.status);setIaLoading(false);return;}
       return r.json();
     }).then(function(resp){
       if(!resp)return;
-      if(resp.error){setIaError("Erreur: "+resp.error);setIaLoading(false);return;}
-      if(!resp.ok){setIaError("Erreur serveur.");setIaLoading(false);return;}
-      try{
-        var ex=resp.data;
-        if(ex.nom)sd("nom",ex.nom);
-        if(ex.immat)sd("immat",ex.immat);
-        if(ex.adr)sd("adr",ex.adr);
-        if(ex.ville)sd("ville",ex.ville);
-        if(ex.province&&ex.province.length===2)sd("province",ex.province);
-        if(ex.codePostal)sd("codePostal",ex.codePostal);
-        if(ex.nbUnites&&parseInt(ex.nbUnites)>0)sd("nbUnites",parseInt(ex.nbUnites));
-        if(ex.gestionnaire)sd("gestionnaire",ex.gestionnaire);
-        var n=Object.values(ex).filter(function(v){return v&&v!==""&&v!==0;}).length;
-        setIaSuccess(n+" champs extraits - verifiez et completez si necessaire");
-      }catch(e){setIaError("Reponse IA non lisible. Remplissez les champs manuellement.");}
+      if(resp.error){setIaError(resp.error);setIaLoading(false);return;}
+      var ex=resp.data||{};
+      setData(function(old){
+        var u=Object.assign({},old);
+        if(ex.nom)u.nom=ex.nom;
+        if(ex.immat)u.immat=ex.immat;
+        if(ex.adr)u.adr=ex.adr;
+        if(ex.ville)u.ville=ex.ville;
+        if(ex.province&&ex.province.length===2)u.province=ex.province;
+        if(ex.codePostal)u.codePostal=ex.codePostal;
+        if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);
+        if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;
+        if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);
+        if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)u.anneeConstruction=parseInt(ex.anneeConstruction);
+        if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
+        if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
+          u.nbMembresCA=ex.admins.length;
+          u.admins=ex.admins.map(function(a){
+            return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};
+          });
+        }
+        return u;
+      });
+      var champs=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];
+      var n=champs.filter(function(k){return ex[k]&&ex[k]!==""&&ex[k]!==0;}).length;
+      if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;
+      setIaSuccess(n+" champs extraits avec succes - verifiez et completez");
       setIaLoading(false);
-    }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});
+    }).catch(function(e){
+      setIaError("Erreur: "+(e&&e.message?e.message:String(e)));
+      setIaLoading(false);
+    });
   }
-
-  var s7=useState(false);var iaLoading=s7[0];var setIaLoading=s7[1];
-  var s8=useState("");var iaError=s8[0];var setIaError=s8[1];
-  var s9=useState("");var iaSuccess=s9[0];var setIaSuccess=s9[1];
-
   function handleDoc(e){
     var file=e.target.files[0];
     if(!file)return;
