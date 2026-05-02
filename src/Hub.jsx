@@ -958,64 +958,93 @@ function Onboarding(p){
     var files=[];
     if(window._reqFile)files.push(window._reqFile);
     if(window._acteFile)files.push(window._acteFile);
-    if(files.length===0){setIaLoading(false);setIaError("Selectionnez un PDF.");return;}
-    Promise.all(files.map(function(file){
+    if(files.length===0){setIaError("Selectionnez au moins un PDF.");setIaLoading(false);return;}
+
+    function extractTextFromPdf(file){
       return new Promise(function(resolve,reject){
         var reader=new FileReader();
+        reader.onerror=function(){reject(new Error("Lecture impossible"));};
         reader.onload=function(ev){
-          var typedarray=new Uint8Array(ev.target.result);
-          function extractText(pdfLib){
-            pdfLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-            pdfLib.getDocument({data:typedarray}).promise.then(function(pdf){
-              var pages=[];for(var p=1;p<=Math.min(pdf.numPages,20);p++)pages.push(p);
-              return Promise.all(pages.map(function(n){return pdf.getPage(n).then(function(pg){return pg.getTextContent().then(function(tc){return tc.items.map(function(i){return i.str;}).join(" ");});});}));
-            }).then(function(texts){resolve(texts.join("\n"));}).catch(reject);
+          var arr=new Uint8Array(ev.target.result);
+          function run(){
+            pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+            pdfjsLib.getDocument({data:arr}).promise.then(function(pdf){
+              var total=Math.min(pdf.numPages,20);
+              var pages=[];
+              for(var p=1;p<=total;p++)pages.push(p);
+              return Promise.all(pages.map(function(n){
+                return pdf.getPage(n).then(function(pg){
+                  return pg.getTextContent().then(function(tc){
+                    return tc.items.map(function(it){return it.str;}).join(" ");
+                  });
+                });
+              }));
+            }).then(function(arr){resolve(arr.join("\n"));}).catch(reject);
           }
-          if(typeof pdfjsLib!=="undefined"){extractText(pdfjsLib);}
-          else{
-            var script=document.createElement("script");
-            script.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-            script.onload=function(){extractText(pdfjsLib);};
-            document.head.appendChild(script);
-          }
+          if(typeof pdfjsLib==="undefined"){
+            var s=document.createElement("script");
+            s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+            s.onload=run;s.onerror=function(){reject(new Error("PDF.js indisponible"));};
+            document.head.appendChild(s);
+          } else { run(); }
         };
         reader.readAsArrayBuffer(file);
       });
-    })).then(function(textes){
+    }
+
+    Promise.all(files.map(extractTextFromPdf)).then(function(textes){
       var texte=textes.join("\n\n");
-      if(!texte||!texte.trim()){setIaError("PDF non-textuel (image scannee). Saisissez manuellement.");setIaLoading(false);return;}
+      if(!texte||texte.trim().length<20){
+        setIaError("PDF non-textuel (image scannee). Saisissez les informations manuellement.");
+        setIaLoading(false);return null;
+      }
       return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:texte,mode:"syndicat"})});
     }).then(function(r){
       if(!r)return;
+      if(!r.ok){setIaError("Erreur serveur "+r.status);setIaLoading(false);return;}
       return r.json();
     }).then(function(resp){
       if(!resp)return;
-      if(resp.error){setIaError("Erreur: "+resp.error);setIaLoading(false);return;}
-      var ex=resp.data||{};
-      if(ex.nom||ex.immat||ex.admins){setData(function(o){
-        var updates=Object.assign({},o);
-        if(ex.nom)updates.nom=ex.nom;
-        if(ex.immat)updates.immat=ex.immat;
-        if(ex.adr)updates.adr=ex.adr;
-        if(ex.ville)updates.ville=ex.ville;
-        if(ex.province&&ex.province.length===2)updates.province=ex.province;
-        if(ex.codePostal)updates.codePostal=ex.codePostal;
-        if(ex.nbUnites&&parseInt(ex.nbUnites)>0)updates.nbUnites=parseInt(ex.nbUnites);
-        if(ex.gestionnaire)updates.gestionnaire=ex.gestionnaire;
-        if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)updates.quorumAGO=parseInt(ex.quorumAGO);
-        if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)updates.anneeConstruction=parseInt(ex.anneeConstruction);
-        if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)updates.typeCopro=ex.typeCopro;
+      if(!resp.ok||!resp.data){setIaError(resp.error||"Reponse invalide");setIaLoading(false);return;}
+      var ex=resp.data;
+      setData(function(old){
+        var u=Object.assign({},old);
+        if(ex.nom)u.nom=ex.nom;
+        if(ex.immat)u.immat=ex.immat;
+        if(ex.adr)u.adr=ex.adr;
+        if(ex.ville)u.ville=ex.ville;
+        if(ex.province&&ex.province.length===2)u.province=ex.province;
+        if(ex.codePostal)u.codePostal=ex.codePostal;
+        if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);
+        if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;
+        if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);
+        if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)u.anneeConstruction=parseInt(ex.anneeConstruction);
+        if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
         if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
-          updates.nbMembresCA=ex.admins.length;
-          updates.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});
+          u.nbMembresCA=ex.admins.length;
+          u.admins=ex.admins.map(function(a){
+            return {
+              nom:a.nom||"",prenom:a.prenom||"",
+              adr:a.adr||"",ville:a.ville||"",
+              province:a.province||"QC",codePostal:a.codePostal||"",
+              courriel:"",mobile:"",
+              dateDebut:a.dateDebut||"",
+              nas:"",role:a.role||"administrateur"
+            };
+          });
         }
-        return updates;
-      });}
-      var n=Object.keys(ex).filter(function(k){return ex[k]&&ex[k]!==""&&ex[k]!==0;}).length;
-      var n=Object.keys(ex).filter(function(k){return ex[k]&&ex[k]!==""&&ex[k]!==0&&!(Array.isArray(ex[k])&&ex[k].length===0);}).length;
-      setIaSuccess(n+" champs extraits - verifiez et completez");
+        return u;
+      });
+      var n=0;
+      var champs=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];
+      champs.forEach(function(k){if(ex[k]&&ex[k]!==""&&ex[k]!==0)n++;});
+      if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;
+      setIaSuccess(n+" champs extraits avec succes - verifiez et completez");
       setIaLoading(false);
-    }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});
+    }).catch(function(e){
+      setIaError("Erreur: "+(e&&e.message?e.message:String(e)));
+      setIaLoading(false);
+    });
   }
 
   function sdComp(i,k,v){setData(function(o){var comps=o.composantes.slice();comps[i]=Object.assign({},comps[i]);comps[i][k]=v;return Object.assign({},o,{composantes:comps});});}
@@ -1113,7 +1142,7 @@ function Onboarding(p){
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>NEQ, administrateurs, adresse du domicile</div>
                 <input type="file" accept=".pdf,.PDF" id="reqUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("reqNom",f.name);window._reqFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("reqUpload").click();}} style={{background:"#1A56DB",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.reqNom?" Changer":"Â° Slectionner PDF"}
+                  {data.reqNom?" Changer":"ÃÂ° Slectionner PDF"}
                 </button>
                 {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}> {data.reqNom}</div>}
               </div>
@@ -1122,7 +1151,7 @@ function Onboarding(p){
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Quorum AGO, annee construction, structure legale</div>
                 <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.acteNom?" Changer":"Â° Slectionner PDF"}
+                  {data.acteNom?" Changer":"ÃÂ° Slectionner PDF"}
                 </button>
                 {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}> {data.acteNom}</div>}
               </div>
@@ -1145,7 +1174,7 @@ function Onboarding(p){
             <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Dtermine par la dclaration de coproprit  a des impacts juridiques importants sur la gestion</div>
             <div style={{display:"flex",gap:10}}>
               {[
-                {v:"horizontale",l:"Horizontale",desc:"Units cÂ´te  cÂ´te (maisons, condos au sol)"},
+                {v:"horizontale",l:"Horizontale",desc:"Units cÃÂ´te  cÃÂ´te (maisons, condos au sol)"},
                 {v:"verticale",l:"Verticale",desc:"Units superposes (tours, immeubles)"},
                 {v:"mixte",l:"Mixte",desc:"Combinaison des deux types"},
               ].map(function(t){var a=data.typeCopro===t.v;return(
