@@ -249,6 +249,11 @@ function CreerSyndicat(p){
 
 
   function handleCSV(e){
+    var isXlsx=file&&file.name&&(file.name.toLowerCase().indexOf(".xlsx")>=0||file.name.toLowerCase().indexOf(".xls")>=0);
+    if(isXlsx){
+      if(typeof XLSX==="undefined"){var s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";s.onload=function(){handleCSV(e);};document.head.appendChild(s);return;}
+      var xr=new FileReader();xr.onload=function(ev){var wb=XLSX.read(ev.target.result,{type:"array"});var ws=wb.Sheets[wb.SheetNames[0]];parseCSV(XLSX.utils.sheet_to_csv(ws));};xr.readAsArrayBuffer(file);return;
+    }
     var file=e.target.files[0];
     if(!file)return;
     var reader=new FileReader();
@@ -863,7 +868,7 @@ function ParamsSyndicat(p){
 
 
 function StepIndicator(p){
-  var STEPS=["Syndicat","CA","Coproprietaires","Documents","Carnet","Confirmation"];
+  var STEPS=["Syndicat","CA","Coproprietaires","Documents","Confirmation"];
   return(
     <div style={{display:"flex",marginBottom:24,overflowX:"auto"}}>
       {STEPS.map(function(s,i){
@@ -1157,60 +1162,49 @@ function Onboarding(p){
           <div style={{background:"#F0F7FF",border:"1px solid #1A56DB33",borderRadius:10,padding:14,marginBottom:16}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
               <div>
-                <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:2}}>Documents officiels du syndicat</div>
-                <div style={{fontSize:11,color:T.muted}}>Optionnel  Importez vos PDF pour remplir automatiquement les champs avec l'IA</div>
-              </div>
-              {(data.reqNom||data.acteNom)&&!iaLoading&&(
-                <button onClick={extraireIA} style={{background:"linear-gradient(135deg,#1A56DB,#3CAF6E)",border:"none",borderRadius:8,padding:"8px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{fontSize:16}}></span> Extraire avec l'IA
-                </button>
-              )}
-              {iaLoading&&(
-                <div style={{background:"#EFF6FF",border:"1px solid #1A56DB44",borderRadius:8,padding:"8px 14px",fontSize:11,color:"#1A56DB",fontWeight:600}}>
-                  IA en cours d'analyse...
-                
-              <div style={{marginTop:12,padding:10,background:"#FFF8EE",border:"2px dashed #E8A020",borderRadius:8}}>
-                <div style={{fontSize:11,color:"#B86020",fontWeight:700,marginBottom:4}}>PDF non lisible ? Saisissez le texte manuellement</div>
-                <textarea id="txtREQ" rows={5} style={{width:"100%",border:"1px solid #E8A020",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:6}} placeholder="Collez ici le texte copie depuis registreentreprises.gouv.qc.ca (nom, NEQ, adresse, administrateurs, etc.)"/>
-                <button onClick={function(){
-                  var t=document.getElementById("txtREQ").value;
-                  if(!t||t.trim().length<10){setIaError("Collez du texte.");return;}
-                  setIaLoading(true);setIaError("");setIaSuccess("");
-                  fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:t,mode:"syndicat"})})
-                  .then(function(r){return r.json();})
-                  .then(function(resp){
-                    if(!resp||resp.error){setIaError(resp?resp.error:"Erreur");setIaLoading(false);return;}
-                    var ex=resp.data||{};
-                    setData(function(o){
-                      var u=Object.assign({},o);
-                      if(ex.nom)u.nom=ex.nom;
-                      if(ex.immat)u.immat=ex.immat;
-                      if(ex.adr)u.adr=ex.adr;
-                      if(ex.ville)u.ville=ex.ville;
-                      if(ex.province&&ex.province.length===2)u.province=ex.province;
-                      if(ex.codePostal)u.codePostal=ex.codePostal;
-                      if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);
-                      if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;
-                      if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);
-                      if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)u.anneeConstruction=parseInt(ex.anneeConstruction);
-                      if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
-                      if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
-                        u.nbMembresCA=ex.admins.length;
-                        u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});
-                      }
-                      return u;
-                    });
-                    var ks=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];
-                    var n=ks.filter(function(k){return ex[k]&&ex[k]!=="";}).length;
-                    if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;
-                    setIaSuccess(n+" champs extraits - verifiez et completez");
-                    setIaLoading(false);
-                  }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});
-                }} style={{background:"#B86020",color:"#fff",border:"none",borderRadius:6,padding:"5px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Extraire depuis ce texte</button>
-              </div></div>
-              )}
-            </div>
-            {iaError&&(
+                          <div style={{background:T.surface,border:"2px solid #E8A020",borderRadius:10,padding:16,marginBottom:14}}>
+            <div style={{fontSize:13,fontWeight:700,color:"#B86020",marginBottom:4}}>Remplissage automatique depuis le REQ</div>
+            <div style={{fontSize:11,color:T.muted,marginBottom:8}}>Copiez le texte du REQ depuis registreentreprises.gouv.qc.ca et collez-le ci-dessous, puis cliquez Extraire</div>
+            <textarea id="txtREQ" rows={7} style={{width:"100%",border:"1px solid #E8A020",borderRadius:8,padding:"8px 10px",fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:8}} placeholder="Collez ici le texte du REQ (nom du syndicat, NEQ 11 chiffres, adresse du domicile, administrateurs avec adresses et dates de debut de mandat, nombre d unites...)"/>
+            <button onClick={function(){
+              var t=document.getElementById("txtREQ")?document.getElementById("txtREQ").value:"";
+              if(!t||t.trim().length<10){setIaError("Collez le texte du REQ avant d extraire.");return;}
+              setIaLoading(true);setIaError("");setIaSuccess("");
+              fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:t,mode:"syndicat"})})
+              .then(function(r){return r.json();})
+              .then(function(resp){
+                if(!resp||resp.error){setIaError(resp?resp.error:"Erreur");setIaLoading(false);return;}
+                var ex=resp.data||{};
+                setData(function(o){
+                  var u=Object.assign({},o);
+                  if(ex.nom)u.nom=ex.nom;
+                  if(ex.immat)u.immat=ex.immat;
+                  if(ex.adr)u.adr=ex.adr;
+                  if(ex.ville)u.ville=ex.ville;
+                  if(ex.province&&ex.province.length===2)u.province=ex.province;
+                  if(ex.codePostal)u.codePostal=ex.codePostal;
+                  if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);
+                  if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;
+                  if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);
+                  if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)u.anneeConstruction=parseInt(ex.anneeConstruction);
+                  if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
+                  if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
+                    u.nbMembresCA=ex.admins.length;
+                    u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});
+                  }
+                  return u;
+                });
+                var ks=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];
+                var n=ks.filter(function(k){return ex[k]&&ex[k]!=="";}).length;
+                if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;
+                setIaSuccess(n+" champs extraits avec succes - verifiez et completez");
+                setIaLoading(false);
+              }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});
+            }} disabled={iaLoading} style={{background:"#B86020",color:"#fff",border:"none",borderRadius:8,padding:"8px 20px",fontSize:12,fontWeight:700,cursor:iaLoading?"not-allowed":"pointer",opacity:iaLoading?0.7:1}}>
+              {iaLoading?"Extraction en cours...":"Extraire avec l IA"}
+            </button>
+          </div>
+          {iaError&&(
               <div style={{background:"#FDECEA",border:"1px solid #B8323244",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#B83232",marginBottom:10}}>{iaError}</div>
             )}
             {iaSuccess&&(
