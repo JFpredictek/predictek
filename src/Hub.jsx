@@ -1272,9 +1272,7 @@ function Onboarding(p){
           <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Selon le REQ et la declaration de copropriete. Le NAS est chiffre et securise.</div>
           <div style={{marginBottom:16}}>
             <Lbl l="Nombre d administrateurs"/>
-            <div style={{display:"flex",gap:10,marginBottom:4}}>{[3,5,7,9].map(function(n){var a=data.nbMembresCA===n;return(
-              <button key={n} onClick={function(){setNbAdmins(n);}} style={{width:52,height:52,borderRadius:10,border:"2px solid "+(a?T.accent:T.border),background:a?T.accentL:T.surface,fontWeight:700,fontSize:16,cursor:"pointer",color:a?T.accent:T.text}}>{n}</button>
-            );})}</div>
+            <div style={{display:"flex",gap:10,marginBottom:4}}>{<div style={{display:"flex",alignItems:"center",gap:10}}><button onClick={function(){if(data.nbMembresCA>1)setNbAdmins(data.nbMembresCA-1);}} style={{width:36,height:36,borderRadius:8,border:"2px solid "+T.border,background:T.surface,fontWeight:700,fontSize:20,cursor:"pointer",color:T.text,lineHeight:1}}>-</button><div style={{minWidth:40,textAlign:"center",fontWeight:700,fontSize:20,color:T.navy}}>{data.nbMembresCA}</div><button onClick={function(){setNbAdmins(data.nbMembresCA+1);}} style={{width:36,height:36,borderRadius:8,border:"2px solid "+T.accent,background:T.accentL,fontWeight:700,fontSize:20,cursor:"pointer",color:T.accent,lineHeight:1}}>+</button><div style={{fontSize:11,color:T.muted,marginLeft:4}}>administrateur(s)</div></div>}</div>
             <div style={{fontSize:11,color:T.muted}}>Nombre impair requis  {data.nbMembresCA} administrateur(s) selectionne(s)</div>
           </div>
           <div style={{marginBottom:8}}>
