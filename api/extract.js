@@ -48,7 +48,7 @@ export default async function handler(req, res) {
       + "- quorumAGO: pourcentage entier requis pour AGO (ex: 50)\n"
       + "- anneeConstruction: annee de construction (entier ex: 1985)\n"
       + "- typeCopro: exactement l un de: horizontale, verticale, mixte\n"
-      + "- admins: tableau COMPLET de TOUS les administrateurs inscrits au REQ. "
+      + "- admins: tableau des administrateurs ACTUELLEMENT EN FONCTION au REQ (NE PAS inclure les anciens administrateurs ni l'historique). "
       + "Pour chaque administrateur inclure: "
       + "{prenom, nom, adr (adresse personnelle), ville, province, codePostal, "
       + "role (exactement: president, secretaire, tresorier, ou administrateur), "
