@@ -1012,7 +1012,8 @@ function Onboarding(p){
         return updates;
       });}
       var n=Object.keys(ex).filter(function(k){return ex[k]&&ex[k]!==""&&ex[k]!==0;}).length;
-      setIaSuccess(count+" champs extraits - verifiez et completez");
+      var n=Object.keys(ex).filter(function(k){return ex[k]&&ex[k]!==""&&ex[k]!==0&&!(Array.isArray(ex[k])&&ex[k].length===0);}).length;
+      setIaSuccess(n+" champs extraits - verifiez et completez");
       setIaLoading(false);
     }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});
   }
