@@ -75,12 +75,11 @@ var SECTIONS=[
       {id:"ca",label:"Membres CA",icon:"MC"},
       {id:"fournisseurs",label:"Fournisseurs",icon:"F"},
       {id:"agenda",label:"Agenda",icon:"AGD"},
-      {id:"carnet",label:"Carnet Loi 16",icon:"L16"},
     ]
   },
   {
     id:"portail",
-    label:"Portail Copropriétaire",
+    label:"Portail CopropriÃ©taire",
     icon:"CP",
     color:"#FFB74D",
     bg:"#4A2800",
@@ -89,6 +88,7 @@ var SECTIONS=[
       {id:"releves",label:"Releves",icon:"RL"},
       {id:"reconn",label:"Lire docs IA",icon:"LD"},
       {id:"notif",label:"Notifications",icon:"N"},
+      {id:"carnet",label:"Carnet entretien",icon:"L16"},
     ]
   }
 ];
