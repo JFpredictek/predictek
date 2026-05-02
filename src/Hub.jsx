@@ -871,7 +871,7 @@ function StepIndicator(p){
 
 // CSV Parser
 function parseCSV(text){
-  var lines=text.trim().split("");
+  var lines=text.trim().split("\n");
   if(lines.length<2)return{ok:false,msg:"Fichier vide ou invalide",rows:[]};
   var headers=lines[0].split(",").map(function(h){return h.trim().replace(/"/g,"").toLowerCase();});var rows=[];var errors=[];for(var i=1;i<lines.length;i++){var cols=lines[i].split(",").map(function(c){return c.trim().replace(/"/g,"");});if(cols.length<3)continue;var row={};headers.forEach(function(h,j){row[h]=cols[j]||"";});
     // Normalize common field names
