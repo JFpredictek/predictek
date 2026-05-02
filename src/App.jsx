@@ -48,6 +48,7 @@ var SECTIONS=[
       {id:"usagers",label:"Utilisateurs",icon:"USR"},
       {id:"historique",label:"Historique",icon:"HIS"},
       {id:"employes",label:"Employes",icon:"EMP"},
+      {id:"paie",label:"Paie / T4 / R1",icon:"PAI"},
       {id:"roles",label:"Roles",icon:"ROL"},
       {id:"crm",label:"CRM",icon:"CRM"},
       {id:"ia",label:"IA",icon:"IA"},
@@ -74,13 +75,12 @@ var SECTIONS=[
       {id:"ca",label:"Membres CA",icon:"MC"},
       {id:"fournisseurs",label:"Fournisseurs",icon:"F"},
       {id:"agenda",label:"Agenda",icon:"AGD"},
-      {id:"t4",label:"T4 / R1",icon:"T4"},
       {id:"carnet",label:"Carnet Loi 16",icon:"L16"},
     ]
   },
   {
     id:"portail",
-    label:"Portail CopropriÃtaire",
+    label:"Portail Copropriétaire",
     icon:"CP",
     color:"#FFB74D",
     bg:"#4A2800",
