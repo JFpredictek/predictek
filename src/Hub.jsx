@@ -1149,11 +1149,11 @@ function Onboarding(p){
                 <button onClick={extraireIA} style={{background:"linear-gradient(135deg,#1A56DB,#3CAF6E)",border:"none",borderRadius:8,padding:"8px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:16}}></span> Extraire avec l'IA
                 </button>
-          {/* Zone saisie manuelle si PDF scanné */}
+          {/* Zone saisie manuelle si PDF scann */}
           <div style={{marginTop:10,padding:10,background:"#FEF3E2",border:"1px solid #B8602033",borderRadius:8}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#B86020",marginBottom:4}}>PDF scanné (image) ? Collez le texte ici</div>
+            <div style={{fontSize:11,fontWeight:700,color:"#B86020",marginBottom:4}}>PDF scann (image) ? Collez le texte ici</div>
             <div style={{fontSize:10,color:"#7C7568",marginBottom:6}}>Copiez le texte du REQ depuis registreentreprises.gouv.qc.ca et collez-le ci-dessous</div>
-            <textarea id="texteManuelIA" rows={5} style={{width:"100%",border:"1px solid #DDD",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}} placeholder="Collez ici le texte du REQ et/ou de la déclaration..."/>
+            <textarea id="texteManuelIA" rows={5} style={{width:"100%",border:"1px solid #DDD",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}} placeholder="Collez ici le texte du REQ et/ou de la dclaration..."/>
             <button onClick={function(){
               var texte=document.getElementById("texteManuelIA").value;
               if(!texte||texte.trim().length<20){setIaError("Collez du texte avant d'extraire.");return;}
