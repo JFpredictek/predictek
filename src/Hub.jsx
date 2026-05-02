@@ -1149,46 +1149,14 @@ function Onboarding(p){
                 <button onClick={extraireIA} style={{background:"linear-gradient(135deg,#1A56DB,#3CAF6E)",border:"none",borderRadius:8,padding:"8px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:16}}></span> Extraire avec l'IA
                 </button>
+                <div style={{marginTop:10,padding:10,background:"#FEF3E2",border:"1px solid #E8A020",borderRadius:8}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#B86020",marginBottom:4}}>PDF scanne ? Collez le texte du REQ ici</div>
+                  <div style={{fontSize:10,color:"#7C7568",marginBottom:6}}>Copiez depuis registreentreprises.gouv.qc.ca</div>
+                  <textarea id="txtManuel" rows={4} style={{width:"100%",border:"1px solid #DDD",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}} placeholder="Collez le texte du REQ..."/>
+                  <button onClick={function(){var t=document.getElementById("txtManuel").value;if(!t||t.length<20){setIaError("Collez du texte.");return;}setIaLoading(true);setIaError("");setIaSuccess("");fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:t,mode:"syndicat"})}).then(function(r){return r.json();}).then(function(resp){if(resp.error){setIaError(resp.error);setIaLoading(false);return;}var ex=resp.data||{};setData(function(old){var u=Object.assign({},old);if(ex.nom)u.nom=ex.nom;if(ex.immat)u.immat=ex.immat;if(ex.adr)u.adr=ex.adr;if(ex.ville)u.ville=ex.ville;if(ex.province&&ex.province.length===2)u.province=ex.province;if(ex.codePostal)u.codePostal=ex.codePostal;if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)u.anneeConstruction=parseInt(ex.anneeConstruction);if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){u.nbMembresCA=ex.admins.length;u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});}return u;});var n=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"].filter(function(k){return ex[k]&&ex[k]!=="";}).length;if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;setIaSuccess(n+" champs extraits avec succes");setIaLoading(false);}).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});}} style={{marginTop:6,background:"#B86020",color:"#fff",border:"none",borderRadius:6,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Extraire depuis ce texte</button>
+                </div>
           <div style={{marginTop:10,padding:10,background:"#FEF3E2",border:"1px solid #B8602033",borderRadius:8}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#B86020",marginBottom:4}}>PDF scanne (image) ? Collez le texte ici</div>
-            <div style={{fontSize:10,color:"#7C7568",marginBottom:6}}>Copiez le texte du REQ depuis registreentreprises.gouv.qc.ca et collez-le ci-dessous</div>
-            <textarea id="txtManuel" rows={5} style={{width:"100%",border:"1px solid #DDD",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}} placeholder="Collez ici le texte du REQ et/ou de la declaration..."/>
-            <button onClick={function(){
-              var texte=document.getElementById("txtManuel").value;
-              if(!texte||texte.trim().length<20){setIaError("Collez du texte avant d extraire.");return;}
-              setIaLoading(true);setIaError("");setIaSuccess("");
-              fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:texte,mode:"syndicat"})})
-              .then(function(r){return r.json();})
-              .then(function(resp){
-                if(resp.error){setIaError(resp.error);setIaLoading(false);return;}
-                var ex=resp.data||{};
-                setData(function(old){
-                  var u=Object.assign({},old);
-                  if(ex.nom)u.nom=ex.nom;
-                  if(ex.immat)u.immat=ex.immat;
-                  if(ex.adr)u.adr=ex.adr;
-                  if(ex.ville)u.ville=ex.ville;
-                  if(ex.province&&ex.province.length===2)u.province=ex.province;
-                  if(ex.codePostal)u.codePostal=ex.codePostal;
-                  if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);
-                  if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;
-                  if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);
-                  if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)u.anneeConstruction=parseInt(ex.anneeConstruction);
-                  if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
-                  if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
-                    u.nbMembresCA=ex.admins.length;
-                    u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});
-                  }
-                  return u;
-                });
-                var champs=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];
-                var n=champs.filter(function(k){return ex[k]&&ex[k]!=="";}).length;
-                if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;
-                setIaSuccess(n+" champs extraits avec succes");
-                setIaLoading(false);
-              }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});
-            }} style={{marginTop:6,background:"#B86020",color:"#fff",border:"none",borderRadius:6,padding:"6px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Extraire depuis ce texte</button>
-          </div>
+
               )}
               {iaLoading&&(
                 <div style={{background:"#EFF6FF",border:"1px solid #1A56DB44",borderRadius:8,padding:"8px 14px",fontSize:11,color:"#1A56DB",fontWeight:600}}>
