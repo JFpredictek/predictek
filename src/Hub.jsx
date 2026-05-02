@@ -228,10 +228,25 @@ function CreerSyndicat(p){
   function sf(k,v){setForm(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
 
   function parseCSV(text){
-    var lines=text.trim().split("");
-    if(lines.length<2)return 0;
-    return lines.length-1;
+  var lines=text.trim().split("\n");
+  if(lines.length<2)return{ok:false,msg:"Fichier vide ou invalide",rows:[]};
+  var headers=lines[0].split(",").map(function(h){return h.trim().replace(/"/g,"").toLowerCase();});var rows=[];var errors=[];for(var i=1;i<lines.length;i++){var cols=lines[i].split(",").map(function(c){return c.trim().replace(/"/g,"");});if(cols.length<3)continue;var row={};headers.forEach(function(h,j){row[h]=cols[j]||"";});
+    // Normalize common field names
+    var unite=row["unite"]||row["unit"]||row["no_unite"]||row["numero"]||"";
+    var prenom=row["prenom"]||row["first_name"]||row["firstname"]||"";
+    var nom=row["nom"]||row["last_name"]||row["lastname"]||row["name"]||"";
+    var courriel=row["courriel"]||row["email"]||row["e-mail"]||"";
+    var tel=row["tel"]||row["telephone"]||row["phone"]||"";
+    var fraction=parseFloat(row["fraction"]||row["quote_part"]||row["quotient"]||row["quotepart"]||"0")||0;
+    var cadastre=row["cadastre"]||row["no_cadastre"]||row["numero_cadastre"]||"";
+    var quotePart=parseFloat(row["quote_part"]||row["quotepart"]||row["quote part"]||row["fraction"]||"0")||0;
+    var cotisation=parseFloat(row["cotisation"]||row["mensualite"]||row["contribution"]||"0")||0;
+    if(!unite){errors.push("Ligne "+(i+1)+": numero d unite manquant");continue;}
+    rows.push({unite:unite,prenom:prenom,nom:nom,courriel:courriel,tel:tel,fraction:fraction,quotePart:quotePart,cadastre:cadastre,cotisation:cotisation,pap:false,ce:"",ass:"",loc:false,animaux:0});
   }
+  return{ok:rows.length>0,msg:rows.length+" coproprietaires importes"+(errors.length>0?" ("+errors.length+" erreurs)":""),rows:rows,errors:errors};
+}
+
 
   function handleCSV(e){
     var file=e.target.files[0];
