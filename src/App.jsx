@@ -67,7 +67,7 @@ var SECTIONS=[
       {id:"budget",label:"Budget",icon:"BU"},
       {id:"bons",label:"Bons travaux",icon:"BT"},
       {id:"comm",label:"Communications",icon:"CO"},
-      {id:"docs",label:"Documents",icon:"DO"},
+      
       {id:"rapports",label:"Rapports",icon:"RF"},
       {id:"attestation",label:"Attestation copropriete",icon:"AT"},
       {id:"assurances",label:"Assurances",icon:"AS"},
@@ -79,7 +79,7 @@ var SECTIONS=[
   },
   {
     id:"portail",
-    label:"Portail CopropriÃ©taire",
+    label:"Portail CopropriÃÂ©taire",
     icon:"CP",
     color:"#FFB74D",
     bg:"#4A2800",
@@ -89,6 +89,7 @@ var SECTIONS=[
       {id:"reconn",label:"Lire docs IA",icon:"LD"},
       {id:"notif",label:"Notifications",icon:"N"},
       {id:"carnet",label:"Carnet entretien",icon:"L16"},
+      {id:"docs",label:"Documents",icon:"DO"},
     ]
   }
 ];
