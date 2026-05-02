@@ -68,6 +68,7 @@ var SECTIONS=[
       {id:"comm",label:"Communications",icon:"CO"},
       {id:"docs",label:"Documents",icon:"DO"},
       {id:"rapports",label:"Rapports",icon:"RF"},
+      {id:"attestation",label:"Attestation copropriete",icon:"AT"},
       {id:"assurances",label:"Assurances",icon:"AS"},
       {id:"pv",label:"PV Reunion",icon:"PV"},
       {id:"ca",label:"Membres CA",icon:"MC"},
@@ -79,7 +80,7 @@ var SECTIONS=[
   },
   {
     id:"portail",
-    label:"Portail CopropriÃtaire",
+    label:"Portail CopropriÃtaire",
     icon:"CP",
     color:"#FFB74D",
     bg:"#4A2800",
