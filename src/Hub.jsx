@@ -296,7 +296,7 @@ function CreerSyndicat(p){
             <div style={{fontSize:24,marginBottom:8,color:T.muted}}>CSV</div>
             <div style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:4}}>Cliquez pour selectionner votre fichier</div>
             <div style={{fontSize:11,color:T.muted}}>Formats acceptes: .csv, .txt</div>
-            <input id="csvCreer" type="file" accept=".csv,.txt,.xlsx" onChange={handleCSV} style={{display:"none"}}/>
+            <input id="csvCreer" type="file" accept=".csv,.txt" onChange={handleCSV} style={{display:"none"}}/>
           </div>
           {importMsg&&(
             <div style={{background:importMsg.includes("Erreur")?T.redL:T.accentL,color:importMsg.includes("Erreur")?T.red:T.accent,borderRadius:8,padding:"9px 13px",fontSize:12,marginBottom:14}}>{importMsg}</div>
@@ -809,7 +809,7 @@ function ParamsSyndicat(p){
 
 
 function StepIndicator(p){
-  var STEPS=["Syndicat","CA","Coproprietaires","Soldes","Documents","Carnet","Attestation","Confirmation"];
+  var STEPS=["Syndicat","CA","Coproprietaires","Documents","Carnet","Confirmation"];
   return(
     <div style={{display:"flex",marginBottom:24,overflowX:"auto"}}>
       {STEPS.map(function(s,i){
@@ -917,8 +917,8 @@ function Onboarding(p){
       {nom:"",prenom:"",adr:"",ville:"",province:"QC",codePostal:"",courriel:"",mobile:"",dateDebut:"",nas:""},
     ],
     // Etape 4 - Soldes
-    soldeOp:"",soldePrev:"",soldeAss:"",dateOuverture:"",
-    budgetAnnuel:"",cotisationMoyenne:"",
+    
+    
     // Etape 5 - Documents
     documents:[],
     // Etape 6 - Carnet
