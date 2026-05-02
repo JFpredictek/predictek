@@ -959,19 +959,16 @@ function Onboarding(p){
     if(window._reqFile)files.push(window._reqFile);
     if(window._acteFile)files.push(window._acteFile);
     if(files.length===0){setIaError("Selectionnez au moins un PDF.");setIaLoading(false);return;}
-
-    function extractTextFromPdf(file){
-      return new Promise(function(resolve,reject){
+    function lirePDF(file){
+      return new Promise(function(res,rej){
         var reader=new FileReader();
-        reader.onerror=function(){reject(new Error("Lecture impossible"));};
+        reader.onerror=function(){rej(new Error("Lecture impossible"));};
         reader.onload=function(ev){
           var arr=new Uint8Array(ev.target.result);
           function run(){
             pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
             pdfjsLib.getDocument({data:arr}).promise.then(function(pdf){
-              var total=Math.min(pdf.numPages,20);
-              var pages=[];
-              for(var p=1;p<=total;p++)pages.push(p);
+              var pages=[];for(var p=1;p<=Math.min(pdf.numPages,20);p++)pages.push(p);
               return Promise.all(pages.map(function(n){
                 return pdf.getPage(n).then(function(pg){
                   return pg.getTextContent().then(function(tc){
@@ -979,25 +976,21 @@ function Onboarding(p){
                   });
                 });
               }));
-            }).then(function(arr){resolve(arr.join("\n"));}).catch(reject);
+            }).then(function(t){res(t.join("\n"));}).catch(rej);
           }
           if(typeof pdfjsLib==="undefined"){
             var s=document.createElement("script");
             s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-            s.onload=run;s.onerror=function(){reject(new Error("PDF.js indisponible"));};
+            s.onload=run;s.onerror=function(){rej(new Error("PDF.js indisponible"));};
             document.head.appendChild(s);
-          } else { run(); }
+          }else{run();}
         };
         reader.readAsArrayBuffer(file);
       });
     }
-
-    Promise.all(files.map(extractTextFromPdf)).then(function(textes){
+    Promise.all(files.map(lirePDF)).then(function(textes){
       var texte=textes.join("\n\n");
-      if(!texte||texte.trim().length<20){
-        setIaError("PDF non-textuel (image scannee). Saisissez les informations manuellement.");
-        setIaLoading(false);return null;
-      }
+      if(!texte||texte.trim().length<20){setIaError("PDF non-textuel. Saisissez manuellement.");setIaLoading(false);return null;}
       return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:texte,mode:"syndicat"})});
     }).then(function(r){
       if(!r)return;
@@ -1005,8 +998,8 @@ function Onboarding(p){
       return r.json();
     }).then(function(resp){
       if(!resp)return;
-      if(!resp.ok||!resp.data){setIaError(resp.error||"Reponse invalide");setIaLoading(false);return;}
-      var ex=resp.data;
+      if(resp.error){setIaError(resp.error);setIaLoading(false);return;}
+      var ex=resp.data||{};
       setData(function(old){
         var u=Object.assign({},old);
         if(ex.nom)u.nom=ex.nom;
@@ -1023,21 +1016,13 @@ function Onboarding(p){
         if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
           u.nbMembresCA=ex.admins.length;
           u.admins=ex.admins.map(function(a){
-            return {
-              nom:a.nom||"",prenom:a.prenom||"",
-              adr:a.adr||"",ville:a.ville||"",
-              province:a.province||"QC",codePostal:a.codePostal||"",
-              courriel:"",mobile:"",
-              dateDebut:a.dateDebut||"",
-              nas:"",role:a.role||"administrateur"
-            };
+            return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};
           });
         }
         return u;
       });
-      var n=0;
       var champs=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];
-      champs.forEach(function(k){if(ex[k]&&ex[k]!==""&&ex[k]!==0)n++;});
+      var n=champs.filter(function(k){return ex[k]&&ex[k]!==""&&ex[k]!==0;}).length;
       if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;
       setIaSuccess(n+" champs extraits avec succes - verifiez et completez");
       setIaLoading(false);
@@ -1046,7 +1031,6 @@ function Onboarding(p){
       setIaLoading(false);
     });
   }
-
   function sdComp(i,k,v){setData(function(o){var comps=o.composantes.slice();comps[i]=Object.assign({},comps[i]);comps[i][k]=v;return Object.assign({},o,{composantes:comps});});}
 
   function handleCSV(e){
