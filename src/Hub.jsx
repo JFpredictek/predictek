@@ -1149,11 +1149,11 @@ function Onboarding(p){
                 <button onClick={extraireIA} style={{background:"linear-gradient(135deg,#1A56DB,#3CAF6E)",border:"none",borderRadius:8,padding:"8px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:16}}></span> Extraire avec l'IA
                 </button>
-          {/* Zone saisie manuelle si PDF scann� */}
+          {/* Zone saisie manuelle si PDF scanné */}
           <div style={{marginTop:10,padding:10,background:"#FEF3E2",border:"1px solid #B8602033",borderRadius:8}}>
-            <div style={{fontSize:11,fontWeight:700,color:"#B86020",marginBottom:4}}>PDF scann� (image) ? Collez le texte ici</div>
+            <div style={{fontSize:11,fontWeight:700,color:"#B86020",marginBottom:4}}>PDF scanné (image) ? Collez le texte ici</div>
             <div style={{fontSize:10,color:"#7C7568",marginBottom:6}}>Copiez le texte du REQ depuis registreentreprises.gouv.qc.ca et collez-le ci-dessous</div>
-            <textarea id="texteManuelIA" rows={5} style={{width:"100%",border:"1px solid #DDD",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}} placeholder="Collez ici le texte du REQ et/ou de la d�claration..."/>
+            <textarea id="texteManuelIA" rows={5} style={{width:"100%",border:"1px solid #DDD",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box"}} placeholder="Collez ici le texte du REQ et/ou de la déclaration..."/>
             <button onClick={function(){
               var texte=document.getElementById("texteManuelIA").value;
               if(!texte||texte.trim().length<20){setIaError("Collez du texte avant d'extraire.");return;}
@@ -1211,7 +1211,7 @@ function Onboarding(p){
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>NEQ, administrateurs, adresse du domicile</div>
                 <input type="file" accept=".pdf,.PDF" id="reqUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("reqNom",f.name);window._reqFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("reqUpload").click();}} style={{background:"#1A56DB",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.reqNom?" Changer":"ÃÂ° Slectionner PDF"}
+                  {data.reqNom?" Changer":"ÃÂÃÂ° Slectionner PDF"}
                 </button>
                 {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}> {data.reqNom}</div>}
               </div>
@@ -1220,7 +1220,7 @@ function Onboarding(p){
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Quorum AGO, annee construction, structure legale</div>
                 <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.acteNom?" Changer":"ÃÂ° Slectionner PDF"}
+                  {data.acteNom?" Changer":"ÃÂÃÂ° Slectionner PDF"}
                 </button>
                 {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}> {data.acteNom}</div>}
               </div>
@@ -1243,7 +1243,7 @@ function Onboarding(p){
             <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Dtermine par la dclaration de coproprit  a des impacts juridiques importants sur la gestion</div>
             <div style={{display:"flex",gap:10}}>
               {[
-                {v:"horizontale",l:"Horizontale",desc:"Units cÃÂ´te  cÃÂ´te (maisons, condos au sol)"},
+                {v:"horizontale",l:"Horizontale",desc:"Units cÃÂÃÂ´te  cÃÂÃÂ´te (maisons, condos au sol)"},
                 {v:"verticale",l:"Verticale",desc:"Units superposes (tours, immeubles)"},
                 {v:"mixte",l:"Mixte",desc:"Combinaison des deux types"},
               ].map(function(t){var a=data.typeCopro===t.v;return(
