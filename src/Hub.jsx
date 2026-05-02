@@ -296,7 +296,7 @@ function CreerSyndicat(p){
             <div style={{fontSize:24,marginBottom:8,color:T.muted}}>CSV</div>
             <div style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:4}}>Cliquez pour selectionner votre fichier</div>
             <div style={{fontSize:11,color:T.muted}}>Formats acceptes: .csv, .txt</div>
-            <input id="csvCreer" type="file" accept=".csv,.txt" onChange={handleCSV} style={{display:"none"}}/>
+            <input id="csvCreer" type="file" accept=".xlsx,.csv,.txt" onChange={handleCSV} style={{display:"none"}}/>
           </div>
           {importMsg&&(
             <div style={{background:importMsg.includes("Erreur")?T.redL:T.accentL,color:importMsg.includes("Erreur")?T.red:T.accent,borderRadius:8,padding:"9px 13px",fontSize:12,marginBottom:14}}>{importMsg}</div>
@@ -990,7 +990,10 @@ function Onboarding(p){
     }
     Promise.all(files.map(lirePDF)).then(function(textes){
       var texte=textes.join("\n\n");
-      if(!texte||texte.trim().length<20){setIaError("PDF non-textuel. Saisissez manuellement.");setIaLoading(false);return null;}
+      if(!texte||texte.trim().length<20){
+        setIaError("PDF non-textuel (image scannee). Saisissez manuellement.");
+        setIaLoading(false);return null;
+      }
       return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:texte,mode:"syndicat"})});
     }).then(function(r){
       if(!r)return;
@@ -1241,7 +1244,7 @@ function Onboarding(p){
             <div style={{fontSize:32,marginBottom:8}}>CSV</div>
             <div style={{fontSize:14,fontWeight:600,color:T.text,marginBottom:4}}>Cliquez pour importer votre fichier CSV</div>
             <div style={{fontSize:11,color:T.muted}}>Formats acceptes: .csv, .txt</div>
-            <input ref={fileRef} type="file" accept=".csv,.txt" onChange={handleCSV} style={{display:"none"}}/>
+            <input ref={fileRef} type="file" accept=".xlsx,.csv,.txt" onChange={handleCSV} style={{display:"none"}}/>
           </div>
 
           {csvMsg&&(
