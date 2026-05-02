@@ -568,7 +568,7 @@ function ParamsSyndicat(p){
       var champs=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];
       var n=champs.filter(function(k){return ex[k]&&ex[k]!==""&&ex[k]!==0;}).length;
       if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;
-      setIaSuccess(n+" champs extraits avec succes - verifiez et completez");
+      var dbg=resp.debug?" (texte: "+resp.debug.texteLen+" chars)":"";setIaSuccess(n+" champs extraits avec succes - verifiez et completez"+dbg);console.log("EXTRACT DEBUG:",resp.debug,"DATA:",ex);
       setIaLoading(false);
     }).catch(function(e){
       setIaError("Erreur: "+(e&&e.message?e.message:String(e)));
@@ -1066,7 +1066,7 @@ function Onboarding(p){
       var champs=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];
       var n=champs.filter(function(k){return ex[k]&&ex[k]!==""&&ex[k]!==0;}).length;
       if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;
-      setIaSuccess(n+" champs extraits avec succes - verifiez et completez");
+      var dbg=resp.debug?" (texte: "+resp.debug.texteLen+" chars)":"";setIaSuccess(n+" champs extraits avec succes - verifiez et completez"+dbg);console.log("EXTRACT DEBUG:",resp.debug,"DATA:",ex);
       setIaLoading(false);
     }).catch(function(e){
       setIaError("Erreur: "+(e&&e.message?e.message:String(e)));
