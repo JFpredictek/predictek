@@ -276,7 +276,7 @@ function CreerSyndicat(p){
     var mobilite=col(row,["mobilite reduite","mobilite"]);
     var estCAb=(estCAval.toLowerCase().indexOf("oui")>=0||estCAval==="1"||estCAval.toLowerCase()==="true");
     var estOccupantb=(estOccupantVal.toLowerCase().indexOf("oui")>=0||estOccupantVal==="1");
-    rows.push({unite:unite,prenom:prenom,nom:nom,courriel:courriel,tel:tel,mobile:mobile,adr:adr,langue:langue,estCA:estCAb,estOccupant:estOccupantb,prop2nom:prop2nom,prop2courriel:prop2courriel,prop2tel:prop2tel,fraction:fraction,quotePart:fraction,cadastre:cadastre,cotisation:cotisation,stationnement:stationnement,rangement:rangement,acces:acces,vehicule:vehicule,assurancePolice:assurancePolice,assuranceExp:assuranceExp,locNom:locNom,locCourriel:locCourriel,locTel:locTel,chauffeEau:chauffeEau,foyer:foyer,mobilite:mobilite,pap:false,ce:"",ass:"",loc:!!locNom,animaux:0});
+    rows.push({unite:unite,prenom:prenom,nom:nom,courriel:courriel,tel:tel,mobile:mobile,adr:adr,langue:langue,estCA:estCAb,estOccupant:estOccupantb,prop2nom:prop2nom,prop2courriel:prop2courriel,prop2tel:prop2tel,fraction:fraction,quotePart:fraction,cadastre:cadastre,cotisation:cotisation,stationnement:stationnement,rangement:rangement,acces:acces,vehicule:vehicule,assurancePolice:assurancePolice,assuranceExp:assuranceExp,locNom:locNom,locCourriel:locCourriel,locTel:locTel,chauffeEau:chauffeEau,foyer:foyer,mobilite:mobilite,urgenceNom:col(row,["proprietaire1 telephone (urgences)","urgence nom"]),urgenceTel:col(row,["proprietaire1 telephone (urgences)","urgence tel"]),pap:false,ce:"",ass:"",loc:!!locNom,animaux:0});
   }
   return{ok:rows.length>0,msg:rows.length+" coproprietaires importes"+(errors.length>0?" ("+errors.length+" erreurs)":""),rows:rows,errors:errors};
 }
@@ -300,7 +300,7 @@ function CreerSyndicat(p){
           var ws=wb.Sheets[wb.SheetNames[0]];
           var csv=XLSX.utils.sheet_to_csv(ws);
           var nb=parseCSV(csv);
-      if(nb>0){setNbImport(nb);setImportMsg(nb+" coproprietaires detectes dans le fichier CSV");}
+      if(nb&&nb.ok){setNbImport(nb.rows?nb.rows.length:0);setImportMsg(nb.msg||"SV");}
       else{setImportMsg("Erreur: format CSV invalide");}
 ;
         }catch(err){
@@ -313,7 +313,7 @@ function CreerSyndicat(p){
 var reader=new FileReader();
     reader.onload=function(ev){
       var nb=parseCSV(ev.target.result);
-      if(nb>0){setNbImport(nb);setImportMsg(nb+" coproprietaires detectes dans le fichier CSV");}
+      if(nb&&nb.ok){setNbImport(nb.rows?nb.rows.length:0);setImportMsg(nb.msg||"SV");}
       else{setImportMsg("Erreur: format CSV invalide");}
     };
     reader.readAsText(file);
@@ -993,7 +993,7 @@ function parseCSV(text){
     var mobilite=col(row,["mobilite reduite","mobilite"]);
     var estCAb=(estCAval.toLowerCase().indexOf("oui")>=0||estCAval==="1"||estCAval.toLowerCase()==="true");
     var estOccupantb=(estOccupantVal.toLowerCase().indexOf("oui")>=0||estOccupantVal==="1");
-    rows.push({unite:unite,prenom:prenom,nom:nom,courriel:courriel,tel:tel,mobile:mobile,adr:adr,langue:langue,estCA:estCAb,estOccupant:estOccupantb,prop2nom:prop2nom,prop2courriel:prop2courriel,prop2tel:prop2tel,fraction:fraction,quotePart:fraction,cadastre:cadastre,cotisation:cotisation,stationnement:stationnement,rangement:rangement,acces:acces,vehicule:vehicule,assurancePolice:assurancePolice,assuranceExp:assuranceExp,locNom:locNom,locCourriel:locCourriel,locTel:locTel,chauffeEau:chauffeEau,foyer:foyer,mobilite:mobilite,pap:false,ce:"",ass:"",loc:!!locNom,animaux:0});
+    rows.push({unite:unite,prenom:prenom,nom:nom,courriel:courriel,tel:tel,mobile:mobile,adr:adr,langue:langue,estCA:estCAb,estOccupant:estOccupantb,prop2nom:prop2nom,prop2courriel:prop2courriel,prop2tel:prop2tel,fraction:fraction,quotePart:fraction,cadastre:cadastre,cotisation:cotisation,stationnement:stationnement,rangement:rangement,acces:acces,vehicule:vehicule,assurancePolice:assurancePolice,assuranceExp:assuranceExp,locNom:locNom,locCourriel:locCourriel,locTel:locTel,chauffeEau:chauffeEau,foyer:foyer,mobilite:mobilite,urgenceNom:col(row,["proprietaire1 telephone (urgences)","urgence nom"]),urgenceTel:col(row,["proprietaire1 telephone (urgences)","urgence tel"]),pap:false,ce:"",ass:"",loc:!!locNom,animaux:0});
   }
   return{ok:rows.length>0,msg:rows.length+" coproprietaires importes"+(errors.length>0?" ("+errors.length+" erreurs)":""),rows:rows,errors:errors};
 }
