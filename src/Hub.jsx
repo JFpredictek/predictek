@@ -249,10 +249,33 @@ function CreerSyndicat(p){
 
 
   function handleCSV(e){
-    var file=e.target.files[0];
-    if(file&&file.name&&file.name.toLowerCase().indexOf(".xlsx")>=0){if(typeof XLSX==="undefined"){var s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";s.onload=function(){handleCSV(e);};document.head.appendChild(s);return;}var xr=new FileReader();xr.onload=function(ev){var wb=XLSX.read(ev.target.result,{type:"array"});var ws=wb.Sheets[wb.SheetNames[0]];parseCSV(XLSX.utils.sheet_to_csv(ws));};xr.readAsArrayBuffer(file);return;}
+    var file=e&&e.target&&e.target.files&&e.target.files[0];
     if(!file)return;
-    var reader=new FileReader();
+    var name=file.name?file.name.toLowerCase():"";
+    var isXlsx=(name.indexOf(".xlsx")>=0||name.indexOf(".xls")>=0)&&name.indexOf(".csv")<0;
+    if(isXlsx){
+      if(typeof XLSX==="undefined"){
+        var script=document.createElement("script");
+        script.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+        script.onload=function(){handleCSV(e);};
+        document.head.appendChild(script);
+        return;
+      }
+      var reader2=new FileReader();
+      reader2.onload=function(ev){
+        try{
+          var wb=XLSX.read(ev.target.result,{type:"array"});
+          var ws=wb.Sheets[wb.SheetNames[0]];
+          var csv=XLSX.utils.sheet_to_csv(ws);
+          parseCSV(csv);
+        }catch(err){
+          alert("Erreur lecture Excel: "+err.message);
+        }
+      };
+      reader2.readAsArrayBuffer(file);
+      return;
+    }
+var reader=new FileReader();
     reader.onload=function(ev){
       var nb=parseCSV(ev.target.result);
       if(nb>0){setNbImport(nb);setImportMsg(nb+" coproprietaires detectes dans le fichier CSV");}
