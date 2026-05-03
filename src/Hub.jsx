@@ -228,26 +228,58 @@ function CreerSyndicat(p){
   function sf(k,v){setForm(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
 
   function parseCSV(text){
-  var lines=text.trim().split("\n");
-  if(lines.length<2)return{ok:false,msg:"Fichier vide ou invalide",rows:[]};
-  var headers=lines[0].split(",").map(function(h){return h.trim().replace(/"/g,"").toLowerCase();});var rows=[];var errors=[];for(var i=1;i<lines.length;i++){var cols=lines[i].split(",").map(function(c){return c.trim().replace(/"/g,"");});if(cols.length<3)continue;var row={};headers.forEach(function(h,j){row[h]=cols[j]||"";});
-    // Normalize common field names
-    var unite=row["unite"]||row["unit"]||row["no_unite"]||row["numero"]||"";
-    var prenom=row["prenom"]||row["first_name"]||row["firstname"]||"";
-    var nom=row["nom"]||row["last_name"]||row["lastname"]||row["name"]||"";
-    var courriel=row["courriel"]||row["email"]||row["e-mail"]||"";
-    var tel=row["tel"]||row["telephone"]||row["phone"]||"";
-    var fraction=parseFloat(row["fraction"]||row["quote_part"]||row["quotient"]||row["quotepart"]||"0")||0;
-    var cadastre=row["cadastre"]||row["no_cadastre"]||row["numero_cadastre"]||"";
-    var quotePart=parseFloat(row["quote_part"]||row["quotepart"]||row["quote part"]||row["fraction"]||"0")||0;
-    var cotisation=parseFloat(row["cotisation"]||row["mensualite"]||row["contribution"]||"0")||0;
-    if(!unite){errors.push("Ligne "+(i+1)+": numero d unite manquant");continue;}
-    rows.push({unite:unite,prenom:prenom,nom:nom,courriel:courriel,tel:tel,fraction:fraction,quotePart:quotePart,cadastre:cadastre,cotisation:cotisation,pap:false,ce:"",ass:"",loc:false,animaux:0});
+  if(!text)return{ok:false,msg:"Fichier vide",rows:[],errors:[]};
+  var rawLines=text.split("\n");
+  var lines=[];
+  for(var i=0;i<rawLines.length;i++){var l=rawLines[i].trim();if(l.length>0)lines.push(l);}
+  if(lines.length<2)return{ok:false,msg:"Aucune donnee",rows:[],errors:[]};
+  var sep=lines[0].indexOf("\t")>=0?"\t":";";
+  if(lines[0].indexOf(",")>=0&&lines[0].indexOf("\t")<0)sep=",";
+  function splitLine(l){var cells=l.split(sep);return cells.map(function(c){return c.trim().replace(/^["']|["']$/g,"");});}
+  var headers=splitLine(lines[0]).map(function(h){return h.toLowerCase();});
+  function col(row,keys){for(var k=0;k<keys.length;k++){var v=row[keys[k]];if(v!==undefined&&v!=="")return v;}return "";}
+  var rows=[],errors=[];
+  for(var i=1;i<lines.length;i++){
+    var cells=splitLine(lines[i]);
+    if(cells.length<2)continue;
+    var row={};
+    for(var j=0;j<headers.length;j++)row[headers[j]]=cells[j]||"";
+    var unite=col(row,["nom de l unite","unite","unit","no_unite","numero"]);
+    if(!unite)continue;
+    var nomComplet=col(row,["proprietaire1 nom","proprietaire 1 nom","nom"]);
+    var prenom="",nom=nomComplet;
+    if(nomComplet&&nomComplet.indexOf(" ")>0){var pts=nomComplet.split(" ");prenom=pts[0];nom=pts.slice(1).join(" ");}
+    var courriel=col(row,["proprietaire1 courriel","proprietaire 1 courriel","courriel","email"]);
+    var tel=col(row,["proprietaire1 telephone","proprietaire 1 telephone","telephone","tel"]);
+    var mobile=col(row,["proprietaire1 telephone cellulaire","cellulaire","mobile"]);
+    var adr=col(row,["proprietaire1 adresse","proprietaire 1 adresse","adresse"]);
+    var langue=col(row,["proprietaire1 langue","langue"]);
+    var estCAval=col(row,["proprietaire1 est membre du conseil?","est membre du conseil?"]);
+    var estOccupantVal=col(row,["proprietaire1 est occupant?","est occupant?"]);
+    var prop2nom=col(row,["proprietaire2 nom","proprietaire 2 nom"]);
+    var prop2courriel=col(row,["proprietaire2 courriel","proprietaire 2 courriel"]);
+    var prop2tel=col(row,["proprietaire2 telephone","proprietaire 2 telephone"]);
+    var fraction=col(row,["fraction totale (%)","fraction totale","fraction de l unite (%)","fraction","quote_part"]);
+    var cadastre=col(row,["cadastre de l unite","cadastre","no_cadastre"]);
+    var cotisation=col(row,["cotisation","mensualite"]);
+    var stationnement=col(row,["stationnement"]);
+    var rangement=col(row,["rangement"]);
+    var acces=col(row,["acces","acc s"]);
+    var vehicule=col(row,["vehicule","v hicule"]);
+    var assurancePolice=col(row,["numero de police","numero police"]);
+    var assuranceExp=col(row,["expiration assurance","expiration"]);
+    var locNom=col(row,["locataire1 nom","locataire nom"]);
+    var locCourriel=col(row,["locataire1 courriel"]);
+    var locTel=col(row,["locataire1 telephone"]);
+    var chauffeEau=col(row,["annee de fabrication du chauffe eau","chauffe eau"]);
+    var foyer=col(row,["foyer"]);
+    var mobilite=col(row,["mobilite reduite","mobilite"]);
+    var estCAb=(estCAval.toLowerCase().indexOf("oui")>=0||estCAval==="1"||estCAval.toLowerCase()==="true");
+    var estOccupantb=(estOccupantVal.toLowerCase().indexOf("oui")>=0||estOccupantVal==="1");
+    rows.push({unite:unite,prenom:prenom,nom:nom,courriel:courriel,tel:tel,mobile:mobile,adr:adr,langue:langue,estCA:estCAb,estOccupant:estOccupantb,prop2nom:prop2nom,prop2courriel:prop2courriel,prop2tel:prop2tel,fraction:fraction,quotePart:fraction,cadastre:cadastre,cotisation:cotisation,stationnement:stationnement,rangement:rangement,acces:acces,vehicule:vehicule,assurancePolice:assurancePolice,assuranceExp:assuranceExp,locNom:locNom,locCourriel:locCourriel,locTel:locTel,chauffeEau:chauffeEau,foyer:foyer,mobilite:mobilite,pap:false,ce:"",ass:"",loc:!!locNom,animaux:0});
   }
   return{ok:rows.length>0,msg:rows.length+" coproprietaires importes"+(errors.length>0?" ("+errors.length+" erreurs)":""),rows:rows,errors:errors};
 }
-
-
   function handleCSV(e){
     var file=e&&e.target&&e.target.files&&e.target.files[0];
     if(!file)return;
@@ -913,50 +945,58 @@ function StepIndicator(p){
 
 // CSV Parser
 function parseCSV(text){
-  var lines=text.trim().split("\n");
-  if(lines.length<2)return{ok:false,msg:"Fichier vide ou invalide",rows:[]};
-  var headers=lines[0].split(",").map(function(h){return h.trim().replace(/"/g,"").toLowerCase();});var rows=[];var errors=[];for(var i=1;i<lines.length;i++){var cols=lines[i].split(",").map(function(c){return c.trim().replace(/"/g,"");});if(cols.length<3)continue;var row={};headers.forEach(function(h,j){row[h]=cols[j]||"";});
-    // Normalize common field names
-    var unite=row["unite"]||row["unit"]||row["no_unite"]||row["numero"]||"";
-    var prenom=row["prenom"]||row["first_name"]||row["firstname"]||"";
-    var nom=row["nom"]||row["last_name"]||row["lastname"]||row["name"]||"";
-    var courriel=row["courriel"]||row["email"]||row["e-mail"]||"";
-    var tel=row["tel"]||row["telephone"]||row["phone"]||"";
-    var fraction=parseFloat(row["fraction"]||row["quote_part"]||row["quotient"]||row["quotepart"]||"0")||0;
-    var cadastre=row["cadastre"]||row["no_cadastre"]||row["numero_cadastre"]||"";
-    var quotePart=parseFloat(row["quote_part"]||row["quotepart"]||row["quote part"]||row["fraction"]||"0")||0;
-    var cotisation=parseFloat(row["cotisation"]||row["mensualite"]||row["contribution"]||"0")||0;
-    if(!unite){errors.push("Ligne "+(i+1)+": numero d unite manquant");continue;}
-    rows.push({unite:unite,prenom:prenom,nom:nom,courriel:courriel,tel:tel,fraction:fraction,quotePart:quotePart,cadastre:cadastre,cotisation:cotisation,pap:false,ce:"",ass:"",loc:false,animaux:0});
+  if(!text)return{ok:false,msg:"Fichier vide",rows:[],errors:[]};
+  var rawLines=text.split("\n");
+  var lines=[];
+  for(var i=0;i<rawLines.length;i++){var l=rawLines[i].trim();if(l.length>0)lines.push(l);}
+  if(lines.length<2)return{ok:false,msg:"Aucune donnee",rows:[],errors:[]};
+  var sep=lines[0].indexOf("\t")>=0?"\t":";";
+  if(lines[0].indexOf(",")>=0&&lines[0].indexOf("\t")<0)sep=",";
+  function splitLine(l){var cells=l.split(sep);return cells.map(function(c){return c.trim().replace(/^["']|["']$/g,"");});}
+  var headers=splitLine(lines[0]).map(function(h){return h.toLowerCase();});
+  function col(row,keys){for(var k=0;k<keys.length;k++){var v=row[keys[k]];if(v!==undefined&&v!=="")return v;}return "";}
+  var rows=[],errors=[];
+  for(var i=1;i<lines.length;i++){
+    var cells=splitLine(lines[i]);
+    if(cells.length<2)continue;
+    var row={};
+    for(var j=0;j<headers.length;j++)row[headers[j]]=cells[j]||"";
+    var unite=col(row,["nom de l unite","unite","unit","no_unite","numero"]);
+    if(!unite)continue;
+    var nomComplet=col(row,["proprietaire1 nom","proprietaire 1 nom","nom"]);
+    var prenom="",nom=nomComplet;
+    if(nomComplet&&nomComplet.indexOf(" ")>0){var pts=nomComplet.split(" ");prenom=pts[0];nom=pts.slice(1).join(" ");}
+    var courriel=col(row,["proprietaire1 courriel","proprietaire 1 courriel","courriel","email"]);
+    var tel=col(row,["proprietaire1 telephone","proprietaire 1 telephone","telephone","tel"]);
+    var mobile=col(row,["proprietaire1 telephone cellulaire","cellulaire","mobile"]);
+    var adr=col(row,["proprietaire1 adresse","proprietaire 1 adresse","adresse"]);
+    var langue=col(row,["proprietaire1 langue","langue"]);
+    var estCAval=col(row,["proprietaire1 est membre du conseil?","est membre du conseil?"]);
+    var estOccupantVal=col(row,["proprietaire1 est occupant?","est occupant?"]);
+    var prop2nom=col(row,["proprietaire2 nom","proprietaire 2 nom"]);
+    var prop2courriel=col(row,["proprietaire2 courriel","proprietaire 2 courriel"]);
+    var prop2tel=col(row,["proprietaire2 telephone","proprietaire 2 telephone"]);
+    var fraction=col(row,["fraction totale (%)","fraction totale","fraction de l unite (%)","fraction","quote_part"]);
+    var cadastre=col(row,["cadastre de l unite","cadastre","no_cadastre"]);
+    var cotisation=col(row,["cotisation","mensualite"]);
+    var stationnement=col(row,["stationnement"]);
+    var rangement=col(row,["rangement"]);
+    var acces=col(row,["acces","acc s"]);
+    var vehicule=col(row,["vehicule","v hicule"]);
+    var assurancePolice=col(row,["numero de police","numero police"]);
+    var assuranceExp=col(row,["expiration assurance","expiration"]);
+    var locNom=col(row,["locataire1 nom","locataire nom"]);
+    var locCourriel=col(row,["locataire1 courriel"]);
+    var locTel=col(row,["locataire1 telephone"]);
+    var chauffeEau=col(row,["annee de fabrication du chauffe eau","chauffe eau"]);
+    var foyer=col(row,["foyer"]);
+    var mobilite=col(row,["mobilite reduite","mobilite"]);
+    var estCAb=(estCAval.toLowerCase().indexOf("oui")>=0||estCAval==="1"||estCAval.toLowerCase()==="true");
+    var estOccupantb=(estOccupantVal.toLowerCase().indexOf("oui")>=0||estOccupantVal==="1");
+    rows.push({unite:unite,prenom:prenom,nom:nom,courriel:courriel,tel:tel,mobile:mobile,adr:adr,langue:langue,estCA:estCAb,estOccupant:estOccupantb,prop2nom:prop2nom,prop2courriel:prop2courriel,prop2tel:prop2tel,fraction:fraction,quotePart:fraction,cadastre:cadastre,cotisation:cotisation,stationnement:stationnement,rangement:rangement,acces:acces,vehicule:vehicule,assurancePolice:assurancePolice,assuranceExp:assuranceExp,locNom:locNom,locCourriel:locCourriel,locTel:locTel,chauffeEau:chauffeEau,foyer:foyer,mobilite:mobilite,pap:false,ce:"",ass:"",loc:!!locNom,animaux:0});
   }
   return{ok:rows.length>0,msg:rows.length+" coproprietaires importes"+(errors.length>0?" ("+errors.length+" erreurs)":""),rows:rows,errors:errors};
 }
-
-// COMPOSANTES CARNET (Loi 16)
-var COMPOSANTES_LOI16=[
-  {cat:"Structure",nom:"Fondations et structure principale",dureeVie:50,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Structure",nom:"Balcons et terrasses",dureeVie:30,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Enveloppe",nom:"Toiture - membrane et structure",dureeVie:25,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Enveloppe",nom:"Fenetres et portes exterieures - parties communes",dureeVie:30,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Enveloppe",nom:"Revetement exterieur",dureeVie:30,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Mecanique",nom:"Systeme de chauffage - parties communes",dureeVie:20,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Mecanique",nom:"Systeme de ventilation - parties communes",dureeVie:20,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Mecanique",nom:"Tuyauterie et plomberie - parties communes",dureeVie:40,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Mecanique",nom:"Systeme electrique - parties communes",dureeVie:40,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Mecanique",nom:"Ascenseur(s)",dureeVie:25,anneeInstall:"",etat:"bon",notes:"",obligatoire:false},
-  {cat:"Securite",nom:"Systeme de detection incendie",dureeVie:15,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Securite",nom:"Systeme de gicleurs",dureeVie:25,anneeInstall:"",etat:"bon",notes:"",obligatoire:false},
-  {cat:"Securite",nom:"Systeme d acces et interphone",dureeVie:15,anneeInstall:"",etat:"bon",notes:"",obligatoire:false},
-  {cat:"Amenagements",nom:"Stationnement - surface et structure",dureeVie:20,anneeInstall:"",etat:"bon",notes:"",obligatoire:false},
-  {cat:"Amenagements",nom:"Paysagement et amenagements exterieurs",dureeVie:20,anneeInstall:"",etat:"bon",notes:"",obligatoire:false},
-  {cat:"Amenagements",nom:"Eclairage - parties communes",dureeVie:15,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Interieur",nom:"Corridors et hall d entree",dureeVie:20,anneeInstall:"",etat:"bon",notes:"",obligatoire:true},
-  {cat:"Interieur",nom:"Peinture - parties communes",dureeVie:10,anneeInstall:"",etat:"bon",notes:"",obligatoire:false},
-];
-
-
-// Helpers Onboarding
-var FINP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
 function Field(p){
   return(
     <div style={p.full?{gridColumn:"1/-1"}:{}}>
