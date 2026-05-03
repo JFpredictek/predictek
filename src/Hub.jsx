@@ -267,7 +267,7 @@ function CreerSyndicat(p){
           var wb=XLSX.read(ev.target.result,{type:"array"});
           var ws=wb.Sheets[wb.SheetNames[0]];
           var csv=XLSX.utils.sheet_to_csv(ws);
-          parseCSV(csv);
+          var nb=parseCSV(csv);
       if(nb>0){setNbImport(nb);setImportMsg(nb+" coproprietaires detectes dans le fichier CSV");}
       else{setImportMsg("Erreur: format CSV invalide");}
 ;
