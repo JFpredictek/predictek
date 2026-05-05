@@ -1436,7 +1436,7 @@ function Onboarding(p){
                         <td style={{padding:"6px 10px",fontSize:10,color:T.muted}}>{c.tel}</td>
                         <td style={{padding:"6px 10px",fontSize:11,textAlign:"right"}}>{c.quotePart?c.quotePart+"%":c.fraction?c.fraction+"%":""}</td>
                         <td style={{padding:"6px 10px",fontSize:11,textAlign:"right",fontWeight:600}}>{c.cotisation?money(c.cotisation):""}</td>
-                      <td style={{padding:"6px 10px",fontSize:10,color:"#92400E"}}>{copros[i]&&copros[i].urgNom?copros[i].urgNom+(copros[i].urgLien?" ("+copros[i].urgLien+")":""):"-"}</td></tr>
+                      <td style={{padding:"6px 10px",fontSize:10,color:"#92400E"}}>{c.urgNom?c.urgNom+(c.urgLien?" ("+c.urgLien+")":""):"-"}</td></tr>
                     );})}
                   </tbody>
                 </table>
