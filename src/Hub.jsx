@@ -300,7 +300,7 @@ function CreerSyndicat(p){
           var ws=wb.Sheets[wb.SheetNames[0]];
           var csv=XLSX.utils.sheet_to_csv(ws);
           var nb=parseCSV(csv);
-      if(nb&&nb.ok){setNbImport(nb.rows?nb.rows.length:0);setImportMsg(nb.msg||"SV");}
+      if(nb&&nb.ok){setNbImport(nb.rows?nb.rows.length:0);setCopros(nb.rows||[]);setImportMsg(nb.msg||"");}
       else{setImportMsg("Erreur: format CSV invalide");}
 ;
         }catch(err){
@@ -313,7 +313,7 @@ function CreerSyndicat(p){
 var reader=new FileReader();
     reader.onload=function(ev){
       var nb=parseCSV(ev.target.result);
-      if(nb&&nb.ok){setNbImport(nb.rows?nb.rows.length:0);setImportMsg(nb.msg||"SV");}
+      if(nb&&nb.ok){setNbImport(nb.rows?nb.rows.length:0);setCopros(nb.rows||[]);setImportMsg(nb.msg||"");}
       else{setImportMsg("Erreur: format CSV invalide");}
     };
     reader.readAsText(file);
@@ -1424,7 +1424,7 @@ function Onboarding(p){
               </div>
               <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden",maxHeight:280,overflowY:"auto"}}>
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
-                  <thead><tr style={{background:T.navy}}>{["Unite","Cadastre","Prenom","Nom","Courriel","Tel","Quote-part %","Cotisation"].map(function(h){return <th key={h} style={{padding:"6px 10px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left"}}>{h}</th>;})}</tr></thead>
+                  <thead><tr style={{background:T.navy}}>{["Unite","Cadastre","Prenom","Nom","Courriel","Tel","Quote-part %","Cotisation","Urgence"].map(function(h){return <th key={h} style={{padding:"6px 10px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left"}}>{h}</th>;})}</tr></thead>
                   <tbody>
                     {copros.map(function(c,i){return(
                       <tr key={i} style={{borderBottom:"1px solid "+T.border,background:i%2===0?T.surface:T.alt}}>
@@ -1436,7 +1436,7 @@ function Onboarding(p){
                         <td style={{padding:"6px 10px",fontSize:10,color:T.muted}}>{c.tel}</td>
                         <td style={{padding:"6px 10px",fontSize:11,textAlign:"right"}}>{c.quotePart?c.quotePart+"%":c.fraction?c.fraction+"%":""}</td>
                         <td style={{padding:"6px 10px",fontSize:11,textAlign:"right",fontWeight:600}}>{c.cotisation?money(c.cotisation):""}</td>
-                      </tr>
+                      <td style={{padding:"6px 10px",fontSize:10,color:"#92400E"}}>{copros[i]&&copros[i].urgNom?copros[i].urgNom+(copros[i].urgLien?" ("+copros[i].urgLien+")":""):"-"}</td></tr>
                     );})}
                   </tbody>
                 </table>
