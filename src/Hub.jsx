@@ -1424,19 +1424,29 @@ function Onboarding(p){
               </div>
               <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden",maxHeight:280,overflowY:"auto"}}>
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
-                  <thead><tr style={{background:T.navy}}>{["Unite","Cadastre","Prenom","Nom","Courriel","Tel","Quote-part %","Cotisation","Urgence"].map(function(h){return <th key={h} style={{padding:"6px 10px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left"}}>{h}</th>;})}</tr></thead>
+                  <thead>
+                    <tr style={{background:T.navy}}>
+                      {["Unite","Cadastre","Prenom","Nom","Courriel","Tel","Quote-part %","Cotisation","Urgence"].map(function(h){return(
+                        <th key={h} style={{padding:"6px 10px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left"}}>{h}</th>
+                      );})}
+                    </tr>
+                  </thead>
                   <tbody>
+                    {copros.length===0&&(
+                      <tr><td colSpan={9} style={{padding:20,textAlign:"center",color:T.muted,fontSize:12}}>Aucun coproprietaire. Importez votre fichier Excel ou CSV ci-dessus.</td></tr>
+                    )}
                     {copros.map(function(c,i){return(
                       <tr key={i} style={{borderBottom:"1px solid "+T.border,background:i%2===0?T.surface:T.alt}}>
-                        <td style={{padding:"6px 10px",fontWeight:700,color:T.navy,fontSize:11}}>{c.unite}</td>
+                        <td style={{padding:"6px 10px",fontWeight:700,color:T.navy,fontSize:11}}>{c.unite||"-"}</td>
                         <td style={{padding:"6px 10px",fontSize:10,color:T.muted}}>{c.cadastre||"-"}</td>
-                        <td style={{padding:"6px 10px",fontSize:11}}>{c.prenom}</td>
-                        <td style={{padding:"6px 10px",fontSize:11}}>{c.nom}</td>
-                        <td style={{padding:"6px 10px",fontSize:10,color:T.muted}}>{c.courriel}</td>
-                        <td style={{padding:"6px 10px",fontSize:10,color:T.muted}}>{c.tel}</td>
-                        <td style={{padding:"6px 10px",fontSize:11,textAlign:"right"}}>{c.quotePart?c.quotePart+"%":c.fraction?c.fraction+"%":""}</td>
-                        <td style={{padding:"6px 10px",fontSize:11,textAlign:"right",fontWeight:600}}>{c.cotisation?money(c.cotisation):""}</td>
-                      <td style={{padding:"6px 10px",fontSize:10,color:"#92400E"}}>{c.urgNom?c.urgNom+(c.urgLien?" ("+c.urgLien+")":""):"-"}</td></tr>
+                        <td style={{padding:"6px 10px",fontSize:11}}>{c.prenom||"-"}</td>
+                        <td style={{padding:"6px 10px",fontSize:11}}>{c.nom||"-"}</td>
+                        <td style={{padding:"6px 10px",fontSize:10,color:T.muted}}>{c.courriel||"-"}</td>
+                        <td style={{padding:"6px 10px",fontSize:10,color:T.muted}}>{c.tel||"-"}</td>
+                        <td style={{padding:"6px 10px",fontSize:11,textAlign:"right"}}>{c.quotePart?c.quotePart+"%":"-"}</td>
+                        <td style={{padding:"6px 10px",fontSize:11,textAlign:"right",fontWeight:600}}>{c.cotisation?c.cotisation+" $":"-"}</td>
+                        <td style={{padding:"6px 10px",fontSize:10,color:"#92400E"}}>{c.urgNom?c.urgNom+(c.urgLien?" ("+c.urgLien+")":""):"-"}</td>
+                      </tr>
                     );})}
                   </tbody>
                 </table>
