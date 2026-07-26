@@ -280,7 +280,8 @@ function CreerSyndicat(p){
     rows.push({unite:unite,prenom:prenom,nom:nom,courriel:courriel,tel:tel,mobile:mobile,adr:adr,langue:langue,estCA:estCAb,estOccupant:estOccupantb,prop2nom:prop2nom,prop2courriel:prop2courriel,prop2tel:prop2tel,fraction:fraction,quotePart:fraction,cadastre:cadastre,cotisation:cotisation,stationnement:stationnement,rangement:rangement,acces:acces,vehicule:vehicule,assurancePolice:assurancePolice,assuranceExp:assuranceExp,locNom:locNom,locCourriel:locCourriel,locTel:locTel,chauffeEau:chauffeEau,foyer:foyer,mobilite:mobilite,urgenceNom:col(row,["proprietaire1 telephone (urgences)","urgence nom"]),urgenceTel:col(row,["proprietaire1 telephone (urgences)","urgence tel"]),urgNom:"",urgTel:"",urgLien:"",pap:false,ce:"",ass:"",loc:!!locNom,animaux:0});
   }
   var sumF=rows.reduce(function(a,r){var f=parseFloat(r.fraction)||0;return a+(f<0.9?f:0);},0);
-  if(sumF>0&&sumF<=1.5){rows.forEach(function(r){var f=parseFloat(r.fraction);if(f&&f<0.9){var v=String(Math.round(f*100000)/1000);r.fraction=v;r.quotePart=v;}});}
+  var multF=(sumF>0&&sumF<=1.5)?100:1;
+  rows.forEach(function(r){var f=parseFloat(r.fraction);if(f&&(multF===1||f<0.9)){var v=(f*multF).toFixed(3);r.fraction=v;r.quotePart=v;}});
   return{ok:rows.length>0,msg:rows.length+" coproprietaires importes"+(errors.length>0?" ("+errors.length+" erreurs)":""),rows:rows,errors:errors};
 }
   function handleCSV(e){
@@ -1000,7 +1001,8 @@ function parseCSV(text){
     rows.push({unite:unite,prenom:prenom,nom:nom,courriel:courriel,tel:tel,mobile:mobile,adr:adr,langue:langue,estCA:estCAb,estOccupant:estOccupantb,prop2nom:prop2nom,prop2courriel:prop2courriel,prop2tel:prop2tel,fraction:fraction,quotePart:fraction,cadastre:cadastre,cotisation:cotisation,stationnement:stationnement,rangement:rangement,acces:acces,vehicule:vehicule,assurancePolice:assurancePolice,assuranceExp:assuranceExp,locNom:locNom,locCourriel:locCourriel,locTel:locTel,chauffeEau:chauffeEau,foyer:foyer,mobilite:mobilite,urgenceNom:col(row,["proprietaire1 telephone (urgences)","urgence nom"]),urgenceTel:col(row,["proprietaire1 telephone (urgences)","urgence tel"]),urgNom:"",urgTel:"",urgLien:"",pap:false,ce:"",ass:"",loc:!!locNom,animaux:0});
   }
   var sumF=rows.reduce(function(a,r){var f=parseFloat(r.fraction)||0;return a+(f<0.9?f:0);},0);
-  if(sumF>0&&sumF<=1.5){rows.forEach(function(r){var f=parseFloat(r.fraction);if(f&&f<0.9){var v=String(Math.round(f*100000)/1000);r.fraction=v;r.quotePart=v;}});}
+  var multF=(sumF>0&&sumF<=1.5)?100:1;
+  rows.forEach(function(r){var f=parseFloat(r.fraction);if(f&&(multF===1||f<0.9)){var v=(f*multF).toFixed(3);r.fraction=v;r.quotePart=v;}});
   return{ok:rows.length>0,msg:rows.length+" coproprietaires importes"+(errors.length>0?" ("+errors.length+" erreurs)":""),rows:rows,errors:errors};
 }
 function Field(p){
