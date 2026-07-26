@@ -79,7 +79,7 @@ var SECTIONS=[
   },
   {
     id:"portail",
-    label:"Portail CopropriÃÂ©taire",
+    label:"Portail Coproprietaire",
     icon:"CP",
     color:"#FFB74D",
     bg:"#4A2800",
@@ -173,13 +173,14 @@ export default function App(){
         {active==="gestion"&&<GestionAuto/>}
         {active==="factures"&&<GestionFactures/>}
         {active==="budget"&&<BudgetCompta/>}
-        {active==="t4"&&<ModuleT4/>}
+        {active==="paie"&&<ModuleT4/>}
         {active==="carnet"&&<CarnetEntretien/>}
         {active==="ca"&&<MembresCA/>}
         {active==="docs"&&<GestionDocuments/>}
         {active==="reconn"&&<ReconnaissanceDoc/>}
         {active==="comm"&&<Communications/>}
         {active==="rapports"&&<RapportsFinanciers/>}
+        {active==="attestation"&&<RapportsFinanciers/>}
         {active==="bons"&&<BonsTravail/>}
         {active==="pv"&&<PVReunion/>}
         {active==="assurances"&&<ModuleAssurances/>}
