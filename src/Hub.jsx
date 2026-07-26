@@ -1289,6 +1289,49 @@ function Onboarding(p){
               <div style={{background:"#FFF8EE",border:"2px solid #E8A020",borderRadius:8,padding:12}}>
                 <div style={{fontSize:11,fontWeight:700,color:"#B86020",marginBottom:3}}>Registre entreprises du Quebec (REQ)</div>
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Copiez le texte du REQ depuis registreentreprises.gouv.qc.ca et collez ci-dessous</div>
+                <input type="file" accept=".pdf,.PDF" id="pdfREQ" style={{display:"none"}} onChange={function(e){
+                  var file=e.target.files&&e.target.files[0];
+                  if(!file)return;
+                  setIaError("");setIaSuccess("");setIaLoading(true);
+                  function runExtract(){
+                    var fr=new FileReader();
+                    fr.onload=function(ev){
+                      window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+                      window.pdfjsLib.getDocument({data:ev.target.result}).promise.then(function(pdf){
+                        var proms=[];
+                        for(var p=1;p<=pdf.numPages;p++){
+                          proms.push(pdf.getPage(p).then(function(page){
+                            return page.getTextContent().then(function(tc){
+                              return tc.items.map(function(it){return it.str;}).join(" ");
+                            });
+                          }));
+                        }
+                        Promise.all(proms).then(function(pages){
+                          var texte=pages.join("\n").trim();
+                          setIaLoading(false);
+                          if(texte.length<50){
+                            setIaError("Ce PDF semble scanne (image) - aucun texte extractible. Utilisez le copier-coller depuis le site du REQ.");
+                            return;
+                          }
+                          var ta=document.getElementById("txtREQ");
+                          if(ta){ta.value=texte;}
+                          setIaSuccess("Texte extrait du PDF ("+texte.length+" caracteres) - cliquez Extraire avec l IA");
+                        });
+                      }).catch(function(err){setIaLoading(false);setIaError("Erreur lecture PDF: "+err.message);});
+                    };
+                    fr.readAsArrayBuffer(file);
+                  }
+                  if(typeof window.pdfjsLib==="undefined"){
+                    var s=document.createElement("script");
+                    s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+                    s.onload=runExtract;
+                    document.head.appendChild(s);
+                  }else{runExtract();}
+                }}/>
+                <button onClick={function(){document.getElementById("pdfREQ").click();}} style={{background:"#fff",border:"1px solid #E8A020",borderRadius:6,padding:"5px 12px",fontSize:10,fontWeight:700,color:"#B86020",cursor:"pointer",marginBottom:6,marginRight:6}}>
+                  Selectionner un PDF texte du REQ
+                </button>
+                <span style={{fontSize:9,color:"#7C7568"}}>ou collez le texte ci-dessous</span>
                 <textarea id="txtREQ" rows={6} style={{width:"100%",border:"1px solid #E8A020",borderRadius:6,padding:"6px 8px",fontSize:10,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:6}} placeholder="Collez ici le texte complet du REQ (nom, NEQ, adresse, administrateurs...)"/>
                 <button onClick={function(){
                   var t=document.getElementById("txtREQ")?document.getElementById("txtREQ").value:"";
