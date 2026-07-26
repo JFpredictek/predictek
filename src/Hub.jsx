@@ -246,6 +246,7 @@ function CreerSyndicat(p){
     for(var j=0;j<headers.length;j++)row[headers[j]]=cells[j]||"";
     var unite=col(row,["nom de l unite","unite","unit","no_unite","numero"]);
     if(!unite)continue;
+    if(unite.toLowerCase().indexOf("total")>=0)continue;
     var nomComplet=col(row,["proprietaire1 nom","proprietaire 1 nom","nom"]);
     var prenom="",nom=nomComplet;
     if(nomComplet&&nomComplet.indexOf(" ")>0){var pts=nomComplet.split(" ");prenom=pts[0];nom=pts.slice(1).join(" ");}
@@ -278,8 +279,8 @@ function CreerSyndicat(p){
     var estOccupantb=(estOccupantVal.toLowerCase().indexOf("oui")>=0||estOccupantVal==="1");
     rows.push({unite:unite,prenom:prenom,nom:nom,courriel:courriel,tel:tel,mobile:mobile,adr:adr,langue:langue,estCA:estCAb,estOccupant:estOccupantb,prop2nom:prop2nom,prop2courriel:prop2courriel,prop2tel:prop2tel,fraction:fraction,quotePart:fraction,cadastre:cadastre,cotisation:cotisation,stationnement:stationnement,rangement:rangement,acces:acces,vehicule:vehicule,assurancePolice:assurancePolice,assuranceExp:assuranceExp,locNom:locNom,locCourriel:locCourriel,locTel:locTel,chauffeEau:chauffeEau,foyer:foyer,mobilite:mobilite,urgenceNom:col(row,["proprietaire1 telephone (urgences)","urgence nom"]),urgenceTel:col(row,["proprietaire1 telephone (urgences)","urgence tel"]),urgNom:"",urgTel:"",urgLien:"",pap:false,ce:"",ass:"",loc:!!locNom,animaux:0});
   }
-  var sumF=rows.reduce(function(a,r){return a+(parseFloat(r.fraction)||0);},0);
-  if(sumF>0&&sumF<=1.5){rows.forEach(function(r){var f=parseFloat(r.fraction);if(f){var v=String(Math.round(f*100000)/1000);r.fraction=v;r.quotePart=v;}});}
+  var sumF=rows.reduce(function(a,r){var f=parseFloat(r.fraction)||0;return a+(f<0.9?f:0);},0);
+  if(sumF>0&&sumF<=1.5){rows.forEach(function(r){var f=parseFloat(r.fraction);if(f&&f<0.9){var v=String(Math.round(f*100000)/1000);r.fraction=v;r.quotePart=v;}});}
   return{ok:rows.length>0,msg:rows.length+" coproprietaires importes"+(errors.length>0?" ("+errors.length+" erreurs)":""),rows:rows,errors:errors};
 }
   function handleCSV(e){
@@ -300,7 +301,7 @@ function CreerSyndicat(p){
         try{
           var wb=XLSX.read(ev.target.result,{type:"array"});
           var ws=wb.Sheets[wb.SheetNames[0]];
-          var csv=XLSX.utils.sheet_to_csv(ws);
+          var csv=XLSX.utils.sheet_to_csv(ws,{FS:"\t"});
           var nb=parseCSV(csv);
       if(nb&&nb.ok){setNbImport(nb.rows?nb.rows.length:0);setCopros(nb.rows||[]);setImportMsg(nb.msg||"");}
       else{setImportMsg("Erreur: format CSV invalide");}
@@ -965,6 +966,7 @@ function parseCSV(text){
     for(var j=0;j<headers.length;j++)row[headers[j]]=cells[j]||"";
     var unite=col(row,["nom de l unite","unite","unit","no_unite","numero"]);
     if(!unite)continue;
+    if(unite.toLowerCase().indexOf("total")>=0)continue;
     var nomComplet=col(row,["proprietaire1 nom","proprietaire 1 nom","nom"]);
     var prenom="",nom=nomComplet;
     if(nomComplet&&nomComplet.indexOf(" ")>0){var pts=nomComplet.split(" ");prenom=pts[0];nom=pts.slice(1).join(" ");}
@@ -997,8 +999,8 @@ function parseCSV(text){
     var estOccupantb=(estOccupantVal.toLowerCase().indexOf("oui")>=0||estOccupantVal==="1");
     rows.push({unite:unite,prenom:prenom,nom:nom,courriel:courriel,tel:tel,mobile:mobile,adr:adr,langue:langue,estCA:estCAb,estOccupant:estOccupantb,prop2nom:prop2nom,prop2courriel:prop2courriel,prop2tel:prop2tel,fraction:fraction,quotePart:fraction,cadastre:cadastre,cotisation:cotisation,stationnement:stationnement,rangement:rangement,acces:acces,vehicule:vehicule,assurancePolice:assurancePolice,assuranceExp:assuranceExp,locNom:locNom,locCourriel:locCourriel,locTel:locTel,chauffeEau:chauffeEau,foyer:foyer,mobilite:mobilite,urgenceNom:col(row,["proprietaire1 telephone (urgences)","urgence nom"]),urgenceTel:col(row,["proprietaire1 telephone (urgences)","urgence tel"]),urgNom:"",urgTel:"",urgLien:"",pap:false,ce:"",ass:"",loc:!!locNom,animaux:0});
   }
-  var sumF=rows.reduce(function(a,r){return a+(parseFloat(r.fraction)||0);},0);
-  if(sumF>0&&sumF<=1.5){rows.forEach(function(r){var f=parseFloat(r.fraction);if(f){var v=String(Math.round(f*100000)/1000);r.fraction=v;r.quotePart=v;}});}
+  var sumF=rows.reduce(function(a,r){var f=parseFloat(r.fraction)||0;return a+(f<0.9?f:0);},0);
+  if(sumF>0&&sumF<=1.5){rows.forEach(function(r){var f=parseFloat(r.fraction);if(f&&f<0.9){var v=String(Math.round(f*100000)/1000);r.fraction=v;r.quotePart=v;}});}
   return{ok:rows.length>0,msg:rows.length+" coproprietaires importes"+(errors.length>0?" ("+errors.length+" erreurs)":""),rows:rows,errors:errors};
 }
 function Field(p){
@@ -1163,7 +1165,7 @@ function Onboarding(p){
 
   function handleCSV(e){
     var file=e.target.files[0];
-    if(file&&file.name&&file.name.toLowerCase().match(/\.xlsx?$/)){if(typeof XLSX==="undefined"){var s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";s.onload=function(){handleCSV(e);};document.head.appendChild(s);return;}var xr=new FileReader();xr.onload=function(ev){var wb=XLSX.read(ev.target.result,{type:"array"});var ws=wb.Sheets[wb.SheetNames[0]];var result=parseCSV(XLSX.utils.sheet_to_csv(ws));if(result.ok){setCopros(result.rows);setCSVMsg(result.msg);setCSVErrors(result.errors||[]);}else{setCSVMsg("Erreur: "+result.msg);setCopros([]);}};xr.readAsArrayBuffer(file);return;}
+    if(file&&file.name&&file.name.toLowerCase().match(/\.xlsx?$/)){if(typeof XLSX==="undefined"){var s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";s.onload=function(){handleCSV(e);};document.head.appendChild(s);return;}var xr=new FileReader();xr.onload=function(ev){var wb=XLSX.read(ev.target.result,{type:"array"});var ws=wb.Sheets[wb.SheetNames[0]];var result=parseCSV(XLSX.utils.sheet_to_csv(ws,{FS:"\t"}));if(result.ok){setCopros(result.rows);setCSVMsg(result.msg);setCSVErrors(result.errors||[]);}else{setCSVMsg("Erreur: "+result.msg);setCopros([]);}};xr.readAsArrayBuffer(file);return;}
     if(!file)return;
     var reader=new FileReader();
     reader.onload=function(ev){
