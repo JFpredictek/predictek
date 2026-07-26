@@ -12,6 +12,7 @@ export default async function handler(req, res) {
     var texte = (req.body && req.body.texte) || "";
     var pdfB64 = (req.body && req.body.pdf) || "";
     var mode = (req.body && req.body.mode) || "syndicat";
+    var unites = (req.body && req.body.unites) || [];
     if(!texte && !pdfB64) return res.status(400).json({error:"Aucun texte ni PDF fourni"});
 
     // LOG pour debug - retourner aussi le texte recu dans la reponse
@@ -36,7 +37,16 @@ export default async function handler(req, res) {
       + "Si un champ est absent mettre valeur vide ou 0.";
 
     var contenu;
-    if(pdfB64){
+    if(pdfB64 && mode==="quoteparts"){
+      var promptQP = "Voici la declaration de copropriete d un syndicat quebecois (PDF, possiblement numerise). "
+        + "Un fichier Excel a ete importe avec ces quotes-parts par unite (en %): " + JSON.stringify(unites) + ". "
+        + "Trouve dans la declaration la quote-part (fraction des parties communes) de CHAQUE unite listee et compare. "
+        + "Tolere les ecarts d arrondi inferieurs ou egaux a 0.002. "
+        + "Reponds UNIQUEMENT avec un objet JSON valide: "
+        + "{\"concordance\":true ou false,\"nbValides\":entier,\"ecarts\":[{\"unite\":\"...\",\"excel\":\"valeur du fichier\",\"declaration\":\"valeur de la declaration\"}],\"note\":\"courte remarque (ex: unites introuvables dans la declaration)\"}. "
+        + "Si la declaration ne contient pas de quotes-parts lisibles, mets concordance:false et explique dans note.";
+      contenu = [{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:promptQP}];
+    } else if(pdfB64){
       var promptPdf = "Voici le document officiel PDF d un syndicat de copropriete quebecois (REQ et/ou declaration). Lis-le attentivement, y compris s il s agit d un document numerise."
         + "\n\nReponds UNIQUEMENT avec un objet JSON valide. Cles requises:\n"
         + "nom, immat (NEQ 11 chiffres), adr (domicile REQ), ville, province, codePostal, nbUnites (entier), gestionnaire, "
