@@ -1506,32 +1506,48 @@ function Onboarding(p){
             <div style={{marginBottom:14}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                 <div style={{fontSize:13,fontWeight:700,color:T.navy}}>{copros.length} coproprietaires importes</div>
-                <div style={{fontSize:12,color:T.muted}}>Total cotisations: <b>{money(totalCot)}/mois</b> | Total fractions: <b>{totalFraction.toFixed(3)}%</b></div>
+                <div style={{fontSize:12,color:T.muted}}>Total fractions: <b>{totalFraction.toFixed(3)}%</b></div>
               </div>
-              <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden",maxHeight:280,overflowY:"auto"}}>
-                <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflowX:"auto"}}>
+                <table style={{width:"100%",minWidth:2400,borderCollapse:"collapse"}}>
                   <thead>
                     <tr style={{background:T.navy}}>
-                      {["Unite","Cadastre","Prenom","Nom","Courriel","Tel","Quote-part %","Cotisation","Urgence"].map(function(h){return(
-                        <th key={h} style={{padding:"6px 10px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left"}}>{h}</th>
+                      {["Unite","Cadastre","Prenom","Nom","Courriel","Tel","Mobile","Adresse","Langue","CA","Occupant","Quote-part %","Prop. 2","Prop.2 courriel","Prop.2 tel","Stationnement","Rangement","Acces","Vehicule","Police assurance","Exp. assurance","Locataire","Loc. courriel","Loc. tel","Chauffe-eau","Foyer","Mobilite","Urgence"].map(function(h){return(
+                        <th key={h} style={{padding:"6px 8px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>
                       );})}
                     </tr>
                   </thead>
                   <tbody>
-                    {copros.length===0&&(
-                      <tr><td colSpan={9} style={{padding:20,textAlign:"center",color:T.muted,fontSize:12}}>Aucun coproprietaire. Importez votre fichier Excel ou CSV ci-dessus.</td></tr>
-                    )}
                     {copros.map(function(c,i){return(
                       <tr key={i} style={{borderBottom:"1px solid "+T.border,background:i%2===0?T.surface:T.alt}}>
-                        <td style={{padding:"6px 10px",fontWeight:700,color:T.navy,fontSize:11}}>{c.unite||"-"}</td>
-                        <td style={{padding:"6px 10px",fontSize:10,color:T.muted}}>{c.cadastre||"-"}</td>
-                        <td style={{padding:"6px 10px",fontSize:11}}>{c.prenom||"-"}</td>
-                        <td style={{padding:"6px 10px",fontSize:11}}>{c.nom||"-"}</td>
-                        <td style={{padding:"6px 10px",fontSize:10,color:T.muted}}>{c.courriel||"-"}</td>
-                        <td style={{padding:"6px 10px",fontSize:10,color:T.muted}}>{c.tel||"-"}</td>
-                        <td style={{padding:"6px 10px",fontSize:11,textAlign:"right"}}>{c.quotePart?c.quotePart+"%":"-"}</td>
-                        <td style={{padding:"6px 10px",fontSize:11,textAlign:"right",fontWeight:600}}>{c.cotisation?c.cotisation+" $":"-"}</td>
-                        <td style={{padding:"6px 10px",fontSize:10,color:"#92400E"}}>{c.urgNom?c.urgNom+(c.urgLien?" ("+c.urgLien+")":""):"-"}</td>
+                        <td style={{padding:"5px 8px",fontWeight:700,color:T.navy,fontSize:11,whiteSpace:"nowrap"}}>{c.unite||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,color:T.muted,whiteSpace:"nowrap"}}>{c.cadastre||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:11,whiteSpace:"nowrap"}}>{c.prenom||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:11,whiteSpace:"nowrap"}}>{c.nom||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,color:T.muted,whiteSpace:"nowrap"}}>{c.courriel||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,color:T.muted,whiteSpace:"nowrap"}}>{c.tel||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,color:T.muted,whiteSpace:"nowrap"}}>{c.mobile||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,color:T.muted,whiteSpace:"nowrap"}}>{c.adr||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,whiteSpace:"nowrap"}}>{c.langue||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,fontWeight:700,color:c.estCA?"#1B5E3B":T.muted}}>{c.estCA?"Oui":"Non"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,color:T.muted}}>{c.estOccupant?"Oui":"Non"}</td>
+                        <td style={{padding:"5px 8px",fontSize:11,textAlign:"right",fontWeight:600,whiteSpace:"nowrap"}}>{c.quotePart?c.quotePart+"%":"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,whiteSpace:"nowrap"}}>{c.prop2nom||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,color:T.muted,whiteSpace:"nowrap"}}>{c.prop2courriel||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,color:T.muted,whiteSpace:"nowrap"}}>{c.prop2tel||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,whiteSpace:"nowrap"}}>{c.stationnement||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,whiteSpace:"nowrap"}}>{c.rangement||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,whiteSpace:"nowrap"}}>{c.acces||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,whiteSpace:"nowrap"}}>{c.vehicule||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,whiteSpace:"nowrap"}}>{c.assurancePolice||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,whiteSpace:"nowrap"}}>{c.assuranceExp||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,whiteSpace:"nowrap"}}>{c.locNom||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,color:T.muted,whiteSpace:"nowrap"}}>{c.locCourriel||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,color:T.muted,whiteSpace:"nowrap"}}>{c.locTel||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,whiteSpace:"nowrap"}}>{c.chauffeEau||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,whiteSpace:"nowrap"}}>{c.foyer||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,whiteSpace:"nowrap"}}>{c.mobilite||"-"}</td>
+                        <td style={{padding:"5px 8px",fontSize:10,color:"#92400E",whiteSpace:"nowrap"}}>{c.urgNom?c.urgNom+(c.urgLien?" ("+c.urgLien+")":""):"-"}</td>
                       </tr>
                     );})}
                   </tbody>
