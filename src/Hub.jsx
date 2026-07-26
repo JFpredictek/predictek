@@ -369,9 +369,9 @@ var reader=new FileReader();
             </div>
           </div>
           <div style={{border:"2px dashed "+T.border,borderRadius:10,padding:30,textAlign:"center",marginBottom:14,background:T.alt,cursor:"pointer"}} onClick={function(){document.getElementById("csvCreer").click();}}>
-            <div style={{fontSize:24,marginBottom:8,color:T.muted}}>CSV</div>
+            <div style={{fontSize:24,marginBottom:8,color:T.muted}}>XLSX / CSV</div>
             <div style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:4}}>Cliquez pour selectionner votre fichier</div>
-            <div style={{fontSize:11,color:T.muted}}>Formats acceptes: .csv, .txt</div>
+            <div style={{fontSize:11,color:T.muted}}>Formats acceptes: .xlsx, .xls, .csv</div>
             <input id="csvCreer" type="file" accept=".xlsx,.xls,.csv,.txt" onChange={handleCSV} style={{display:"none"}}/>
           </div>
           {importMsg&&(
@@ -1473,7 +1473,7 @@ function Onboarding(p){
           <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Importez votre registre en format CSV. Vous pouvez aussi saisir manuellement.</div>
 
           <div style={{background:T.blueL,border:"1px solid "+T.blue+"44",borderRadius:10,padding:14,marginBottom:16}}>
-            <div style={{fontSize:12,fontWeight:700,color:T.blue,marginBottom:8}}>Format CSV accepte (colonnes flexibles)</div>
+            <div style={{fontSize:12,fontWeight:700,color:T.blue,marginBottom:8}}>Formats Excel (.xlsx) et CSV acceptes - colonnes flexibles</div>
             <div style={{fontSize:11,color:T.blue,fontFamily:"monospace",lineHeight:1.9}}>
               unite, cadastre, prenom, nom, courriel, telephone, quote_part, cotisation<br/>
               531, 1234567, Jean-Francois, Laroche, jf@email.com, 819-479-4203, 2.133, 292.06<br/>
@@ -1484,8 +1484,8 @@ function Onboarding(p){
 
           <div style={{border:"2px dashed "+T.border,borderRadius:12,padding:30,textAlign:"center",background:T.alt,cursor:"pointer",marginBottom:14}} onClick={function(){fileRef.current&&fileRef.current.click();}}>
             <div style={{fontSize:32,marginBottom:8}}>CSV</div>
-            <div style={{fontSize:14,fontWeight:600,color:T.text,marginBottom:4}}>Cliquez pour importer votre fichier CSV</div>
-            <div style={{fontSize:11,color:T.muted}}>Formats acceptes: .csv, .txt</div>
+            <div style={{fontSize:14,fontWeight:600,color:T.text,marginBottom:4}}>Cliquez pour importer votre fichier Excel ou CSV</div>
+            <div style={{fontSize:11,color:T.muted}}>Formats acceptes: .xlsx, .xls, .csv</div>
             <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,.txt" onChange={handleCSV} style={{display:"none"}}/>
           </div>
 
