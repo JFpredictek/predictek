@@ -259,9 +259,9 @@ function CreerSyndicat(p){
     var prop2nom=col(row,["proprietaire2 nom","proprietaire 2 nom"]);
     var prop2courriel=col(row,["proprietaire2 courriel","proprietaire 2 courriel"]);
     var prop2tel=col(row,["proprietaire2 telephone","proprietaire 2 telephone"]);
-    var fraction=col(row,["fraction totale (%)","fraction totale","fraction de l unite (%)","fraction","quote_part"]);
+    var fraction=col(row,["fraction totale (%)","fraction totale","fraction de l unite (%)","fraction","quote_part"]).replace(/[%\s]/g,"").replace(",",".");
     var cadastre=col(row,["cadastre de l unite","cadastre","no_cadastre"]);
-    var cotisation=col(row,["cotisation","mensualite"]);
+    var cotisation=col(row,["cotisation","mensualite"]).replace(/[$\s]/g,"").replace(",",".");
     var stationnement=col(row,["stationnement"]);
     var rangement=col(row,["rangement"]);
     var acces=col(row,["acces","acc s"]);
@@ -976,9 +976,9 @@ function parseCSV(text){
     var prop2nom=col(row,["proprietaire2 nom","proprietaire 2 nom"]);
     var prop2courriel=col(row,["proprietaire2 courriel","proprietaire 2 courriel"]);
     var prop2tel=col(row,["proprietaire2 telephone","proprietaire 2 telephone"]);
-    var fraction=col(row,["fraction totale (%)","fraction totale","fraction de l unite (%)","fraction","quote_part"]);
+    var fraction=col(row,["fraction totale (%)","fraction totale","fraction de l unite (%)","fraction","quote_part"]).replace(/[%\s]/g,"").replace(",",".");
     var cadastre=col(row,["cadastre de l unite","cadastre","no_cadastre"]);
-    var cotisation=col(row,["cotisation","mensualite"]);
+    var cotisation=col(row,["cotisation","mensualite"]).replace(/[$\s]/g,"").replace(",",".");
     var stationnement=col(row,["stationnement"]);
     var rangement=col(row,["rangement"]);
     var acces=col(row,["acces","acc s"]);
