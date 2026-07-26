@@ -1211,7 +1211,7 @@ function Onboarding(p){
       <div style={{background:T.navy,color:"#fff",borderRadius:12,padding:"16px 20px",marginBottom:20,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
           <div style={{fontSize:18,fontWeight:800}}>Nouveau syndicat - Configuration initiale</div>
-          <div style={{fontSize:11,color:"#8da0bb",marginTop:2}}>Completez les 8 etapes pour activer votre syndicat dans Predictek</div>
+          <div style={{fontSize:11,color:"#8da0bb",marginTop:2}}>Completez les 5 etapes pour activer votre syndicat dans Predictek</div>
         </div>
         <div style={{fontSize:22,fontWeight:900,color:T.accent}}>Predictek</div>
       </div>
@@ -1220,8 +1220,8 @@ function Onboarding(p){
 
       {step===1&&(
         <div>
-          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 1 - Acte de copropriete et informations du syndicaticat</div>
-          <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Importez votre acte de copropriete (PDF) - les informations seront extraites automatiquement. Vous pourrez les modifier avant de continuer.</div>
+          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 1 - Acte de copropriete et informations du syndicat</div>
+          <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Collez le texte du REQ ou importez la declaration PDF - les informations seront extraites automatiquement. Vous pourrez les modifier avant de continuer.</div>
           <div style={{background:"#F0F7FF",border:"1px solid #1A56DB33",borderRadius:10,padding:14,marginBottom:16}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
               <div>
@@ -1286,21 +1286,54 @@ function Onboarding(p){
               <div style={{background:"#E8F2EC",border:"1px solid #1B5E3B44",borderRadius:6,padding:"6px 12px",fontSize:11,color:"#1B5E3B",marginBottom:10,fontWeight:600}}> {iaSuccess}</div>
             )}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              <div style={{background:"#EFF6FF",border:"2px dashed "+(data.reqNom?"#1A56DB":"#1A56DB66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
-                <div style={{fontSize:11,fontWeight:700,color:"#1A56DB",marginBottom:3}}>Registre entreprises du Quebec (REQ)</div>
-                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>NEQ, administrateurs, adresse du domicile</div>
-                <input type="file" accept=".pdf,.PDF" id="reqUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("reqNom",f.name);window._reqFile=f;}}} style={{display:"none"}}/>
-                <button onClick={function(){document.getElementById("reqUpload").click();}} style={{background:"#1A56DB",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.reqNom?" Changer":" Slectionner PDF"}
+              <div style={{background:"#FFF8EE",border:"2px solid #E8A020",borderRadius:8,padding:12}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#B86020",marginBottom:3}}>Registre entreprises du Quebec (REQ)</div>
+                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Copiez le texte du REQ depuis registreentreprises.gouv.qc.ca et collez ci-dessous</div>
+                <textarea id="txtREQ" rows={6} style={{width:"100%",border:"1px solid #E8A020",borderRadius:6,padding:"6px 8px",fontSize:10,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:6}} placeholder="Collez ici le texte complet du REQ (nom, NEQ, adresse, administrateurs...)"/>
+                <button onClick={function(){
+                  var t=document.getElementById("txtREQ")?document.getElementById("txtREQ").value:"";
+                  if(!t||t.trim().length<10){setIaError("Collez le texte du REQ avant d extraire.");return;}
+                  setIaLoading(true);setIaError("");setIaSuccess("");
+                  fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:t,mode:"syndicat"})})
+                  .then(function(r){return r.json();})
+                  .then(function(resp){
+                    if(!resp||resp.error){setIaError(resp&&resp.error?resp.error:"Erreur");setIaLoading(false);return;}
+                    var ex=resp.data||{};
+                    setData(function(o){
+                      var u=Object.assign({},o);
+                      if(ex.nom)u.nom=ex.nom;
+                      if(ex.immat)u.immat=ex.immat;
+                      if(ex.adr)u.adr=ex.adr;
+                      if(ex.ville)u.ville=ex.ville;
+                      if(ex.province&&ex.province.length===2)u.province=ex.province;
+                      if(ex.codePostal)u.codePostal=ex.codePostal;
+                      if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);
+                      if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;
+                      if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);
+                      if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)u.anneeConstruction=parseInt(ex.anneeConstruction);
+                      if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
+                      if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
+                        u.nbMembresCA=ex.admins.length;
+                        u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});
+                      }
+                      return u;
+                    });
+                    var ks=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];
+                    var n=ks.filter(function(k){return ex[k]&&ex[k]!=="";}).length;
+                    if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;
+                    setIaSuccess(n+" champs extraits - verifiez et completez");
+                    setIaLoading(false);
+                  }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});
+                }} disabled={iaLoading} style={{background:"#B86020",color:"#fff",border:"none",borderRadius:6,padding:"6px 16px",fontSize:11,fontWeight:700,cursor:iaLoading?"not-allowed":"pointer"}}>
+                  {iaLoading?"Extraction en cours...":"Extraire avec l IA"}
                 </button>
-                {data.reqNom&&<div style={{fontSize:10,color:"#1A56DB",marginTop:5,fontWeight:600}}> {data.reqNom}</div>}
               </div>
               <div style={{background:"#E8F2EC",border:"2px dashed "+(data.acteNom?"#1B5E3B":"#1B5E3B66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
                 <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>Declaration de copropriete</div>
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Quorum AGO, annee construction, structure legale</div>
                 <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFile=f;}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
-                  {data.acteNom?" Changer":" Slectionner PDF"}
+                  {data.acteNom?" Changer":" Selectionner PDF"}
                 </button>
                 {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}> {data.acteNom}</div>}
               </div>
@@ -1309,7 +1342,7 @@ function Onboarding(p){
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <Field l="Nom officiel du syndicat" full hint="Nom tel qu il apparait dans votre acte de copropriete"><input value={data.nom} onChange={function(e){sd("nom",e.target.value);}} style={INP} placeholder="Syndicat Piedmont"/></Field>
             <Field l="Code court (4 lettres)" hint="Identifiant interne Predictek"><input value={data.code} onChange={function(e){sd("code",e.target.value.toUpperCase().slice(0,4));}} style={INP} placeholder="PIED" maxLength={4}/></Field>
-            <Field l="Anne de construction (dclaration)"><input type="number" value={data.anneeConstruction} onChange={function(e){sd("anneeConstruction",e.target.value);}} style={INP} placeholder="2013"/></Field>
+            <Field l="Annee de construction"><input type="number" value={data.anneeConstruction} onChange={function(e){sd("anneeConstruction",e.target.value);}} style={INP} placeholder="2013"/></Field>
             <Field l="Adresse du syndicat" full hint="Adresse du domicile tel qu inscrit au REQ"><input value={data.adr} onChange={function(e){sd("adr",e.target.value);}} style={INP} placeholder="123 Chemin du Hibou"/></Field>
             <Field l="Ville"><input value={data.ville} onChange={function(e){sd("ville",e.target.value);}} style={INP} placeholder="Stoneham-et-Tewkesbury"/></Field>
             <Field l="Province"><select value={data.province} onChange={function(e){sd("province",e.target.value);}} style={INP}><option>QC</option><option>ON</option><option>BC</option><option>AB</option></select></Field>
