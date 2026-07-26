@@ -1504,36 +1504,7 @@ function Onboarding(p){
 
       {step===4&&(
         <div>
-          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 4 - Soldes d ouverture et budget</div>
-          <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Entrez les soldes bancaires au debut de l exercice actif. Ces valeurs seront les soldes d ouverture dans la comptabilite.</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
-            <Field l="Date d ouverture de l exercice"><input type="date" value={data.dateOuverture} onChange={function(e){sd("dateOuverture",e.target.value);}} style={INP}/></Field>
-            <div/>
-            <Field l="Solde - Compte d exploitation ($)" hint="Argent disponible pour les operations courantes"><input type="number" value={data.soldeOp} onChange={function(e){sd("soldeOp",e.target.value);}} style={INP} placeholder="Ex: 7361.88" step="0.01"/></Field>
-            <Field l="Solde - Fonds de prevoyance ($)" hint="Reserve pour travaux majeurs (Loi 16 - obligatoire)"><input type="number" value={data.soldePrev} onChange={function(e){sd("soldePrev",e.target.value);}} style={INP} placeholder="Ex: 64235.01" step="0.01"/></Field>
-            <Field l="Solde - Fonds d assurance ($)" hint="Reserve pour la franchise d assurance"><input type="number" value={data.soldeAss} onChange={function(e){sd("soldeAss",e.target.value);}} style={INP} placeholder="Ex: 36178.37" step="0.01"/></Field>
-            <Field l="Budget annuel total ($)" hint="Total des depenses budgetees pour l exercice"><input type="number" value={data.budgetAnnuel} onChange={function(e){sd("budgetAnnuel",e.target.value);}} style={INP} placeholder="Ex: 142800" step="0.01"/></Field>
-          </div>
-          {(data.soldeOp||data.soldePrev||data.soldeAss)&&(
-            <div style={{background:T.accentL,borderRadius:10,padding:14,marginBottom:14,display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
-              {[{l:"Exploitation",v:parseFloat(data.soldeOp)||0},{l:"Prevoyance",v:parseFloat(data.soldePrev)||0},{l:"Assurance",v:parseFloat(data.soldeAss)||0},{l:"Total",v:(parseFloat(data.soldeOp)||0)+(parseFloat(data.soldePrev)||0)+(parseFloat(data.soldeAss)||0)}].map(function(s,i){return(
-                <div key={i} style={{textAlign:"center"}}>
-                  <div style={{fontSize:9,color:T.accent,fontWeight:700,textTransform:"uppercase",marginBottom:4}}>{s.l}</div>
-                  <div style={{fontSize:14,fontWeight:800,color:T.navy}}>{money(s.v)}</div>
-                </div>
-              );})}
-            </div>
-          )}
-          <div style={{display:"flex",justifyContent:"space-between",marginTop:20}}>
-            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(3);}}>- Retour</Btn>
-            <Btn onClick={function(){setStep(5);}}>Continuer -</Btn>
-          </div>
-        </div>
-      )}
-
-      {step===5&&(
-        <div>
-          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 5 - Documents officiels</div>
+          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 4 - Documents officiels</div>
           <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Importez les documents fondamentaux du syndicat. La declaration de copropriete est obligatoire.</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
             {[{cat:"declaration",l:"Declaration de copropriete",desc:"Document fondateur - acte notarie",obligatoire:true},{cat:"reglement",l:"Reglement de l immeuble",desc:"Regles de vie approuvees en assemblee",obligatoire:true},{cat:"police",l:"Police d assurance",desc:"Assurance syndicat en vigueur",obligatoire:false},{cat:"financier",l:"Etats financiers annuels",desc:"Derniers etats financiers verifies",obligatoire:false},{cat:"carnet_prev",l:"Etude du fonds de prevoyance",desc:"Etude actuarielle Loi 16",obligatoire:false},{cat:"autre",l:"Autre document",desc:"Tout autre document pertinent",obligatoire:false}].map(function(dtype){
@@ -1559,144 +1530,15 @@ function Onboarding(p){
             })}
           </div>
           <div style={{display:"flex",justifyContent:"space-between",marginTop:20}}>
-            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(4);}}>- Retour</Btn>
-            <Btn onClick={function(){setStep(6);}}>Continuer -</Btn>
+            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(3);}}>- Retour</Btn>
+            <Btn onClick={function(){setStep(5);}}>Continuer -</Btn>
           </div>
         </div>
       )}
 
-      {step===6&&(
+      {step===5&&(
         <div>
-          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 6 - Carnet d entretien (Loi 16)</div>
-          <div style={{fontSize:12,color:T.muted,marginBottom:6}}>Requis par la Loi 16 pour tous les syndicats de copropriete au Quebec. Listez les composantes de l immeuble avec leur date d installation et etat actuel.</div>
-          <div style={{background:T.amberL,border:"1px solid "+T.amber+"44",borderRadius:8,padding:"9px 14px",marginBottom:14,fontSize:11,color:T.amber}}>
-            <b>Loi 16 - Article 1070.2 CCQ:</b> Tout syndicat doit tenir un carnet d entretien de l immeuble incluant toutes les composantes majeures avec leur duree de vie prevue et leur etat actuel.
-          </div>
-          <div style={{marginBottom:12,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <Field l="Nom de l inspecteur / expert"><input value={data.inspecteur} onChange={function(e){sd("inspecteur",e.target.value);}} style={INP} placeholder="Nom, titre, no de licence"/></Field>
-            <Field l="Date d inspection"><input type="date" value={data.dateInspection} onChange={function(e){sd("dateInspection",e.target.value);}} style={INP}/></Field>
-          </div>
-          <div style={{fontSize:11,color:T.muted,marginBottom:10}}><b style={{color:T.accent}}>{compOk}/{compOblig}</b> composantes obligatoires completees</div>
-          {["Structure","Enveloppe","Mecanique","Securite","Amenagements","Interieur"].map(function(cat){
-            var comps=data.composantes.filter(function(c){return c.cat===cat;});
-            return(
-              <div key={cat} style={{marginBottom:12}}>
-                <div style={{background:T.navy,color:"#fff",padding:"7px 12px",fontSize:11,fontWeight:700,borderRadius:"8px 8px 0 0",textTransform:"uppercase",letterSpacing:"0.05em"}}>{cat}</div>
-                <div style={{border:"1px solid "+T.border,borderRadius:"0 0 8px 8px",overflow:"hidden"}}>
-                  {comps.map(function(comp){
-                    var idx=data.composantes.findIndex(function(c){return c.id===comp.id;});
-                    var anneeRest=comp.anneeInstall?Math.max(0,(parseInt(comp.anneeInstall)||anneeConstruction)+comp.dureeVie-new Date().getFullYear()):null;
-                    return(
-                      <div key={comp.id} style={{display:"grid",gridTemplateColumns:"2.5fr 1fr 1fr 1fr 1.5fr",gap:8,padding:"8px 12px",borderBottom:"1px solid "+T.border,alignItems:"center",background:comp.obligatoire&&!comp.anneeInstall?"#FFFBF0":T.surface}}>
-                        <div>
-                          <div style={{fontSize:11,fontWeight:600,color:T.text}}>{comp.nom}{comp.obligatoire&&<span style={{color:T.red,marginLeft:4,fontSize:9}}>REQUIS</span>}</div>
-                          <div style={{fontSize:9,color:T.muted}}>Duree de vie: {comp.dureeVie} ans</div>
-                        </div>
-                        <div>
-                          <div style={{fontSize:9,color:T.muted,marginBottom:2}}>Annee install.</div>
-                          <input type="number" value={comp.anneeInstall||""} onChange={function(e){sdComp(idx,"anneeInstall",e.target.value);}} placeholder={anneeConstruction.toString()} style={{width:"100%",border:"1px solid "+T.border,borderRadius:5,padding:"3px 6px",fontSize:11,fontFamily:"inherit",outline:"none"}}/>
-                        </div>
-                        <div>
-                          <div style={{fontSize:9,color:T.muted,marginBottom:2}}>Etat</div>
-                          <select value={comp.etat} onChange={function(e){sdComp(idx,"etat",e.target.value);}} style={{width:"100%",border:"1px solid "+T.border,borderRadius:5,padding:"3px 4px",fontSize:11,fontFamily:"inherit",outline:"none"}}>
-                            <option value="excellent">Excellent</option>
-                            <option value="bon">Bon</option>
-                            <option value="moyen">Moyen</option>
-                            <option value="deficient">Deficient</option>
-                          </select>
-                        </div>
-                        <div style={{textAlign:"center"}}>
-                          {anneeRest!==null&&(
-                            <div>
-                              <div style={{fontSize:15,fontWeight:800,color:anneeRest<=5?T.red:anneeRest<=10?T.amber:T.accent}}>{anneeRest}</div>
-                              <div style={{fontSize:9,color:T.muted}}>ans restants</div>
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <input value={comp.notes||""} onChange={function(e){sdComp(idx,"notes",e.target.value);}} placeholder="Notes..." style={{width:"100%",border:"1px solid "+T.border,borderRadius:5,padding:"3px 6px",fontSize:10,fontFamily:"inherit",outline:"none"}}/>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-          <div style={{display:"flex",justifyContent:"space-between",marginTop:20}}>
-            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(5);}}>- Retour</Btn>
-            <Btn onClick={function(){setStep(7);}}>Continuer -</Btn>
-          </div>
-        </div>
-      )}
-
-      {step===7&&(
-        <div>
-          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 7 - Attestation de copropriete</div>
-          <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Generez et acceptez l attestation reglementaire du syndicat. Requise selon la Loi 16 et les exigences des preteurs hypothecaires.</div>
-
-          <div style={{background:T.surface,border:"2px solid "+T.navy,borderRadius:12,padding:20,marginBottom:16,fontFamily:"Georgia,serif"}}>
-            <div style={{textAlign:"center",marginBottom:16}}>
-              <div style={{fontSize:16,fontWeight:900,color:T.navy,textTransform:"uppercase",letterSpacing:"0.05em"}}>ATTESTATION DE COPROPRIETE</div>
-              <div style={{fontSize:12,color:T.muted,marginTop:4}}>En vertu de l article 1070 et suivants du Code civil du Quebec</div>
-              <div style={{width:60,height:2,background:T.navy,margin:"12px auto"}}/>
-            </div>
-
-            <div style={{fontSize:12,color:T.text,lineHeight:1.9,marginBottom:14}}>
-              <b>Le syndicat {data.nom||"[Nom du syndicat]"}</b>, immatricule sous le numero <b>{data.immat||"[Immatriculation]"}</b> au Registre des entreprises du Quebec, ci-apres designe le "Syndicat", represente par son conseil d administration elu, atteste ce qui suit:
-            </div>
-
-            <div style={{display:"grid",gap:8,marginBottom:14}}>
-              {[
-                "Le Syndicat est legalement constitue et en bonne et due forme selon les lois du Quebec",
-                "L immeuble situe au "+( data.adr?data.adr+", "+data.ville+" "+data.province+" "+data.codePostal:"[Adresse]")+" est compose de "+(copros.length||data.nbUnites||"[N]")+" unites de copropriete",
-                "Le Syndicat est a jour dans le paiement de ses cotisations et charges communes",
-                "Le Syndicat tient a jour son carnet d entretien conformement a l article 1070.2 CCQ (Loi 16)",
-                "Le fonds de prevoyance est maintenu conformement aux exigences legales",
-                "Aucune procedure judiciaire impliquant le Syndicat n est en cours au moment de la presente attestation",
-                "L assurance du batiment est en vigueur et conforme aux exigences minimales",
-                "Le registre des coproprietaires est tenu a jour et accessible",
-              ].map(function(item,i){return(
-                <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",fontSize:11,color:T.text}}>
-                  <span style={{color:T.accent,fontWeight:700,flexShrink:0,marginTop:1}}>-</span>
-                  <span>{item}</span>
-                </div>
-              );})}
-            </div>
-
-            <div style={{borderTop:"1px solid "+T.border,paddingTop:14,marginTop:14}}>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,fontSize:11,color:T.text}}>
-                <div>
-                  <div style={{fontWeight:700,marginBottom:4}}>President du conseil d administration</div>
-                  <div style={{color:T.muted,marginBottom:2}}>{data.president||"[Nom du president]"}</div>
-                  <div style={{borderBottom:"1px solid "+T.border,marginTop:20,marginBottom:4}}/>
-                  <div style={{fontSize:9,color:T.muted}}>Signature</div>
-                </div>
-                <div>
-                  <div style={{fontWeight:700,marginBottom:4}}>Date et lieu</div>
-                  <div style={{color:T.muted}}>{today()} - {data.ville||"[Ville]"}</div>
-                  <div style={{marginTop:8,fontWeight:700,marginBottom:4}}>Secretaire</div>
-                  <div style={{color:T.muted}}>{data.secretaire||"[Nom du secretaire]"}</div>
-                </div>
-              </div>
-              <div style={{marginTop:14,background:T.amberL,borderRadius:7,padding:"8px 12px",fontSize:10,color:T.amber}}>
-                Cette attestation est valide pour une periode de 30 jours a compter de la date d emission. Pour les transactions immobilieres, une nouvelle attestation doit etre demandee par le coproprietaire vendeur.
-              </div>
-            </div>
-          </div>
-
-          <Check checked={data.attestationAcceptee} onChange={function(){sd("attestationAcceptee",!data.attestationAcceptee);}} label="Je certifie que les informations contenues dans cette attestation sont exactes et completes" desc="En cochant cette case, vous confirmez l exactitude des informations au nom du conseil d administration du syndicat."/>
-
-          <div style={{display:"flex",justifyContent:"space-between",marginTop:20}}>
-            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(6);}}>- Retour</Btn>
-            <Btn dis={!data.attestationAcceptee} onClick={function(){setStep(8);}}>Continuer -</Btn>
-          </div>
-        </div>
-      )}
-
-      {step===8&&(
-        <div>
-          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 8 - Confirmation et activation</div>
+          <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 5 - Confirmation et activation</div>
           <div style={{fontSize:12,color:T.muted,marginBottom:20}}>Verifiez le resume de la configuration avant d activer le syndicat.</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:20}}>
             {[
@@ -1722,7 +1564,7 @@ function Onboarding(p){
             <b>Pret a activer!</b> Le syndicat {data.nom} sera cree et accessible dans tous les modules Predictek. Toutes les donnees importees seront disponibles immediatement.
           </div>
           <div style={{display:"flex",justifyContent:"space-between"}}>
-            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(7);}}>- Retour</Btn>
+            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(4);}}>- Retour</Btn>
             <Btn bg={T.accent} onClick={terminer} style={{fontSize:14,padding:"12px 28px"}}>Activer le syndicat {data.nom}</Btn>
           </div>
         </div>
