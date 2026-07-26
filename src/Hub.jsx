@@ -370,7 +370,7 @@ var reader=new FileReader();
             <div style={{fontSize:24,marginBottom:8,color:T.muted}}>CSV</div>
             <div style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:4}}>Cliquez pour selectionner votre fichier</div>
             <div style={{fontSize:11,color:T.muted}}>Formats acceptes: .csv, .txt</div>
-            <input id="csvCreer" type="file" accept=".xlsx,.csv,.txt" onChange={handleCSV} style={{display:"none"}}/>
+            <input id="csvCreer" type="file" accept=".xlsx,.xls,.csv,.txt" onChange={handleCSV} style={{display:"none"}}/>
           </div>
           {importMsg&&(
             <div style={{background:importMsg.includes("Erreur")?T.redL:T.accentL,color:importMsg.includes("Erreur")?T.red:T.accent,borderRadius:8,padding:"9px 13px",fontSize:12,marginBottom:14}}>{importMsg}</div>
@@ -1159,7 +1159,7 @@ function Onboarding(p){
 
   function handleCSV(e){
     var file=e.target.files[0];
-    if(file&&file.name&&file.name.toLowerCase().indexOf(".xlsx")>=0){if(typeof XLSX==="undefined"){var s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";s.onload=function(){handleCSV(e);};document.head.appendChild(s);return;}var xr=new FileReader();xr.onload=function(ev){var wb=XLSX.read(ev.target.result,{type:"array"});var ws=wb.Sheets[wb.SheetNames[0]];parseCSV(XLSX.utils.sheet_to_csv(ws));};xr.readAsArrayBuffer(file);return;}
+    if(file&&file.name&&file.name.toLowerCase().match(/\.xlsx?$/)){if(typeof XLSX==="undefined"){var s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";s.onload=function(){handleCSV(e);};document.head.appendChild(s);return;}var xr=new FileReader();xr.onload=function(ev){var wb=XLSX.read(ev.target.result,{type:"array"});var ws=wb.Sheets[wb.SheetNames[0]];var result=parseCSV(XLSX.utils.sheet_to_csv(ws));if(result.ok){setCopros(result.rows);setCSVMsg(result.msg);setCSVErrors(result.errors||[]);}else{setCSVMsg("Erreur: "+result.msg);setCopros([]);}};xr.readAsArrayBuffer(file);return;}
     if(!file)return;
     var reader=new FileReader();
     reader.onload=function(ev){
@@ -1482,7 +1482,7 @@ function Onboarding(p){
             <div style={{fontSize:32,marginBottom:8}}>CSV</div>
             <div style={{fontSize:14,fontWeight:600,color:T.text,marginBottom:4}}>Cliquez pour importer votre fichier CSV</div>
             <div style={{fontSize:11,color:T.muted}}>Formats acceptes: .csv, .txt</div>
-            <input ref={fileRef} type="file" accept=".xlsx,.csv,.txt" onChange={handleCSV} style={{display:"none"}}/>
+            <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,.txt" onChange={handleCSV} style={{display:"none"}}/>
           </div>
 
           {csvMsg&&(
