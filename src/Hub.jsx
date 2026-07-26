@@ -1292,44 +1292,46 @@ function Onboarding(p){
                 <input type="file" accept=".pdf,.PDF" id="pdfREQ" style={{display:"none"}} onChange={function(e){
                   var file=e.target.files&&e.target.files[0];
                   if(!file)return;
+                  if(file.size>7000000){setIaError("PDF trop volumineux (max 7 Mo).");return;}
                   setIaError("");setIaSuccess("");setIaLoading(true);
-                  function runExtract(){
-                    var fr=new FileReader();
-                    fr.onload=function(ev){
-                      window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-                      window.pdfjsLib.getDocument({data:ev.target.result}).promise.then(function(pdf){
-                        var proms=[];
-                        for(var p=1;p<=pdf.numPages;p++){
-                          proms.push(pdf.getPage(p).then(function(page){
-                            return page.getTextContent().then(function(tc){
-                              return tc.items.map(function(it){return it.str;}).join(" ");
-                            });
-                          }));
+                  var fr=new FileReader();
+                  fr.onload=function(ev){
+                    var b64=ev.target.result.split(",")[1];
+                    fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pdf:b64,mode:"syndicat"})})
+                    .then(function(r){return r.json();})
+                    .then(function(resp){
+                      if(!resp||resp.error){setIaError(resp&&resp.error?resp.error:"Erreur");setIaLoading(false);return;}
+                      var ex=resp.data||{};
+                      setData(function(o){
+                        var u=Object.assign({},o);
+                        if(ex.nom)u.nom=ex.nom;
+                        if(ex.immat)u.immat=ex.immat;
+                        if(ex.adr)u.adr=ex.adr;
+                        if(ex.ville)u.ville=ex.ville;
+                        if(ex.province&&ex.province.length===2)u.province=ex.province;
+                        if(ex.codePostal)u.codePostal=ex.codePostal;
+                        if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);
+                        if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;
+                        if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);
+                        if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)u.anneeConstruction=parseInt(ex.anneeConstruction);
+                        if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
+                        if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
+                          u.nbMembresCA=ex.admins.length;
+                          u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});
                         }
-                        Promise.all(proms).then(function(pages){
-                          var texte=pages.join("\n").trim();
-                          setIaLoading(false);
-                          if(texte.length<50){
-                            setIaError("Ce PDF semble scanne (image) - aucun texte extractible. Utilisez le copier-coller depuis le site du REQ.");
-                            return;
-                          }
-                          var ta=document.getElementById("txtREQ");
-                          if(ta){ta.value=texte;}
-                          setIaSuccess("Texte extrait du PDF ("+texte.length+" caracteres) - cliquez Extraire avec l IA");
-                        });
-                      }).catch(function(err){setIaLoading(false);setIaError("Erreur lecture PDF: "+err.message);});
-                    };
-                    fr.readAsArrayBuffer(file);
-                  }
-                  if(typeof window.pdfjsLib==="undefined"){
-                    var s=document.createElement("script");
-                    s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-                    s.onload=runExtract;
-                    document.head.appendChild(s);
-                  }else{runExtract();}
+                        return u;
+                      });
+                      var ks=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];
+                      var n=ks.filter(function(k){return ex[k]&&ex[k]!=="";}).length;
+                      if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;
+                      setIaSuccess(n+" champs extraits du PDF - verifiez et completez");
+                      setIaLoading(false);
+                    }).catch(function(err){setIaError("Erreur: "+err.message);setIaLoading(false);});
+                  };
+                  fr.readAsDataURL(file);
                 }}/>
                 <button onClick={function(){document.getElementById("pdfREQ").click();}} style={{background:"#fff",border:"1px solid #E8A020",borderRadius:6,padding:"5px 12px",fontSize:10,fontWeight:700,color:"#B86020",cursor:"pointer",marginBottom:6,marginRight:6}}>
-                  Selectionner un PDF texte du REQ
+                  Selectionner le PDF du REQ (scan accepte)
                 </button>
                 <span style={{fontSize:9,color:"#7C7568"}}>ou collez le texte ci-dessous</span>
                 <textarea id="txtREQ" rows={6} style={{width:"100%",border:"1px solid #E8A020",borderRadius:6,padding:"6px 8px",fontSize:10,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:6}} placeholder="Collez ici le texte complet du REQ (nom, NEQ, adresse, administrateurs...)"/>
