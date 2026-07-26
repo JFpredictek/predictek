@@ -1043,7 +1043,7 @@ function Onboarding(p){
     // Etape 5 - Documents
     documents:[],
     // Etape 6 - Carnet
-    composantes:COMPOSANTES_LOI16.map(function(c,i){return Object.assign({},c,{id:i});}),
+    composantes:[],
     inspecteur:"",dateInspection:"",
     // Etape 7 - Attestation
     attestationAcceptee:false,
