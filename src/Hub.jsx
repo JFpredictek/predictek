@@ -1062,6 +1062,7 @@ function Onboarding(p){
   var s4=useState([]);var csvErrors=s4[0];var setCSVErrors=s4[1];
   var s5=useState("");var newMembre=s5[0];var setNewMembre=s5[1];
   var s6=useState(false);var iaLoading=s6[0];var setIaLoading=s6[1];
+  var sQP=useState(null);var qpResult=sQP[0];var setQpResult=sQP[1];
   var s7=useState("");var iaError=s7[0];var setIaError=s7[1];
   var s8=useState("");var iaSuccess=s8[0];var setIaSuccess=s8[1];
   var fileRef=useRef(null);
@@ -1384,7 +1385,7 @@ function Onboarding(p){
               <div style={{background:"#E8F2EC",border:"2px dashed "+(data.acteNom?"#1B5E3B":"#1B5E3B66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
                 <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>Declaration de copropriete</div>
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Quorum AGO, annee construction, structure legale</div>
-                <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFile=f;}}} style={{display:"none"}}/>
+                <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFile=f;var fr=new FileReader();fr.onload=function(ev){window._acteB64=ev.target.result.split(",")[1];};fr.readAsDataURL(f);}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
                   {data.acteNom?" Changer":" Selectionner PDF"}
                 </button>
@@ -1556,6 +1557,43 @@ function Onboarding(p){
             </div>
           )}
 
+          {copros.length>0&&(
+            <div style={{marginBottom:14,background:"#F0F7F2",border:"1px solid #1B5E3B44",borderRadius:8,padding:12}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#1B5E3B",marginBottom:6}}>Validation croisee avec la declaration de copropriete</div>
+              {!window._acteB64&&<div style={{fontSize:11,color:"#B86020"}}>Aucune declaration fournie a l etape 1 - retournez a l etape 1 pour l importer si vous souhaitez valider les quote-parts.</div>}
+              {window._acteB64&&(
+                <button onClick={function(){
+                  setQpResult({loading:true});
+                  fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pdf:window._acteB64,mode:"quoteparts",unites:copros.map(function(c){return {unite:c.unite,fraction:c.fraction};})})})
+                  .then(function(r){return r.json();})
+                  .then(function(resp){
+                    if(!resp||resp.error){setQpResult({error:(resp&&resp.error)||"Erreur"});return;}
+                    setQpResult(resp.data||{});
+                  }).catch(function(e){setQpResult({error:e.message});});
+                }} disabled={qpResult&&qpResult.loading} style={{background:"#1B5E3B",color:"#fff",border:"none",borderRadius:6,padding:"7px 16px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                  {qpResult&&qpResult.loading?"Validation en cours...":"Valider les quote-parts avec la declaration"}
+                </button>
+              )}
+              {qpResult&&qpResult.error&&<div style={{marginTop:8,fontSize:11,color:"#B83232"}}>Erreur: {qpResult.error}</div>}
+              {qpResult&&!qpResult.loading&&!qpResult.error&&qpResult.concordance===true&&(
+                <div style={{marginTop:8,fontSize:12,fontWeight:700,color:"#155724",background:"#D4EDDA",borderRadius:6,padding:"6px 12px",display:"inline-block"}}>Toutes les quote-parts concordent avec la declaration ({qpResult.nbValides||copros.length} unites)</div>
+              )}
+              {qpResult&&!qpResult.loading&&!qpResult.error&&qpResult.concordance===false&&(
+                <div style={{marginTop:8}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#B86020",marginBottom:6}}>Ecarts detectes ({(qpResult.ecarts||[]).length}):</div>
+                  <table style={{borderCollapse:"collapse",fontSize:11}}>
+                    <thead><tr><th style={{padding:"4px 10px",textAlign:"left",color:T.muted}}>Unite</th><th style={{padding:"4px 10px",textAlign:"right",color:T.muted}}>Fichier Excel</th><th style={{padding:"4px 10px",textAlign:"right",color:T.muted}}>Declaration</th></tr></thead>
+                    <tbody>
+                      {(qpResult.ecarts||[]).map(function(ec,i){return(
+                        <tr key={i} style={{background:"#FFF3CD"}}><td style={{padding:"4px 10px",fontWeight:700}}>{ec.unite}</td><td style={{padding:"4px 10px",textAlign:"right"}}>{ec.excel}</td><td style={{padding:"4px 10px",textAlign:"right"}}>{ec.declaration}</td></tr>
+                      );})}
+                    </tbody>
+                  </table>
+                  {qpResult.note&&<div style={{fontSize:10,color:T.muted,marginTop:4}}>{qpResult.note}</div>}
+                </div>
+              )}
+            </div>
+          )}
           {copros.length===0&&(
             <div style={{marginBottom:14}}>
               <Lbl l="OU - Saisir le nombre d unites manuellement"/>
@@ -1578,14 +1616,16 @@ function Onboarding(p){
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
             {[{cat:"declaration",l:"Declaration de copropriete",desc:"Document fondateur - acte notarie",obligatoire:true},{cat:"reglement",l:"Reglement de l immeuble",desc:"Regles de vie approuvees en assemblee",obligatoire:true},{cat:"police",l:"Police d assurance",desc:"Assurance syndicat en vigueur",obligatoire:false},{cat:"financier",l:"Etats financiers annuels",desc:"Derniers etats financiers verifies",obligatoire:false},{cat:"carnet_prev",l:"Etude du fonds de prevoyance",desc:"Etude actuarielle Loi 16",obligatoire:false},{cat:"autre",l:"Autre document",desc:"Tout autre document pertinent",obligatoire:false}].map(function(dtype){
               var uploaded=data.documents.filter(function(d){return d.cat===dtype.cat;});
+                  var viaEtape1=(dtype.cat==="declaration"&&data.acteNom)?true:false;
               return(
-                <div key={dtype.cat} style={{background:T.surface,border:"1px solid "+(uploaded.length>0?T.accent:dtype.obligatoire?T.amber:T.border),borderRadius:10,padding:12}}>
+                <div key={dtype.cat} style={{background:T.surface,border:"1px solid "+((uploaded.length>0||viaEtape1)?T.accent:dtype.obligatoire?T.amber:T.border),borderRadius:10,padding:12}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
                     <div>
                       <div style={{fontSize:12,fontWeight:700,color:T.text}}>{dtype.l}{dtype.obligatoire&&<span style={{color:T.red,marginLeft:4}}>*</span>}</div>
                       <div style={{fontSize:10,color:T.muted}}>{dtype.desc}</div>
+                          {viaEtape1&&<div style={{fontSize:10,color:"#155724",background:"#D4EDDA",borderRadius:5,padding:"2px 8px",display:"inline-block",marginTop:3,fontWeight:600}}>Fournie a l etape 1: {data.acteNom}</div>}
                     </div>
-                    {uploaded.length>0&&<span style={{fontSize:16,color:T.accent}}>-</span>}
+                    {(uploaded.length>0||viaEtape1)&&<span style={{fontSize:16,color:T.accent}}>OK</span>}
                   </div>
                   {uploaded.map(function(d,i){return(
                     <div key={i} style={{fontSize:10,color:T.accent,background:T.accentL,borderRadius:5,padding:"3px 8px",marginBottom:4,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
