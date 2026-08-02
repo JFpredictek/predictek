@@ -93,6 +93,11 @@ var sb = {
       localStorage.removeItem("predictek_user");
     } catch(e) {}
   },
+  setUser: function(user) {
+    try {
+      localStorage.setItem("predictek_user", JSON.stringify(user));
+    } catch(e) {}
+  },
   getUser: function() {
     try {
       var u = localStorage.getItem("predictek_user");
