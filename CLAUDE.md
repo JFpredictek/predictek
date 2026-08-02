@@ -41,7 +41,7 @@ SaaS de gestion de copropriete quebecoise (syndicats de copropriete).
 ## Commandes
 ```bash
 npm install          # premiere fois
-npm run dev          # dev local (http://localhost:3000)
+npm start             # dev local (http://localhost:3000)
 npm run build        # DOIT passer avant tout push (c'est ce que Vercel execute)
 git add -A && git commit -m "..." && git push   # deploie automatiquement en production
 ```
