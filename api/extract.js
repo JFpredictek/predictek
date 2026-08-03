@@ -1,11 +1,32 @@
 export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 
+// SECURITE: cet endpoint exige un jeton de session Supabase valide (connexion requise).
+var SB_URL = "https://yzbauupamxbwcnnuiunf.supabase.co";
+var SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6YmF1dXBhbXhid2NubnVpdW5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMzY0NzIsImV4cCI6MjA5MjgxMjQ3Mn0.ZcoZtbeej2wol4TFyuOUg4vv8QVAI5efKlWbLu4H6L4";
+var ORIGINS = ["https://predictek-d9sy.vercel.app","http://localhost:3000"];
+
+async function verifierJeton(req) {
+  var auth = req.headers.authorization || "";
+  var token = auth.indexOf("Bearer ") === 0 ? auth.slice(7) : "";
+  if(!token || token === SB_ANON) return null;
+  try {
+    var r = await fetch(SB_URL + "/auth/v1/user", {headers: {"apikey": SB_ANON, "Authorization": "Bearer " + token}});
+    if(!r.ok) return null;
+    var u = await r.json();
+    return u && u.id ? u : null;
+  } catch(e) { return null; }
+}
+
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin","*");
+  var origin = req.headers.origin || "";
+  res.setHeader("Access-Control-Allow-Origin", ORIGINS.indexOf(origin) >= 0 ? origin : ORIGINS[0]);
+  res.setHeader("Vary","Origin");
   res.setHeader("Access-Control-Allow-Methods","POST,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers","Content-Type");
+  res.setHeader("Access-Control-Allow-Headers","Content-Type,Authorization");
   if(req.method==="OPTIONS") return res.status(200).end();
   if(req.method!=="POST") return res.status(405).json({error:"Method not allowed"});
+  var usager = await verifierJeton(req);
+  if(!usager) return res.status(401).json({error:"Connexion requise. Veuillez vous reconnecter."});
   try {
     var apiKey = process.env.ANTHROPIC_API_KEY;
     if(!apiKey) return res.status(500).json({error:"ANTHROPIC_API_KEY non configuree"});

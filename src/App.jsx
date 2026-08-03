@@ -104,8 +104,10 @@ export default function App(){
   var s3=useState("predictek");var activeSec=s3[0];var setActiveSec=s3[1];
 
   useEffect(function(){
-    var u=sb.getUser();if(u)setUser(u);
-    setChecking(false);
+    sb.checkSession().then(function(u){
+      if(u)setUser(u);
+      setChecking(false);
+    }).catch(function(){setChecking(false);});
   },[]);
 
   function handleLogin(u){setUser(u);}

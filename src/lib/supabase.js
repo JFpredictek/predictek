@@ -74,6 +74,7 @@ var sb = {
         _token = d.access_token;
         try {
           localStorage.setItem("predictek_token", d.access_token);
+          if(d.refresh_token) localStorage.setItem("predictek_refresh", d.refresh_token);
           localStorage.setItem("predictek_user", JSON.stringify({
             id: d.user.id,
             email: d.user.email,
@@ -90,8 +91,57 @@ var sb = {
     _token = null;
     try {
       localStorage.removeItem("predictek_token");
+      localStorage.removeItem("predictek_refresh");
       localStorage.removeItem("predictek_user");
     } catch(e) {}
+  },
+  getToken: function() { return _token; },
+  // En-tetes pour les appels aux API internes (/api/extract, /api/nas)
+  apiHeaders: function() {
+    var h = {"Content-Type": "application/json"};
+    if(_token) h["Authorization"] = "Bearer " + _token;
+    return h;
+  },
+  resetPassword: async function(email) {
+    try {
+      var r = await fetch(SUPABASE_URL + "/auth/v1/recover", {
+        method: "POST",
+        headers: {"Content-Type":"application/json","apikey":SUPABASE_KEY},
+        body: JSON.stringify({email: email})
+      });
+      if(r.ok) return {error: null};
+      var d = await r.json();
+      return {error: {message: d.error_description || d.msg || "Erreur lors de l envoi"}};
+    } catch(e) { return {error: {message: "Erreur de connexion"}}; }
+  },
+  // Verifie la session au chargement: rafraichit le jeton s il est expire
+  checkSession: async function() {
+    if(!_token) return null;
+    var exp = 0;
+    try { exp = JSON.parse(atob(_token.split(".")[1])).exp || 0; } catch(e) {}
+    var now = Math.floor(Date.now() / 1000);
+    if(exp - now > 60) return this.getUser();
+    var refresh = null;
+    try { refresh = localStorage.getItem("predictek_refresh"); } catch(e) {}
+    if(!refresh) { this.logout(); return null; }
+    try {
+      var r = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=refresh_token", {
+        method: "POST",
+        headers: {"Content-Type":"application/json","apikey":SUPABASE_KEY},
+        body: JSON.stringify({refresh_token: refresh})
+      });
+      var d = await r.json();
+      if(d.access_token) {
+        _token = d.access_token;
+        try {
+          localStorage.setItem("predictek_token", d.access_token);
+          if(d.refresh_token) localStorage.setItem("predictek_refresh", d.refresh_token);
+        } catch(e) {}
+        return this.getUser();
+      }
+    } catch(e) {}
+    this.logout();
+    return null;
   },
   setUser: function(user) {
     try {

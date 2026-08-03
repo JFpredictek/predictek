@@ -613,7 +613,7 @@ function ParamsSyndicat(p){
         setIaError("PDF non-textuel (image scannee). Saisissez manuellement.");
         setIaLoading(false);return null;
       }
-      return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:texte,mode:"syndicat"})});
+      return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:texte,mode:"syndicat"})});
     }).then(function(r){
       if(!r)return;
       if(!r.ok){setIaError("Erreur serveur "+r.status);setIaLoading(false);return;}
@@ -1125,7 +1125,7 @@ function Onboarding(p){
         setIaError("PDF non-textuel (image scannee). Saisissez manuellement.");
         setIaLoading(false);return null;
       }
-      return fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:texte,mode:"syndicat"})});
+      return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:texte,mode:"syndicat"})});
     }).then(function(r){
       if(!r)return;
       if(!r.ok){setIaError("Erreur serveur "+r.status);setIaLoading(false);return;}
@@ -1243,7 +1243,7 @@ function Onboarding(p){
                 <><button onClick={extraireIA} style={{background:"linear-gradient(135deg,#1A56DB,#3CAF6E)",border:"none",borderRadius:8,padding:"8px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:16}}></span> Extraire avec l'IA
                 </button>
-              <div style={{marginTop:10,background:"#FFF8EE",border:"2px solid #E8A020",borderRadius:8,padding:10}}><div style={{fontSize:11,color:"#B86020",fontWeight:700,marginBottom:4}}>PDF scanne ? Collez le texte du REQ ici</div><textarea id="txtREQ" rows={5} style={{width:"100%",border:"1px solid #E8A020",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:6}} placeholder="Collez le texte copie depuis registreentreprises.gouv.qc.ca..."/><button onClick={function(){var t=document.getElementById("txtREQ")?document.getElementById("txtREQ").value:"";if(!t||t.length<10){setIaError("Collez du texte.");return;}setIaLoading(true);setIaError("");setIaSuccess("");fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:t,mode:"syndicat"})}).then(function(r){return r.json();}).then(function(resp){if(!resp||resp.error){setIaError(resp?resp.error:"Erreur");setIaLoading(false);return;}var ex=resp.data||{};setData(function(o){var u=Object.assign({},o);if(ex.nom)u.nom=ex.nom;if(ex.immat)u.immat=ex.immat;if(ex.adr)u.adr=ex.adr;if(ex.ville)u.ville=ex.ville;if(ex.province&&ex.province.length===2)u.province=ex.province;if(ex.codePostal)u.codePostal=ex.codePostal;if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)u.anneeConstruction=parseInt(ex.anneeConstruction);if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
+              <div style={{marginTop:10,background:"#FFF8EE",border:"2px solid #E8A020",borderRadius:8,padding:10}}><div style={{fontSize:11,color:"#B86020",fontWeight:700,marginBottom:4}}>PDF scanne ? Collez le texte du REQ ici</div><textarea id="txtREQ" rows={5} style={{width:"100%",border:"1px solid #E8A020",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:6}} placeholder="Collez le texte copie depuis registreentreprises.gouv.qc.ca..."/><button onClick={function(){var t=document.getElementById("txtREQ")?document.getElementById("txtREQ").value:"";if(!t||t.length<10){setIaError("Collez du texte.");return;}setIaLoading(true);setIaError("");setIaSuccess("");fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:t,mode:"syndicat"})}).then(function(r){return r.json();}).then(function(resp){if(!resp||resp.error){setIaError(resp?resp.error:"Erreur");setIaLoading(false);return;}var ex=resp.data||{};setData(function(o){var u=Object.assign({},o);if(ex.nom)u.nom=ex.nom;if(ex.immat)u.immat=ex.immat;if(ex.adr)u.adr=ex.adr;if(ex.ville)u.ville=ex.ville;if(ex.province&&ex.province.length===2)u.province=ex.province;if(ex.codePostal)u.codePostal=ex.codePostal;if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)u.anneeConstruction=parseInt(ex.anneeConstruction);if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
                       if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){u.nbMembresCA=ex.admins.length;u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});}return u;});var ks=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];var n=ks.filter(function(k){return ex[k]&&ex[k]!=="";}).length;if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;setIaSuccess(n+" champs extraits");setIaLoading(false);}).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});}} style={{background:"#B86020",color:"#fff",border:"none",borderRadius:6,padding:"5px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Extraire depuis ce texte</button></div></>
               )}
               {iaLoading&&(
@@ -1257,7 +1257,7 @@ function Onboarding(p){
                   var t=document.getElementById("txtREQ").value;
                   if(!t||t.trim().length<10){setIaError("Collez du texte.");return;}
                   setIaLoading(true);setIaError("");setIaSuccess("");
-                  fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:t,mode:"syndicat"})})
+                  fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:t,mode:"syndicat"})})
                   .then(function(r){return r.json();})
                   .then(function(resp){
                     if(!resp||resp.error){setIaError(resp?resp.error:"Erreur");setIaLoading(false);return;}
@@ -1310,7 +1310,7 @@ function Onboarding(p){
                   var fr=new FileReader();
                   fr.onload=function(ev){
                     var b64=ev.target.result.split(",")[1];
-                    fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pdf:b64,mode:"syndicat"})})
+                    fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({pdf:b64,mode:"syndicat"})})
                     .then(function(r){return r.json();})
                     .then(function(resp){
                       if(!resp||resp.error){setIaError(resp&&resp.error?resp.error:"Erreur");setIaLoading(false);return;}
@@ -1353,7 +1353,7 @@ function Onboarding(p){
                   var t=document.getElementById("txtREQ")?document.getElementById("txtREQ").value:"";
                   if(!t||t.trim().length<10){setIaError("Collez le texte du REQ avant d extraire.");return;}
                   setIaLoading(true);setIaError("");setIaSuccess("");
-                  fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({texte:t,mode:"syndicat"})})
+                  fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:t,mode:"syndicat"})})
                   .then(function(r){return r.json();})
                   .then(function(resp){
                     if(!resp||resp.error){setIaError(resp&&resp.error?resp.error:"Erreur");setIaLoading(false);return;}
@@ -1576,7 +1576,7 @@ function Onboarding(p){
               {window._acteB64&&(
                 <button onClick={function(){
                   setQpResult({loading:true});
-                  fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pdf:window._acteB64,mode:"quoteparts",unites:copros.map(function(c){return {unite:c.unite,fraction:c.fraction};})})})
+                  fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({pdf:window._acteB64,mode:"quoteparts",unites:copros.map(function(c){return {unite:c.unite,fraction:c.fraction};})})})
                   .then(function(r){return r.json();})
                   .then(function(resp){
                     if(!resp||resp.error){setQpResult({error:(resp&&resp.error)||"Erreur"});return;}

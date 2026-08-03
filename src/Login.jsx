@@ -8,11 +8,6 @@ var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:8,padding:"10px 14
 
 function GradBtn(p){return <button onClick={p.onClick} disabled={p.dis} style={{width:"100%",background:p.dis?"#ccc":"linear-gradient(135deg,#1B5E3B,#3CAF6E)",border:"none",borderRadius:10,padding:"14px",color:"#fff",fontSize:14,fontWeight:700,cursor:p.dis?"not-allowed":"pointer",fontFamily:"inherit",letterSpacing:"0.02em"}}>{p.children}</button>;}
 
-var USERS_DEMO=[
-  {email:"admin@predictek.ca",pwd:"Admin2025!",nom:"Administrateur",role:"admin"},
-  {email:"gestionnaire@syndicat.ca",pwd:"Gest2025!",nom:"Gestionnaire",role:"gestionnaire"},
-];
-
 export default function Login(p){
   var s0=useState("login");var mode=s0[0];var setMode=s0[1];
   var s1=useState("");var email=s1[0];var setEmail=s1[1];
@@ -25,25 +20,19 @@ export default function Login(p){
   function handleLogin(){
     if(!email||!pwd){setErr("Veuillez entrer votre courriel et mot de passe.");return;}
     setLoading(true);setErr("");
-    var demo=USERS_DEMO.find(function(u){return u.email===email.trim()&&u.pwd===pwd;});
-    if(demo){
-      var user={email:demo.email,nom:demo.nom,role:demo.role};
-      try{localStorage.setItem("predictek_user",JSON.stringify(user));}catch(e){}
-      sb.setUser(user);
-      if(p.onLogin)p.onLogin(user);
-      setLoading(false);
-      return;
-    }
-    sb.select("usagers",{eq:{courriel:email.trim(),actif:true},limit:1}).then(function(res){
-      if(res&&res.data&&res.data.length>0){
-        var u=res.data[0];
-        var user={email:u.courriel,nom:(u.prenom||"")+" "+u.nom,role:u.role||"gestionnaire",id:u.id,syndicat_id:u.syndicat_id};
-        try{localStorage.setItem("predictek_user",JSON.stringify(user));}catch(e){}
-        sb.setUser(user);
-        sb.update("usagers",u.id,{derniere_connexion:new Date().toISOString()}).catch(function(){});
+    sb.login(email.trim(),pwd).then(function(res){
+      if(res&&res.data){
+        var user=sb.getUser();
         if(p.onLogin)p.onLogin(user);
       }else{
-        setErr("Courriel ou mot de passe incorrect. Verifiez vos identifiants.");
+        var msg=(res&&res.error&&res.error.message)||"";
+        if(msg.indexOf("Invalid login")>=0||msg.indexOf("invalid")>=0){
+          setErr("Courriel ou mot de passe incorrect. Verifiez vos identifiants.");
+        }else if(msg.indexOf("Email not confirmed")>=0){
+          setErr("Courriel non confirme. Verifiez votre boite de reception.");
+        }else{
+          setErr(msg||"Courriel ou mot de passe incorrect. Verifiez vos identifiants.");
+        }
       }
       setLoading(false);
     }).catch(function(){
@@ -55,10 +44,14 @@ export default function Login(p){
   function handleReset(){
     if(!email){setErr("Entrez votre courriel pour recevoir le lien de reinitialisation.");return;}
     setLoading(true);setErr("");
-    setTimeout(function(){
-      setResetSent(true);
+    sb.resetPassword(email.trim()).then(function(res){
+      if(res&&res.error){setErr(res.error.message);}
+      else{setResetSent(true);}
       setLoading(false);
-    },1000);
+    }).catch(function(){
+      setErr("Erreur de connexion. Verifiez votre connexion internet.");
+      setLoading(false);
+    });
   }
 
   function handleKeyDown(e){if(e.key==="Enter")handleLogin();}
@@ -94,10 +87,6 @@ export default function Login(p){
               </div>
               {err&&<div style={{background:"rgba(184,50,50,0.15)",border:"1px solid rgba(184,50,50,0.3)",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#ff7070",marginBottom:16,textAlign:"center"}}>{err}</div>}
               <GradBtn onClick={handleLogin} dis={loading}>{loading?"Connexion en cours...":"Se connecter"}</GradBtn>
-              <div style={{textAlign:"center",marginTop:20,fontSize:11,color:"#8da0bb"}}>
-                Acces administrateur: admin@predictek.ca<br/>
-                Mot de passe: Admin2025!
-              </div>
             </div>
           )}
 
