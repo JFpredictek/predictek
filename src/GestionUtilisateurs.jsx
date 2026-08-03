@@ -57,6 +57,8 @@ export default function GestionUtilisateurs(){
   var s4=useState(null);var editId=s4[0];var setEditId=s4[1];
   var s5=useState(false);var saving=s5[0];var setSaving=s5[1];
   var s6=useState("actifs");var filtre=s6[0];var setFiltre=s6[1];
+  var s7=useState("");var errMsg=s7[0];var setErrMsg=s7[1];
+  var s8=useState("");var okMsg=s8[0];var setOkMsg=s8[1];
 
   useEffect(function(){
     sb.select("syndicats",{order:"nom.asc"}).then(function(res){if(res&&res.data)setSyndicats(res.data);}).catch(function(){});
@@ -69,16 +71,44 @@ export default function GestionUtilisateurs(){
 
   function sauvegarder(){
     if(!nf.nom||!nf.courriel)return;
-    setSaving(true);
+    setSaving(true);setErrMsg("");setOkMsg("");
     var synd=syndicats.find(function(s){return s.id===nf.syndicat_id;});
     var row={nom:nf.nom,prenom:nf.prenom||"",courriel:nf.courriel,role:nf.role||"gestionnaire",syndicat_id:nf.syndicat_id||null,syndicat_nom:synd?synd.nom:"",actif:nf.actif!==false};
-    var op=editId?sb.update("usagers",editId,row):sb.insert("usagers",row);
-    op.then(function(res){
-      if(editId){setUsers(function(prev){return prev.map(function(u){return u.id===editId?Object.assign({},u,row):u;});});}
-      else if(res&&res.data){setUsers(function(prev){return [res.data].concat(prev);});}
-      sb.log("usagers",editId?"modification":"creation",(editId?"Modification":"Creation")+" usager: "+nf.prenom+" "+nf.nom+" ("+nf.role+")","",nf.syndicat_id||"");
-      setShowForm(false);setNf(VIDE_USER);setEditId(null);setSaving(false);
-    }).catch(function(){setSaving(false);});
+
+    if(editId){
+      sb.update("usagers",editId,row).then(function(){
+        setUsers(function(prev){return prev.map(function(u){return u.id===editId?Object.assign({},u,row):u;});});
+        sb.log("usagers","modification","Modification usager: "+nf.prenom+" "+nf.nom+" ("+nf.role+")","",nf.syndicat_id||"");
+        setShowForm(false);setNf(VIDE_USER);setEditId(null);setSaving(false);
+      }).catch(function(){setErrMsg("Erreur lors de la sauvegarde.");setSaving(false);});
+      return;
+    }
+
+    // Creation: compte de connexion REEL via l API serveur (invitation par courriel),
+    // puis fiche dans la table usagers avec le lien auth_id.
+    fetch("/api/usagers",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({action:"create",courriel:nf.courriel,nom:nf.nom,prenom:nf.prenom||"",role:nf.role||"gestionnaire"})})
+      .then(function(r){return r.json().then(function(d){return {status:r.status,data:d};});})
+      .then(function(resp){
+        if(resp.status!==200||!resp.data||!resp.data.ok){
+          setErrMsg((resp.data&&resp.data.error)||"Erreur lors de la creation du compte. Note: la creation de comptes fonctionne sur le site deploye (pas en dev local).");
+          setSaving(false);
+          return;
+        }
+        row.auth_id=resp.data.auth_id||null;
+        sb.insert("usagers",row).then(function(res){
+          if(res&&res.data){setUsers(function(prev){return [res.data].concat(prev);});}
+          sb.log("usagers","creation","Creation usager: "+nf.prenom+" "+nf.nom+" ("+nf.role+") - invitation envoyee","",nf.syndicat_id||"");
+          setOkMsg("Compte cree. Un courriel d invitation a ete envoye a "+nf.courriel+" pour choisir son mot de passe.");
+          setShowForm(false);setNf(VIDE_USER);setSaving(false);
+        }).catch(function(){
+          setOkMsg("Compte de connexion cree et invitation envoyee, mais la fiche n a pas pu etre sauvegardee. Rechargez la page.");
+          setSaving(false);
+        });
+      })
+      .catch(function(){
+        setErrMsg("Impossible de joindre l API. La creation de comptes fonctionne sur le site deploye (Vercel), pas en dev local.");
+        setSaving(false);
+      });
   }
 
   function editer(u){
@@ -87,9 +117,25 @@ export default function GestionUtilisateurs(){
   }
 
   function toggle(id,actif){
-    sb.update("usagers",id,{actif:actif}).then(function(){
-      setUsers(function(prev){return prev.map(function(u){return u.id===id?Object.assign({},u,{actif:actif}):u;});});
-    }).catch(function(){});
+    setErrMsg("");setOkMsg("");
+    var u=users.find(function(x){return x.id===id;});
+    var finir=function(){
+      sb.update("usagers",id,{actif:actif}).then(function(){
+        setUsers(function(prev){return prev.map(function(x){return x.id===id?Object.assign({},x,{actif:actif}):x;});});
+      }).catch(function(){});
+    };
+    if(u&&u.auth_id){
+      // Bloque/debloque aussi la CONNEXION du compte, pas seulement la fiche
+      fetch("/api/usagers",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({action:"toggle",auth_id:u.auth_id,actif:actif})})
+        .then(function(r){return r.json().then(function(d){return {status:r.status,data:d};});})
+        .then(function(resp){
+          if(resp.status!==200){setErrMsg((resp.data&&resp.data.error)||"Erreur cote serveur - la fiche a ete mise a jour mais pas le blocage de connexion.");}
+          finir();
+        })
+        .catch(function(){setErrMsg("API injoignable - fiche mise a jour, mais le blocage de connexion n a pas ete applique (fonctionne sur le site deploye).");finir();});
+    }else{
+      finir();
+    }
   }
 
   var filtres=users.filter(function(u){return filtre==="tous"||(filtre==="actifs"?u.actif:!u.actif);});
@@ -105,6 +151,8 @@ export default function GestionUtilisateurs(){
       </div>
 
       <div style={{padding:20}}>
+        {errMsg&&<div style={{background:T.redL,border:"1px solid "+T.red+"44",borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,marginBottom:14}}>{errMsg}</div>}
+        {okMsg&&<div style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:8,padding:"10px 14px",fontSize:12,color:T.accent,marginBottom:14}}>{okMsg}</div>}
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
           {ROLES_DEF.map(function(r){var count=users.filter(function(u){return u.role===r.id&&u.actif;}).length;return(
             <div key={r.id} style={{background:T.surface,border:"1px solid "+r.color+"33",borderRadius:12,padding:14}}>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import sb from "./lib/supabase";
 import Login from "./Login";
+import ResetPassword from "./ResetPassword";
 import HubDashboard from "./HubDashboard";
 import Hub from "./Hub";
 import CRM from "./CRM";
@@ -117,6 +118,16 @@ export default function App(){
     setActiveSec(secId);
     setActive(modId);
   }
+
+  // Lien "Mot de passe oublie" de Supabase: le jeton arrive dans le fragment d URL
+  var hashParams={};
+  try{
+    window.location.hash.replace(/^#/,"").split("&").forEach(function(kv){
+      var pr=kv.split("=");if(pr[0])hashParams[pr[0]]=decodeURIComponent(pr[1]||"");
+    });
+  }catch(e){}
+  if((hashParams.type==="recovery"||hashParams.type==="invite")&&hashParams.access_token)return <ResetPassword token={hashParams.access_token}/>;
+  if(hashParams.error_code==="otp_expired"||hashParams.error==="access_denied")return <ResetPassword token={null}/>;
 
   if(checking)return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Georgia,serif",color:"#7C7568"}}>Chargement...</div>;
   if(!user)return <Login onLogin={handleLogin}/>;

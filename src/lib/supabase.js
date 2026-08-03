@@ -114,6 +114,19 @@ var sb = {
       return {error: {message: d.error_description || d.msg || "Erreur lors de l envoi"}};
     } catch(e) { return {error: {message: "Erreur de connexion"}}; }
   },
+  // Definit un nouveau mot de passe a partir d un jeton de recuperation (lien courriel)
+  setNewPassword: async function(recoveryToken, newPwd) {
+    try {
+      var r = await fetch(SUPABASE_URL + "/auth/v1/user", {
+        method: "PUT",
+        headers: {"Content-Type":"application/json","apikey":SUPABASE_KEY,"Authorization":"Bearer "+recoveryToken},
+        body: JSON.stringify({password: newPwd})
+      });
+      var d = await r.json();
+      if(r.ok) return {error: null};
+      return {error: {message: d.error_description || d.msg || "Erreur lors du changement"}};
+    } catch(e) { return {error: {message: "Erreur de connexion"}}; }
+  },
   // Verifie la session au chargement: rafraichit le jeton s il est expire
   checkSession: async function() {
     if(!_token) return null;

@@ -1200,7 +1200,7 @@ function Onboarding(p){
       nbUnites:copros.length||parseInt(data.nbUnites)||0,
       exercice:data.exercice,
       president:data.president,secretaire:data.secretaire,tresorier:data.tresorier,
-      nbMembresCA:data.nbMembresCA,membresCA:data.membresCA,
+      nbMembresCA:data.nbMembresCA,membresCA:data.membresCA,admins:data.admins||[],
       courrielCA:data.courrielCA,courrielFactures:data.courrielFactures,
       soldeOp:parseFloat(data.soldeOp)||0,soldePrev:parseFloat(data.soldePrev)||0,soldeAss:parseFloat(data.soldeAss)||0,
       copros:copros,documents:data.documents,composantes:data.composantes,
@@ -2356,8 +2356,37 @@ export default function Hub(){
           setCreer(false);
           sb.insert("syndicats",{code:nouveau.code,nom:nouveau.nom,adr:nouveau.adr||"",ville:nouveau.ville||"",province:nouveau.province||"QC",immat:nouveau.immat||"",nb_unites:nouveau.nbUnites||0,president:nouveau.president||"",courriel:nouveau.courriel||"",tel:nouveau.tel||"",statut:"actif"}).then(function(res){
             if(res&&res.data&&res.data.id){
-              setSyndicats(function(prev){return prev.map(function(s){return s.code===nouveau.code?Object.assign({},s,{id:res.data.id}):s;});});
+              var sid=res.data.id;
+              setSyndicats(function(prev){return prev.map(function(s){return s.code===nouveau.code?Object.assign({},s,{id:sid}):s;});});
               sb.log("syndicat","creation","Nouveau syndicat: "+nouveau.nom,"",nouveau.code);
+              // Persistance complete de l onboarding: coproprietaires, membres CA, documents
+              (nouveau.copros||[]).forEach(function(c){
+                sb.insert("coproprietaires",{
+                  syndicat_id:sid,unite:(c.unite||"").toUpperCase(),nom:c.nom||"",prenom:c.prenom||"",
+                  courriel:c.courriel||"",telephone:c.tel||c.mobile||"",
+                  cotisation_mensuelle:parseFloat(c.cotisation)||0,fraction:parseFloat(c.fraction)||0,
+                  code_acces:"",statut:"actif",pap:false
+                }).catch(function(){});
+              });
+              (nouveau.admins||[]).forEach(function(a){
+                if(!a.nom&&!a.prenom)return;
+                sb.insert("membres_ca",{
+                  syndicat_id:sid,nom:a.nom||"",prenom:a.prenom||"",role_ca:(a.role||"membre").toLowerCase(),
+                  unite:"",courriel:a.courriel||"",cellulaire:a.mobile||"",
+                  adresse_civique:a.adr||"",ville:a.ville||"",province:a.province||"QC",code_postal:a.codePostal||"",
+                  date_debut_mandat:a.dateDebut||null,date_fin_mandat:null,actif:true
+                }).catch(function(){});
+              });
+              (nouveau.documents||[]).forEach(function(d){
+                var kb=0;var t=(d.taille||"");
+                if(t.indexOf("MB")>=0)kb=Math.round(parseFloat(t)*1024);
+                else if(t.indexOf("KB")>=0)kb=Math.round(parseFloat(t));
+                sb.insert("documents",{
+                  syndicat_id:sid,niveau:"syndicat",nom:d.nom||"",type_doc:d.cat||"general",
+                  description:"Ajoute lors de l onboarding",date_doc:null,confidentiel:false,url:"",taille_kb:kb
+                }).catch(function(){});
+              });
+              sb.log("syndicat","onboarding","Donnees onboarding sauvegardees: "+((nouveau.copros||[]).length)+" copros, "+((nouveau.admins||[]).length)+" admins, "+((nouveau.documents||[]).length)+" documents","",nouveau.code);
             }
           }).catch(function(){});
         }}/>
