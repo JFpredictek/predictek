@@ -34,6 +34,7 @@ import AgendaCalendrier from "./AgendaCalendrier";
 import GestionEmployes from "./GestionEmployes";
 import GestionRoles from "./GestionRoles";
 import ImportCSVCopros from "./ImportCSVCopros";
+import RegistreIncidents from "./RegistreIncidents";
 
 var SECTIONS=[
   {
@@ -53,6 +54,7 @@ var SECTIONS=[
       {id:"roles",label:"Roles",icon:"ROL"},
       {id:"crm",label:"CRM",icon:"CRM"},
       {id:"ia",label:"IA",icon:"IA"},
+      {id:"loi25",label:"Loi 25",icon:"L25"},
     ]
   },
   {
@@ -102,7 +104,7 @@ SECTIONS.forEach(function(s){s.modules.forEach(function(m){ALL_IDS.push(m.id);})
 function sectionsPourRole(role){
   if(role==="admin")return SECTIONS;
   if(role==="gestionnaire"){
-    var interdits=["usagers","roles","employes","paie","crm"];
+    var interdits=["usagers","roles","employes","paie","crm","loi25"];
     return SECTIONS.map(function(s){
       if(s.id!=="predictek")return s;
       return Object.assign({},s,{modules:s.modules.filter(function(m){return interdits.indexOf(m.id)<0;})});
@@ -241,6 +243,7 @@ export default function App(){
         {active==="roles"&&<GestionRoles/>}
         {active==="usagers"&&<GestionUtilisateurs/>}
         {active==="agenda"&&<AgendaCalendrier/>}
+        {active==="loi25"&&<RegistreIncidents/>}
       </div>
     </div>
   );

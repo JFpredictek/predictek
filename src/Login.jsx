@@ -1,6 +1,7 @@
 // Login v2.1
 
 import sb from "./lib/supabase";
+import PolitiqueConfidentialite from "./PolitiqueConfidentialite";
 import { useState } from "react";
 
 var T={bg:"#F5F3EE",surface:"#FFF",muted:"#7C7568",accent:"#1B5E3B",navy:"#13233A",blue:"#1A56DB",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2"};
@@ -16,6 +17,7 @@ export default function Login(p){
   var s4=useState(false);var loading=s4[0];var setLoading=s4[1];
   var s5=useState(false);var showPwd=s5[0];var setShowPwd=s5[1];
   var s6=useState(false);var resetSent=s6[0];var setResetSent=s6[1];
+  var s7=useState(false);var showPol=s7[0];var setShowPol=s7[1];
 
   function handleLogin(){
     if(!email||!pwd){setErr("Veuillez entrer votre courriel et mot de passe.");return;}
@@ -55,6 +57,8 @@ export default function Login(p){
   }
 
   function handleKeyDown(e){if(e.key==="Enter")handleLogin();}
+
+  if(showPol)return <PolitiqueConfidentialite onRetour={function(){setShowPol(false);}}/>;
 
   return(
     <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0d1b2a 0%,#13233A 50%,#1B3A2F 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Georgia,serif",padding:20}}>
@@ -115,7 +119,11 @@ export default function Login(p){
             </div>
           )}
         </div>
-        <div style={{textAlign:"center",marginTop:20,fontSize:10,color:"rgba(255,255,255,0.3)"}}>Predictek - Plateforme SaaS de gestion de copropriete - v2.0</div>
+        <div style={{textAlign:"center",marginTop:20,fontSize:10,color:"rgba(255,255,255,0.3)"}}>
+          Predictek - Plateforme SaaS de gestion de copropriete - v2.0
+          <br/>
+          <button onClick={function(){setShowPol(true);}} style={{background:"none",border:"none",color:"rgba(255,255,255,0.45)",fontSize:10,cursor:"pointer",fontFamily:"inherit",textDecoration:"underline",marginTop:4}}>Politique de confidentialite</button>
+        </div>
       </div>
     </div>
   );

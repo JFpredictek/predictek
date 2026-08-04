@@ -1564,7 +1564,11 @@ function Onboarding(p){
                         <td style={{padding:"5px 8px",fontSize:10,whiteSpace:"nowrap"}}>{c.chauffeEau||"-"}</td>
                         <td style={{padding:"5px 8px",fontSize:10,whiteSpace:"nowrap"}}>{c.foyer||"-"}</td>
                         <td style={{padding:"5px 8px",fontSize:10,whiteSpace:"nowrap"}}>{c.mobilite||"-"}</td>
-                        <td style={{padding:"5px 8px",fontSize:10,color:"#92400E",whiteSpace:"nowrap"}}>{c.urgNom?c.urgNom+(c.urgLien?" ("+c.urgLien+")":""):"-"}</td>
+                        <td style={{padding:"3px 6px",whiteSpace:"nowrap"}}>
+                          <input value={c.urgNom||""} onChange={function(e){var v=e.target.value;setCopros(function(prev){return prev.map(function(x,j){return j===i?Object.assign({},x,{urgNom:v}):x;});});}} placeholder="Nom" style={{width:90,border:"1px solid "+T.border,borderRadius:5,padding:"3px 6px",fontSize:10,fontFamily:"inherit",marginRight:3}}/>
+                          <input value={c.urgLien||""} onChange={function(e){var v=e.target.value;setCopros(function(prev){return prev.map(function(x,j){return j===i?Object.assign({},x,{urgLien:v}):x;});});}} placeholder="Lien" style={{width:70,border:"1px solid "+T.border,borderRadius:5,padding:"3px 6px",fontSize:10,fontFamily:"inherit",marginRight:3}}/>
+                          <input value={c.urgTel||""} onChange={function(e){var v=e.target.value;setCopros(function(prev){return prev.map(function(x,j){return j===i?Object.assign({},x,{urgTel:v}):x;});});}} placeholder="Telephone" style={{width:100,border:"1px solid "+T.border,borderRadius:5,padding:"3px 6px",fontSize:10,fontFamily:"inherit"}}/>
+                        </td>
                       </tr>
                     );})}
                   </tbody>
@@ -2369,7 +2373,8 @@ export default function Hub(){
                   syndicat_id:sid,unite:(c.unite||"").toUpperCase(),nom:c.nom||"",prenom:c.prenom||"",
                   courriel:c.courriel||"",telephone:c.tel||c.mobile||"",
                   cotisation_mensuelle:parseFloat(c.cotisation)||0,fraction:parseFloat(c.fraction)||0,
-                  code_acces:"",statut:"actif",pap:false
+                  code_acces:"",statut:"actif",pap:false,
+                  urg_nom:c.urgNom||"",urg_lien:c.urgLien||"",urg_tel:c.urgTel||""
                 }).catch(function(){});
               });
               (nouveau.admins||[]).forEach(function(a){
