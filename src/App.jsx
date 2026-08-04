@@ -98,6 +98,20 @@ var SECTIONS=[
 var ALL_IDS=[];
 SECTIONS.forEach(function(s){s.modules.forEach(function(m){ALL_IDS.push(m.id);});});
 
+// Navigation selon le role de l utilisateur connecte
+function sectionsPourRole(role){
+  if(role==="admin")return SECTIONS;
+  if(role==="gestionnaire"){
+    var interdits=["usagers","roles","employes","paie","crm"];
+    return SECTIONS.map(function(s){
+      if(s.id!=="predictek")return s;
+      return Object.assign({},s,{modules:s.modules.filter(function(m){return interdits.indexOf(m.id)<0;})});
+    });
+  }
+  if(role==="ca")return SECTIONS.filter(function(s){return s.id!=="predictek";});
+  return SECTIONS.filter(function(s){return s.id==="portail";});
+}
+
 export default function App(){
   var s0=useState(null);var user=s0[0];var setUser=s0[1];
   var s1=useState(true);var checking=s1[0];var setChecking=s1[1];
@@ -113,6 +127,22 @@ export default function App(){
 
   function handleLogin(u){setUser(u);}
   function handleLogout(){sb.logout();setUser(null);}
+
+  // Si le role ne permet pas la section/module actifs, replier vers le premier permis
+  useEffect(function(){
+    if(!user)return;
+    var secs=sectionsPourRole(user.role||"");
+    var sec=secs.find(function(s){return s.id===activeSec;});
+    if(!sec){
+      var s0=secs[0];
+      if(s0){setActiveSec(s0.id);setActive(s0.modules[0]?s0.modules[0].id:"");}
+      return;
+    }
+    if(!sec.modules.some(function(m){return m.id===active;})){
+      var m0=sec.modules[0];
+      if(m0)setActive(m0.id);
+    }
+  },[user]);  // volontairement limite a user: activeSec/active sont geres a l interieur
 
   function setMod(secId,modId){
     setActiveSec(secId);
@@ -132,7 +162,8 @@ export default function App(){
   if(checking)return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Georgia,serif",color:"#7C7568"}}>Chargement...</div>;
   if(!user)return <Login onLogin={handleLogin}/>;
 
-  var activeSectionDef=SECTIONS.find(function(s){return s.id===activeSec;})||SECTIONS[0];
+  var sectionsVisibles=sectionsPourRole(user.role||"");
+  var activeSectionDef=sectionsVisibles.find(function(s){return s.id===activeSec;})||sectionsVisibles[0]||SECTIONS[0];
 
   return(
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
@@ -146,7 +177,7 @@ export default function App(){
           </div>
           <div style={{flex:1,padding:"0 8px"}}>
             <RechercheGlobale onNavigate={function(id){
-              var sec=SECTIONS.find(function(s){return s.modules.some(function(m){return m.id===id;});});
+              var sec=sectionsVisibles.find(function(s){return s.modules.some(function(m){return m.id===id;});});
               if(sec)setMod(sec.id,id);
             }}/>
           </div>
@@ -156,7 +187,7 @@ export default function App(){
           </div>
         </div>
         <div style={{display:"flex",height:40}}>
-          {SECTIONS.map(function(sec){
+          {sectionsVisibles.map(function(sec){
             var isActive=activeSec===sec.id;
             return(
               <button key={sec.id} onClick={function(){setActiveSec(sec.id);var first=sec.modules[0];if(first)setActive(first.id);}} style={{display:"flex",alignItems:"center",gap:6,padding:"0 16px",background:isActive?sec.bg+"cc":"transparent",border:"none",borderBottom:isActive?"2px solid "+sec.color:"2px solid transparent",cursor:"pointer",fontFamily:"Georgia,serif",color:isActive?sec.color:"#8da0bb",fontSize:11,fontWeight:isActive?700:400,flexShrink:0,transition:"all 0.15s"}}>
@@ -179,7 +210,7 @@ export default function App(){
         </div>
       </div>
       <div style={{flex:1,background:"#F5F3EE",overflow:"auto"}}>
-        {active==="dashboard"&&<HubDashboard onNavigate={function(id){var sec=SECTIONS.find(function(s){return s.modules.some(function(m){return m.id===id;});});if(sec)setMod(sec.id,id);}}/>}
+        {active==="dashboard"&&<HubDashboard onNavigate={function(id){var sec=sectionsVisibles.find(function(s){return s.modules.some(function(m){return m.id===id;});});if(sec)setMod(sec.id,id);}}/>}
         {active==="onboarding"&&<Hub/>}
         {active==="tableau"&&<TableauBordCA/>}
         {active==="copros"&&<GestionCopros/>}

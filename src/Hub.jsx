@@ -1208,7 +1208,11 @@ function Onboarding(p){
       scoreFinancier:75,scoreConformite:80,scoreEntretien:85,
       cotisationMensuelle:copros.reduce(function(a,c){return a+(parseFloat(c.cotisation)||0);},0)||parseFloat(data.cotisationMoyenne)*copros.length||0,
     };
-    try{localStorage.setItem("predictek_syndicat_"+data.code,JSON.stringify(syndicat));}catch(e){}
+    // Copie locale SANS les NAS (jamais de NAS en clair dans le navigateur)
+    try{
+      var pourStockage=Object.assign({},syndicat,{admins:(syndicat.admins||[]).map(function(a){var c=Object.assign({},a);delete c.nas;return c;})});
+      localStorage.setItem("predictek_syndicat_"+data.code,JSON.stringify(pourStockage));
+    }catch(e){}
     if(p.onTermine)p.onTermine(syndicat);
   }
 
@@ -2370,12 +2374,25 @@ export default function Hub(){
               });
               (nouveau.admins||[]).forEach(function(a){
                 if(!a.nom&&!a.prenom)return;
-                sb.insert("membres_ca",{
+                var rowCA={
                   syndicat_id:sid,nom:a.nom||"",prenom:a.prenom||"",role_ca:(a.role||"membre").toLowerCase(),
                   unite:"",courriel:a.courriel||"",cellulaire:a.mobile||"",
                   adresse_civique:a.adr||"",ville:a.ville||"",province:a.province||"QC",code_postal:a.codePostal||"",
                   date_debut_mandat:a.dateDebut||null,date_fin_mandat:null,actif:true
-                }).catch(function(){});
+                };
+                // NAS: chiffre cote serveur (AES-256-GCM) avant sauvegarde; jamais stocke en clair
+                var nasDigits=(a.nas||"").replace(/\D/g,"");
+                if(nasDigits.length===9){
+                  fetch("/api/nas",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({action:"encrypt",nas:nasDigits})})
+                    .then(function(r){return r.json();})
+                    .then(function(d){
+                      if(d&&d.encrypted)rowCA.nas_chiffre=d.encrypted;
+                      sb.insert("membres_ca",rowCA).catch(function(){});
+                    })
+                    .catch(function(){sb.insert("membres_ca",rowCA).catch(function(){});});
+                }else{
+                  sb.insert("membres_ca",rowCA).catch(function(){});
+                }
               });
               (nouveau.documents||[]).forEach(function(d){
                 var kb=0;var t=(d.taille||"");
