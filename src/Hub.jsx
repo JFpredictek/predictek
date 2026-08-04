@@ -2368,13 +2368,21 @@ export default function Hub(){
               setSyndicats(function(prev){return prev.map(function(s){return s.code===nouveau.code?Object.assign({},s,{id:sid}):s;});});
               sb.log("syndicat","creation","Nouveau syndicat: "+nouveau.nom,"",nouveau.code);
               // Persistance complete de l onboarding: coproprietaires, membres CA, documents
+              var normDate=function(v){
+                if(!v)return null;
+                var s=String(v).trim();
+                if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
+                var d=new Date(s);
+                return isNaN(d.getTime())?null:d.toISOString().substring(0,10);
+              };
               (nouveau.copros||[]).forEach(function(c){
                 sb.insert("coproprietaires",{
                   syndicat_id:sid,unite:(c.unite||"").toUpperCase(),nom:c.nom||"",prenom:c.prenom||"",
                   courriel:c.courriel||"",telephone:c.tel||c.mobile||"",
                   cotisation_mensuelle:parseFloat(c.cotisation)||0,fraction:parseFloat(c.fraction)||0,
                   code_acces:"",statut:"actif",pap:false,
-                  urg_nom:c.urgNom||"",urg_lien:c.urgLien||"",urg_tel:c.urgTel||""
+                  urg_nom:c.urgNom||"",urg_lien:c.urgLien||"",urg_tel:c.urgTel||"",
+                  assurance_police:c.assurancePolice||"",assurance_exp:normDate(c.assuranceExp)
                 }).catch(function(){});
               });
               (nouveau.admins||[]).forEach(function(a){

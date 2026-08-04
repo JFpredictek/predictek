@@ -1,4 +1,5 @@
 import sb from "./lib/supabase";
+import RelancesAuto from "./RelancesAuto";
 import { useState, useEffect } from "react";
 var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",pop:"#3CAF6E",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",purple:"#6B3FA0",purpleL:"#F3EEFF"};
 var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
@@ -401,7 +402,7 @@ function PanelHistorique(){
 
 // ===== MODULE PRINCIPAL =====
 export default function Notifications(){
-  var s0=useState("alertes");var ong=s0[0];var setOng=s0[1];
+  var s0=useState("relances");var ong=s0[0];var setOng=s0[1];
   var s1=useState(ALERTES_INIT);var alertes=s1[0];var setAlertes=s1[1];
   var s2=useState(MODELES_INIT);var modeles=s2[0];var setModeles=s2[1];
   var s3=useState(PARAMETRES_INIT);var params=s3[0];var setParams=s3[1];
@@ -410,6 +411,7 @@ export default function Notifications(){
   var critiques=alertes.filter(function(a){return a.prio==="critique"&&!a.lu;}).length;
 
   var TABS=[
+    {id:"relances",l:"Relances auto (reel)"},
     {id:"alertes",l:"Alertes"+(nonLues>0?" ("+nonLues+")":"")},
     {id:"modeles",l:"Modeles de messages"},
     {id:"historique",l:"Historique"},
@@ -435,6 +437,7 @@ export default function Notifications(){
         );})}
       </div>
 
+      {ong==="relances"&&<RelancesAuto/>}
       {ong==="alertes"&&<PanelAlertes alertes={alertes} setAlertes={setAlertes}/>}
       {ong==="modeles"&&<PanelModeles modeles={modeles} setModeles={setModeles}/>}
       {ong==="historique"&&<PanelHistorique/>}
