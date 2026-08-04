@@ -2359,10 +2359,14 @@ export default function Hub(){
   var s5=useState(false);var showParams=s5[0];var setShowParams=s5[1];
   var s6=useState("");var errSync=s6[0];var setErrSync=s6[1];
   var s7=useState([]);var recup=s7[0];var setRecup=s7[1];
+  var s8=useState(false);var persistEnCours=s8[0];var setPersistEnCours=s8[1];
+  var s9=useState("");var okSync=s9[0];var setOkSync=s9[1];
 
   // Sauvegarde COMPLETE d un syndicat en base, avec erreurs VISIBLES (plus d echec silencieux)
   function persisterSyndicat(nouveau){
-    setErrSync("");
+    if(persistEnCours)return;
+    setPersistEnCours(true);
+    setErrSync("");setOkSync("");
     var normDate=function(v){
       if(!v)return null;
       var s=String(v).trim();
@@ -2375,21 +2379,36 @@ export default function Hub(){
         var msg=(res&&res.error&&(res.error.message||res.error.hint))||"raison inconnue";
         setErrSync("ECHEC de la sauvegarde du syndicat "+(nouveau.nom||"")+" en base de donnees ("+msg+"). Vos donnees restent dans la sauvegarde locale du navigateur - utilisez le bouton Recuperer ci-dessous apres correction.");
         setRecup(function(prev){return prev.indexOf(nouveau.code)<0?prev.concat([nouveau.code]):prev;});
+        setPersistEnCours(false);
         return;
       }
       var sid=res.data.id;
       setSyndicats(function(prev){return prev.map(function(s){return s.code===nouveau.code?Object.assign({},s,{id:sid}):s;});});
       setRecup(function(prev){return prev.filter(function(c){return c!==nouveau.code;});});
       sb.log("syndicat","creation","Nouveau syndicat: "+nouveau.nom,"",nouveau.code);
-      (nouveau.copros||[]).forEach(function(c){
-        sb.insert("coproprietaires",{
+      var totalCopros=(nouveau.copros||[]).length;
+      var promCopros=(nouveau.copros||[]).map(function(c){
+        return sb.insert("coproprietaires",{
           syndicat_id:sid,unite:(c.unite||"").toUpperCase(),nom:c.nom||"",prenom:c.prenom||"",
           courriel:c.courriel||"",telephone:c.tel||c.mobile||"",
           cotisation_mensuelle:parseFloat(c.cotisation)||0,fraction:parseFloat(c.fraction)||0,
           code_acces:"",statut:"actif",pap:false,
+          nom2:c.prop2nom||"",adresse:c.adr||"",
+          locataire:!!c.locNom,nom_locataire:c.locNom||"",tel_locataire:c.locTel||"",
+          ass_numero:c.assurancePolice||"",ass_expiry:normDate(c.assuranceExp),
           urg_nom:c.urgNom||"",urg_lien:c.urgLien||"",urg_tel:c.urgTel||"",
           assurance_police:c.assurancePolice||"",assurance_exp:normDate(c.assuranceExp)
-        }).catch(function(){});
+        }).then(function(r){return r&&r.data&&r.data.id?"ok":(r&&r.error&&r.error.message)||"erreur";}).catch(function(e){return e.message||"erreur";});
+      });
+      Promise.all(promCopros).then(function(rs){
+        var echecs=rs.filter(function(x){return x!=="ok";});
+        if(echecs.length>0){
+          setErrSync(echecs.length+"/"+totalCopros+" coproprietaire(s) NON sauvegarde(s): "+echecs[0]);
+        }else{
+          setOkSync("Syndicat "+(nouveau.nom||"")+" sauvegarde au complet: "+totalCopros+" coproprietaires, "+((nouveau.admins||[]).filter(function(a){return a.nom||a.prenom;}).length)+" administrateurs, "+((nouveau.documents||[]).length)+" document(s).");
+          try{localStorage.removeItem("predictek_syndicat_"+nouveau.code);}catch(e){}
+        }
+        setPersistEnCours(false);
       });
       (nouveau.admins||[]).forEach(function(a){
         if(!a.nom&&!a.prenom)return;
@@ -2425,6 +2444,7 @@ export default function Hub(){
     }).catch(function(e){
       setErrSync("Erreur de connexion lors de la sauvegarde: "+(e&&e.message?e.message:"inconnue")+". Vos donnees restent dans la sauvegarde locale - bouton Recuperer ci-dessous.");
       setRecup(function(prev){return prev.indexOf(nouveau.code)<0?prev.concat([nouveau.code]):prev;});
+      setPersistEnCours(false);
     });
   }
 
@@ -2530,13 +2550,16 @@ export default function Hub(){
       {errSync&&(
         <div style={{background:"#FDECEA",border:"2px solid #B83232",borderRadius:10,padding:"12px 16px",marginBottom:14,fontSize:12,color:"#B83232",fontWeight:600}}>{errSync}</div>
       )}
+      {okSync&&(
+        <div style={{background:"#E8F2EC",border:"2px solid #1B5E3B",borderRadius:10,padding:"12px 16px",marginBottom:14,fontSize:12,color:"#1B5E3B",fontWeight:600}}>{okSync}</div>
+      )}
       {recup.length>0&&(
         <div style={{background:"#FEF3E2",border:"2px solid #B86020",borderRadius:10,padding:"12px 16px",marginBottom:14}}>
           <div style={{fontSize:12,fontWeight:700,color:"#B86020",marginBottom:8}}>Syndicat(s) sauvegarde(s) localement mais ABSENT(S) de la base de donnees:</div>
           {recup.map(function(c){return(
             <div key={c} style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
               <span style={{fontSize:12,fontWeight:700}}>{c}</span>
-              <Btn sm onClick={function(){recupererLocal(c);}}>Recuperer et sauvegarder en base</Btn>
+              <Btn sm dis={persistEnCours} onClick={function(){recupererLocal(c);}}>{persistEnCours?"Sauvegarde en cours...":"Recuperer et sauvegarder en base"}</Btn>
             </div>
           );})}
         </div>
