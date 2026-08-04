@@ -6,10 +6,8 @@ import HubDashboard from "./HubDashboard";
 import Hub from "./Hub";
 import CRM from "./CRM";
 import FournisseursAdmin from "./FournisseursAdmin";
-import Gestionnaire from "./Gestionnaire";
 import PortailCopro from "./PortailCopro";
 import Notifications from "./Notifications";
-import Comptabilite from "./Comptabilite";
 import ModuleIA from "./ModuleIA";
 import Historique from "./Historique";
 import GestionAuto from "./GestionAuto";
@@ -233,10 +231,8 @@ export default function App(){
         {active==="releves"&&<RelevesCompte/>}
         {active==="crm"&&<CRM/>}
         {active==="fournisseurs"&&<FournisseursAdmin/>}
-        {active==="gestionnaire"&&<Gestionnaire/>}
         {active==="copro"&&<PortailCopro/>}
         {active==="notif"&&<Notifications/>}
-        {active==="compta"&&<Comptabilite/>}
         {active==="ia"&&<ModuleIA/>}
         {active==="historique"&&<Historique/>}
         {active==="employes"&&<GestionEmployes/>}

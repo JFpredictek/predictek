@@ -8,6 +8,7 @@ export default function Historique(){
   var s1=useState("tout");var cat=s1[0];var setCat=s1[1];
   var s2=useState("");var q=s2[0];var setQ=s2[1];
   var s3=useState(50);var lim=s3[0];var setLim=s3[1];
+  var s4=useState("tous");var usr=s4[0];var setUsr=s4[1];
 
   useEffect(function(){
     sb.select("historique",{order:"created_at.desc",limit:lim}).then(function(res){
@@ -15,9 +16,14 @@ export default function Historique(){
     }).catch(function(){});
   },[lim]);
 
+  var utilisateurs=[];
+  logs.forEach(function(l){var n=l.utilisateur_nom||"";if(n&&utilisateurs.indexOf(n)<0)utilisateurs.push(n);});
+  utilisateurs.sort();
+
   var filtres=logs.filter(function(l){
     if(cat!=="tout"&&l.categorie!==cat)return false;
-    if(q&&!(l.action||"").toLowerCase().includes(q.toLowerCase()))return false;
+    if(usr!=="tous"&&(l.utilisateur_nom||"")!==usr)return false;
+    if(q&&!((l.action||"")+" "+(l.description||"")).toLowerCase().includes(q.toLowerCase()))return false;
     return true;
   });
 
@@ -26,6 +32,10 @@ export default function Historique(){
       <div style={{background:T.navy,padding:"14px 20px",display:"flex",alignItems:"center",gap:16}}>
         <div style={{fontSize:14,fontWeight:800,color:"#fff"}}>Historique et audit</div>
         <input value={q} onChange={function(e){setQ(e.target.value);}} placeholder="Rechercher..." style={{flex:1,maxWidth:300,border:"1px solid #ffffff30",borderRadius:6,padding:"5px 10px",background:"#ffffff18",color:"#fff",fontSize:12,fontFamily:"inherit",outline:"none"}}/>
+        <select value={usr} onChange={function(e){setUsr(e.target.value);}} style={{background:"#ffffff18",border:"1px solid #ffffff30",borderRadius:6,padding:"5px 10px",color:"#fff",fontSize:12,fontFamily:"inherit"}}>
+          <option value="tous" style={{color:"#000"}}>Tous les utilisateurs</option>
+          {utilisateurs.map(function(u){return <option key={u} value={u} style={{color:"#000"}}>{u}</option>;})}
+        </select>
         <select value={cat} onChange={function(e){setCat(e.target.value);}} style={{background:"#ffffff18",border:"1px solid #ffffff30",borderRadius:6,padding:"5px 10px",color:"#fff",fontSize:12,fontFamily:"inherit"}}>
           <option value="tout" style={{color:"#000"}}>Toutes</option>
           <option value="factures" style={{color:"#000"}}>Factures</option>
@@ -40,18 +50,20 @@ export default function Historique(){
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead><tr style={{background:T.alt}}>
               <th style={{padding:"9px 12px",textAlign:"left",fontWeight:600,color:T.navy}}>Date</th>
+              <th style={{padding:"9px 12px",textAlign:"left",fontWeight:600,color:T.navy}}>Utilisateur</th>
               <th style={{padding:"9px 12px",textAlign:"left",fontWeight:600,color:T.navy}}>Categorie</th>
               <th style={{padding:"9px 12px",textAlign:"left",fontWeight:600,color:T.navy}}>Action</th>
               <th style={{padding:"9px 12px",textAlign:"left",fontWeight:600,color:T.navy}}>Description</th>
             </tr></thead>
             <tbody>
               {filtres.length===0&&(
-                <tr><td colSpan={4} style={{padding:24,textAlign:"center",color:T.muted}}>Aucune action</td></tr>
+                <tr><td colSpan={5} style={{padding:24,textAlign:"center",color:T.muted}}>Aucune action</td></tr>
               )}
               {filtres.map(function(l,i){
                 return(
                   <tr key={l.id||i} style={{borderBottom:"1px solid "+T.border}}>
                     <td style={{padding:"8px 12px",color:T.muted,fontSize:11}}>{l.created_at?l.created_at.substring(0,16).replace("T"," "):"-"}</td>
+                    <td style={{padding:"8px 12px",fontWeight:600,color:T.navy,fontSize:11}}>{l.utilisateur_nom||"-"}</td>
                     <td style={{padding:"8px 12px",color:T.muted,fontSize:11}}>{l.categorie||"-"}</td>
                     <td style={{padding:"8px 12px",fontWeight:600,color:T.navy}}>{l.action||"-"}</td>
                     <td style={{padding:"8px 12px",color:T.muted}}>{l.description||"-"}</td>

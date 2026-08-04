@@ -62,6 +62,19 @@ var sb = {
       return {error: null};
     } catch(e) { return {error: e}; }
   },
+  // Insere ou met a jour selon la colonne de conflit (ex: syndicat_id)
+  upsert: async function(table, rows, onConflict) {
+    try {
+      var url = this._rest(table) + (onConflict ? "?on_conflict=" + onConflict : "");
+      var h = this._h();
+      h["Prefer"] = "resolution=merge-duplicates,return=representation";
+      var r = await fetch(url, {
+        method: "POST", headers: h, body: JSON.stringify(rows)
+      });
+      var d = await r.json();
+      return {data: Array.isArray(d) ? d : null, error: d && d.message ? d : null};
+    } catch(e) { return {data: null, error: e}; }
+  },
   login: async function(email, password) {
     try {
       var r = await fetch(SUPABASE_URL + "/auth/v1/token?grant_type=password", {

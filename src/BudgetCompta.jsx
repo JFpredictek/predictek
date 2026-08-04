@@ -17,12 +17,19 @@ function TabBudget(p){
   var s2=useState([]);var lignes=s2[0];var setLignes=s2[1];
   var s3=useState(false);var showNew=s3[0];var setShowNew=s3[1];
   var s4=useState({annee_debut:new Date().getFullYear(),annee_fin:new Date().getFullYear()+1});var newB=s4[0];var setNewB=s4[1];
+  var s5=useState([]);var journal=s5[0];var setJournal=s5[1];
+  var s6=useState([]);var paiements=s6[0];var setPaiements=s6[1];
+  var s7=useState([]);var factures=s7[0];var setFactures=s7[1];
 
   useEffect(function(){
     if(!syndicat)return;
     sb.select("budgets",{eq:{syndicat_id:syndicat.id},order:"annee_debut.desc"}).then(function(res){
       if(res&&res.data){setBudgets(res.data);if(res.data.length>0)setSelBudget(res.data[0]);}
     }).catch(function(){});
+    // Sources des montants REELS (calcules automatiquement, plus de saisie manuelle)
+    sb.select("journal",{eq:{syndicat_id:syndicat.id},limit:1000}).then(function(res){if(res&&res.data)setJournal(res.data);}).catch(function(){});
+    sb.select("paiements",{eq:{syndicat_id:syndicat.id},limit:1000}).then(function(res){if(res&&res.data)setPaiements(res.data);}).catch(function(){});
+    sb.select("factures",{eq:{syndicat_id:syndicat.id},limit:1000}).then(function(res){if(res&&res.data)setFactures(res.data);}).catch(function(){});
   },[syndicat]);
 
   useEffect(function(){
@@ -31,6 +38,41 @@ function TabBudget(p){
       if(res&&res.data)setLignes(res.data);
     }).catch(function(){});
   },[selBudget]);
+
+  // Periode de l exercice: 1er janvier annee_debut au 31 decembre annee_fin
+  function dansPeriode(dateStr){
+    if(!selBudget||!dateStr)return false;
+    var d=String(dateStr).substring(0,10);
+    return d>=selBudget.annee_debut+"-01-01"&&d<=selBudget.annee_fin+"-12-31";
+  }
+
+  // Montant reel calcule: journal (debits=depenses, credits=revenus) + paiements recus (cotisations) + factures approuvees/payees
+  function reelPour(categorie,type){
+    var total=0;
+    journal.forEach(function(j){
+      if(!dansPeriode(j.date_transaction))return;
+      if((j.categorie||"")!==categorie)return;
+      if(type==="depense")total+=Number(j.montant_debit)||0;
+      else total+=Number(j.montant_credit)||0;
+    });
+    if(type==="revenu"&&categorie.toLowerCase().indexOf("cotisation")===0){
+      paiements.forEach(function(pm){
+        if(!dansPeriode(pm.date_paiement))return;
+        if((pm.statut||"")==="annule")return;
+        total+=Number(pm.montant)||0;
+      });
+    }
+    if(type==="depense"){
+      factures.forEach(function(f){
+        if(!dansPeriode(f.date_facture))return;
+        var st=(f.statut||"");
+        if(st!=="approuvee"&&st!=="payee")return;
+        if((f.categorie_depense||"")!==categorie)return;
+        total+=Number(f.total)||Number(f.montant_total)||0;
+      });
+    }
+    return total;
+  }
 
   function creerBudget(){
     if(!syndicat)return;
@@ -54,10 +96,10 @@ function TabBudget(p){
 
   function updateLigne(id, field, val){
     var v=parseFloat(val)||0;
-    sb.update("budget_lignes",id,field==="montant_prevu"?{montant_prevu:v}:{montant_reel:v}).then(function(){
+    sb.update("budget_lignes",id,{montant_prevu:v}).then(function(){
       setLignes(function(prev){return prev.map(function(l){
         if(l.id!==id)return l;
-        return field==="montant_prevu"?Object.assign({},l,{montant_prevu:v}):Object.assign({},l,{montant_reel:v});
+        return Object.assign({},l,{montant_prevu:v});
       });});
     }).catch(function(){});
   }
@@ -65,10 +107,10 @@ function TabBudget(p){
   function imprimer(){
     if(!selBudget)return;
     var totalPrev=lignes.reduce(function(a,l){return l.type_ligne==="depense"?a+Number(l.montant_prevu):a;},0);
-    var totalReel=lignes.reduce(function(a,l){return l.type_ligne==="depense"?a+Number(l.montant_reel):a;},0);
+    var totalReel=lignes.reduce(function(a,l){return l.type_ligne==="depense"?a+reelPour(l.categorie,"depense"):a;},0);
     var totalRevPrev=lignes.reduce(function(a,l){return l.type_ligne==="revenu"?a+Number(l.montant_prevu):a;},0);
     var win=window.open("","_blank");
-    var rows=lignes.map(function(l){return "<tr><td>"+l.categorie+"</td><td style='text-align:right'>"+Number(l.montant_prevu).toFixed(2)+" $</td><td style='text-align:right'>"+Number(l.montant_reel).toFixed(2)+" $</td><td style='text-align:right;color:"+(Number(l.montant_reel)>Number(l.montant_prevu)?"#B83232":"#1B5E3B")+"'>"+(Number(l.montant_reel)-Number(l.montant_prevu)).toFixed(2)+" $</td></tr>";}).join("");
+    var rows=lignes.map(function(l){var rl=reelPour(l.categorie,l.type_ligne);return "<tr><td>"+l.categorie+"</td><td style='text-align:right'>"+Number(l.montant_prevu).toFixed(2)+" $</td><td style='text-align:right'>"+rl.toFixed(2)+" $</td><td style='text-align:right;color:"+(rl>Number(l.montant_prevu)?"#B83232":"#1B5E3B")+"'>"+(rl-Number(l.montant_prevu)).toFixed(2)+" $</td></tr>";}).join("");
     win.document.write("<html><head><title>Budget</title><style>body{font-family:Arial,sans-serif;margin:20px}h2{color:#13233A}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}th{background:#f0f0f0}.t{font-weight:bold;background:#e8f2ec}</style></head><body><h2>Budget "+selBudget.annee_debut+"-"+selBudget.annee_fin+"</h2><p><b>Syndicat:</b> "+(syndicat?syndicat.nom:"")+" | <b>Statut:</b> "+selBudget.statut+"</p><table><thead><tr><th>Categorie</th><th>Prevu</th><th>Reel</th><th>Ecart</th></tr></thead><tbody>"+rows+"<tr class='t'><td>TOTAL DEPENSES</td><td style='text-align:right'>"+totalPrev.toFixed(2)+" $</td><td style='text-align:right'>"+totalReel.toFixed(2)+" $</td><td style='text-align:right'>"+(totalReel-totalPrev).toFixed(2)+" $</td></tr><tr class='t'><td>TOTAL REVENUS PREVUS</td><td style='text-align:right'>"+totalRevPrev.toFixed(2)+" $</td><td></td><td></td></tr></tbody></table></body></html>");
     win.document.close();win.print();
   }
@@ -78,13 +120,15 @@ function TabBudget(p){
   var prevoyance=lignes.filter(function(l){return l.type_ligne==="prevoyance";});
   var totalRevPrev=revenus.reduce(function(a,l){return a+Number(l.montant_prevu);},0);
   var totalDepPrev=depenses.reduce(function(a,l){return a+Number(l.montant_prevu);},0);
-  var totalDepReel=depenses.reduce(function(a,l){return a+Number(l.montant_reel);},0);
+  var totalRevReel=revenus.reduce(function(a,l){return a+reelPour(l.categorie,"revenu");},0);
+  var totalDepReel=depenses.reduce(function(a,l){return a+reelPour(l.categorie,"depense");},0);
   var solde=totalRevPrev-totalDepPrev;
+  var soldeReel=totalRevReel-totalDepReel;
 
-  function renderLignes(lst, titre, couleur){
+  function renderLignes(lst, titre, couleur, type){
     return(
       <div style={{marginBottom:20}}>
-        <div style={{fontSize:12,fontWeight:700,color:couleur,background:couleur+"11",border:"1px solid "+couleur+"33",borderRadius:8,padding:"8px 14px",marginBottom:8}}>{titre}</div>
+        <div style={{fontSize:12,fontWeight:700,color:couleur,background:couleur+"11",border:"1px solid "+couleur+"33",borderRadius:8,padding:"8px 14px",marginBottom:8}}>{titre} <span style={{fontWeight:400,fontSize:10,color:T.muted}}>- Reel calcule automatiquement (journal{type==="depense"?" + factures":type==="revenu"?" + paiements":""})</span></div>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
           <thead><tr style={{background:T.alt}}>
             <th style={{padding:"7px 10px",textAlign:"left",fontWeight:600,color:T.navy}}>Categorie</th>
@@ -94,12 +138,14 @@ function TabBudget(p){
           </tr></thead>
           <tbody>
             {lst.map(function(l){
-              var ecart=Number(l.montant_reel)-Number(l.montant_prevu);
+              var reel=reelPour(l.categorie,type);
+              var ecart=reel-Number(l.montant_prevu);
+              var mauvais=type==="depense"?ecart>0:ecart<0;
               return(<tr key={l.id} style={{borderBottom:"1px solid "+T.border}}>
                 <td style={{padding:"7px 10px"}}>{l.categorie}</td>
                 <td style={{padding:"7px 10px",textAlign:"right"}}><input type="number" value={l.montant_prevu} onChange={function(e){updateLigne(l.id,"montant_prevu",e.target.value);}} style={{width:100,border:"1px solid "+T.border,borderRadius:5,padding:"3px 6px",fontSize:12,textAlign:"right",fontFamily:"inherit"}}/></td>
-                <td style={{padding:"7px 10px",textAlign:"right"}}><input type="number" value={l.montant_reel} onChange={function(e){updateLigne(l.id,"montant_reel",e.target.value);}} style={{width:100,border:"1px solid "+T.border,borderRadius:5,padding:"3px 6px",fontSize:12,textAlign:"right",fontFamily:"inherit"}}/></td>
-                <td style={{padding:"7px 10px",textAlign:"right",fontWeight:600,color:ecart>0?T.red:ecart<0?T.accent:T.muted}}>{ecart.toFixed(2)} $</td>
+                <td style={{padding:"7px 10px",textAlign:"right",fontWeight:700,color:T.navy}}>{reel.toFixed(2)} $</td>
+                <td style={{padding:"7px 10px",textAlign:"right",fontWeight:600,color:mauvais?T.red:ecart===0?T.muted:T.accent}}>{ecart.toFixed(2)} $</td>
               </tr>);
             })}
           </tbody>
@@ -138,14 +184,16 @@ function TabBudget(p){
 
       {selBudget&&(
         <div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:16}}>
-            <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:14}}><div style={{fontSize:11,color:T.muted}}>Total revenus prevus</div><div style={{fontSize:22,fontWeight:800,color:T.accent}}>{totalRevPrev.toFixed(0)} $</div></div>
-            <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:14}}><div style={{fontSize:11,color:T.muted}}>Total depenses prevues</div><div style={{fontSize:22,fontWeight:800,color:T.navy}}>{totalDepPrev.toFixed(0)} $</div></div>
-            <div style={{background:solde>=0?T.accentL:T.redL,border:"1px solid "+(solde>=0?T.accent:T.red)+"44",borderRadius:12,padding:14}}><div style={{fontSize:11,color:T.muted}}>Solde prevu</div><div style={{fontSize:22,fontWeight:800,color:solde>=0?T.accent:T.red}}>{solde.toFixed(0)} $</div></div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:16}}>
+            <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:14}}><div style={{fontSize:11,color:T.muted}}>Revenus prevus</div><div style={{fontSize:19,fontWeight:800,color:T.accent}}>{totalRevPrev.toFixed(0)} $</div></div>
+            <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:14}}><div style={{fontSize:11,color:T.muted}}>Revenus reels</div><div style={{fontSize:19,fontWeight:800,color:T.accent}}>{totalRevReel.toFixed(0)} $</div></div>
+            <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:14}}><div style={{fontSize:11,color:T.muted}}>Depenses prevues</div><div style={{fontSize:19,fontWeight:800,color:T.navy}}>{totalDepPrev.toFixed(0)} $</div></div>
+            <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:14}}><div style={{fontSize:11,color:T.muted}}>Depenses reelles</div><div style={{fontSize:19,fontWeight:800,color:T.navy}}>{totalDepReel.toFixed(0)} $</div></div>
+            <div style={{background:soldeReel>=0?T.accentL:T.redL,border:"1px solid "+(soldeReel>=0?T.accent:T.red)+"44",borderRadius:12,padding:14}}><div style={{fontSize:11,color:T.muted}}>Solde reel (prevu: {solde.toFixed(0)} $)</div><div style={{fontSize:19,fontWeight:800,color:soldeReel>=0?T.accent:T.red}}>{soldeReel.toFixed(0)} $</div></div>
           </div>
-          {renderLignes(revenus,"Revenus",T.accent)}
-          {renderLignes(depenses,"Depenses",T.navy)}
-          {prevoyance.length>0&&renderLignes(prevoyance,"Fonds de prevoyance",T.purple)}
+          {renderLignes(revenus,"Revenus",T.accent,"revenu")}
+          {renderLignes(depenses,"Depenses",T.navy,"depense")}
+          {prevoyance.length>0&&renderLignes(prevoyance,"Fonds de prevoyance",T.purple,"prevoyance")}
         </div>
       )}
       {!selBudget&&budgets.length===0&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucun budget - cliquez "+ Nouveau budget" pour commencer</div>}
@@ -205,7 +253,10 @@ function TabJournal(p){
         <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:20,marginBottom:16}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
             <div><Lbl l="Date"/><input type="date" value={nf.date_transaction} onChange={function(e){setN("date_transaction",e.target.value);}} style={INP}/></div>
-            <div><Lbl l="Categorie"/><select value={nf.categorie} onChange={function(e){setN("categorie",e.target.value);}} style={INP}>{CATEGORIES_DEPENSES.map(function(c){return <option key={c}>{c}</option>;})}</select></div>
+            <div><Lbl l="Categorie"/><select value={nf.categorie} onChange={function(e){setN("categorie",e.target.value);}} style={INP}>
+              <optgroup label="Depenses (debit)">{CATEGORIES_DEPENSES.map(function(c){return <option key={c}>{c}</option>;})}</optgroup>
+              <optgroup label="Revenus (credit)">{CATEGORIES_REVENUS.map(function(c){return <option key={c}>{c}</option>;})}</optgroup>
+            </select></div>
             <div style={{gridColumn:"1/-1"}}><Lbl l="Description"/><input value={nf.description} onChange={function(e){setN("description",e.target.value);}} style={INP} placeholder="Description de la transaction..."/></div>
             <div><Lbl l="Debit ($)"/><input type="number" step="0.01" value={nf.montant_debit} onChange={function(e){setN("montant_debit",e.target.value);}} style={INP}/></div>
             <div><Lbl l="Credit ($)"/><input type="number" step="0.01" value={nf.montant_credit} onChange={function(e){setN("montant_credit",e.target.value);}} style={INP}/></div>
@@ -245,17 +296,51 @@ function TabSoldes(p){
   var s0=useState({soldeOp:"",soldePrev:"",soldeAss:"",dateOuverture:"",budgetAnnuel:"",cotisationMoyenne:""});
   var form=s0[0];var setForm=s0[1];
   var s1=useState(false);var saved=s1[0];var setSaved=s1[1];
+  var s2=useState("");var errS=s2[0];var setErrS=s2[1];
   function sf(k,v){setForm(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
   var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",amber:"#B86020",amberL:"#FEF3E2",red:"#B83232",redL:"#FDECEA"};
   var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
   var money=function(n){return Math.abs(parseFloat(n)||0).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
   var total=(parseFloat(form.soldeOp)||0)+(parseFloat(form.soldePrev)||0)+(parseFloat(form.soldeAss)||0);
 
+  // Charger les soldes deja sauvegardes pour ce syndicat
+  useEffect(function(){
+    if(!syndicat)return;
+    sb.selectOne("syndicats_soldes",{eq:{syndicat_id:syndicat.id}}).then(function(res){
+      if(res&&res.data){
+        var d=res.data;
+        setForm({
+          soldeOp:d.solde_op!=null?String(d.solde_op):"",
+          soldePrev:d.solde_prev!=null?String(d.solde_prev):"",
+          soldeAss:d.solde_ass!=null?String(d.solde_ass):"",
+          dateOuverture:d.date_ouverture||"",
+          budgetAnnuel:d.budget_annuel!=null?String(d.budget_annuel):"",
+          cotisationMoyenne:d.cotisation_moyenne!=null?String(d.cotisation_moyenne):""
+        });
+      }else{
+        setForm({soldeOp:"",soldePrev:"",soldeAss:"",dateOuverture:"",budgetAnnuel:"",cotisationMoyenne:""});
+      }
+    }).catch(function(){});
+  },[syndicat]);
+
   function sauvegarder(){
     if(!syndicat)return;
-    sb.upsert("syndicats_soldes",[Object.assign({},form,{syndicat_id:syndicat.id,updated_at:new Date().toISOString()})]).then(function(){
+    setErrS("");
+    var row={
+      syndicat_id:syndicat.id,
+      solde_op:parseFloat(form.soldeOp)||0,
+      solde_prev:parseFloat(form.soldePrev)||0,
+      solde_ass:parseFloat(form.soldeAss)||0,
+      date_ouverture:form.dateOuverture||null,
+      budget_annuel:parseFloat(form.budgetAnnuel)||0,
+      cotisation_moyenne:parseFloat(form.cotisationMoyenne)||0,
+      updated_at:new Date().toISOString()
+    };
+    sb.upsert("syndicats_soldes",[row],"syndicat_id").then(function(res){
+      if(res&&res.error){setErrS("Erreur de sauvegarde. La table syndicats_soldes existe-t-elle? (voir supabase/refonte-compta.sql)");return;}
+      sb.log("comptabilite","soldes","Soldes d ouverture mis a jour","",syndicat.code||"");
       setSaved(true);setTimeout(function(){setSaved(false);},3000);
-    });
+    }).catch(function(){setErrS("Erreur de connexion.");});
   }
 
   return(
@@ -308,6 +393,7 @@ function TabSoldes(p){
         </div>
       </div>
       {saved&&<div style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:8,padding:"8px 14px",fontSize:12,color:T.accent,fontWeight:600,marginBottom:12}}>Soldes sauvegardes avec succes</div>}
+      {errS&&<div style={{background:T.redL,border:"1px solid "+T.red+"44",borderRadius:8,padding:"8px 14px",fontSize:12,color:T.red,fontWeight:600,marginBottom:12}}>{errS}</div>}
       <button onClick={sauvegarder} disabled={!syndicat} style={{background:T.accent,border:"none",borderRadius:8,padding:"10px 20px",color:"#fff",fontSize:13,fontWeight:700,cursor:syndicat?"pointer":"not-allowed",opacity:syndicat?1:0.5}}>
         Sauvegarder les soldes
       </button>
