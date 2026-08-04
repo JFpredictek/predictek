@@ -55,6 +55,9 @@ export default async function handler(req, res) {
       + "nom, immat (NEQ 11 chiffres), adr (domicile REQ), ville, province, codePostal, nbUnites (entier), gestionnaire, "
       + "quorumAGO (% entier pour AGO ex:50), anneeConstruction (entier ex:1985), typeCopro (horizontale/verticale/mixte), "
       + "admins (tableau ADMINS ACTUELS EN FONCTION uniquement: [{prenom,nom,adr,ville,province,codePostal,role,dateDebut}]). "
+      + "IMPORTANT pour role: croise la liste des administrateurs avec la section des fonctions/dirigeants du REQ. "
+      + "role DOIT etre exactement une de ces valeurs: president, vice-president, secretaire, tresorier, administrateur. "
+      + "Si le document indique la fonction d une personne (ex: President, Secretaire, Tresorier), utilise-la; sinon mets administrateur. "
       + "Si un champ est absent mettre valeur vide ou 0.";
 
     var contenu;
@@ -73,6 +76,9 @@ export default async function handler(req, res) {
         + "nom, immat (NEQ 11 chiffres), adr (domicile REQ), ville, province, codePostal, nbUnites (entier), gestionnaire, "
         + "quorumAGO (% entier pour AGO ex:50), anneeConstruction (entier ex:1985), typeCopro (horizontale/verticale/mixte), "
         + "admins (tableau ADMINS ACTUELS EN FONCTION uniquement: [{prenom,nom,adr,ville,province,codePostal,role,dateDebut}]). "
+      + "IMPORTANT pour role: croise la liste des administrateurs avec la section des fonctions/dirigeants du REQ. "
+      + "role DOIT etre exactement une de ces valeurs: president, vice-president, secretaire, tresorier, administrateur. "
+      + "Si le document indique la fonction d une personne (ex: President, Secretaire, Tresorier), utilise-la; sinon mets administrateur. "
         + "Si un champ est absent mettre valeur vide ou 0.";
       contenu = [{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:promptPdf}];
     } else {

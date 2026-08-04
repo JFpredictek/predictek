@@ -1,5 +1,25 @@
 import sb from "./lib/supabase";
 import { useState, useRef, useEffect } from "react";
+
+// Normalise un role de CA (texte libre du REQ/IA) vers les valeurs standard de l app
+function normRole(r){
+  var s=(r||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  if(s.indexOf("vice")>=0)return "vice";
+  if(s.indexOf("presid")>=0)return "president";
+  if(s.indexOf("tresor")>=0)return "tresorier";
+  if(s.indexOf("secret")>=0)return "secretaire";
+  return "membre";
+}
+
+// Lit une reponse d API en tolerant les erreurs non-JSON (ex: 413 fichier trop gros)
+function lireReponseAPI(r){
+  return r.text().then(function(t){
+    try{return JSON.parse(t);}catch(e){
+      if(r.status===413)return {error:"Le PDF est trop volumineux pour le serveur (limite ~4 Mo). Compressez le PDF ou n envoyez que les pages pertinentes."};
+      return {error:"Reponse inattendue du serveur (code "+r.status+")"};
+    }
+  });
+}
 var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",pop:"#3CAF6E",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",purple:"#6B3FA0",purpleL:"#F3EEFF"};
 var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
 var money=function(n){return Math.abs(n||0).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
@@ -639,7 +659,7 @@ function ParamsSyndicat(p){
         if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
           u.nbMembresCA=ex.admins.length;
           u.admins=ex.admins.map(function(a){
-            return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};
+            return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};
           });
         }
         return u;
@@ -1151,7 +1171,7 @@ function Onboarding(p){
         if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
           u.nbMembresCA=ex.admins.length;
           u.admins=ex.admins.map(function(a){
-            return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};
+            return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};
           });
         }
         return u;
@@ -1199,7 +1219,7 @@ function Onboarding(p){
       immat:data.immat,anneeConstruction:anneeConstruction,
       nbUnites:copros.length||parseInt(data.nbUnites)||0,
       exercice:data.exercice,
-      president:data.president,secretaire:data.secretaire,tresorier:data.tresorier,
+      president:data.president||nomPourRole("president").replace("-",""),secretaire:data.secretaire||nomPourRole("secretaire").replace("-",""),tresorier:data.tresorier||nomPourRole("tresorier").replace("-",""),
       nbMembresCA:data.nbMembresCA,membresCA:data.membresCA,admins:data.admins||[],
       courrielCA:data.courrielCA,courrielFactures:data.courrielFactures,
       soldeOp:parseFloat(data.soldeOp)||0,soldePrev:parseFloat(data.soldePrev)||0,soldeAss:parseFloat(data.soldeAss)||0,
@@ -1217,6 +1237,12 @@ function Onboarding(p){
   }
 
   var totalCot=copros.reduce(function(a,c){return a+(parseFloat(c.cotisation)||0);},0);
+
+  // Nom de l administrateur qui occupe un role donne (pour le resume etape 5)
+  var nomPourRole=function(r){
+    var a=(data.admins||[]).find(function(x){return x&&x.role===r&&(x.nom||x.prenom);});
+    return a?((a.prenom||"")+" "+(a.nom||"")).trim():"-";
+  };
   var totalFraction=copros.reduce(function(a,c){return a+(parseFloat(c.fraction)||0);},0);
   var compOk=data.composantes.filter(function(c){return c.obligatoire&&c.anneeInstall;}).length;
   var compOblig=data.composantes.filter(function(c){return c.obligatoire;}).length;
@@ -1248,7 +1274,7 @@ function Onboarding(p){
                   <span style={{fontSize:16}}></span> Extraire avec l'IA
                 </button>
               <div style={{marginTop:10,background:"#FFF8EE",border:"2px solid #E8A020",borderRadius:8,padding:10}}><div style={{fontSize:11,color:"#B86020",fontWeight:700,marginBottom:4}}>PDF scanne ? Collez le texte du REQ ici</div><textarea id="txtREQ" rows={5} style={{width:"100%",border:"1px solid #E8A020",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:6}} placeholder="Collez le texte copie depuis registreentreprises.gouv.qc.ca..."/><button onClick={function(){var t=document.getElementById("txtREQ")?document.getElementById("txtREQ").value:"";if(!t||t.length<10){setIaError("Collez du texte.");return;}setIaLoading(true);setIaError("");setIaSuccess("");fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:t,mode:"syndicat"})}).then(function(r){return r.json();}).then(function(resp){if(!resp||resp.error){setIaError(resp?resp.error:"Erreur");setIaLoading(false);return;}var ex=resp.data||{};setData(function(o){var u=Object.assign({},o);if(ex.nom)u.nom=ex.nom;if(ex.immat)u.immat=ex.immat;if(ex.adr)u.adr=ex.adr;if(ex.ville)u.ville=ex.ville;if(ex.province&&ex.province.length===2)u.province=ex.province;if(ex.codePostal)u.codePostal=ex.codePostal;if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)u.anneeConstruction=parseInt(ex.anneeConstruction);if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
-                      if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){u.nbMembresCA=ex.admins.length;u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});}return u;});var ks=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];var n=ks.filter(function(k){return ex[k]&&ex[k]!=="";}).length;if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;setIaSuccess(n+" champs extraits");setIaLoading(false);}).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});}} style={{background:"#B86020",color:"#fff",border:"none",borderRadius:6,padding:"5px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Extraire depuis ce texte</button></div></>
+                      if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){u.nbMembresCA=ex.admins.length;u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};});}return u;});var ks=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];var n=ks.filter(function(k){return ex[k]&&ex[k]!=="";}).length;if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;setIaSuccess(n+" champs extraits");setIaLoading(false);}).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});}} style={{background:"#B86020",color:"#fff",border:"none",borderRadius:6,padding:"5px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Extraire depuis ce texte</button></div></>
               )}
               {iaLoading&&(
                 <div style={{background:"#EFF6FF",border:"1px solid #1A56DB44",borderRadius:8,padding:"8px 14px",fontSize:11,color:"#1A56DB",fontWeight:600}}>
@@ -1282,7 +1308,7 @@ function Onboarding(p){
                       if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}
                       if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
                         u.nbMembresCA=ex.admins.length;
-                        u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});
+                        u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};});
                       }
                       return u;
                     });
@@ -1309,13 +1335,13 @@ function Onboarding(p){
                 <input type="file" accept=".pdf,.PDF" id="pdfREQ" style={{display:"none"}} onChange={function(e){
                   var file=e.target.files&&e.target.files[0];
                   if(!file)return;
-                  if(file.size>7000000){setIaError("PDF trop volumineux (max 7 Mo).");return;}
+                  if(file.size>3000000){setIaError("PDF trop volumineux pour le serveur (max 3 Mo). Compressez-le (ex: ilovepdf.com/compress_pdf) ou collez le texte du REQ.");return;}
                   setIaError("");setIaSuccess("");setIaLoading(true);
                   var fr=new FileReader();
                   fr.onload=function(ev){
                     var b64=ev.target.result.split(",")[1];
                     fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({pdf:b64,mode:"syndicat"})})
-                    .then(function(r){return r.json();})
+                    .then(lireReponseAPI)
                     .then(function(resp){
                       if(!resp||resp.error){setIaError(resp&&resp.error?resp.error:"Erreur");setIaLoading(false);return;}
                       var ex=resp.data||{};
@@ -1335,7 +1361,7 @@ function Onboarding(p){
                       if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}
                         if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
                           u.nbMembresCA=ex.admins.length;
-                          u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});
+                          u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};});
                         }
                         return u;
                       });
@@ -1378,7 +1404,7 @@ function Onboarding(p){
                       if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}
                       if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
                         u.nbMembresCA=ex.admins.length;
-                        u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:a.role||"administrateur"};});
+                        u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};});
                       }
                       return u;
                     });
@@ -1465,10 +1491,17 @@ function Onboarding(p){
           <div style={{marginBottom:8}}>
             {data.admins.map(function(admin,i){return(
               <div key={i} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14,marginBottom:12}}>
-                <div style={{fontSize:12,fontWeight:700,color:T.navy,marginBottom:10}}>Administrateur {i+1}{i===0?" (President / Representant)":i===1?" (Secretaire)":i===2?" (Tresorier)":""}</div>
+                <div style={{fontSize:12,fontWeight:700,color:T.navy,marginBottom:10}}>Administrateur {i+1}</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
                   <Field l="Prenom"><input value={admin.prenom} onChange={function(e){sadmin(i,"prenom",e.target.value);}} style={INP}/></Field>
                   <Field l="Nom"><input value={admin.nom} onChange={function(e){sadmin(i,"nom",e.target.value);}} style={INP}/></Field>
+                  <Field l="Role au CA" full><select value={admin.role||"membre"} onChange={function(e){sadmin(i,"role",e.target.value);}} style={INP}>
+                    <option value="president">President(e)</option>
+                    <option value="vice">Vice-president(e)</option>
+                    <option value="tresorier">Tresorier(e)</option>
+                    <option value="secretaire">Secretaire</option>
+                    <option value="membre">Membre / Administrateur</option>
+                  </select></Field>
                   <Field l="Adresse postale" full><input value={admin.adr} onChange={function(e){sadmin(i,"adr",e.target.value);}} style={INP} placeholder="123 rue Exemple"/></Field>
                   <Field l="Ville"><input value={admin.ville} onChange={function(e){sadmin(i,"ville",e.target.value);}} style={INP}/></Field>
                   <Field l="Province"><select value={admin.province} onChange={function(e){sadmin(i,"province",e.target.value);}} style={INP}><option>QC</option><option>ON</option><option>BC</option><option>AB</option><option>MB</option><option>SK</option><option>NB</option><option>NS</option><option>PE</option><option>NL</option></select></Field>
@@ -1583,9 +1616,10 @@ function Onboarding(p){
               {!window._acteB64&&<div style={{fontSize:11,color:"#B86020"}}>Aucune declaration fournie a l etape 1 - retournez a l etape 1 pour l importer si vous souhaitez valider les quote-parts.</div>}
               {window._acteB64&&(
                 <button onClick={function(){
+                  if(window._acteB64&&window._acteB64.length>4200000){setQpResult({error:"La declaration PDF est trop volumineuse pour la validation en ligne (limite ~3 Mo). Compressez le PDF (ex: ilovepdf.com/compress_pdf) ou reimportez a l etape 1 un extrait contenant les pages des quotes-parts."});return;}
                   setQpResult({loading:true});
                   fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({pdf:window._acteB64,mode:"quoteparts",unites:copros.map(function(c){return {unite:c.unite,fraction:c.fraction};})})})
-                  .then(function(r){return r.json();})
+                  .then(lireReponseAPI)
                   .then(function(resp){
                     if(!resp||resp.error){setQpResult({error:(resp&&resp.error)||"Erreur"});return;}
                     setQpResult(resp.data||{});
@@ -1672,10 +1706,10 @@ function Onboarding(p){
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:20}}>
             {[
               {titre:"Syndicat",items:[{l:"Nom",v:data.nom},{l:"Code",v:data.code},{l:"Immatriculation",v:data.immat||"-"},{l:"Construction",v:data.anneeConstruction},{l:"Exercice",v:data.exercice}]},
-              {titre:"CA",items:[{l:"Membres",v:data.nbMembresCA+" membres"},{l:"President",v:data.president||"-"},{l:"Secretaire",v:data.secretaire||"-"},{l:"Tresorier",v:data.tresorier||"-"}]},
+              {titre:"CA",items:[{l:"Membres",v:(data.admins||[]).filter(function(a){return a&&(a.nom||a.prenom);}).length+" membres"},{l:"President",v:nomPourRole("president")},{l:"Secretaire",v:nomPourRole("secretaire")},{l:"Tresorier",v:nomPourRole("tresorier")}]},
               {titre:"Coproprietaires",items:[{l:"Importes",v:copros.length||data.nbUnites||"0"},{l:"Cotisations/mois",v:totalCot>0?money(totalCot):"-"},{l:"Fraction totale",v:totalFraction>0?totalFraction.toFixed(3)+"%":"-"}]},
               {titre:"Finances",items:[{l:"Exploitation",v:money(parseFloat(data.soldeOp)||0)},{l:"Prevoyance",v:money(parseFloat(data.soldePrev)||0)},{l:"Assurance",v:money(parseFloat(data.soldeAss)||0)},{l:"Budget annuel",v:data.budgetAnnuel?money(parseFloat(data.budgetAnnuel)):"-"}]},
-              {titre:"Documents",items:[{l:"Importes",v:data.documents.length+" document(s)"},{l:"Declaration",v:data.documents.find(function(d){return d.cat==="declaration";})?"- Presente":"- Manquante"},{l:"Reglement",v:data.documents.find(function(d){return d.cat==="reglement";})?"- Present":"-"}]},
+              {titre:"Documents",items:[{l:"Importes",v:data.documents.length+" document(s)"},{l:"Declaration",v:(data.documents.find(function(d){return d.cat==="declaration";})||data.acteNom)?"- Presente":"- Manquante"},{l:"Reglement",v:data.documents.find(function(d){return d.cat==="reglement";})?"- Present":"-"}]},
               {titre:"Carnet Loi 16",items:[{l:"Composantes",v:data.composantes.length+" total"},{l:"Completees",v:compOk+"/"+compOblig+" obligatoires"},{l:"Inspecteur",v:data.inspecteur||"-"},{l:"Date inspection",v:data.dateInspection||"-"}]},
             ].map(function(section){return(
               <div key={section.titre} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14}}>
@@ -2323,9 +2357,103 @@ export default function Hub(){
   var s3=useState(false);var creer=s3[0];var setCreer=s3[1];
   var s4=useState(null);var setup=s4[0];var setSetup=s4[1];
   var s5=useState(false);var showParams=s5[0];var setShowParams=s5[1];
+  var s6=useState("");var errSync=s6[0];var setErrSync=s6[1];
+  var s7=useState([]);var recup=s7[0];var setRecup=s7[1];
+
+  // Sauvegarde COMPLETE d un syndicat en base, avec erreurs VISIBLES (plus d echec silencieux)
+  function persisterSyndicat(nouveau){
+    setErrSync("");
+    var normDate=function(v){
+      if(!v)return null;
+      var s=String(v).trim();
+      if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
+      var d=new Date(s);
+      return isNaN(d.getTime())?null:d.toISOString().substring(0,10);
+    };
+    sb.insert("syndicats",{code:nouveau.code,nom:nouveau.nom,adr:nouveau.adr||"",ville:nouveau.ville||"",province:nouveau.province||"QC",immat:nouveau.immat||"",nb_unites:nouveau.nbUnites||0,president:nouveau.president||"",courriel:nouveau.courriel||"",tel:nouveau.tel||"",statut:"actif"}).then(function(res){
+      if(!res||!res.data||!res.data.id){
+        var msg=(res&&res.error&&(res.error.message||res.error.hint))||"raison inconnue";
+        setErrSync("ECHEC de la sauvegarde du syndicat "+(nouveau.nom||"")+" en base de donnees ("+msg+"). Vos donnees restent dans la sauvegarde locale du navigateur - utilisez le bouton Recuperer ci-dessous apres correction.");
+        setRecup(function(prev){return prev.indexOf(nouveau.code)<0?prev.concat([nouveau.code]):prev;});
+        return;
+      }
+      var sid=res.data.id;
+      setSyndicats(function(prev){return prev.map(function(s){return s.code===nouveau.code?Object.assign({},s,{id:sid}):s;});});
+      setRecup(function(prev){return prev.filter(function(c){return c!==nouveau.code;});});
+      sb.log("syndicat","creation","Nouveau syndicat: "+nouveau.nom,"",nouveau.code);
+      (nouveau.copros||[]).forEach(function(c){
+        sb.insert("coproprietaires",{
+          syndicat_id:sid,unite:(c.unite||"").toUpperCase(),nom:c.nom||"",prenom:c.prenom||"",
+          courriel:c.courriel||"",telephone:c.tel||c.mobile||"",
+          cotisation_mensuelle:parseFloat(c.cotisation)||0,fraction:parseFloat(c.fraction)||0,
+          code_acces:"",statut:"actif",pap:false,
+          urg_nom:c.urgNom||"",urg_lien:c.urgLien||"",urg_tel:c.urgTel||"",
+          assurance_police:c.assurancePolice||"",assurance_exp:normDate(c.assuranceExp)
+        }).catch(function(){});
+      });
+      (nouveau.admins||[]).forEach(function(a){
+        if(!a.nom&&!a.prenom)return;
+        var rowCA={
+          syndicat_id:sid,nom:a.nom||"",prenom:a.prenom||"",role_ca:normRole(a.role),
+          unite:"",courriel:a.courriel||"",cellulaire:a.mobile||"",
+          adresse_civique:a.adr||"",ville:a.ville||"",province:a.province||"QC",code_postal:a.codePostal||"",
+          date_debut_mandat:a.dateDebut||null,date_fin_mandat:null,actif:true
+        };
+        var nasDigits=(a.nas||"").replace(/\D/g,"");
+        if(nasDigits.length===9){
+          fetch("/api/nas",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({action:"encrypt",nas:nasDigits})})
+            .then(function(r){return r.json();})
+            .then(function(d){
+              if(d&&d.encrypted)rowCA.nas_chiffre=d.encrypted;
+              sb.insert("membres_ca",rowCA).catch(function(){});
+            })
+            .catch(function(){sb.insert("membres_ca",rowCA).catch(function(){});});
+        }else{
+          sb.insert("membres_ca",rowCA).catch(function(){});
+        }
+      });
+      (nouveau.documents||[]).forEach(function(d){
+        var kb=0;var t=(d.taille||"");
+        if(t.indexOf("MB")>=0)kb=Math.round(parseFloat(t)*1024);
+        else if(t.indexOf("KB")>=0)kb=Math.round(parseFloat(t));
+        sb.insert("documents",{
+          syndicat_id:sid,niveau:"syndicat",nom:d.nom||"",type_doc:d.cat||"general",
+          description:"Ajoute lors de l onboarding",date_doc:null,confidentiel:false,url:"",taille_kb:kb
+        }).catch(function(){});
+      });
+      sb.log("syndicat","onboarding","Donnees onboarding sauvegardees: "+((nouveau.copros||[]).length)+" copros, "+((nouveau.admins||[]).length)+" admins, "+((nouveau.documents||[]).length)+" documents","",nouveau.code);
+    }).catch(function(e){
+      setErrSync("Erreur de connexion lors de la sauvegarde: "+(e&&e.message?e.message:"inconnue")+". Vos donnees restent dans la sauvegarde locale - bouton Recuperer ci-dessous.");
+      setRecup(function(prev){return prev.indexOf(nouveau.code)<0?prev.concat([nouveau.code]):prev;});
+    });
+  }
+
+  function recupererLocal(code){
+    try{
+      var raw=localStorage.getItem("predictek_syndicat_"+code);
+      if(!raw){setErrSync("Aucune sauvegarde locale trouvee pour "+code);return;}
+      var obj=JSON.parse(raw);
+      var saved=Object.assign({},obj,{statut:"actif",cotisationMensuelle:obj.cotisationMensuelle||0,alertesCE:0,alertesAss:0,alertesPAP:0,alertesCarnet:0});
+      setSyndicats(function(prev){return prev.filter(function(s){return s.code!==code;}).concat([saved]);});
+      persisterSyndicat(saved);
+    }catch(e){setErrSync("Sauvegarde locale illisible: "+e.message);}
+  }
 
   useEffect(function(){
     sb.select("syndicats",{order:"created_at.desc"}).then(function(res){
+      // Reperer les syndicats sauvegardes localement mais absents de la base (echec anterieur)
+      try{
+        var codesDB=(res&&res.data?res.data:[]).map(function(s){return s.code;});
+        var manquants=[];
+        for(var li=0;li<localStorage.length;li++){
+          var k=localStorage.key(li);
+          if(k&&k.indexOf("predictek_syndicat_")===0){
+            var cde=k.replace("predictek_syndicat_","");
+            if(codesDB.indexOf(cde)<0)manquants.push(cde);
+          }
+        }
+        setRecup(manquants);
+      }catch(e){}
       if(res&&res.data&&res.data.length>0){
         setSyndicats(res.data.map(function(s){
           return {
@@ -2362,63 +2490,7 @@ export default function Hub(){
           var saved=Object.assign({},nouveau,{statut:"actif",cotisationMensuelle:0,alertesCE:0,alertesAss:0,alertesPAP:0,alertesCarnet:0});
           setSyndicats(function(prev){return prev.filter(function(s){return s.code!==nouveau.code;}).concat([saved]);});
           setCreer(false);
-          sb.insert("syndicats",{code:nouveau.code,nom:nouveau.nom,adr:nouveau.adr||"",ville:nouveau.ville||"",province:nouveau.province||"QC",immat:nouveau.immat||"",nb_unites:nouveau.nbUnites||0,president:nouveau.president||"",courriel:nouveau.courriel||"",tel:nouveau.tel||"",statut:"actif"}).then(function(res){
-            if(res&&res.data&&res.data.id){
-              var sid=res.data.id;
-              setSyndicats(function(prev){return prev.map(function(s){return s.code===nouveau.code?Object.assign({},s,{id:sid}):s;});});
-              sb.log("syndicat","creation","Nouveau syndicat: "+nouveau.nom,"",nouveau.code);
-              // Persistance complete de l onboarding: coproprietaires, membres CA, documents
-              var normDate=function(v){
-                if(!v)return null;
-                var s=String(v).trim();
-                if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
-                var d=new Date(s);
-                return isNaN(d.getTime())?null:d.toISOString().substring(0,10);
-              };
-              (nouveau.copros||[]).forEach(function(c){
-                sb.insert("coproprietaires",{
-                  syndicat_id:sid,unite:(c.unite||"").toUpperCase(),nom:c.nom||"",prenom:c.prenom||"",
-                  courriel:c.courriel||"",telephone:c.tel||c.mobile||"",
-                  cotisation_mensuelle:parseFloat(c.cotisation)||0,fraction:parseFloat(c.fraction)||0,
-                  code_acces:"",statut:"actif",pap:false,
-                  urg_nom:c.urgNom||"",urg_lien:c.urgLien||"",urg_tel:c.urgTel||"",
-                  assurance_police:c.assurancePolice||"",assurance_exp:normDate(c.assuranceExp)
-                }).catch(function(){});
-              });
-              (nouveau.admins||[]).forEach(function(a){
-                if(!a.nom&&!a.prenom)return;
-                var rowCA={
-                  syndicat_id:sid,nom:a.nom||"",prenom:a.prenom||"",role_ca:(a.role||"membre").toLowerCase(),
-                  unite:"",courriel:a.courriel||"",cellulaire:a.mobile||"",
-                  adresse_civique:a.adr||"",ville:a.ville||"",province:a.province||"QC",code_postal:a.codePostal||"",
-                  date_debut_mandat:a.dateDebut||null,date_fin_mandat:null,actif:true
-                };
-                // NAS: chiffre cote serveur (AES-256-GCM) avant sauvegarde; jamais stocke en clair
-                var nasDigits=(a.nas||"").replace(/\D/g,"");
-                if(nasDigits.length===9){
-                  fetch("/api/nas",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({action:"encrypt",nas:nasDigits})})
-                    .then(function(r){return r.json();})
-                    .then(function(d){
-                      if(d&&d.encrypted)rowCA.nas_chiffre=d.encrypted;
-                      sb.insert("membres_ca",rowCA).catch(function(){});
-                    })
-                    .catch(function(){sb.insert("membres_ca",rowCA).catch(function(){});});
-                }else{
-                  sb.insert("membres_ca",rowCA).catch(function(){});
-                }
-              });
-              (nouveau.documents||[]).forEach(function(d){
-                var kb=0;var t=(d.taille||"");
-                if(t.indexOf("MB")>=0)kb=Math.round(parseFloat(t)*1024);
-                else if(t.indexOf("KB")>=0)kb=Math.round(parseFloat(t));
-                sb.insert("documents",{
-                  syndicat_id:sid,niveau:"syndicat",nom:d.nom||"",type_doc:d.cat||"general",
-                  description:"Ajoute lors de l onboarding",date_doc:null,confidentiel:false,url:"",taille_kb:kb
-                }).catch(function(){});
-              });
-              sb.log("syndicat","onboarding","Donnees onboarding sauvegardees: "+((nouveau.copros||[]).length)+" copros, "+((nouveau.admins||[]).length)+" admins, "+((nouveau.documents||[]).length)+" documents","",nouveau.code);
-            }
-          }).catch(function(){});
+          persisterSyndicat(saved);
         }}/>
       </div>
     );
@@ -2455,6 +2527,20 @@ export default function Hub(){
         {ong==="syndicats"&&<Btn onClick={function(){setCreer(true);}}>+ Nouveau syndicat</Btn>}
       </div>
 
+      {errSync&&(
+        <div style={{background:"#FDECEA",border:"2px solid #B83232",borderRadius:10,padding:"12px 16px",marginBottom:14,fontSize:12,color:"#B83232",fontWeight:600}}>{errSync}</div>
+      )}
+      {recup.length>0&&(
+        <div style={{background:"#FEF3E2",border:"2px solid #B86020",borderRadius:10,padding:"12px 16px",marginBottom:14}}>
+          <div style={{fontSize:12,fontWeight:700,color:"#B86020",marginBottom:8}}>Syndicat(s) sauvegarde(s) localement mais ABSENT(S) de la base de donnees:</div>
+          {recup.map(function(c){return(
+            <div key={c} style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+              <span style={{fontSize:12,fontWeight:700}}>{c}</span>
+              <Btn sm onClick={function(){recupererLocal(c);}}>Recuperer et sauvegarder en base</Btn>
+            </div>
+          );})}
+        </div>
+      )}
       {totalFact>0&&(
         <div style={{background:T.amberL,border:"1px solid "+T.amber+"44",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{fontSize:12,fontWeight:600,color:T.amber}}>{totalFact} facture(s) en attente d approbation sur l ensemble des syndicats</div>
