@@ -24,6 +24,17 @@ export default function Unites(){
   var s8=useState({});var vf=s8[0];var setVf=s8[1];
   var s9=useState(false);var venteEnCours=s9[0];var setVenteEnCours=s9[1];
   var s10=useState("");var msgVente=s10[0];var setMsgVente=s10[1];
+  var s11=useState(null);var ceFile=s11[0];var setCeFile=s11[1];
+  var s12=useState(null);var assFile=s12[0];var setAssFile=s12[1];
+  var s13=useState("");var msgEdit=s13[0];var setMsgEdit=s13[1];
+  var s14=useState(false);var editEnCours=s14[0];var setEditEnCours=s14[1];
+
+  function voirFichier(chemin){
+    sb.lienFichier("preuves",chemin).then(function(url){
+      if(url)window.open(url,"_blank");
+      else alert("Impossible de generer le lien du fichier.");
+    });
+  }
 
   useEffect(function(){
     sb.select("syndicats",{order:"nom.asc"}).then(function(res){
@@ -96,24 +107,54 @@ export default function Unites(){
 
   function editer(u){
     setEditId(u.id);
+    setCeFile(null);setAssFile(null);setMsgEdit("");
     setNf({fraction:u.fraction!=null?String(u.fraction):"",cotisation_mensuelle:u.cotisation_mensuelle!=null?String(u.cotisation_mensuelle):"",
-      chauffe_eau:u.chauffe_eau||"",assurance_police:u.assurance_police||"",assurance_exp:u.assurance_exp||"",ass_cie:u.ass_cie||"",
-      locataire:!!u.locataire,nom_locataire:u.nom_locataire||"",tel_locataire:u.tel_locataire||"",courriel_locataire:u.courriel_locataire||"",
+      chauffe_eau:u.chauffe_eau||"",ce_date_install:u.ce_date_install?String(u.ce_date_install).substring(0,7):"",
+      assurance_police:u.assurance_police||"",assurance_debut:u.assurance_debut||"",assurance_exp:u.assurance_exp||"",ass_cie:u.ass_cie||"",
+      occupation:u.occupation||(u.locataire?"locataire":"proprietaire"),
+      nom_locataire:u.nom_locataire||"",tel_locataire:u.tel_locataire||"",courriel_locataire:u.courriel_locataire||"",
       urg_nom:u.urg_nom||"",urg_lien:u.urg_lien||"",urg_tel:u.urg_tel||"",
       stationnement:u.stationnement||"",rangement:u.rangement||"",notes:u.notes||""});
   }
 
   function sauvegarder(){
+    if(editEnCours)return;
+    setEditEnCours(true);setMsgEdit("");
     var row={fraction:parseFloat(nf.fraction)||0,cotisation_mensuelle:parseFloat(nf.cotisation_mensuelle)||0,
-      chauffe_eau:nf.chauffe_eau||"",assurance_police:nf.assurance_police||"",assurance_exp:nf.assurance_exp||null,ass_cie:nf.ass_cie||"",
-      locataire:!!nf.locataire,nom_locataire:nf.nom_locataire||"",tel_locataire:nf.tel_locataire||"",courriel_locataire:nf.courriel_locataire||"",
+      chauffe_eau:nf.chauffe_eau||"",ce_date_install:nf.ce_date_install?nf.ce_date_install+"-01":null,
+      assurance_police:nf.assurance_police||"",assurance_debut:nf.assurance_debut||null,assurance_exp:nf.assurance_exp||null,ass_cie:nf.ass_cie||"",
+      occupation:nf.occupation||"proprietaire",locataire:(nf.occupation==="locataire"),
+      nom_locataire:nf.nom_locataire||"",tel_locataire:nf.tel_locataire||"",courriel_locataire:nf.courriel_locataire||"",
       urg_nom:nf.urg_nom||"",urg_lien:nf.urg_lien||"",urg_tel:nf.urg_tel||"",
       stationnement:nf.stationnement||"",rangement:nf.rangement||"",notes:nf.notes||""};
-    sb.update("unites",editId,row).then(function(){
-      setUnites(function(prev){return prev.map(function(u){return u.id===editId?Object.assign({},u,row):u;});});
+    var uid=editId;
+    var etapes=Promise.resolve();
+    if(ceFile){
+      etapes=etapes.then(function(){
+        var ext=(ceFile.name.match(/\.[a-zA-Z0-9]+$/)||[".jpg"])[0];
+        return sb.uploadFichier("preuves",(sel?sel.id:"x")+"/"+uid+"/chauffe-eau"+ext,ceFile).then(function(r){
+          if(r.error)throw new Error("Photo chauffe-eau: "+r.error.message);
+          row.ce_photo=r.chemin;
+        });
+      });
+    }
+    if(assFile){
+      etapes=etapes.then(function(){
+        var ext=(assFile.name.match(/\.[a-zA-Z0-9]+$/)||[".pdf"])[0];
+        return sb.uploadFichier("preuves",(sel?sel.id:"x")+"/"+uid+"/assurance"+ext,assFile).then(function(r){
+          if(r.error)throw new Error("Preuve assurance: "+r.error.message);
+          row.assurance_doc=r.chemin;
+        });
+      });
+    }
+    etapes.then(function(){
+      return sb.update("unites",uid,row);
+    }).then(function(res){
+      if(res&&res.error){setMsgEdit("ECHEC de la sauvegarde: "+(res.error.message||"erreur"));setEditEnCours(false);return;}
+      setUnites(function(prev){return prev.map(function(u){return u.id===uid?Object.assign({},u,row):u;});});
       sb.log("unites","modification","Unite modifiee","",sel?sel.code||"":"");
-      setEditId(null);
-    }).catch(function(){});
+      setCeFile(null);setAssFile(null);setEditEnCours(false);setEditId(null);
+    }).catch(function(e){setMsgEdit("ECHEC: "+(e.message||"erreur inconnue"));setEditEnCours(false);});
   }
 
   var liste=unites.filter(function(u){
@@ -150,7 +191,8 @@ export default function Unites(){
                     <div style={{width:46,height:36,borderRadius:8,background:T.navy,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:13,color:"#fff"}}>{u.no_unite}</div>
                     <Bdg bg={T.blueL} c={T.blue}>{(parseFloat(u.fraction)||0).toFixed(3)} %</Bdg>
                     {Number(u.cotisation_mensuelle)>0&&<Bdg>{Number(u.cotisation_mensuelle).toFixed(2)} $/mois</Bdg>}
-                    {u.locataire&&<Bdg bg={T.amberL} c={T.amber}>LOUE{u.nom_locataire?": "+u.nom_locataire:""}</Bdg>}
+                    {(u.occupation==="locataire"||(!u.occupation&&u.locataire))&&<Bdg bg={T.amberL} c={T.amber}>LOUEE{u.nom_locataire?": "+u.nom_locataire:""}</Bdg>}
+                    {u.occupation==="resident"&&<Bdg bg={T.blueL} c={T.blue}>RESIDENT{u.nom_locataire?": "+u.nom_locataire:""}</Bdg>}
                     {u.assurance_exp&&(jrs<0
                       ?<Bdg bg={T.redL} c={T.red}>Assurance EXPIREE</Bdg>
                       :jrs<=90?<Bdg bg={T.amberL} c={T.amber}>Assurance expire dans {jrs} j</Bdg>
@@ -162,10 +204,17 @@ export default function Unites(){
                   {props.map(function(c,i){return (c.courriel||c.telephone)?<div key={i} style={{fontSize:10,color:T.muted}}>{((c.prenom||"")+" "+(c.nom||"")).trim()}: {c.courriel||"-"} {c.telephone?" | "+c.telephone:""}</div>:null;})}
                   <div style={{fontSize:11,color:T.muted,marginTop:4}}>
                     {u.urg_nom?"Urgence: "+u.urg_nom+(u.urg_lien?" ("+u.urg_lien+")":"")+(u.urg_tel?" "+u.urg_tel:""):"Urgence: -"}
-                    {u.chauffe_eau?" | Chauffe-eau: "+u.chauffe_eau:""}
+                    {u.chauffe_eau||u.ce_date_install?" | Chauffe-eau: "+(u.chauffe_eau||"")+(u.ce_date_install?" (installe "+String(u.ce_date_install).substring(0,7)+")":""):""}
                     {u.stationnement?" | Stat.: "+u.stationnement:""}
                     {u.rangement?" | Rang.: "+u.rangement:""}
+                    {u.assurance_debut||u.assurance_exp?" | Assurance: du "+(u.assurance_debut||"?")+" au "+(u.assurance_exp||"?"):""}
                   </div>
+                  {(u.ce_photo||u.assurance_doc)&&(
+                    <div style={{marginTop:5,display:"flex",gap:8}}>
+                      {u.ce_photo&&<button onClick={function(){voirFichier(u.ce_photo);}} style={{background:T.blueL,border:"1px solid "+T.blue+"44",borderRadius:6,padding:"3px 10px",fontSize:10,fontWeight:700,color:T.blue,cursor:"pointer",fontFamily:"inherit"}}>Photo chauffe-eau</button>}
+                      {u.assurance_doc&&<button onClick={function(){voirFichier(u.assurance_doc);}} style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:6,padding:"3px 10px",fontSize:10,fontWeight:700,color:T.accent,cursor:"pointer",fontFamily:"inherit"}}>Preuve d assurance</button>}
+                    </div>
+                  )}
                   {u.notes?<div style={{fontSize:10,color:T.muted,marginTop:2,fontStyle:"italic"}}>{u.notes}</div>:null}
                   {anciensDe(u).length>0&&(
                     <div style={{fontSize:10,color:T.muted,marginTop:4}}>
@@ -207,24 +256,30 @@ export default function Unites(){
                     <div><Lbl l="Cotisation ($/mois)"/><input type="number" step="0.01" value={nf.cotisation_mensuelle} onChange={function(e){setN("cotisation_mensuelle",e.target.value);}} style={INP}/></div>
                     <div><Lbl l="Stationnement"/><input value={nf.stationnement} onChange={function(e){setN("stationnement",e.target.value);}} style={INP}/></div>
                     <div><Lbl l="Rangement"/><input value={nf.rangement} onChange={function(e){setN("rangement",e.target.value);}} style={INP}/></div>
-                    <div><Lbl l="Chauffe-eau (marque/annee)"/><input value={nf.chauffe_eau} onChange={function(e){setN("chauffe_eau",e.target.value);}} style={INP} placeholder="Giant 2019"/></div>
+                    <div><Lbl l="Chauffe-eau (marque)"/><input value={nf.chauffe_eau} onChange={function(e){setN("chauffe_eau",e.target.value);}} style={INP} placeholder="Giant 60 gal"/></div>
+                    <div><Lbl l="Installation (mois-annee)"/><input type="month" value={nf.ce_date_install||""} onChange={function(e){setN("ce_date_install",e.target.value);}} style={INP}/></div>
+                    <div style={{gridColumn:"span 2"}}><Lbl l="Photo du chauffe-eau (preuve)"/><input type="file" accept="image/*,.pdf" onChange={function(e){setCeFile(e.target.files&&e.target.files[0]?e.target.files[0]:null);}} style={{fontSize:11,fontFamily:"inherit"}}/>{ceFile&&<span style={{fontSize:10,color:T.accent,marginLeft:6}}>{ceFile.name}</span>}</div>
                     <div><Lbl l="No police assurance"/><input value={nf.assurance_police} onChange={function(e){setN("assurance_police",e.target.value);}} style={INP}/></div>
                     <div><Lbl l="Assureur"/><input value={nf.ass_cie} onChange={function(e){setN("ass_cie",e.target.value);}} style={INP}/></div>
+                    <div><Lbl l="Debut assurance"/><input type="date" value={nf.assurance_debut||""} onChange={function(e){setN("assurance_debut",e.target.value);}} style={INP}/></div>
                     <div><Lbl l="Expiration assurance"/><input type="date" value={nf.assurance_exp||""} onChange={function(e){setN("assurance_exp",e.target.value);}} style={INP}/></div>
-                    <div style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",marginTop:18}} onClick={function(){setN("locataire",!nf.locataire);}}>
-                      <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(nf.locataire?T.accent:T.border),background:nf.locataire?T.accent:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{nf.locataire&&<span style={{color:"#fff",fontSize:11,fontWeight:700}}>V</span>}</div>
-                      <span style={{fontSize:12}}>Unite louee</span>
-                    </div>
-                    <div><Lbl l="Locataire"/><input value={nf.nom_locataire} onChange={function(e){setN("nom_locataire",e.target.value);}} style={INP}/></div>
-                    <div><Lbl l="Tel locataire"/><input value={nf.tel_locataire} onChange={function(e){setN("tel_locataire",e.target.value);}} style={INP}/></div>
-                    <div><Lbl l="Courriel locataire"/><input value={nf.courriel_locataire} onChange={function(e){setN("courriel_locataire",e.target.value);}} style={INP}/></div>
+                    <div style={{gridColumn:"span 2"}}><Lbl l="Preuve d assurance (document)"/><input type="file" accept=".pdf,image/*" onChange={function(e){setAssFile(e.target.files&&e.target.files[0]?e.target.files[0]:null);}} style={{fontSize:11,fontFamily:"inherit"}}/>{assFile&&<span style={{fontSize:10,color:T.accent,marginLeft:6}}>{assFile.name}</span>}</div>
+                    <div><Lbl l="Occupation de l unite"/><select value={nf.occupation||"proprietaire"} onChange={function(e){setN("occupation",e.target.value);}} style={INP}>
+                      <option value="proprietaire">Proprietaire occupant</option>
+                      <option value="locataire">Louee (locataire)</option>
+                      <option value="resident">Resident (non locataire)</option>
+                    </select></div>
+                    <div><Lbl l={nf.occupation==="resident"?"Nom du resident":"Nom du locataire"}/><input value={nf.nom_locataire} onChange={function(e){setN("nom_locataire",e.target.value);}} style={INP}/></div>
+                    <div><Lbl l="Telephone"/><input value={nf.tel_locataire} onChange={function(e){setN("tel_locataire",e.target.value);}} style={INP}/></div>
+                    <div><Lbl l="Courriel"/><input value={nf.courriel_locataire} onChange={function(e){setN("courriel_locataire",e.target.value);}} style={INP}/></div>
                     <div><Lbl l="Urgence - nom"/><input value={nf.urg_nom} onChange={function(e){setN("urg_nom",e.target.value);}} style={INP}/></div>
                     <div><Lbl l="Urgence - lien"/><input value={nf.urg_lien} onChange={function(e){setN("urg_lien",e.target.value);}} style={INP} placeholder="Fils, soeur..."/></div>
                     <div><Lbl l="Urgence - telephone"/><input value={nf.urg_tel} onChange={function(e){setN("urg_tel",e.target.value);}} style={INP}/></div>
                     <div style={{gridColumn:"1/-1"}}><Lbl l="Notes"/><input value={nf.notes} onChange={function(e){setN("notes",e.target.value);}} style={INP}/></div>
                   </div>
+                  {msgEdit&&<div style={{background:T.redL,border:"1px solid "+T.red+"44",borderRadius:8,padding:"8px 12px",fontSize:12,color:T.red,marginBottom:10}}>{msgEdit}</div>}
                   <div style={{display:"flex",gap:8}}>
-                    <Btn onClick={sauvegarder}>Sauvegarder l unite</Btn>
+                    <Btn onClick={sauvegarder} dis={editEnCours}>{editEnCours?"Sauvegarde en cours...":"Sauvegarder l unite"}</Btn>
                     <Btn onClick={function(){setEditId(null);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
                   </div>
                 </div>

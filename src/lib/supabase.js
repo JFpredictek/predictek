@@ -127,6 +127,30 @@ var sb = {
       return {error: {message: d.error_description || d.msg || "Erreur lors de l envoi"}};
     } catch(e) { return {error: {message: "Erreur de connexion"}}; }
   },
+  // Televerse un fichier dans le coffre prive (bucket) Supabase Storage
+  uploadFichier: async function(bucket, chemin, file) {
+    try {
+      var r = await fetch(SUPABASE_URL + "/storage/v1/object/" + bucket + "/" + chemin, {
+        method: "POST",
+        headers: {"apikey": SUPABASE_KEY, "Authorization": "Bearer " + (_token || SUPABASE_KEY), "x-upsert": "true", "Content-Type": file.type || "application/octet-stream"},
+        body: file
+      });
+      if(r.ok) return {chemin: chemin, error: null};
+      var d = await r.json();
+      return {chemin: null, error: {message: (d && (d.message || d.error)) || "Erreur de televersement"}};
+    } catch(e) { return {chemin: null, error: {message: "Erreur de connexion"}}; }
+  },
+  // Genere un lien temporaire (1 h) vers un fichier du coffre prive
+  lienFichier: async function(bucket, chemin) {
+    try {
+      var r = await fetch(SUPABASE_URL + "/storage/v1/object/sign/" + bucket + "/" + chemin, {
+        method: "POST", headers: this._h(), body: JSON.stringify({expiresIn: 3600})
+      });
+      var d = await r.json();
+      if(d && d.signedURL) return SUPABASE_URL + "/storage/v1" + d.signedURL;
+    } catch(e) {}
+    return null;
+  },
   // Definit un nouveau mot de passe a partir d un jeton de recuperation (lien courriel)
   setNewPassword: async function(recoveryToken, newPwd) {
     try {

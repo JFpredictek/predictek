@@ -2401,6 +2401,7 @@ export default function Hub(){
           stationnement:c.stationnement||"",rangement:c.rangement||"",
           chauffe_eau:c.chauffeEau||"",assurance_police:c.assurancePolice||"",assurance_exp:normDate(c.assuranceExp),
           locataire:!!c.locNom,nom_locataire:c.locNom||"",tel_locataire:c.locTel||"",courriel_locataire:c.locCourriel||"",
+          occupation:(c.locNom?"locataire":"proprietaire"),
           urg_nom:c.urgNom||"",urg_lien:c.urgLien||"",urg_tel:c.urgTel||"",notes:""
         };
         return sb.insert("unites",uniteRow).then(function(ru){
