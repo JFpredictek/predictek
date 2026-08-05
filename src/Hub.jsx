@@ -2505,7 +2505,7 @@ export default function Hub(){
         setRecup(manquants);
       }catch(e){}
       if(res&&res.data&&res.data.length>0){
-        setSyndicats(res.data.map(function(s){
+        var base=res.data.map(function(s){
           return {
             id:s.id,code:s.code,nom:s.nom,adr:s.adr||"",
             ville:s.ville||"",province:s.province||"QC",
@@ -2516,7 +2516,18 @@ export default function Hub(){
             cotisationMensuelle:0,alertesCE:0,alertesAss:0,
             alertesPAP:0,alertesCarnet:0
           };
-        }));
+        });
+        setSyndicats(base);
+        // Compter les VRAIES unites (table unites) et corriger l affichage + la BD au besoin
+        base.forEach(function(s){
+          sb.select("unites",{eq:{syndicat_id:s.id},cols:"id",limit:1000}).then(function(ru){
+            var n=ru&&ru.data?ru.data.length:0;
+            if(n>0){
+              setSyndicats(function(prev){return prev.map(function(x){return x.id===s.id?Object.assign({},x,{nbUnites:n}):x;});});
+              if(n!==s.nbUnites)sb.update("syndicats",s.id,{nb_unites:n}).catch(function(){});
+            }
+          }).catch(function(){});
+        });
       }
     }).catch(function(){});
   },[]);
