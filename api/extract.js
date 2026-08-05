@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     var textePreview = texte.substring(0, 500);
 
     if(mode === "reglements") {
-      var promptR = "Voici le texte d une declaration de copropriete quebecoise.\n\n" + texte.substring(0,12000) + "\n\nGenere un resume structure des reglements importants. Format: liste par categorie, francais, max 800 mots.";
+      var promptR = "Voici le texte d une declaration de copropriete quebecoise.\n\n" + texte.substring(0,30000) + "\n\nGenere un resume structure des reglements importants. Format: liste par categorie, francais, max 800 mots.";
       var rR = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1200,messages:[{role:"user",content:[{type:"text",text:promptR}]}]})});
       var rawR = await rR.text();
       var dR; try{dR=JSON.parse(rawR);}catch(e){return res.status(500).json({error:"JSON invalide"});}
@@ -50,10 +50,10 @@ export default async function handler(req, res) {
     }
 
     var prompt = "Voici le texte extrait de documents officiels d un syndicat de copropriete quebecois (REQ et/ou declaration).\n\n"
-      + texte.substring(0,12000)
+      + texte.substring(0,30000)
       + "\n\nReponds UNIQUEMENT avec un objet JSON valide. Cles requises:\n"
       + "nom, immat (NEQ 11 chiffres), adr (domicile REQ), ville, province, codePostal, nbUnites (entier), gestionnaire, "
-      + "quorumAGO (% entier pour AGO ex:50), anneeConstruction (entier ex:1985), typeCopro (horizontale/verticale/mixte), "
+      + "quorumAGO (% entier pour AGO - cherche dans les extraits de la declaration le quorum requis aux assemblees generales; s il est exprime comme majorite des voix des presents ou majorite simple, mets 50), anneeConstruction (entier ex:1985), typeCopro (horizontale/verticale/mixte), "
       + "admins (tableau ADMINS ACTUELS EN FONCTION uniquement: [{prenom,nom,adr,ville,province,codePostal,role,dateDebut}]). "
       + "IMPORTANT pour role: croise la liste des administrateurs avec la section des fonctions/dirigeants du REQ. "
       + "role DOIT etre exactement une de ces valeurs: president, vice-president, secretaire, tresorier, administrateur. "
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
       var promptPdf = "Voici le document officiel PDF d un syndicat de copropriete quebecois (REQ et/ou declaration). Lis-le attentivement, y compris s il s agit d un document numerise."
         + "\n\nReponds UNIQUEMENT avec un objet JSON valide. Cles requises:\n"
         + "nom, immat (NEQ 11 chiffres), adr (domicile REQ), ville, province, codePostal, nbUnites (entier), gestionnaire, "
-        + "quorumAGO (% entier pour AGO ex:50), anneeConstruction (entier ex:1985), typeCopro (horizontale/verticale/mixte), "
+        + "quorumAGO (% entier pour AGO - cherche dans les extraits de la declaration le quorum requis aux assemblees generales; s il est exprime comme majorite des voix des presents ou majorite simple, mets 50), anneeConstruction (entier ex:1985), typeCopro (horizontale/verticale/mixte), "
         + "admins (tableau ADMINS ACTUELS EN FONCTION uniquement: [{prenom,nom,adr,ville,province,codePostal,role,dateDebut}]). "
       + "IMPORTANT pour role: croise la liste des administrateurs avec la section des fonctions/dirigeants du REQ. "
       + "role DOIT etre exactement une de ces valeurs: president, vice-president, secretaire, tresorier, administrateur. "

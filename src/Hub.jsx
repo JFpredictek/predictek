@@ -607,7 +607,7 @@ function ParamsSyndicat(p){
           function run(){
             pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
             pdfjsLib.getDocument({data:arr}).promise.then(function(pdf){
-              var pages=[];for(var p=1;p<=Math.min(pdf.numPages,20);p++)pages.push(p);
+              var pages=[];for(var p=1;p<=Math.min(pdf.numPages,60);p++)pages.push(p);
               return Promise.all(pages.map(function(n){
                 return pdf.getPage(n).then(function(pg){
                   return pg.getTextContent().then(function(tc){
@@ -628,7 +628,30 @@ function ParamsSyndicat(p){
       });
     }
     Promise.all(files.map(lirePDF)).then(function(textes){
-      var texte=textes.join("\n\n");
+      // Assemblage intelligent: REQ complet + debut de la declaration (identite)
+      // + extraits cibles sur les assemblees/quorum/majorites (souvent loin dans l acte)
+      var idx=0;
+      var texteREQ=window._reqFile?(textes[idx++]||""):"";
+      var texteActe=window._acteFile?(textes[idx]||""):"";
+      var extraitsActe="";
+      if(texteActe){
+        var phrases=texteActe.split(/\.\s+/);
+        var gard=[];
+        for(var pi=0;pi<phrases.length;pi++){
+          if(/quorum|assembl|majorit|vote|convoc/i.test(phrases[pi])){
+            if(pi>0)gard.push(phrases[pi-1]);
+            gard.push(phrases[pi]);
+            if(pi+1<phrases.length)gard.push(phrases[pi+1]);
+          }
+        }
+        extraitsActe=gard.join(". ").substring(0,9000);
+      }
+      var texte="";
+      if(texteREQ)texte+=texteREQ.substring(0,12000);
+      if(texteActe){
+        texte+="\n\n=== DEBUT DE LA DECLARATION DE COPROPRIETE ===\n"+texteActe.substring(0,4000);
+        if(extraitsActe)texte+="\n\n=== EXTRAITS PERTINENTS DE LA DECLARATION (assemblees, quorum, majorites, votes) ===\n"+extraitsActe;
+      }
       if(!texte||texte.trim().length<20){
         setIaError("PDF non-textuel (image scannee). Saisissez manuellement.");
         setIaLoading(false);return null;
@@ -1119,7 +1142,7 @@ function Onboarding(p){
           function run(){
             pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
             pdfjsLib.getDocument({data:arr}).promise.then(function(pdf){
-              var pages=[];for(var p=1;p<=Math.min(pdf.numPages,20);p++)pages.push(p);
+              var pages=[];for(var p=1;p<=Math.min(pdf.numPages,60);p++)pages.push(p);
               return Promise.all(pages.map(function(n){
                 return pdf.getPage(n).then(function(pg){
                   return pg.getTextContent().then(function(tc){
@@ -1140,7 +1163,30 @@ function Onboarding(p){
       });
     }
     Promise.all(files.map(lirePDF)).then(function(textes){
-      var texte=textes.join("\n\n");
+      // Assemblage intelligent: REQ complet + debut de la declaration (identite)
+      // + extraits cibles sur les assemblees/quorum/majorites (souvent loin dans l acte)
+      var idx=0;
+      var texteREQ=window._reqFile?(textes[idx++]||""):"";
+      var texteActe=window._acteFile?(textes[idx]||""):"";
+      var extraitsActe="";
+      if(texteActe){
+        var phrases=texteActe.split(/\.\s+/);
+        var gard=[];
+        for(var pi=0;pi<phrases.length;pi++){
+          if(/quorum|assembl|majorit|vote|convoc/i.test(phrases[pi])){
+            if(pi>0)gard.push(phrases[pi-1]);
+            gard.push(phrases[pi]);
+            if(pi+1<phrases.length)gard.push(phrases[pi+1]);
+          }
+        }
+        extraitsActe=gard.join(". ").substring(0,9000);
+      }
+      var texte="";
+      if(texteREQ)texte+=texteREQ.substring(0,12000);
+      if(texteActe){
+        texte+="\n\n=== DEBUT DE LA DECLARATION DE COPROPRIETE ===\n"+texteActe.substring(0,4000);
+        if(extraitsActe)texte+="\n\n=== EXTRAITS PERTINENTS DE LA DECLARATION (assemblees, quorum, majorites, votes) ===\n"+extraitsActe;
+      }
       if(!texte||texte.trim().length<20){
         setIaError("PDF non-textuel (image scannee). Saisissez manuellement.");
         setIaLoading(false);return null;
