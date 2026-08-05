@@ -170,7 +170,7 @@ var sb = {
     var exp = 0;
     try { exp = JSON.parse(atob(_token.split(".")[1])).exp || 0; } catch(e) {}
     var now = Math.floor(Date.now() / 1000);
-    if(exp - now > 60) return this.getUser();
+    if(exp - now > 900) return this.getUser();
     var refresh = null;
     try { refresh = localStorage.getItem("predictek_refresh"); } catch(e) {}
     if(!refresh) { this.logout(); return null; }

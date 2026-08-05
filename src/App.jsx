@@ -125,6 +125,11 @@ export default function App(){
       if(u)setUser(u);
       setChecking(false);
     }).catch(function(){setChecking(false);});
+    // Renouvellement continu de la session: toutes les 10 min + au retour sur l onglet
+    var iv=setInterval(function(){sb.checkSession().catch(function(){});},600000);
+    var onFocus=function(){sb.checkSession().catch(function(){});};
+    window.addEventListener("focus",onFocus);
+    return function(){clearInterval(iv);window.removeEventListener("focus",onFocus);};
   },[]);
 
   function handleLogin(u){setUser(u);}
