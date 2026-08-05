@@ -61,10 +61,12 @@ export default function HubDashboard(p){
           sb.select("coproprietaires",{eq:{syndicat_id:s.id}}),
           sb.select("paiements",{eq:{syndicat_id:s.id},limit:100}),
           sb.select("factures",{eq:{syndicat_id:s.id},limit:50}),
+          sb.select("unites",{eq:{syndicat_id:s.id},cols:"id",limit:1000}),
         ]).then(function(results){
           var copros=results[0]&&results[0].data?results[0].data:[];
           var paies=results[1]&&results[1].data?results[1].data:[];
           var facts=results[2]&&results[2].data?results[2].data:[];
+          var unites=results[3]&&results[3].data?results[3].data:[];
           var mois=new Date().toISOString().substring(0,7);
           var paiesMois=paies.filter(function(p){return p.date_paiement&&p.date_paiement.substring(0,7)===mois;});
           var totalMois=paiesMois.reduce(function(a,p){return a+Number(p.montant||0);},0);
@@ -75,7 +77,9 @@ export default function HubDashboard(p){
           var facturesRetard=facts.filter(function(f){return f.date_echeance&&new Date(f.date_echeance)<today&&f.statut!=="payee"&&f.statut!=="annulee";}).length;
           var facturesEnAttente=facts.filter(function(f){return f.statut==="en_attente_approbation";}).length;
           var totalCot=copros.filter(function(c){return c.statut==="actif";}).reduce(function(a,c){return a+Number(c.cotisation_mensuelle||0);},0);
-          return {id:s.id,totalCot:totalCot,nbCopros:copros.filter(function(c){return c.statut==="actif";}).length,tauxPerception:totalMois>0?Math.round(payesMois/totalMois*100):0,ceExpires:ceExpires,assExpires:assExpires,facturesRetard:facturesRetard,facturesEnAttente:facturesEnAttente};
+          var coprosActifs=copros.filter(function(c){return c.statut==="actif";});
+          var unitesDistinctes={};coprosActifs.forEach(function(c){if(c.unite)unitesDistinctes[c.unite]=true;});
+          return {id:s.id,totalCot:totalCot,nbUnites:unites.length>0?unites.length:Object.keys(unitesDistinctes).length,nbCopros:coprosActifs.length,tauxPerception:totalMois>0?Math.round(payesMois/totalMois*100):0,ceExpires:ceExpires,assExpires:assExpires,facturesRetard:facturesRetard,facturesEnAttente:facturesEnAttente};
         });
       });
       Promise.all(promises).then(function(allStats){
@@ -86,7 +90,8 @@ export default function HubDashboard(p){
   },[]);
 
   var totalSyndicats=syndicats.length;
-  var totalUnites=Object.values(stats).reduce(function(a,s){return a+(s.nbCopros||0);},0);
+  var totalUnites=Object.values(stats).reduce(function(a,s){return a+(s.nbUnites||0);},0);
+  var totalCopros=Object.values(stats).reduce(function(a,s){return a+(s.nbCopros||0);},0);
   var totalAlertes=Object.values(stats).reduce(function(a,s){return a+(s.ceExpires||0)+(s.assExpires||0)+(s.facturesRetard||0);},0);
   var totalFacturesAttente=Object.values(stats).reduce(function(a,s){return a+(s.facturesEnAttente||0);},0);
   var totalCotisations=Object.values(stats).reduce(function(a,s){return a+(s.totalCot||0);},0);
@@ -110,10 +115,11 @@ export default function HubDashboard(p){
           </div>
           <div style={{fontSize:11,color:"#8da0bb",textAlign:"right"}}>{new Date().toLocaleDateString("fr-CA",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
         </div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:12}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:12}}>
           {[
             {l:"Syndicats actifs",v:totalSyndicats,color:"#3CAF6E"},
             {l:"Unités totales",v:totalUnites,color:"#64B5F6"},
+            {l:"Copropriétaires",v:totalCopros,color:"#FFB74D"},
             {l:"Cotisations /mois",v:totalCotisations.toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $",color:"#1B5E3B"},
             {l:"Alertes actives",v:totalAlertes,color:totalAlertes>0?"#B83232":"#3CAF6E"},
             {l:"Factures en attente",v:totalFacturesAttente,color:totalFacturesAttente>0?"#B86020":"#7C7568"},
