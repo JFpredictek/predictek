@@ -2386,26 +2386,55 @@ export default function Hub(){
       setSyndicats(function(prev){return prev.map(function(s){return s.code===nouveau.code?Object.assign({},s,{id:sid}):s;});});
       setRecup(function(prev){return prev.filter(function(c){return c!==nouveau.code;});});
       sb.log("syndicat","creation","Nouveau syndicat: "+nouveau.nom,"",nouveau.code);
-      var totalCopros=(nouveau.copros||[]).length;
-      var promCopros=(nouveau.copros||[]).map(function(c){
-        return sb.insert("coproprietaires",{
-          syndicat_id:sid,unite:(c.unite||"").toUpperCase(),nom:c.nom||"",prenom:c.prenom||"",
-          courriel:c.courriel||"",telephone:c.tel||c.mobile||"",
-          cotisation_mensuelle:parseFloat(c.cotisation)||0,fraction:parseFloat(c.fraction)||0,
-          code_acces:"",statut:"actif",pap:false,
-          nom2:c.prop2nom||"",adresse:c.adr||"",
-          locataire:!!c.locNom,nom_locataire:c.locNom||"",tel_locataire:c.locTel||"",
-          ass_numero:c.assurancePolice||"",ass_expiry:normDate(c.assuranceExp),
-          urg_nom:c.urgNom||"",urg_lien:c.urgLien||"",urg_tel:c.urgTel||"",
-          assurance_police:c.assurancePolice||"",assurance_exp:normDate(c.assuranceExp)
-        }).then(function(r){return r&&r.data&&r.data.id?"ok":(r&&r.error&&r.error.message)||"erreur";}).catch(function(e){return e.message||"erreur";});
+      // MODELE PAR UNITE: chaque ligne Excel = une UNITE (quote-part, locataire,
+      // urgence, chauffe-eau, assurance), avec 1 ou 2 proprietaires rattaches (50/50).
+      var lignes=(nouveau.copros||[]);
+      var totalUnites=lignes.length;
+      var nbFiches=0;
+      var promUnites=lignes.map(function(c){
+        var deux=!!(c.prop2nom&&String(c.prop2nom).trim());
+        var frac=parseFloat(c.fraction)||0;
+        var cot=parseFloat(c.cotisation)||0;
+        var uniteRow={
+          syndicat_id:sid,no_unite:(c.unite||"").toUpperCase(),cadastre:c.cadastre||"",
+          fraction:frac,cotisation_mensuelle:cot,adresse:c.adr||"",
+          stationnement:c.stationnement||"",rangement:c.rangement||"",
+          chauffe_eau:c.chauffeEau||"",assurance_police:c.assurancePolice||"",assurance_exp:normDate(c.assuranceExp),
+          locataire:!!c.locNom,nom_locataire:c.locNom||"",tel_locataire:c.locTel||"",courriel_locataire:c.locCourriel||"",
+          urg_nom:c.urgNom||"",urg_lien:c.urgLien||"",urg_tel:c.urgTel||"",notes:""
+        };
+        return sb.insert("unites",uniteRow).then(function(ru){
+          if(!ru||!ru.data||!ru.data.id)return (ru&&ru.error&&ru.error.message)||"erreur creation unite "+(c.unite||"");
+          var uid=ru.data.id;
+          var basePers={
+            syndicat_id:sid,unite:(c.unite||"").toUpperCase(),unite_id:uid,
+            adresse:c.adr||"",code_acces:"",statut:"actif",pap:false,
+            assurance_police:c.assurancePolice||"",assurance_exp:normDate(c.assuranceExp)
+          };
+          var personnes=[];
+          if(deux){
+            var p2=String(c.prop2nom).trim();var p2prenom="";var p2nom=p2;
+            if(p2.indexOf(" ")>0){var pts=p2.split(" ");p2prenom=pts[0];p2nom=pts.slice(1).join(" ");}
+            personnes.push(Object.assign({},basePers,{nom:c.nom||"",prenom:c.prenom||"",courriel:c.courriel||"",telephone:c.tel||c.mobile||"",part_pourcent:50,fraction:Math.round(frac/2*1000)/1000,cotisation_mensuelle:Math.round(cot/2*100)/100}));
+            personnes.push(Object.assign({},basePers,{nom:p2nom,prenom:p2prenom,courriel:c.prop2courriel||"",telephone:c.prop2tel||"",part_pourcent:50,fraction:Math.round(frac/2*1000)/1000,cotisation_mensuelle:Math.round(cot/2*100)/100}));
+          }else{
+            personnes.push(Object.assign({},basePers,{nom:c.nom||"",prenom:c.prenom||"",courriel:c.courriel||"",telephone:c.tel||c.mobile||"",part_pourcent:100,fraction:frac,cotisation_mensuelle:cot}));
+          }
+          nbFiches+=personnes.length;
+          return Promise.all(personnes.map(function(pp){
+            return sb.insert("coproprietaires",pp).then(function(r){return r&&r.data&&r.data.id?"ok":(r&&r.error&&r.error.message)||"erreur proprietaire";}).catch(function(e){return e.message||"erreur";});
+          })).then(function(rs){
+            var err=rs.find(function(x){return x!=="ok";});
+            return err||"ok";
+          });
+        }).catch(function(e){return e.message||"erreur";});
       });
-      Promise.all(promCopros).then(function(rs){
+      Promise.all(promUnites).then(function(rs){
         var echecs=rs.filter(function(x){return x!=="ok";});
         if(echecs.length>0){
-          setErrSync(echecs.length+"/"+totalCopros+" coproprietaire(s) NON sauvegarde(s): "+echecs[0]);
+          setErrSync(echecs.length+"/"+totalUnites+" unite(s) NON sauvegardee(s): "+echecs[0]);
         }else{
-          setOkSync("Syndicat "+(nouveau.nom||"")+" sauvegarde au complet: "+totalCopros+" coproprietaires, "+((nouveau.admins||[]).filter(function(a){return a.nom||a.prenom;}).length)+" administrateurs, "+((nouveau.documents||[]).length)+" document(s).");
+          setOkSync("Syndicat "+(nouveau.nom||"")+" sauvegarde au complet: "+totalUnites+" unites, "+nbFiches+" fiche(s) de proprietaires, "+((nouveau.admins||[]).filter(function(a){return a.nom||a.prenom;}).length)+" administrateurs, "+((nouveau.documents||[]).length)+" document(s).");
           try{localStorage.removeItem("predictek_syndicat_"+nouveau.code);}catch(e){}
         }
         setPersistEnCours(false);
@@ -2469,7 +2498,7 @@ export default function Hub(){
           var k=localStorage.key(li);
           if(k&&k.indexOf("predictek_syndicat_")===0){
             var cde=k.replace("predictek_syndicat_","");
-            if(codesDB.indexOf(cde)<0)manquants.push(cde);
+            if(cde&&codesDB.indexOf(cde)<0)manquants.push(cde);
           }
         }
         setRecup(manquants);
@@ -2560,6 +2589,7 @@ export default function Hub(){
             <div key={c} style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
               <span style={{fontSize:12,fontWeight:700}}>{c}</span>
               <Btn sm dis={persistEnCours} onClick={function(){recupererLocal(c);}}>{persistEnCours?"Sauvegarde en cours...":"Recuperer et sauvegarder en base"}</Btn>
+              <Btn sm bg={"#EDEBE4"} tc={"#7C7568"} bdr={"1px solid #DDD9CF"} onClick={function(){try{localStorage.removeItem("predictek_syndicat_"+c);}catch(e){}setRecup(function(prev){return prev.filter(function(x){return x!==c;});});}}>Ignorer et supprimer cette sauvegarde</Btn>
             </div>
           );})}
         </div>

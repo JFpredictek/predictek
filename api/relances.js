@@ -92,6 +92,7 @@ module.exports = async function(req, res){
   var syndicats = await sbGet(svc, "syndicats?select=id,nom,code");
   var synMap = {}; syndicats.forEach(function(s){synMap[s.id]=s;});
   var copros = await sbGet(svc, "coproprietaires?select=*&statut=eq.actif&limit=2000");
+  var unites = await sbGet(svc, "unites?select=*&limit=2000");
   var paiements = await sbGet(svc, "paiements?select=coproprietaire_id,statut&date_paiement=gte." + mois + "-01&limit=5000");
   var dejaRaw = await sbGet(svc, "relances_envoyees?select=cle&limit=10000");
   var deja = {}; dejaRaw.forEach(function(x){deja[x.cle]=true;});
@@ -131,6 +132,28 @@ module.exports = async function(req, res){
         });
       }
     }
+  });
+
+  // REGLE 2b - Assurance au niveau de l UNITE (modele par unite):
+  // rappel envoye a chaque proprietaire ACTIF de l unite.
+  unites.forEach(function(u){
+    if(!u.assurance_exp) return;
+    var syn = synMap[u.syndicat_id] || {nom:"votre syndicat", code:""};
+    var jours = Math.ceil((new Date(u.assurance_exp) - maintenant) / 86400000);
+    var typeA = jours < 0 ? "assurance_expiree" : jours <= 30 ? "assurance_30" : jours <= 90 ? "assurance_90" : null;
+    if(!typeA) return;
+    var proprietaires = copros.filter(function(c){return c.unite_id === u.id && c.courriel;});
+    proprietaires.forEach(function(c){
+      var cleU = typeA + "_" + c.id + "_" + u.assurance_exp;
+      if(deja[cleU]) return;
+      var dejaListe = aEnvoyer.some(function(x){return x.cle === cleU;});
+      if(dejaListe) return;
+      aEnvoyer.push({
+        type: typeA, cle: cleU, copro: c, syn: syn,
+        sujet: "[" + syn.nom + "] " + (jours < 0 ? "La preuve d assurance de l unite " + (u.no_unite||"") + " est EXPIREE" : "L assurance de l unite " + (u.no_unite||"") + " expire dans " + jours + " jours"),
+        contexte: "l assurance responsabilite de l unite " + (u.no_unite||"") + " " + (jours < 0 ? "est expiree depuis le " + u.assurance_exp : "expire le " + u.assurance_exp) + "; une preuve d assurance valide doit etre transmise au syndicat"
+      });
+    });
   });
 
   var apiKey = process.env.ANTHROPIC_API_KEY || "";

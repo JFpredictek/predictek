@@ -33,6 +33,7 @@ import GestionEmployes from "./GestionEmployes";
 import GestionRoles from "./GestionRoles";
 import ImportCSVCopros from "./ImportCSVCopros";
 import RegistreIncidents from "./RegistreIncidents";
+import Unites from "./Unites";
 
 var SECTIONS=[
   {
@@ -63,6 +64,7 @@ var SECTIONS=[
     bg:"#1A3A5C",
     modules:[
       {id:"tableau",label:"Tableau CA",icon:"TB"},
+      {id:"unites",label:"Unites",icon:"UN"},
       {id:"copros",label:"Coproprietaires",icon:"CP"},
             {id:"factures",label:"Factures",icon:"FA"},
       {id:"budget",label:"Budget",icon:"BU"},
@@ -214,6 +216,7 @@ export default function App(){
         {active==="onboarding"&&<Hub/>}
         {active==="tableau"&&<TableauBordCA/>}
         {active==="copros"&&<GestionCopros/>}
+        {active==="unites"&&<Unites/>}
         {active==="gestion"&&<GestionAuto/>}
         {active==="factures"&&<GestionFactures/>}
         {active==="budget"&&<BudgetCompta/>}
