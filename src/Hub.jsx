@@ -11,6 +11,14 @@ function normRole(r){
   return "membre";
 }
 
+// ===== Validation et formatage des champs (a l epreuve des erreurs) =====
+function fmtNAS(v){var d=(v||"").replace(/\D/g,"").slice(0,9);return d.replace(/(\d{3})(?=\d)/g,"$1-");}
+function nasValide(v){var d=(v||"").replace(/\D/g,"");if(d.length!==9)return false;var s=0;for(var i=0;i<9;i++){var x=parseInt(d[i],10);if(i%2===1){x*=2;if(x>9)x-=9;}s+=x;}return s%10===0;}
+function fmtTel(v){var d=(v||"").replace(/\D/g,"").slice(0,10);if(d.length>6)return d.slice(0,3)+"-"+d.slice(3,6)+"-"+d.slice(6);if(d.length>3)return d.slice(0,3)+"-"+d.slice(3);return d;}
+function courrielValide(v){return !v||/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);}
+function fmtCP(v){var s=(v||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6);return s.length>3?s.slice(0,3)+" "+s.slice(3):s;}
+function fmtNEQ(v){return (v||"").replace(/\D/g,"").slice(0,11);}
+
 // Lit une reponse d API en tolerant les erreurs non-JSON (ex: 413 fichier trop gros)
 function lireReponseAPI(r){
   return r.text().then(function(t){
@@ -18,6 +26,50 @@ function lireReponseAPI(r){
       if(r.status===413)return {error:"Le PDF est trop volumineux pour le serveur (limite ~4 Mo). Compressez le PDF ou n envoyez que les pages pertinentes."};
       return {error:"Reponse inattendue du serveur (code "+r.status+")"};
     }
+  });
+}
+
+// Rend des pages de la declaration (window._acteFile) en images JPEG base64 pour l analyse par vision IA.
+// spec: "12-15,20" - retourne une Promise avec le tableau d images (max 8 pages).
+function rendrePagesActe(spec, max){
+  return new Promise(function(resolve, reject){
+    if(!window._acteFile){reject(new Error("Aucune declaration PDF importee a l etape 1."));return;}
+    var pages=[];
+    (spec||"").split(",").forEach(function(part){
+      var m=part.trim().match(/^(\d+)\s*-\s*(\d+)$/);
+      if(m){for(var pp=parseInt(m[1]);pp<=parseInt(m[2]);pp++)pages.push(pp);}
+      else if(/^\d+$/.test(part.trim()))pages.push(parseInt(part.trim()));
+    });
+    pages=pages.slice(0,max||8);
+    if(pages.length===0){reject(new Error("Indiquez des pages valides, ex: 12-15"));return;}
+    var lancer=function(){
+      var fr=new FileReader();
+      fr.onerror=function(){reject(new Error("Lecture du PDF impossible"));};
+      fr.onload=function(ev){
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        window.pdfjsLib.getDocument({data:new Uint8Array(ev.target.result)}).promise.then(function(pdf){
+          return Promise.all(pages.filter(function(n){return n>=1&&n<=pdf.numPages;}).map(function(n){
+            return pdf.getPage(n).then(function(pg){
+              var vp=pg.getViewport({scale:1.5});
+              var cv=document.createElement("canvas");cv.width=vp.width;cv.height=vp.height;
+              return pg.render({canvasContext:cv.getContext("2d"),viewport:vp}).promise.then(function(){
+                return cv.toDataURL("image/jpeg",0.72).split(",")[1];
+              });
+            });
+          }));
+        }).then(function(images){
+          if(!images||images.length===0){reject(new Error("Aucune de ces pages n existe dans le PDF."));return;}
+          resolve(images);
+        }).catch(reject);
+      };
+      fr.readAsArrayBuffer(window._acteFile);
+    };
+    if(typeof window.pdfjsLib==="undefined"){
+      var sc=document.createElement("script");
+      sc.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+      sc.onload=lancer;sc.onerror=function(){reject(new Error("PDF.js indisponible - verifiez la connexion internet"));};
+      document.head.appendChild(sc);
+    }else{lancer();}
   });
 }
 var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",pop:"#3CAF6E",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",purple:"#6B3FA0",purpleL:"#F3EEFF"};
@@ -181,7 +233,7 @@ function DetailSyndicat(p){
             {l:"Courriel",v:s.courriel||"-"},
             {l:"Telephone",v:s.tel||"-"},
             {l:"Immatriculation",v:s.immat||"-"},
-            {l:"Annee construction",v:s.anneeConstruction||"-"},
+            {l:"Annee constitution",v:s.anneeConstruction||"-"},
             {l:"Exercice financier",v:s.exercice||"-"},
             {l:"Gestionnaire Predictek",v:s.gestionnaire||"-"},
           ].map(function(item,i){return(
@@ -361,7 +413,7 @@ var reader=new FileReader();
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
             <FRow l="Nom du syndicat" full><input value={form.nom} onChange={function(e){sf("nom",e.target.value);}} style={INP} placeholder="ex: Syndicat Les Erables"/></FRow>
             <FRow l="Code (4 lettres)"><input value={form.code} onChange={function(e){sf("code",e.target.value.toUpperCase().slice(0,4));}} style={INP} placeholder="ERAB" maxLength={4}/></FRow>
-            <FRow l="Annee construction"><input type="number" value={form.anneeConstruction} onChange={function(e){sf("anneeConstruction",e.target.value);}} style={INP} placeholder="2013"/></FRow>
+            <FRow l="Annee constitution"><input type="number" value={form.anneeConstruction} onChange={function(e){sf("anneeConstruction",e.target.value);}} style={INP} placeholder="2013"/></FRow>
             <FRow l="Adresse" full><input value={form.adr} onChange={function(e){sf("adr",e.target.value);}} style={INP} placeholder="123 rue des Erables, Quebec QC"/></FRow>
             <FRow l="Immatriculation"><input value={form.immat} onChange={function(e){sf("immat",e.target.value);}} style={INP} placeholder="1144524577"/></FRow>
             <FRow l="Exercice financier">
@@ -676,7 +728,7 @@ function ParamsSyndicat(p){
         if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);
         if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;
         if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);
-        if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)u.anneeConstruction=parseInt(ex.anneeConstruction);
+        var anCst=ex.anneeConstitution||ex.anneeConstruction;if(anCst&&parseInt(anCst)>1900)u.anneeConstruction=parseInt(anCst);
         if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
                       if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}
         if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
@@ -747,7 +799,7 @@ function ParamsSyndicat(p){
               <div><Lbl l="Province"/><input value={params.province} onChange={function(e){sp("province",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Code postal"/><input value={params.codePostal} onChange={function(e){sp("codePostal",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Immatriculation REQ"/><input value={params.immat} onChange={function(e){sp("immat",e.target.value);}} style={INP}/></div>
-              <div><Lbl l="Annee de construction"/><input value={params.anneeConstruction} onChange={function(e){sp("anneeConstruction",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Annee de constitution"/><input value={params.anneeConstruction} onChange={function(e){sp("anneeConstruction",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Nombre d unites"/><input type="number" value={params.nbUnites} onChange={function(e){sp("nbUnites",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Exercice financier"/>
                 <select value={params.exercice} onChange={function(e){sp("exercice",e.target.value);}} style={INP}>
@@ -1211,7 +1263,7 @@ function Onboarding(p){
         if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);
         if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;
         if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);
-        if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)u.anneeConstruction=parseInt(ex.anneeConstruction);
+        var anCst=ex.anneeConstitution||ex.anneeConstruction;if(anCst&&parseInt(anCst)>1900)u.anneeConstruction=parseInt(anCst);
         if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
                       if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}
         if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
@@ -1319,8 +1371,71 @@ function Onboarding(p){
                 <><button onClick={extraireIA} style={{background:"linear-gradient(135deg,#1A56DB,#3CAF6E)",border:"none",borderRadius:8,padding:"8px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:16}}></span> Extraire avec l'IA
                 </button>
-              <div style={{marginTop:10,background:"#FFF8EE",border:"2px solid #E8A020",borderRadius:8,padding:10}}><div style={{fontSize:11,color:"#B86020",fontWeight:700,marginBottom:4}}>PDF scanne ? Collez le texte du REQ ici</div><textarea id="txtREQ" rows={5} style={{width:"100%",border:"1px solid #E8A020",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:6}} placeholder="Collez le texte copie depuis registreentreprises.gouv.qc.ca..."/><button onClick={function(){var t=document.getElementById("txtREQ")?document.getElementById("txtREQ").value:"";if(!t||t.length<10){setIaError("Collez du texte.");return;}setIaLoading(true);setIaError("");setIaSuccess("");fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:t,mode:"syndicat"})}).then(function(r){return r.json();}).then(function(resp){if(!resp||resp.error){setIaError(resp?resp.error:"Erreur");setIaLoading(false);return;}var ex=resp.data||{};setData(function(o){var u=Object.assign({},o);if(ex.nom)u.nom=ex.nom;if(ex.immat)u.immat=ex.immat;if(ex.adr)u.adr=ex.adr;if(ex.ville)u.ville=ex.ville;if(ex.province&&ex.province.length===2)u.province=ex.province;if(ex.codePostal)u.codePostal=ex.codePostal;if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)u.anneeConstruction=parseInt(ex.anneeConstruction);if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
-                      if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){u.nbMembresCA=ex.admins.length;u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};});}return u;});var ks=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];var n=ks.filter(function(k){return ex[k]&&ex[k]!=="";}).length;if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;setIaSuccess(n+" champs extraits");setIaLoading(false);}).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});}} style={{background:"#B86020",color:"#fff",border:"none",borderRadius:6,padding:"5px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Extraire depuis ce texte</button></div></>
+              <div style={{marginTop:10,background:"#FFF8EE",border:"2px solid #E8A020",borderRadius:8,padding:10}}><div style={{fontSize:11,color:"#B86020",fontWeight:700,marginBottom:4}}>PDF scanne ? Collez le texte du REQ ici</div><textarea id="txtREQ" rows={5} style={{width:"100%",border:"1px solid #E8A020",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:6}} placeholder="Collez le texte copie depuis registreentreprises.gouv.qc.ca..."/><button onClick={function(){var t=document.getElementById("txtREQ")?document.getElementById("txtREQ").value:"";if(!t||t.length<10){setIaError("Collez du texte.");return;}setIaLoading(true);setIaError("");setIaSuccess("");fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:t,mode:"syndicat"})}).then(function(r){return r.json();}).then(function(resp){if(!resp||resp.error){setIaError(resp?resp.error:"Erreur");setIaLoading(false);return;}var ex=resp.data||{};setData(function(o){var u=Object.assign({},o);if(ex.nom)u.nom=ex.nom;if(ex.immat)u.immat=ex.immat;if(ex.adr)u.adr=ex.adr;if(ex.ville)u.ville=ex.ville;if(ex.province&&ex.province.length===2)u.province=ex.province;if(ex.codePostal)u.codePostal=ex.codePostal;if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);var anCst=ex.anneeConstitution||ex.anneeConstruction;if(anCst&&parseInt(anCst)>1900)u.anneeConstruction=parseInt(anCst);if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
+                      if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){u.nbMembresCA=ex.admins.length;u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};});}return u;});var ks=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];var n=ks.filter(function(k){return ex[k]&&ex[k]!=="";}).length;if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;setIaSuccess(n+" champs extraits");setIaLoading(false);}).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});}} style={{background:"#B86020",color:"#fff",border:"none",borderRadius:6,padding:"5px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Extraire depuis ce texte</button></div>
+              <div style={{marginTop:10,background:"#EFF6FF",border:"2px solid #1A56DB",borderRadius:8,padding:10}}>
+                <div style={{fontSize:11,color:"#1A56DB",fontWeight:700,marginBottom:4}}>Declaration numerisee (scan) ? Analyse par vision IA</div>
+                <div style={{fontSize:10,color:"#7C7568",marginBottom:6}}>Indiquez les pages ou se trouvent la date de constitution et les regles d assemblee (quorum). Exemple: 1-3,25-28 (max 8 pages)</div>
+                <div style={{display:"flex",gap:8}}>
+                  <input id="pagesVision" placeholder="1-3,25-28" style={{flex:1,border:"1px solid #1A56DB55",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit"}}/>
+                  <button onClick={function(){
+                    if(!window._acteFile){setIaError("Importez d abord la declaration de copropriete (PDF) ci-dessus.");return;}
+                    var spec=(document.getElementById("pagesVision")||{}).value||"";
+                    var pages=[];
+                    spec.split(",").forEach(function(part){
+                      var m=part.trim().match(/^(\d+)\s*-\s*(\d+)$/);
+                      if(m){for(var pp=parseInt(m[1]);pp<=parseInt(m[2]);pp++)pages.push(pp);}
+                      else if(/^\d+$/.test(part.trim()))pages.push(parseInt(part.trim()));
+                    });
+                    pages=pages.slice(0,8);
+                    if(pages.length===0){setIaError("Indiquez des pages valides, ex: 1-3,25-28");return;}
+                    setIaLoading(true);setIaError("");setIaSuccess("");
+                    var lancer=function(){
+                      var fr=new FileReader();
+                      fr.onload=function(ev){
+                        pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+                        pdfjsLib.getDocument({data:new Uint8Array(ev.target.result)}).promise.then(function(pdf){
+                          return Promise.all(pages.filter(function(n){return n>=1&&n<=pdf.numPages;}).map(function(n){
+                            return pdf.getPage(n).then(function(pg){
+                              var vp=pg.getViewport({scale:1.5});
+                              var cv=document.createElement("canvas");cv.width=vp.width;cv.height=vp.height;
+                              return pg.render({canvasContext:cv.getContext("2d"),viewport:vp}).promise.then(function(){
+                                return cv.toDataURL("image/jpeg",0.72).split(",")[1];
+                              });
+                            });
+                          }));
+                        }).then(function(images){
+                          return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({images:images,mode:"syndicat"})}).then(lireReponseAPI);
+                        }).then(function(resp){
+                          if(!resp||resp.error){setIaError((resp&&resp.error)||"Erreur");setIaLoading(false);return;}
+                          var ex=resp.data||{};
+                          setData(function(o){
+                            var u=Object.assign({},o);
+                            var anC=ex.anneeConstitution||ex.anneeConstruction;
+                            if(anC&&parseInt(anC)>1900)u.anneeConstruction=parseInt(anC);
+                            if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);
+                            if(ex.nbUnites&&parseInt(ex.nbUnites)>0&&!u.nbUnites)u.nbUnites=parseInt(ex.nbUnites);
+                            if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
+                            return u;
+                          });
+                          var trouve=[];
+                          if(ex.quorumAGO)trouve.push("quorum "+ex.quorumAGO+" %");
+                          if(ex.anneeConstitution||ex.anneeConstruction)trouve.push("constitution "+(ex.anneeConstitution||ex.anneeConstruction));
+                          setIaSuccess(trouve.length>0?"Vision IA: "+trouve.join(", ")+" extraits des pages "+spec:"Vision IA: rien trouve dans ces pages - essayez d autres pages.");
+                          setIaLoading(false);
+                        }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});
+                      };
+                      fr.readAsArrayBuffer(window._acteFile);
+                    };
+                    if(typeof pdfjsLib==="undefined"){
+                      var sc=document.createElement("script");
+                      sc.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+                      sc.onload=lancer;sc.onerror=function(){setIaError("PDF.js indisponible");setIaLoading(false);};
+                      document.head.appendChild(sc);
+                    }else{lancer();}
+                  }} style={{background:"#1A56DB",color:"#fff",border:"none",borderRadius:6,padding:"5px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Analyser ces pages</button>
+                </div>
+              </div></>
               )}
               {iaLoading&&(
                 <div style={{background:"#EFF6FF",border:"1px solid #1A56DB44",borderRadius:8,padding:"8px 14px",fontSize:11,color:"#1A56DB",fontWeight:600}}>
@@ -1349,7 +1464,7 @@ function Onboarding(p){
                       if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);
                       if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;
                       if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);
-                      if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)u.anneeConstruction=parseInt(ex.anneeConstruction);
+                      var anCst=ex.anneeConstitution||ex.anneeConstruction;if(anCst&&parseInt(anCst)>1900)u.anneeConstruction=parseInt(anCst);
                       if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
                       if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}
                       if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
@@ -1402,7 +1517,7 @@ function Onboarding(p){
                         if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);
                         if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;
                         if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);
-                        if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)u.anneeConstruction=parseInt(ex.anneeConstruction);
+                        var anCst=ex.anneeConstitution||ex.anneeConstruction;if(anCst&&parseInt(anCst)>1900)u.anneeConstruction=parseInt(anCst);
                         if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
                       if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}
                         if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
@@ -1445,7 +1560,7 @@ function Onboarding(p){
                       if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);
                       if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;
                       if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);
-                      if(ex.anneeConstruction&&parseInt(ex.anneeConstruction)>1900)u.anneeConstruction=parseInt(ex.anneeConstruction);
+                      var anCst=ex.anneeConstitution||ex.anneeConstruction;if(anCst&&parseInt(anCst)>1900)u.anneeConstruction=parseInt(anCst);
                       if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
                       if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}
                       if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
@@ -1484,12 +1599,12 @@ function Onboarding(p){
                 var num=((data.adr||"").match(/\d+/)||[""])[0];
                 if(base||num){sd("code",(base+num).slice(0,20));}
               }} style={{background:"#1B5E3B",color:"#fff",border:"none",borderRadius:6,padding:"0 12px",fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>Auto</button></div></Field>
-            <Field l="Annee de construction"><input type="number" value={data.anneeConstruction} onChange={function(e){sd("anneeConstruction",e.target.value);}} style={INP} placeholder="2013"/></Field>
+            <Field l="Annee de constitution"><input type="number" value={data.anneeConstruction} onChange={function(e){sd("anneeConstruction",e.target.value);}} style={INP} placeholder="2013"/></Field>
             <Field l="Adresse du syndicat" full hint="Adresse du domicile tel qu inscrit au REQ"><input value={data.adr} onChange={function(e){sd("adr",e.target.value);}} style={INP} placeholder="123 Chemin du Hibou"/></Field>
             <Field l="Ville"><input value={data.ville} onChange={function(e){sd("ville",e.target.value);}} style={INP} placeholder="Stoneham-et-Tewkesbury"/></Field>
             <Field l="Province"><select value={data.province} onChange={function(e){sd("province",e.target.value);}} style={INP}><option>QC</option><option>ON</option><option>BC</option><option>AB</option></select></Field>
             <Field l="Code postal"><input value={data.codePostal} onChange={function(e){sd("codePostal",e.target.value.toUpperCase());}} style={INP} placeholder="G3C 1T1"/></Field>
-            <Field l="Numero immatriculation REQ" hint="11 chiffres - registre entreprises Quebec"><input value={data.immat} onChange={function(e){sd("immat",e.target.value);}} style={INP} placeholder="1144524577"/></Field>
+            <Field l="Numero immatriculation REQ" hint="11 chiffres - registre entreprises Quebec"><input value={data.immat} onChange={function(e){sd("immat",fmtNEQ(e.target.value));}} style={INP} placeholder="1144524577"/></Field>
             <Field l="Exercice financier"><select value={data.exercice} onChange={function(e){sd("exercice",e.target.value);}} style={INP}><option value="1 nov au 31 oct">1 nov au 31 oct</option><option value="1 jan au 31 dec">1 jan au 31 dec</option><option value="1 avr au 31 mars">1 avr au 31 mars</option><option value="1 juil au 30 juin">1 juil au 30 juin</option></select></Field>
             <Field l="Quorum AGO % (dclaration)"><input type="number" min="10" max="75" value={data.quorumAGO} onChange={function(e){sd("quorumAGO",parseInt(e.target.value)||25);}} style={INP}/></Field>
           </div>
@@ -1551,18 +1666,18 @@ function Onboarding(p){
                   <Field l="Adresse postale" full><input value={admin.adr} onChange={function(e){sadmin(i,"adr",e.target.value);}} style={INP} placeholder="123 rue Exemple"/></Field>
                   <Field l="Ville"><input value={admin.ville} onChange={function(e){sadmin(i,"ville",e.target.value);}} style={INP}/></Field>
                   <Field l="Province"><select value={admin.province} onChange={function(e){sadmin(i,"province",e.target.value);}} style={INP}><option>QC</option><option>ON</option><option>BC</option><option>AB</option><option>MB</option><option>SK</option><option>NB</option><option>NS</option><option>PE</option><option>NL</option></select></Field>
-                  <Field l="Code postal"><input value={admin.codePostal} onChange={function(e){sadmin(i,"codePostal",e.target.value.toUpperCase());}} style={INP} placeholder="G1A 1A1"/></Field>
-                  <Field l="Courriel"><input type="email" value={admin.courriel} onChange={function(e){sadmin(i,"courriel",e.target.value);}} style={INP} placeholder="nom@exemple.com"/></Field>
-                  <Field l="Mobile"><input type="tel" value={admin.mobile} onChange={function(e){sadmin(i,"mobile",e.target.value);}} style={INP} placeholder="418-555-0000"/></Field>
+                  <Field l="Code postal"><input value={admin.codePostal} onChange={function(e){sadmin(i,"codePostal",fmtCP(e.target.value));}} style={INP} placeholder="G1A 1A1"/></Field>
+                  <Field l="Courriel"><input type="email" value={admin.courriel} onChange={function(e){sadmin(i,"courriel",e.target.value.trim());}} style={Object.assign({},INP,admin.courriel&&!courrielValide(admin.courriel)?{border:"2px solid #B83232"}:{})} placeholder="nom@exemple.com"/>{admin.courriel&&!courrielValide(admin.courriel)&&<div style={{fontSize:10,color:"#B83232",marginTop:2}}>Format de courriel invalide</div>}</Field>
+                  <Field l="Mobile"><input type="tel" value={admin.mobile} onChange={function(e){sadmin(i,"mobile",fmtTel(e.target.value));}} style={INP} placeholder="418-555-0000" maxLength={12}/></Field>
                   <Field l="Debut du mandat"><input type="date" value={admin.dateDebut} onChange={function(e){sadmin(i,"dateDebut",e.target.value);}} style={INP}/></Field>
-                  <Field l="NAS (chiffre)" hint="Stocke chiffre - jamais affiche en clair"><input type="password" value={admin.nas} onChange={function(e){sadmin(i,"nas",e.target.value);}} style={INP} placeholder="000-000-000" maxLength={11}/></Field>
+                  <Field l="NAS (chiffre)" hint="9 chiffres - jamais affiche en clair"><input type="password" value={admin.nas} onChange={function(e){sadmin(i,"nas",fmtNAS(e.target.value));}} style={Object.assign({},INP,admin.nas?(nasValide(admin.nas)?{border:"2px solid #1B5E3B"}:{border:"2px solid #B83232"}):{})} placeholder="000-000-000" maxLength={11}/>{admin.nas&&!nasValide(admin.nas)&&<div style={{fontSize:10,color:"#B83232",marginTop:2}}>NAS invalide - 9 chiffres requis (verification Luhn)</div>}</Field>
                 </div>
               </div>
             );})}
           </div>
           <div style={{display:"flex",justifyContent:"space-between",marginTop:20}}>
             <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(1);}}>- Retour</Btn>
-            <Btn dis={!data.admins[0]||!data.admins[0].nom} onClick={function(){setStep(3);}}>Continuer -</Btn>
+            <Btn dis={!data.admins[0]||!data.admins[0].nom||data.admins.some(function(a){return (a.nas&&!nasValide(a.nas))||(a.courriel&&!courrielValide(a.courriel));})} onClick={function(){setStep(3);}}>Continuer -</Btn>
           </div>
         </div>
       )}
@@ -1661,18 +1776,34 @@ function Onboarding(p){
               <div style={{fontSize:12,fontWeight:700,color:"#1B5E3B",marginBottom:6}}>Validation croisee avec la declaration de copropriete</div>
               {!window._acteB64&&<div style={{fontSize:11,color:"#B86020"}}>Aucune declaration fournie a l etape 1 - retournez a l etape 1 pour l importer si vous souhaitez valider les quote-parts.</div>}
               {window._acteB64&&(
-                <button onClick={function(){
-                  if(window._acteB64&&window._acteB64.length>4200000){setQpResult({error:"La declaration PDF est trop volumineuse pour la validation en ligne (limite ~3 Mo). Compressez le PDF (ex: ilovepdf.com/compress_pdf) ou reimportez a l etape 1 un extrait contenant les pages des quotes-parts."});return;}
-                  setQpResult({loading:true});
-                  fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({pdf:window._acteB64,mode:"quoteparts",unites:copros.map(function(c){return {unite:c.unite,fraction:c.fraction};})})})
-                  .then(lireReponseAPI)
-                  .then(function(resp){
-                    if(!resp||resp.error){setQpResult({error:(resp&&resp.error)||"Erreur"});return;}
-                    setQpResult(resp.data||{});
-                  }).catch(function(e){setQpResult({error:e.message});});
-                }} disabled={qpResult&&qpResult.loading} style={{background:"#1B5E3B",color:"#fff",border:"none",borderRadius:6,padding:"7px 16px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-                  {qpResult&&qpResult.loading?"Validation en cours...":"Valider les quote-parts avec la declaration"}
-                </button>
+                <div>
+                  <div style={{fontSize:10,color:T.muted,marginBottom:6}}>Declaration volumineuse ou numerisee (scan)? Indiquez les pages du tableau des quotes-parts (ex: 12-15, max 8 pages) - elles seront analysees par vision IA.</div>
+                  <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                    <input id="pagesQP" placeholder="Pages (ex: 12-15)" style={{width:150,border:"1px solid #1B5E3B55",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit"}}/>
+                    <button onClick={function(){
+                      var spec=((document.getElementById("pagesQP")||{}).value||"").trim();
+                      var unitesEnvoi=copros.map(function(c){return {unite:c.unite,fraction:c.fraction};});
+                      var traiter=function(resp){
+                        if(!resp||resp.error){setQpResult({error:(resp&&resp.error)||"Erreur"});return;}
+                        setQpResult(resp.data||{});
+                      };
+                      if(spec){
+                        setQpResult({loading:true});
+                        rendrePagesActe(spec,8).then(function(images){
+                          return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({images:images,mode:"quoteparts",unites:unitesEnvoi})}).then(lireReponseAPI);
+                        }).then(traiter).catch(function(e){setQpResult({error:e.message});});
+                        return;
+                      }
+                      if(window._acteB64&&window._acteB64.length>4200000){setQpResult({error:"La declaration PDF est volumineuse (plus de 3 Mo). Indiquez ci-dessus les pages du tableau des quotes-parts (ex: 12-15) puis cliquez de nouveau sur le bouton."});return;}
+                      setQpResult({loading:true});
+                      fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({pdf:window._acteB64,mode:"quoteparts",unites:unitesEnvoi})})
+                      .then(lireReponseAPI)
+                      .then(traiter).catch(function(e){setQpResult({error:e.message});});
+                    }} disabled={qpResult&&qpResult.loading} style={{background:"#1B5E3B",color:"#fff",border:"none",borderRadius:6,padding:"7px 16px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                      {qpResult&&qpResult.loading?"Validation en cours...":"Valider les quote-parts avec la declaration"}
+                    </button>
+                  </div>
+                </div>
               )}
               {qpResult&&qpResult.error&&<div style={{marginTop:8,fontSize:11,color:"#B83232"}}>Erreur: {qpResult.error}</div>}
               {qpResult&&!qpResult.loading&&!qpResult.error&&qpResult.concordance===true&&(

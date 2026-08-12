@@ -34,7 +34,8 @@ export default async function handler(req, res) {
     var pdfB64 = (req.body && req.body.pdf) || "";
     var mode = (req.body && req.body.mode) || "syndicat";
     var unites = (req.body && req.body.unites) || [];
-    if(!texte && !pdfB64) return res.status(400).json({error:"Aucun texte ni PDF fourni"});
+    var imagesIn = (req.body && req.body.images) || [];
+    if(!texte && !pdfB64 && imagesIn.length===0) return res.status(400).json({error:"Aucun texte, PDF ou image fourni"});
 
     // LOG pour debug - retourner aussi le texte recu dans la reponse
     var texteLen = texte.length;
@@ -53,7 +54,7 @@ export default async function handler(req, res) {
       + texte.substring(0,30000)
       + "\n\nReponds UNIQUEMENT avec un objet JSON valide. Cles requises:\n"
       + "nom, immat (NEQ 11 chiffres), adr (domicile REQ), ville, province, codePostal, nbUnites (entier), gestionnaire, "
-      + "quorumAGO (% entier pour AGO - cherche dans les extraits de la declaration le quorum requis aux assemblees generales; s il est exprime comme majorite des voix des presents ou majorite simple, mets 50), anneeConstruction (entier ex:1985), typeCopro (horizontale/verticale/mixte), "
+      + "quorumAGO (% entier pour AGO - cherche dans les extraits de la declaration le quorum requis aux assemblees generales; s il est exprime comme majorite des voix des presents ou majorite simple, mets 50), anneeConstitution (entier: annee de CONSTITUTION du syndicat = date de publication de la declaration de copropriete au registre foncier, souvent aux premieres pages de l acte), typeCopro (horizontale/verticale/mixte), "
       + "admins (tableau ADMINS ACTUELS EN FONCTION uniquement: [{prenom,nom,adr,ville,province,codePostal,role,dateDebut}]). "
       + "IMPORTANT pour role: croise la liste des administrateurs avec la section des fonctions/dirigeants du REQ. "
       + "role DOIT etre exactement une de ces valeurs: president, vice-president, secretaire, tresorier, administrateur. "
@@ -61,26 +62,40 @@ export default async function handler(req, res) {
       + "Si un champ est absent mettre valeur vide ou 0.";
 
     var contenu;
-    if(pdfB64 && mode==="quoteparts"){
-      var promptQP = "Voici la declaration de copropriete d un syndicat quebecois (PDF, possiblement numerise). "
+    if(mode==="quoteparts"){
+      var promptQP = "Voici la declaration de copropriete d un syndicat quebecois (PDF ou pages numerisees). "
         + "Un fichier Excel a ete importe avec ces quotes-parts par unite (en %): " + JSON.stringify(unites) + ". "
         + "Trouve dans la declaration la quote-part (fraction des parties communes) de CHAQUE unite listee et compare. "
         + "Tolere les ecarts d arrondi inferieurs ou egaux a 0.002. "
         + "Reponds UNIQUEMENT avec un objet JSON valide: "
         + "{\"concordance\":true ou false,\"nbValides\":entier,\"ecarts\":[{\"unite\":\"...\",\"excel\":\"valeur du fichier\",\"declaration\":\"valeur de la declaration\"}],\"note\":\"courte remarque (ex: unites introuvables dans la declaration)\"}. "
-        + "Si la declaration ne contient pas de quotes-parts lisibles, mets concordance:false et explique dans note.";
-      contenu = [{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:promptQP}];
+        + "Si les pages fournies ne contiennent pas de quotes-parts lisibles, mets concordance:false et explique dans note.";
+      if(pdfB64){
+        contenu = [{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:promptQP}];
+      } else if(imagesIn.length>0){
+        contenu = imagesIn.slice(0,8).map(function(im){return {type:"image",source:{type:"base64",media_type:"image/jpeg",data:im}};});
+        contenu.push({type:"text",text:promptQP});
+      } else {
+        return res.status(400).json({error:"Aucun PDF ou image fourni pour la validation des quotes-parts"});
+      }
     } else if(pdfB64){
       var promptPdf = "Voici le document officiel PDF d un syndicat de copropriete quebecois (REQ et/ou declaration). Lis-le attentivement, y compris s il s agit d un document numerise."
         + "\n\nReponds UNIQUEMENT avec un objet JSON valide. Cles requises:\n"
         + "nom, immat (NEQ 11 chiffres), adr (domicile REQ), ville, province, codePostal, nbUnites (entier), gestionnaire, "
-        + "quorumAGO (% entier pour AGO - cherche dans les extraits de la declaration le quorum requis aux assemblees generales; s il est exprime comme majorite des voix des presents ou majorite simple, mets 50), anneeConstruction (entier ex:1985), typeCopro (horizontale/verticale/mixte), "
+        + "quorumAGO (% entier pour AGO - cherche dans les extraits de la declaration le quorum requis aux assemblees generales; s il est exprime comme majorite des voix des presents ou majorite simple, mets 50), anneeConstitution (entier: annee de CONSTITUTION du syndicat = date de publication de la declaration de copropriete au registre foncier, souvent aux premieres pages de l acte), typeCopro (horizontale/verticale/mixte), "
         + "admins (tableau ADMINS ACTUELS EN FONCTION uniquement: [{prenom,nom,adr,ville,province,codePostal,role,dateDebut}]). "
       + "IMPORTANT pour role: croise la liste des administrateurs avec la section des fonctions/dirigeants du REQ. "
       + "role DOIT etre exactement une de ces valeurs: president, vice-president, secretaire, tresorier, administrateur. "
       + "Si le document indique la fonction d une personne (ex: President, Secretaire, Tresorier), utilise-la; sinon mets administrateur. "
         + "Si un champ est absent mettre valeur vide ou 0.";
       contenu = [{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:promptPdf}];
+    } else if(Array.isArray(req.body.images)&&req.body.images.length>0){
+      contenu = req.body.images.slice(0,8).map(function(im){return {type:"image",source:{type:"base64",media_type:"image/jpeg",data:im}};});
+      contenu.push({type:"text",text:"Voici des pages numerisees de la declaration de copropriete d un syndicat quebecois. Lis-les attentivement."
+        + "\n\nReponds UNIQUEMENT avec un objet JSON valide. Cles requises (mets vide ou 0 si absent):\n"
+        + "anneeConstitution (annee de constitution/publication de la declaration au registre foncier), "
+        + "quorumAGO (quorum des assemblees generales en % entier; majorite des voix des presents ou majorite simple = 50), "
+        + "nbUnites (entier), typeCopro (horizontale/verticale/mixte)."});
     } else {
       contenu = [{type:"text",text:prompt}];
     }
