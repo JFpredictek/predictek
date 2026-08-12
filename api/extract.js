@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     var textePreview = texte.substring(0, 500);
 
     if(mode === "reglements") {
-      var promptR = "Voici le texte d une declaration de copropriete quebecoise.\n\n" + texte.substring(0,30000) + "\n\nGenere un resume structure des reglements importants. Format: liste par categorie, francais, max 800 mots.";
+      var promptR = "Voici le texte d une declaration de copropriete quebecoise.\n\n" + texte.substring(0,30000) + "\n\nGenere un resume structure des reglements importants EN CITANT LES NUMEROS D ARTICLES (ex: Art. 12.3 - Animaux: ...). Format: liste par categorie avec numero d article au debut de chaque regle, francais, max 900 mots.";
       var rR = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1200,messages:[{role:"user",content:[{type:"text",text:promptR}]}]})});
       var rawR = await rR.text();
       var dR; try{dR=JSON.parse(rawR);}catch(e){return res.status(500).json({error:"JSON invalide"});}
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
       + "\n\nReponds UNIQUEMENT avec un objet JSON valide. Cles requises:\n"
       + "nom, immat (NEQ 11 chiffres), adr (domicile REQ), ville, province, codePostal, nbUnites (entier), gestionnaire, "
       + "quorumAGO (% entier pour AGO - cherche dans les extraits de la declaration le quorum requis aux assemblees generales; s il est exprime comme majorite des voix des presents ou majorite simple, mets 50), anneeConstitution (entier: annee de CONSTITUTION du syndicat = annee de publication de la declaration de copropriete INITIALE au registre foncier, c est-a-dire l acte notarie ORIGINAL; si le document mentionne plusieurs dates comme des modifications ou refontes, prends TOUJOURS la date la PLUS ANCIENNE), typeCopro (horizontale/verticale/mixte),"
-      + "admins (tableau ADMINS ACTUELS EN FONCTION uniquement: [{prenom,nom,adr,ville,province,codePostal,role,dateDebut}]). "
+      + "admins (tableau de TOUS les administrateurs ACTUELLEMENT EN FONCTION - generalement 3 a 9 personnes, n en omets AUCUN, meme si la liste est longue: [{prenom,nom,adr (adresse complete),ville,province,codePostal,role,dateDebut (date d entree en fonction, AAAA-MM-JJ)}]). Exclus seulement ceux marques comme ayant quitte/demissionne. "
       + "IMPORTANT pour role: croise la liste des administrateurs avec la section des fonctions/dirigeants du REQ. "
       + "role DOIT etre exactement une de ces valeurs: president, vice-president, secretaire, tresorier, administrateur. "
       + "Si le document indique la fonction d une personne (ex: President, Secretaire, Tresorier), utilise-la; sinon mets administrateur. "
@@ -135,7 +135,7 @@ export default async function handler(req, res) {
         + "\n\nReponds UNIQUEMENT avec un objet JSON valide. Cles requises:\n"
         + "nom, immat (NEQ 11 chiffres), adr (domicile REQ), ville, province, codePostal, nbUnites (entier), gestionnaire, "
         + "quorumAGO (% entier pour AGO - cherche dans les extraits de la declaration le quorum requis aux assemblees generales; s il est exprime comme majorite des voix des presents ou majorite simple, mets 50), anneeConstitution (entier: annee de CONSTITUTION du syndicat = annee de publication de la declaration de copropriete INITIALE au registre foncier, c est-a-dire l acte notarie ORIGINAL; si le document mentionne plusieurs dates comme des modifications ou refontes, prends TOUJOURS la date la PLUS ANCIENNE), typeCopro (horizontale/verticale/mixte),"
-        + "admins (tableau ADMINS ACTUELS EN FONCTION uniquement: [{prenom,nom,adr,ville,province,codePostal,role,dateDebut}]). "
+        + "admins (tableau de TOUS les administrateurs ACTUELLEMENT EN FONCTION - generalement 3 a 9 personnes, n en omets AUCUN, meme si la liste est longue: [{prenom,nom,adr (adresse complete),ville,province,codePostal,role,dateDebut (date d entree en fonction, AAAA-MM-JJ)}]). Exclus seulement ceux marques comme ayant quitte/demissionne. "
       + "IMPORTANT pour role: croise la liste des administrateurs avec la section des fonctions/dirigeants du REQ. "
       + "role DOIT etre exactement une de ces valeurs: president, vice-president, secretaire, tresorier, administrateur. "
       + "Si le document indique la fonction d une personne (ex: President, Secretaire, Tresorier), utilise-la; sinon mets administrateur. "
@@ -148,7 +148,7 @@ export default async function handler(req, res) {
         + "anneeConstitution (annee de publication de la declaration de copropriete INITIALE au registre foncier - l acte notarie ORIGINAL; si plusieurs dates sont visibles comme des modifications ou refontes, prends TOUJOURS la plus ancienne), "
         + "quorumAGO (quorum des assemblees generales en % entier; majorite des voix des presents ou majorite simple = 50), "
         + "nbUnites (entier), typeCopro (horizontale/verticale/mixte), "
-        + "reglements (resume en francais des reglements de gestion, restrictions, penalites et regles de vie visibles sur ces pages, max 250 mots; chaine vide si aucun)."});
+        + "reglements (resume en francais des reglements de gestion, restrictions, penalites et regles de vie visibles sur ces pages, EN CITANT LE NUMERO D ARTICLE de chaque regle (ex: Art. 12.3 - ...), max 250 mots; chaine vide si aucun)."});
     } else {
       contenu = [{type:"text",text:prompt}];
     }
