@@ -129,13 +129,15 @@ function CarteFacture(p){
 }
 
 function FormFacture(p){
-  var nf=p.nf;var sf=p.setField;var onFile=p.onFile||function(){};
+  var nf=p.nf;var sf=p.setField;var onFile=p.onFile||function(){};var comptesGL=p.comptesGL||[];
   var glSuggere=codeGLAuto(nf.fournisseur_nom||"",nf.description||"");
   var sx=useState("");var extraitMsg=sx[0];var setExtraitMsg=sx[1];
+  var sap=useState(null);var apercu=sap[0];var setApercu=sap[1];
+  var szf=useState(1);var zoomF=szf[0];var setZoomF=szf[1];
   function extraire(file){
     setExtraitMsg("Extraction automatique de la facture en cours...");
     fichierFactureB64(file).then(function(src){
-      var corps=Object.assign({mode:"facture"},src);
+      var corps=Object.assign({mode:"facture",comptes:comptesGL},src);
       return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify(corps)}).then(lireReponseFacture);
     }).then(function(resp){
       if(!resp||resp.error){setExtraitMsg("Extraction impossible ("+((resp&&resp.error)||"erreur")+") - saisissez manuellement.");return;}
@@ -150,14 +152,35 @@ function FormFacture(p){
       if(d.tvq)sf("tvq",Number(d.tvq));
       if(d.total){sf("total",Number(d.total));pris.push(Number(d.total).toFixed(2)+" $");}
       if(d.description)sf("description",d.description);
+      if(d.noCompteGL&&comptesGL.some(function(c){return c.no===String(d.noCompteGL);})){sf("no_compte_gl",String(d.noCompteGL));var cGL=comptesGL.find(function(c){return c.no===String(d.noCompteGL);});pris.push("GL "+d.noCompteGL+" ("+(cGL?cGL.nom:"")+")");}
       setExtraitMsg(pris.length>0?"Extrait automatiquement: "+pris.join(", ")+" - verifiez avant de sauvegarder.":"Aucune information lisible - saisissez manuellement.");
     }).catch(function(e){setExtraitMsg("Extraction impossible ("+e.message+") - saisissez manuellement.");});
   }
   return(
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+    <div style={{display:"flex",gap:14,alignItems:"flex-start",flexWrap:"wrap"}}>
+      {apercu&&(
+        <div style={{flex:"1 1 380px",minWidth:320,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden",background:"#525659"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:T.navy,padding:"6px 10px"}}>
+            <span style={{fontSize:11,fontWeight:700,color:"#fff"}}>Apercu de la facture</span>
+            {!apercu.isPdf&&(
+              <span>
+                <button onClick={function(){setZoomF(function(z){return Math.max(0.5,z-0.25);});}} style={{border:"none",background:"#ffffff22",color:"#fff",borderRadius:5,padding:"2px 9px",cursor:"pointer",fontWeight:700}}>-</button>
+                <span style={{fontSize:10,color:"#fff",margin:"0 6px"}}>{Math.round(zoomF*100)} %</span>
+                <button onClick={function(){setZoomF(function(z){return Math.min(4,z+0.25);});}} style={{border:"none",background:"#ffffff22",color:"#fff",borderRadius:5,padding:"2px 9px",cursor:"pointer",fontWeight:700}}>+</button>
+              </span>
+            )}
+          </div>
+          <div style={{height:560,overflow:"auto",display:"flex",alignItems:"flex-start",justifyContent:"center"}}>
+            {apercu.isPdf
+              ?<iframe title="apercu" src={apercu.url} style={{width:"100%",height:"100%",border:"none"}}/>
+              :<img src={apercu.url} alt="Facture" style={{transform:"scale("+zoomF+")",transformOrigin:"top center",maxWidth:"100%"}}/>}
+          </div>
+        </div>
+      )}
+      <div style={{flex:"1 1 420px",minWidth:320,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
       <div style={{gridColumn:"1/-1",background:T.blueL,border:"2px dashed "+T.blue+"66",borderRadius:10,padding:12}}>
         <div style={{fontSize:11,fontWeight:700,color:T.blue,marginBottom:4}}>Televersez la facture (PDF ou photo) - les champs se remplissent automatiquement</div>
-        <input type="file" accept=".pdf,image/*" onChange={function(e){var f=e.target.files&&e.target.files[0];if(f){onFile(f);extraire(f);}}} style={{fontSize:11,fontFamily:"inherit"}}/>
+        <input type="file" accept=".pdf,image/*" onChange={function(e){var f=e.target.files&&e.target.files[0];if(f){onFile(f);extraire(f);try{setApercu({url:URL.createObjectURL(f),isPdf:/pdf$/i.test(f.type)||/\.pdf$/i.test(f.name)});setZoomF(1);}catch(ex){}}}} style={{fontSize:11,fontFamily:"inherit"}}/>
         {extraitMsg&&<div style={{fontSize:11,color:T.blue,fontWeight:600,marginTop:6}}>{extraitMsg}</div>}
       </div>
       <div style={{gridColumn:"1/-1"}}><Lbl l="Fournisseur"/><input value={nf.fournisseur_nom||""} onChange={function(e){sf("fournisseur_nom",e.target.value);}} style={INP} placeholder="Nom de l entreprise..."/></div>
@@ -171,12 +194,13 @@ function FormFacture(p){
       <div style={{gridColumn:"1/-1"}}>
         <Lbl l={"Compte GL - Suggere: "+glSuggere}/>
         <select value={nf.no_compte_gl||glSuggere} onChange={function(e){sf("no_compte_gl",e.target.value);}} style={INP}>
-          {CODES_GL_DEPENSES.map(function(g){return <option key={g.no} value={g.no}>{g.no} - {g.nom}</option>;})}
+          {(comptesGL.length>0?comptesGL:CODES_GL_DEPENSES.map(function(g){return {no:g.no,nom:g.nom};})).map(function(g){return <option key={g.no} value={g.no}>{g.no} - {g.nom}</option>;})}
         </select>
       </div>
       <div style={{gridColumn:"1/-1"}}><Lbl l="Description / notes"/><textarea value={nf.description||""} onChange={function(e){sf("description",e.target.value);}} style={Object.assign({},INP,{minHeight:60,resize:"vertical"})} placeholder="Description des travaux ou services..."/></div>
       <div><Lbl l="No TPS fournisseur"/><input value={nf.no_tps_fournisseur||""} onChange={function(e){sf("no_tps_fournisseur",e.target.value);}} style={INP} placeholder="123456789 RT0001"/></div>
       <div><Lbl l="No TVQ fournisseur"/><input value={nf.no_tvq_fournisseur||""} onChange={function(e){sf("no_tvq_fournisseur",e.target.value);}} style={INP} placeholder="1234567890 TQ0001"/></div>
+      </div>
     </div>
   );
 }
@@ -297,6 +321,7 @@ export default function GestionFactures(){
   var s10=useState("");var errSauve=s10[0];var setErrSauve=s10[1];
   var s11=useState(null);var viewer=s11[0];var setViewer=s11[1];
   var s12=useState(1);var zoomV=s12[0];var setZoomV=s12[1];
+  var s13=useState(CODES_GL_DEPENSES.map(function(g){return {no:g.no,nom:g.nom};}));var comptesGL=s13[0];var setComptesGL=s13[1];
 
   function ouvrirViewer(f){
     if(!f.fichier)return;
@@ -317,6 +342,13 @@ export default function GestionFactures(){
     if(!sel)return;
     sb.select("factures",{eq:{syndicat_id:sel.id},order:"date_reception.desc",limit:100}).then(function(res){
       if(res&&res.data)setFactures(res.data);
+    }).catch(function(){});
+    // Plan comptable du syndicat (comptes de depenses actifs) - pour la suggestion GL par l IA
+    sb.select("comptes_syndicat",{eq:{syndicat_id:sel.id,actif:true},limit:300}).then(function(res){
+      if(res&&res.data){
+        var dep=res.data.filter(function(c){return c.type_compte==="depense"||c.type_compte==="fonds";}).map(function(c){return {no:c.no_compte,nom:c.nom_compte};}).sort(function(a,b){return a.no.localeCompare(b.no);});
+        if(dep.length>0)setComptesGL(dep);
+      }
     }).catch(function(){});
   },[sel]);
 
@@ -435,7 +467,7 @@ export default function GestionFactures(){
         {showForm&&(
           <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:14,padding:20,marginBottom:20}}>
             <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:16}}>Nouvelle facture</div>
-            <FormFacture nf={nf} setField={setField} onFile={setFacFile}/>
+            <FormFacture nf={nf} setField={setField} onFile={setFacFile} comptesGL={comptesGL}/>
             {errSauve&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",marginTop:12,fontSize:12,color:T.red,fontWeight:700}}>{errSauve}</div>}
             <div style={{background:T.amberL,border:"1px solid "+T.amber+"44",borderRadius:8,padding:10,margin:"12px 0",fontSize:11,color:T.amber}}>
               Seuil d approbation: factures &gt; 1 000 $ requierent 1 approbation CA. &gt; 5 000 $ requierent 2 approbations.

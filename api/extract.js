@@ -108,9 +108,13 @@ export default async function handler(req, res) {
         return res.status(400).json({error:"Aucun document fourni"});
       }
     } else if(mode==="facture"){
+      var comptesGL = (req.body && req.body.comptes) || [];
+      var listeGL = comptesGL.length>0 ? comptesGL.slice(0,80).map(function(c){return c.no+" = "+c.nom;}).join("; ") : "";
       var promptFac = "Voici une facture de fournisseur (Quebec, Canada). "
         + "Extrais les informations suivantes. Reponds UNIQUEMENT avec un objet JSON valide (chaine vide ou 0 si absent): "
-        + "{\"fournisseur\":\"nom du fournisseur\",\"numero\":\"numero de facture\",\"date\":\"AAAA-MM-JJ\",\"echeance\":\"AAAA-MM-JJ\",\"sousTotal\":nombre,\"tps\":nombre,\"tvq\":nombre,\"total\":nombre (montant total TTC),\"description\":\"description courte des biens/services\",\"categorie\":\"une valeur parmi: entretien, reparation, deneigement, paysagement, assurance, energie, administration, autre\"}";
+        + "{\"fournisseur\":\"nom du fournisseur\",\"numero\":\"numero de facture\",\"date\":\"AAAA-MM-JJ\",\"echeance\":\"AAAA-MM-JJ\",\"sousTotal\":nombre,\"tps\":nombre,\"tvq\":nombre,\"total\":nombre (montant total TTC),\"description\":\"description courte des biens/services\",\"categorie\":\"une valeur parmi: entretien, reparation, deneigement, paysagement, assurance, energie, administration, autre\""
+        + (listeGL?",\"noCompteGL\":\"choisis dans le PLAN COMPTABLE du syndicat le compte de depense qui correspond le MIEUX au type de service de cette facture et reponds avec son NUMERO EXACT. Plan comptable: "+listeGL+"\"":"")
+        + "}";
       if(pdfB64){
         contenu = [{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:promptFac}];
       } else if(imagesIn.length>0){
