@@ -19,10 +19,14 @@ function CarteSyndicat(p){
         </div>
         {alertCount>0&&<span style={{background:T.amberL,color:T.amber,borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,flexShrink:0}}>{alertCount} alerte(s)</span>}
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12}}>
         <div style={{textAlign:"center",background:T.accentL,borderRadius:8,padding:10}}>
-          <div style={{fontSize:20,fontWeight:800,color:T.accent}}>{stats.nbCopros||0}</div>
+          <div style={{fontSize:20,fontWeight:800,color:T.accent}}>{stats.nbUnites||0}</div>
           <div style={{fontSize:9,color:T.muted,textTransform:"uppercase"}}>Unités</div>
+        </div>
+        <div style={{textAlign:"center",background:T.blueL,borderRadius:8,padding:10}}>
+          <div style={{fontSize:20,fontWeight:800,color:T.blue}}>{stats.nbCopros||0}</div>
+          <div style={{fontSize:9,color:T.muted,textTransform:"uppercase"}}>Copros</div>
         </div>
         <div style={{textAlign:"center",background:stats.tauxPerception<80?T.amberL:T.accentL,borderRadius:8,padding:10}}>
           <div style={{fontSize:20,fontWeight:800,color:stats.tauxPerception<80?T.amber:T.accent}}>{stats.tauxPerception||0}%</div>
