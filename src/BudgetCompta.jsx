@@ -18,65 +18,145 @@ var money=function(n){return (Number(n)||0).toLocaleString("fr-CA",{minimumFract
 // ===== CHARTE DE COMPTES PAR DEFAUT (modele riche - copropriete quebecoise) =====
 // type: revenu | depense | fonds. Les comptes inactifs n apparaissent pas au budget.
 var CHARTE_DEFAUT=[
-  {no:"4100",nom:"Cotisations regulieres (charges communes)",type:"revenu",groupe:"Revenus"},
-  {no:"4150",nom:"Cotisations speciales",type:"revenu",groupe:"Revenus"},
-  {no:"4200",nom:"Revenus de location (espaces communs)",type:"revenu",groupe:"Revenus"},
-  {no:"4250",nom:"Frais de location court terme",type:"revenu",groupe:"Revenus"},
-  {no:"4300",nom:"Interets et placements",type:"revenu",groupe:"Revenus"},
-  {no:"4400",nom:"Penalites et interets de retard",type:"revenu",groupe:"Revenus"},
-  {no:"4500",nom:"Frais de certificats et documents",type:"revenu",groupe:"Revenus"},
-  {no:"4900",nom:"Autres revenus",type:"revenu",groupe:"Revenus"},
-
-  {no:"5100",nom:"Assurance de l immeuble",type:"depense",groupe:"Administration"},
-  {no:"5105",nom:"Assurance administrateurs (D et O)",type:"depense",groupe:"Administration"},
-  {no:"5110",nom:"Frais de gestion",type:"depense",groupe:"Administration"},
-  {no:"5120",nom:"Honoraires comptables",type:"depense",groupe:"Administration"},
-  {no:"5125",nom:"Honoraires juridiques",type:"depense",groupe:"Administration"},
-  {no:"5130",nom:"Frais bancaires",type:"depense",groupe:"Administration"},
-  {no:"5135",nom:"Interets et frais de financement",type:"depense",groupe:"Administration"},
-  {no:"5140",nom:"Papeterie, poste et fournitures",type:"depense",groupe:"Administration"},
-  {no:"5145",nom:"Logiciels et informatique",type:"depense",groupe:"Administration"},
-  {no:"5150",nom:"Taxes, permis et immatriculation",type:"depense",groupe:"Administration"},
-  {no:"5155",nom:"Assemblees et reunions",type:"depense",groupe:"Administration"},
-  {no:"5160",nom:"Etude aux fins d assurance",type:"depense",groupe:"Administration"},
-  {no:"5165",nom:"Etude du fonds de prevoyance",type:"depense",groupe:"Administration"},
-  {no:"5190",nom:"Depenses administratives diverses",type:"depense",groupe:"Administration"},
-
-  {no:"5210",nom:"Entretien paysager et pelouse",type:"depense",groupe:"Entretien exterieur"},
-  {no:"5220",nom:"Deneigement",type:"depense",groupe:"Entretien exterieur"},
-  {no:"5225",nom:"Asphalte et stationnements",type:"depense",groupe:"Entretien exterieur"},
-  {no:"5230",nom:"Toitures",type:"depense",groupe:"Entretien exterieur"},
-  {no:"5235",nom:"Gouttieres et drainage",type:"depense",groupe:"Entretien exterieur"},
-  {no:"5240",nom:"Portes, fenetres et balcons",type:"depense",groupe:"Entretien exterieur"},
-  {no:"5245",nom:"Cloture et amenagement",type:"depense",groupe:"Entretien exterieur"},
-
-  {no:"5310",nom:"Entretien du batiment (general)",type:"depense",groupe:"Entretien batiment"},
-  {no:"5315",nom:"Conciergerie et nettoyage",type:"depense",groupe:"Entretien batiment"},
-  {no:"5320",nom:"Ascenseur",type:"depense",groupe:"Entretien batiment"},
-  {no:"5325",nom:"Chauffage, ventilation, climatisation",type:"depense",groupe:"Entretien batiment"},
-  {no:"5330",nom:"Plomberie",type:"depense",groupe:"Entretien batiment"},
-  {no:"5335",nom:"Electricite (reparations)",type:"depense",groupe:"Entretien batiment"},
-  {no:"5340",nom:"Systeme d alarme et gicleurs",type:"depense",groupe:"Entretien batiment"},
-  {no:"5345",nom:"Extermination",type:"depense",groupe:"Entretien batiment"},
-  {no:"5350",nom:"Piscine et spa",type:"depense",groupe:"Entretien batiment"},
-  {no:"5355",nom:"Gym et salles communes",type:"depense",groupe:"Entretien batiment"},
-  {no:"5360",nom:"Garage et porte de garage",type:"depense",groupe:"Entretien batiment"},
-
-  {no:"5410",nom:"Electricite (parties communes)",type:"depense",groupe:"Services publics"},
-  {no:"5420",nom:"Gaz naturel",type:"depense",groupe:"Services publics"},
-  {no:"5430",nom:"Eau et egouts",type:"depense",groupe:"Services publics"},
-  {no:"5440",nom:"Telecom, internet et interphone",type:"depense",groupe:"Services publics"},
-  {no:"5450",nom:"Collecte des ordures",type:"depense",groupe:"Services publics"},
-
-  {no:"5510",nom:"Salaires des employes",type:"depense",groupe:"Salaires"},
-  {no:"5520",nom:"Charges sociales et avantages",type:"depense",groupe:"Salaires"},
-  {no:"5530",nom:"Sous-traitants",type:"depense",groupe:"Salaires"},
-
-  {no:"5910",nom:"Creances douteuses",type:"depense",groupe:"Divers"},
-  {no:"5990",nom:"Imprevus et contingences",type:"depense",groupe:"Divers"},
-
-  {no:"5810",nom:"Apport au FONDS DE PREVOYANCE",type:"fonds",groupe:"Apports aux fonds"},
-  {no:"5820",nom:"Apport au FONDS D AUTO-ASSURANCE",type:"fonds",groupe:"Apports aux fonds"},
+  // ---- ACTIFS ----
+  {no:"1100",nom:"Encaisse - compte d operation",type:"actif",groupe:"Actifs - Encaisse"},
+  {no:"1110",nom:"Petite caisse",type:"actif",groupe:"Actifs - Encaisse"},
+  {no:"1112",nom:"Encaisse - fonds de prevoyance",type:"actif",groupe:"Actifs - Encaisse"},
+  {no:"1114",nom:"Encaisse - fonds d auto-assurance",type:"actif",groupe:"Actifs - Encaisse"},
+  {no:"1115",nom:"Encaisse - fonds travaux speciaux",type:"actif",groupe:"Actifs - Encaisse"},
+  {no:"1117",nom:"Parts sociales (caisse)",type:"actif",groupe:"Actifs - Encaisse"},
+  {no:"1200",nom:"Comptes a recevoir",type:"actif",groupe:"Actifs - A recevoir"},
+  {no:"1210",nom:"Contributions a recevoir",type:"actif",groupe:"Actifs - A recevoir"},
+  {no:"1220",nom:"Autres comptes a recevoir des coproprietaires",type:"actif",groupe:"Actifs - A recevoir"},
+  {no:"1300",nom:"Frais payes d avance",type:"actif",groupe:"Actifs - Payes d avance"},
+  {no:"1310",nom:"Assurances payees d avance",type:"actif",groupe:"Actifs - Payes d avance"},
+  {no:"1320",nom:"Taxes municipales et scolaires",type:"actif",groupe:"Actifs - Payes d avance"},
+  {no:"1330",nom:"Contrats d entretien payes d avance",type:"actif",groupe:"Actifs - Payes d avance"},
+  {no:"1340",nom:"Paiements prepayes aux fournisseurs",type:"actif",groupe:"Actifs - Payes d avance"},
+  {no:"1400",nom:"Inventaire",type:"actif",groupe:"Actifs - Inventaire"},
+  {no:"1430",nom:"Cles, puces et telecommandes",type:"actif",groupe:"Actifs - Inventaire"},
+  {no:"1500",nom:"Placements",type:"actif",groupe:"Actifs - Placements"},
+  {no:"1510",nom:"Placements - fonds d exploitation",type:"actif",groupe:"Actifs - Placements"},
+  {no:"1530",nom:"Placements - fonds de prevoyance",type:"actif",groupe:"Actifs - Placements"},
+  {no:"1550",nom:"Placements - fonds d assurances",type:"actif",groupe:"Actifs - Placements"},
+  {no:"1600",nom:"Immobilisations",type:"actif",groupe:"Actifs - Immobilisations"},
+  {no:"1630",nom:"Equipements et mobilier",type:"actif",groupe:"Actifs - Immobilisations"},
+  // ---- PASSIFS ----
+  {no:"2100",nom:"Financement a court terme",type:"passif",groupe:"Passifs - Financement court terme"},
+  {no:"2110",nom:"Marge de credit",type:"passif",groupe:"Passifs - Financement court terme"},
+  {no:"2120",nom:"Emprunt bancaire",type:"passif",groupe:"Passifs - Financement court terme"},
+  {no:"2130",nom:"Carte de credit",type:"passif",groupe:"Passifs - Financement court terme"},
+  {no:"2140",nom:"Portion court terme de l emprunt long terme",type:"passif",groupe:"Passifs - Financement court terme"},
+  {no:"2200",nom:"Comptes a payer",type:"passif",groupe:"Passifs - Comptes a payer"},
+  {no:"2210",nom:"Comptes fournisseurs",type:"passif",groupe:"Passifs - Comptes a payer"},
+  {no:"2220",nom:"Autres comptes a payer",type:"passif",groupe:"Passifs - Comptes a payer"},
+  {no:"2290",nom:"Frais courus",type:"passif",groupe:"Passifs - Comptes a payer"},
+  {no:"2300",nom:"Salaires et charges sociales a payer",type:"passif",groupe:"Passifs - Salaires a payer"},
+  {no:"2310",nom:"Salaires a payer",type:"passif",groupe:"Passifs - Salaires a payer"},
+  {no:"2320",nom:"Vacances a payer",type:"passif",groupe:"Passifs - Salaires a payer"},
+  {no:"2330",nom:"Deductions a la source a remettre",type:"passif",groupe:"Passifs - Salaires a payer"},
+  {no:"2400",nom:"Sommes dues aux coproprietaires",type:"passif",groupe:"Passifs - Dus aux coproprietaires"},
+  {no:"2410",nom:"Contributions percues d avance",type:"passif",groupe:"Passifs - Dus aux coproprietaires"},
+  {no:"2420",nom:"Depots",type:"passif",groupe:"Passifs - Dus aux coproprietaires"},
+  {no:"2500",nom:"Financement a long terme",type:"passif",groupe:"Passifs - Financement long terme"},
+  {no:"2510",nom:"Hypotheques",type:"passif",groupe:"Passifs - Financement long terme"},
+  {no:"2530",nom:"Autres emprunts bancaires",type:"passif",groupe:"Passifs - Financement long terme"},
+  {no:"2601",nom:"TPS a remettre",type:"passif",groupe:"Passifs - Taxes de vente"},
+  {no:"2602",nom:"TVQ a remettre",type:"passif",groupe:"Passifs - Taxes de vente"},
+  // ---- CAPITAUX ----
+  {no:"3100",nom:"Surplus du fonds d exploitation",type:"capitaux",groupe:"Capitaux - Surplus des fonds"},
+  {no:"3110",nom:"Reserve pour franchise d assurance",type:"capitaux",groupe:"Capitaux - Surplus des fonds"},
+  {no:"3200",nom:"Surplus du fonds de prevoyance",type:"capitaux",groupe:"Capitaux - Surplus des fonds"},
+  {no:"3400",nom:"Surplus du fonds de projets speciaux",type:"capitaux",groupe:"Capitaux - Surplus des fonds"},
+  {no:"3500",nom:"Surplus du fonds d assurances",type:"capitaux",groupe:"Capitaux - Surplus des fonds"},
+  // ---- REVENUS ----
+  {no:"4100",nom:"Contributions",type:"revenu",groupe:"Revenus - Contributions"},
+  {no:"4110",nom:"Contributions regulieres",type:"revenu",groupe:"Revenus - Contributions"},
+  {no:"4120",nom:"Contributions au fonds de prevoyance",type:"revenu",groupe:"Revenus - Contributions"},
+  {no:"4130",nom:"Contributions speciales",type:"revenu",groupe:"Revenus - Contributions"},
+  {no:"4160",nom:"Contribution au fonds d assurances",type:"revenu",groupe:"Revenus - Contributions"},
+  {no:"4190",nom:"Contributions du promoteur",type:"revenu",groupe:"Revenus - Contributions"},
+  {no:"4300",nom:"Revenus de location",type:"revenu",groupe:"Revenus - Location"},
+  {no:"4310",nom:"Salle commune",type:"revenu",groupe:"Revenus - Location"},
+  {no:"4340",nom:"Stationnements",type:"revenu",groupe:"Revenus - Location"},
+  {no:"4350",nom:"Casiers et celliers",type:"revenu",groupe:"Revenus - Location"},
+  {no:"4400",nom:"Vente de produits",type:"revenu",groupe:"Revenus - Vente de produits"},
+  {no:"4410",nom:"Cles et cartes d acces",type:"revenu",groupe:"Revenus - Vente de produits"},
+  {no:"4420",nom:"Telecommandes",type:"revenu",groupe:"Revenus - Vente de produits"},
+  {no:"4500",nom:"Revenus d interets",type:"revenu",groupe:"Revenus - Interets"},
+  {no:"4510",nom:"Interets - fonds d exploitation",type:"revenu",groupe:"Revenus - Interets"},
+  {no:"4520",nom:"Interets - fonds de prevoyance",type:"revenu",groupe:"Revenus - Interets"},
+  {no:"4550",nom:"Interets - fonds d assurances",type:"revenu",groupe:"Revenus - Interets"},
+  {no:"4590",nom:"Interets - paiements retardataires",type:"revenu",groupe:"Revenus - Interets"},
+  {no:"4600",nom:"Frais aux coproprietaires",type:"revenu",groupe:"Revenus - Frais aux coproprietaires"},
+  {no:"4620",nom:"Infractions et penalites",type:"revenu",groupe:"Revenus - Frais aux coproprietaires"},
+  {no:"4630",nom:"Insuffisance de fonds",type:"revenu",groupe:"Revenus - Frais aux coproprietaires"},
+  {no:"4640",nom:"Frais de retard",type:"revenu",groupe:"Revenus - Frais aux coproprietaires"},
+  {no:"4650",nom:"Refacturation aux coproprietaires",type:"revenu",groupe:"Revenus - Frais aux coproprietaires"},
+  {no:"4660",nom:"Indemnites d assurances",type:"revenu",groupe:"Revenus - Frais aux coproprietaires"},
+  {no:"4800",nom:"Subvention energetique",type:"revenu",groupe:"Revenus - Autres"},
+  {no:"4900",nom:"Autres revenus",type:"revenu",groupe:"Revenus - Autres"},
+  // ---- DEPENSES ----
+  {no:"5100",nom:"Mazout",type:"depense",groupe:"Depenses - Energie"},
+  {no:"5110",nom:"Electricite",type:"depense",groupe:"Depenses - Energie"},
+  {no:"5120",nom:"Gaz naturel",type:"depense",groupe:"Depenses - Energie"},
+  {no:"5200",nom:"Entretien et reparation",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5210",nom:"Ascenseurs",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5215",nom:"Ramonage et entretien de cheminee",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5225",nom:"Plomberie",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5235",nom:"Entretien electrique",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5240",nom:"Nettoyage des espaces communs",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5245",nom:"Portes et serrures",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5260",nom:"Autres entretiens",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5290",nom:"Sinistres assumes par le syndicat",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5300",nom:"Conciergerie",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5315",nom:"Paysagement",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5320",nom:"Deneigement",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5325",nom:"Reparation asphalte et stationnement",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5330",nom:"Traitements parasitaires (extermination)",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5335",nom:"Cueillette des ordures",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5340",nom:"Securite",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5350",nom:"Protection incendie et gicleurs",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5395",nom:"Piscine, spa et sauna",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5410",nom:"Gym et installations",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5422",nom:"Imprevus",type:"depense",groupe:"Depenses - Entretien et operations"},
+  {no:"5500",nom:"Honoraires gestionnaires",type:"depense",groupe:"Depenses - Administration"},
+  {no:"5510",nom:"Honoraires professionnels",type:"depense",groupe:"Depenses - Administration"},
+  {no:"5520",nom:"Honoraires conseiller juridique",type:"depense",groupe:"Depenses - Administration"},
+  {no:"5525",nom:"Frais bancaires",type:"depense",groupe:"Depenses - Administration"},
+  {no:"5535",nom:"Assurances",type:"depense",groupe:"Depenses - Administration"},
+  {no:"5540",nom:"Frais de bureau et informatique",type:"depense",groupe:"Depenses - Administration"},
+  {no:"5545",nom:"Remuneration des administrateurs",type:"depense",groupe:"Depenses - Administration"},
+  {no:"5550",nom:"Frais d assemblee",type:"depense",groupe:"Depenses - Administration"},
+  {no:"5555",nom:"Etude aux fins d assurance",type:"depense",groupe:"Depenses - Administration"},
+  {no:"5556",nom:"Etude du fonds de prevoyance",type:"depense",groupe:"Depenses - Administration"},
+  {no:"5560",nom:"Autres frais administratifs",type:"depense",groupe:"Depenses - Administration"},
+  {no:"5700",nom:"Interets",type:"depense",groupe:"Depenses - Interets"},
+  {no:"5715",nom:"Interets - marge de credit",type:"depense",groupe:"Depenses - Interets"},
+  {no:"5720",nom:"Interets - autres emprunts",type:"depense",groupe:"Depenses - Interets"},
+  {no:"5800",nom:"Charges faisant l objet de refacturation",type:"depense",groupe:"Depenses - Refacturation"},
+  {no:"5805",nom:"Sinistres assumes par les coproprietaires",type:"depense",groupe:"Depenses - Refacturation"},
+  // ---- APPORTS AUX FONDS (entrent dans le calcul des cotisations) ----
+  {no:"5901",nom:"Apport au FONDS DE PREVOYANCE",type:"fonds",groupe:"Apports aux fonds"},
+  {no:"5902",nom:"Apport au FONDS D AUTO-ASSURANCE",type:"fonds",groupe:"Apports aux fonds"},
+  {no:"5903",nom:"Apport au fonds de travaux speciaux",type:"fonds",groupe:"Apports aux fonds"},
+  // ---- DEPENSES DU FONDS DE PREVOYANCE (hors budget des cotisations) ----
+  {no:"7000",nom:"Fonds de prevoyance - general",type:"prevoyance",groupe:"Fonds de prevoyance (depenses)"},
+  {no:"7060",nom:"Balcons et terrasses",type:"prevoyance",groupe:"Fonds de prevoyance (depenses)"},
+  {no:"7070",nom:"Revetements exterieurs",type:"prevoyance",groupe:"Fonds de prevoyance (depenses)"},
+  {no:"7080",nom:"Toitures",type:"prevoyance",groupe:"Fonds de prevoyance (depenses)"},
+  {no:"7090",nom:"Portes et fenetres",type:"prevoyance",groupe:"Fonds de prevoyance (depenses)"},
+  {no:"7100",nom:"Cheminees",type:"prevoyance",groupe:"Fonds de prevoyance (depenses)"},
+  {no:"7110",nom:"Escaliers communs",type:"prevoyance",groupe:"Fonds de prevoyance (depenses)"},
+  {no:"7200",nom:"Chaussees et aires de stationnement",type:"prevoyance",groupe:"Fonds de prevoyance (depenses)"},
+  {no:"7220",nom:"Amenagement des terrains",type:"prevoyance",groupe:"Fonds de prevoyance (depenses)"},
+  {no:"7270",nom:"Plomberie (prevoyance)",type:"prevoyance",groupe:"Fonds de prevoyance (depenses)"},
+  {no:"7280",nom:"CVCA (chauffage, ventilation, clim)",type:"prevoyance",groupe:"Fonds de prevoyance (depenses)"},
+  {no:"7300",nom:"Electricite (prevoyance)",type:"prevoyance",groupe:"Fonds de prevoyance (depenses)"},
+  {no:"7340",nom:"Equipements (prevoyance)",type:"prevoyance",groupe:"Fonds de prevoyance (depenses)"},
+  // ---- FONDS D ASSURANCE ----
+  {no:"8200",nom:"Fonds d assurance",type:"autre",groupe:"Fonds d assurance"},
+  {no:"8201",nom:"Franchise d assurance",type:"autre",groupe:"Fonds d assurance"},
 ];
 
 // ===== Exercices financiers derives de l exercice du syndicat =====
@@ -113,50 +193,83 @@ function exerciceCourant(opts){
   return c||opts[1]||opts[0];
 }
 
-// ===== Onglet CHARTE GL =====
+// ===== Onglet CHARTE GL (pilote par la base - comptes par defaut + comptes ajoutes manuellement) =====
 function TabCharte(p){
   var syndicat=p.syndicat;
   var comptes=p.comptes;var recharger=p.recharger;
   var s0=useState("");var msg=s0[0];var setMsg=s0[1];
+  var s1=useState(null);var ajoutGroupe=s1[0];var setAjoutGroupe=s1[1];
+  var s2=useState({no:"",nom:"",type:"depense"});var nfc=s2[0];var setNfc=s2[1];
+  var s3=useState(false);var actifsSeuls=s3[0];var setActifsSeuls=s3[1];
 
-  function basculer(c){
-    var ligne=comptes.find(function(x){return x.no_compte===c.no;});
-    if(!ligne)return;
+  function basculer(ligne){
     sb.update("comptes_syndicat",ligne.id,{actif:!ligne.actif}).then(function(r){
       if(r&&r.error){setMsg("Echec: "+(r.error.message||""));return;}
       recharger();
     });
   }
 
+  function ajouterCompte(groupe){
+    if(!nfc.no||!nfc.nom){setMsg("Numero et nom requis.");return;}
+    if(comptes.some(function(x){return x.no_compte===nfc.no;})){setMsg("Le compte "+nfc.no+" existe deja.");return;}
+    sb.insert("comptes_syndicat",{syndicat_id:syndicat.id,no_compte:nfc.no,nom_compte:nfc.nom,type_compte:nfc.type,groupe:groupe,actif:true}).then(function(r){
+      if(!r||!r.data||!r.data.id){setMsg("ECHEC de l ajout: "+((r&&r.error&&r.error.message)||"erreur"));return;}
+      setMsg("Compte "+nfc.no+" - "+nfc.nom+" ajoute.");
+      sb.log("budget","creation","Compte GL ajoute: "+nfc.no+" "+nfc.nom,"",syndicat.code||"");
+      setNfc({no:"",nom:"",type:"depense"});setAjoutGroupe(null);
+      recharger();
+      setTimeout(function(){setMsg("");},4000);
+    });
+  }
+
+  // Groupes: ceux du modele + ceux des comptes en base (customs)
   var groupes=[];
   CHARTE_DEFAUT.forEach(function(c){if(groupes.indexOf(c.groupe)<0)groupes.push(c.groupe);});
+  comptes.forEach(function(c){if(c.groupe&&groupes.indexOf(c.groupe)<0)groupes.push(c.groupe);});
   var nbActifs=comptes.filter(function(x){return x.actif;}).length;
+  var TYPES_LBL={actif:"Actif",passif:"Passif",capitaux:"Capitaux",revenu:"Revenu",depense:"Depense",fonds:"Apport aux fonds",prevoyance:"Depense du fonds de prevoyance",autre:"Autre"};
 
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
         <div>
-          <div style={{fontSize:13,fontWeight:700,color:T.navy}}>Charte de comptes grand livre - {syndicat?syndicat.nom:""}</div>
-          <div style={{fontSize:11,color:T.muted}}>{nbActifs} compte(s) actif(s) sur {comptes.length}. Le modele de base est fourni: desactivez ce qui ne s applique pas (les comptes inactifs n apparaissent pas au budget).</div>
+          <div style={{fontSize:13,fontWeight:700,color:T.navy}}>Plan comptable - {syndicat?syndicat.nom:""}</div>
+          <div style={{fontSize:11,color:T.muted}}>{nbActifs} compte(s) actif(s) sur {comptes.length}. Modele de base fourni + vos comptes ajoutes. Les comptes barres (inactifs) n apparaissent pas au budget.</div>
         </div>
+        <label style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:T.navy,cursor:"pointer"}}>
+          <input type="checkbox" checked={actifsSeuls} onChange={function(e){setActifsSeuls(e.target.checked);}}/>
+          Afficher uniquement les comptes actifs
+        </label>
       </div>
-      {msg&&<div style={{background:T.redL,borderRadius:8,padding:"8px 12px",fontSize:12,color:T.red,fontWeight:700,marginBottom:10}}>{msg}</div>}
+      {msg&&<div style={{background:T.blueL,borderRadius:8,padding:"8px 12px",fontSize:12,color:T.blue,fontWeight:700,marginBottom:10}}>{msg}</div>}
       {groupes.map(function(g){
-        var lignes=CHARTE_DEFAUT.filter(function(c){return c.groupe===g;});
+        var lignes=comptes.filter(function(c){return c.groupe===g&&(!actifsSeuls||c.actif);}).sort(function(a,b){return String(a.no_compte).localeCompare(String(b.no_compte));});
+        if(lignes.length===0&&actifsSeuls)return null;
         return(
           <div key={g} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14,marginBottom:10}}>
-            <div style={{fontSize:11,fontWeight:800,color:T.navy,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8}}>{g}</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div style={{fontSize:11,fontWeight:800,color:T.navy,textTransform:"uppercase",letterSpacing:"0.05em"}}>{g}</div>
+              <button onClick={function(){setAjoutGroupe(ajoutGroupe===g?null:g);setNfc({no:"",nom:"",type:(g.indexOf("Actifs")===0?"actif":g==="Passifs"?"passif":g==="Capitaux"?"capitaux":g==="Revenus"?"revenu":g==="Apports aux fonds"?"fonds":"depense")});}} style={{background:"none",border:"none",color:T.blue,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ Ajouter un compte</button>
+            </div>
+            {ajoutGroupe===g&&(
+              <div style={{display:"flex",gap:8,alignItems:"flex-end",marginBottom:10,background:T.blueL,borderRadius:8,padding:10,flexWrap:"wrap"}}>
+                <div style={{width:90}}><Lbl l="Numero"/><input value={nfc.no} onChange={function(e){setNfc(Object.assign({},nfc,{no:e.target.value.replace(/\D/g,"").slice(0,6)}));}} style={INP} placeholder="5192"/></div>
+                <div style={{flex:1,minWidth:200}}><Lbl l="Nom du compte"/><input value={nfc.nom} onChange={function(e){setNfc(Object.assign({},nfc,{nom:e.target.value}));}} style={INP} placeholder="ex: 021258-1 Operation"/></div>
+                <div style={{width:150}}><Lbl l="Type"/><select value={nfc.type} onChange={function(e){setNfc(Object.assign({},nfc,{type:e.target.value}));}} style={INP}>{Object.keys(TYPES_LBL).map(function(t){return <option key={t} value={t}>{TYPES_LBL[t]}</option>;})}</select></div>
+                <Btn sm onClick={function(){ajouterCompte(g);}}>Ajouter</Btn>
+                <Btn sm bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setAjoutGroupe(null);}}>Annuler</Btn>
+              </div>
+            )}
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(310px,1fr))",gap:6}}>
               {lignes.map(function(c){
-                var ligne=comptes.find(function(x){return x.no_compte===c.no;});
-                var actif=ligne?ligne.actif:true;
+                var actif=c.actif;
                 return(
-                  <div key={c.no} onClick={function(){basculer(c);}} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",borderRadius:8,border:"1px solid "+(actif?T.accent+"55":T.border),background:actif?T.accentL:T.alt,cursor:"pointer",opacity:actif?1:0.55}}>
+                  <div key={c.no_compte} onClick={function(){basculer(c);}} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",borderRadius:8,border:"1px solid "+(actif?T.accent+"55":T.border),background:actif?T.accentL:T.alt,cursor:"pointer",opacity:actif?1:0.55}}>
                     <div style={{width:34,height:20,borderRadius:10,background:actif?T.accent:T.border,position:"relative",flexShrink:0,transition:"background 0.15s"}}>
                       <div style={{width:14,height:14,borderRadius:"50%",background:"#fff",position:"absolute",top:3,left:actif?17:3,transition:"left 0.15s"}}/>
                     </div>
-                    <span style={{fontSize:11,fontWeight:700,color:T.navy,flexShrink:0}}>{c.no}</span>
-                    <span style={{fontSize:11,color:T.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.nom}</span>
+                    <span style={{fontSize:11,fontWeight:700,color:T.navy,flexShrink:0}}>{c.no_compte}</span>
+                    <span style={{fontSize:11,color:T.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:actif?"none":"line-through"}}>{c.nom_compte}</span>
                   </div>
                 );
               })}
@@ -197,8 +310,9 @@ function TabBudget(p){
     }).catch(function(){});
   },[syndicat&&syndicat.id,exo&&exo.debut]);
 
-  var actifsNos=comptes.filter(function(c){return c.actif;}).map(function(c){return c.no_compte;});
-  var lignesBudget=CHARTE_DEFAUT.filter(function(c){return actifsNos.indexOf(c.no)>=0;});
+  var lignesBudget=comptes.filter(function(c){return c.actif&&["revenu","depense","fonds"].indexOf(c.type_compte)>=0;})
+    .map(function(c){return {no:c.no_compte,nom:c.nom_compte,type:c.type_compte,groupe:c.groupe||"Autres"};})
+    .sort(function(a,b){return String(a.no).localeCompare(String(b.no));});
 
   function setM(no,v){setMontants(function(pr){var n=Object.assign({},pr);n[no]=v;return n;});}
 
@@ -278,7 +392,7 @@ function TabBudget(p){
         <div style={{background:T.accentL,border:"2px solid "+T.accent,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.accent,fontWeight:700}}>COTISATIONS ANNUELLES</div><div style={{fontSize:18,fontWeight:800,color:T.accent}}>{money(cotisationsAnnuelles)}</div><div style={{fontSize:10,color:T.muted}}>{money(cotisationsAnnuelles/12)} /mois</div></div>
       </div>
 
-      {lignesBudget.length===0&&<div style={{background:T.amberL,borderRadius:10,padding:14,fontSize:12,color:T.amber,fontWeight:600,marginBottom:12}}>Aucun compte actif - activez des comptes dans l onglet Charte GL.</div>}
+      {lignesBudget.length===0&&<div style={{background:T.amberL,borderRadius:10,padding:14,fontSize:12,color:T.amber,fontWeight:600,marginBottom:12}}>Aucun compte actif - activez des comptes dans l onglet Plan comptable.</div>}
 
       {groupes.map(function(g){
         var lignes=lignesBudget.filter(function(c){return c.groupe===g;});
@@ -538,7 +652,7 @@ export default function BudgetCompta(){
   }
   useEffect(function(){chargerComptes();},[sel&&sel.id]);
 
-  var TABS=[{id:"budget",l:"Budget et cotisations"},{id:"charte",l:"Charte GL"},{id:"banques",l:"Comptes bancaires"},{id:"journal",l:"Journal"}];
+  var TABS=[{id:"budget",l:"Budget et cotisations"},{id:"charte",l:"Plan comptable"},{id:"banques",l:"Comptes bancaires"},{id:"journal",l:"Journal"}];
 
   if(syndicats.length===0)return <div style={{padding:40,textAlign:"center",fontFamily:"Georgia,serif",color:T.muted}}>Aucun syndicat - creez d abord un syndicat via Configuration.</div>;
 

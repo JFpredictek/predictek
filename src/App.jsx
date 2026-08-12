@@ -14,6 +14,7 @@ import GestionAuto from "./GestionAuto";
 import MembresCA from "./MembresCA";
 import GestionDocuments from "./GestionDocuments";
 import BudgetCompta from "./BudgetCompta";
+import Encaissements from "./Encaissements";
 import CarnetEntretien from "./CarnetEntretien";
 import TableauBordCA from "./TableauBordCA";
 import GestionCopros from "./GestionCopros";
@@ -65,6 +66,7 @@ var SECTIONS=[
       {id:"unites",label:"Unites",icon:"UN"},
             {id:"factures",label:"Factures",icon:"FA"},
       {id:"budget",label:"Budget",icon:"BU"},
+      {id:"encaissements",label:"Encaissements",icon:"EN"},
       {id:"bons",label:"Bons travaux",icon:"BT"},
       {id:"comm",label:"Communications",icon:"CO"},
       
@@ -227,6 +229,7 @@ export default function App(){
         {active==="gestion"&&<GestionAuto/>}
         {active==="factures"&&<GestionFactures/>}
         {active==="budget"&&<BudgetCompta/>}
+        {active==="encaissements"&&<Encaissements/>}
         {active==="paie"&&<ModuleT4/>}
         {active==="carnet"&&<CarnetEntretien/>}
         {active==="ca"&&<MembresCA/>}

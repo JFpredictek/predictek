@@ -19,6 +19,8 @@ function Badge(p){var colors={actif:{bg:T.accentL,c:T.accent},inactif:{bg:T.redL
 function Sec(p){return <div style={{gridColumn:"1/-1",fontSize:11,fontWeight:800,color:T.navy,textTransform:"uppercase",letterSpacing:"0.06em",borderBottom:"2px solid "+T.border,paddingBottom:4,marginTop:p.first?0:8}}>{p.l}</div>;}
 
 var DEPTS=["Direction","Administration","Operations","Comptabilite","Terrain","Support"];
+// Postes standardises - serviront a comptabiliser les salaires PAR POSTE dans la comptabilite Predictek
+var POSTES=["Gestionnaire de copropriete","Adjoint(e) administratif(ve)","Comptable / technicien comptable","Concierge / entretien menager","Surintendant","Homme/femme de maintenance","Direction","Support technique","Autre"];
 var STATUTS=["actif","inactif","conge","essai"];
 var EMP_VIDE={prenom:"",nom:"",courriel:"",tel:"",cellulaire:"",no_civique:"",rue:"",ville:"",province:"QC",code_postal:"",naissance:"",poste:"",dept:"Administration",statut:"actif",salaire:"",date_embauche:"",nas:"",reserve_vacances_pct:"4",urg_nom:"",urg_lien:"",urg_tel:"",notes:""};
 
@@ -189,7 +191,7 @@ export default function GestionEmployes(){
               <div><Lbl l="Telephone"/><input value={form.tel} onChange={function(e){sf("tel",fmtTel(e.target.value));}} style={INP} maxLength={12}/></div>
               <div><Lbl l="Cellulaire"/><input value={form.cellulaire} onChange={function(e){sf("cellulaire",fmtTel(e.target.value));}} style={INP} maxLength={12}/></div>
               <Sec l="Emploi et remuneration"/>
-              <div><Lbl l="Poste"/><input value={form.poste} onChange={function(e){sf("poste",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Poste (comptabilise par poste dans les depenses)"/><select value={form.poste||""} onChange={function(e){sf("poste",e.target.value);}} style={INP}><option value="">Choisir un poste...</option>{POSTES.map(function(po){return <option key={po} value={po}>{po}</option>;})}</select></div>
               <div><Lbl l="Departement"/><select value={form.dept} onChange={function(e){sf("dept",e.target.value);}} style={INP}>{DEPTS.map(function(d){return <option key={d}>{d}</option>;})}</select></div>
               <div><Lbl l="Statut"/><select value={form.statut} onChange={function(e){sf("statut",e.target.value);}} style={INP}>{STATUTS.map(function(st){return <option key={st}>{st}</option>;})}</select></div>
               <div><Lbl l="Date d embauche"/><input type="date" value={form.date_embauche||""} onChange={function(e){sf("date_embauche",e.target.value);}} style={INP}/></div>
