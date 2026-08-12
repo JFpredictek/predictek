@@ -112,7 +112,16 @@ export default function GestionEmployes(){
       if(okFin===null||okFin===undefined&&err)return;
       setEnCours(false);
       setOk(avertNas+(form.id?"Employe modifie.":"Employe cree."));
-      sb.log("employes",form.id?"modification":"creation","Dossier employe "+form.prenom+" "+form.nom,"","");
+      var diffsE=[];
+      if(form.id){
+        var origE=emps.find(function(x){return x.id===form.id;})||{};
+        Object.keys(ligne).forEach(function(k){
+          if(k==="nas_chiffre")return;
+          var av=origE[k];var ap=ligne[k];
+          if(String(av==null?"":av)!==String(ap==null?"":ap))diffsE.push(k+": \""+(av==null?"":av)+"\" -> \""+(ap==null?"":ap)+"\"");
+        });
+      }
+      sb.log("employes",form.id?"modification":"creation","Dossier employe "+form.prenom+" "+form.nom+(form.id?" ("+diffsE.length+" champ(s) modifie(s))":""),diffsE.join(" | ").substring(0,1800),"");
       setShowForm(false);setForm(EMP_VIDE);setSel(null);setCvFile(null);setPermisFile(null);
       charger();
       setTimeout(function(){setOk("");},4000);

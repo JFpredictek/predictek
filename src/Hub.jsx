@@ -327,6 +327,7 @@ function ParamsSyndicat(p){
     sb.selectOne("syndicats",{eq:{code:code}}).then(function(r){
       if(r&&r.data){
         setF(r.data);
+        window._origParamsSyndicat=Object.assign({},r.data);
         sb.select("unites",{eq:{syndicat_id:r.data.id},cols:"id",limit:1000}).then(function(ru){
           if(ru&&ru.data)setNbU(ru.data.length);
         }).catch(function(){});
@@ -345,7 +346,14 @@ function ParamsSyndicat(p){
       setEnCours(false);
       if(r&&r.error){setErr("ECHEC de la sauvegarde: "+(r.error.message||r.error.hint||"erreur inconnue"));return;}
       setMsg("Parametres sauvegardes avec succes");
-      sb.log("syndicat","modification","Parametres du syndicat "+(f.nom||code)+" modifies","",code);
+      var orig=window._origParamsSyndicat||{};
+      var diffs=[];
+      Object.keys(maj).forEach(function(k){
+        var av=orig[k];var ap=maj[k];
+        if(String(av==null?"":av)!==String(ap==null?"":ap))diffs.push(k+": \""+(av==null?"":av)+"\" -> \""+(ap==null?"":ap)+"\"");
+      });
+      window._origParamsSyndicat=Object.assign({},orig,maj);
+      sb.log("syndicat","modification","Parametres du syndicat "+(f.nom||code)+" modifies ("+diffs.length+" champ(s))",diffs.join(" | ").substring(0,1800),code);
       setTimeout(function(){setMsg("");},4000);
     }).catch(function(e){setEnCours(false);setErr("Erreur: "+(e&&e.message?e.message:""));});
   }
@@ -568,15 +576,12 @@ function Onboarding(p){
   });}
   // Analyse AUTOMATIQUE de la declaration des le televersement:
   // texte lisible -> extraction texte + reglements; scan -> vision IA sur TOUT le document avec progression.
-  function analyserActeAuto(){
-    if(!window._acteFile)return;
-    setIaLoading(true);setIaError("");setIaSuccess("Lecture de la declaration...");setIaProg(null);
-    chargerActe().then(function(pdf){
-      return textesParPage(pdf).then(function(txts){
-        var totalTexte=txts.join("").replace(/\s+/g,"").length;
-        if(totalTexte>500){setIaProg(null);extraireIA();return null;}
+  // Analyse VISION complete du document (quorum, constitution, reglements) - utilisee pour les scans
+  // et comme COMPLEMENT automatique si l extraction texte n a pas tout trouve.
+  function lancerVisionComplete(pdf){
         var acc={reglements:[]};
-        setIaSuccess("Declaration numerisee detectee - analyse complete par vision IA...");
+        setIaLoading(true);setIaError("");
+        setIaSuccess("Analyse complete par vision IA (page par page)...");
         return visionToutLeDocument(pdf,{mode:"syndicat"},function(dd){
           if(dd.anneeConstitution&&(!acc.anneeConstitution||parseInt(dd.anneeConstitution)<parseInt(acc.anneeConstitution)))acc.anneeConstitution=dd.anneeConstitution;
           if(dd.quorumAGO&&!acc.quorumAGO)acc.quorumAGO=dd.quorumAGO;
@@ -592,7 +597,7 @@ function Onboarding(p){
             if(acc.quorumAGO&&parseInt(acc.quorumAGO)>0)u.quorumAGO=parseInt(acc.quorumAGO);
             if(acc.nbUnites&&parseInt(acc.nbUnites)>0&&!u.nbUnites)u.nbUnites=parseInt(acc.nbUnites);
             if(acc.typeCopro&&["horizontale","verticale","mixte"].indexOf(acc.typeCopro)>=0)u.typeCopro=acc.typeCopro;
-            if(acc.reglements.length>0)u.reglementsResume=acc.reglements.join("\n\n").substring(0,8000);
+            if(acc.reglements.length>0){var nvR=acc.reglements.join("\n\n").substring(0,12000);if(!u.reglementsResume||nvR.length>u.reglementsResume.length)u.reglementsResume=nvR;}
             return u;
           });
           var trouve=[];
@@ -603,12 +608,35 @@ function Onboarding(p){
           setIaSuccess(trouve.length>0?"Analyse complete de la declaration terminee: "+trouve.join(", "):"Analyse terminee - rien de lisible. Scan de trop faible qualite?");
           setIaProg(null);setIaLoading(false);
         });
+  }
+
+  function analyserActeAuto(){
+    if(!window._acteFile)return;
+    setIaLoading(true);setIaError("");setIaSuccess("Lecture de la declaration...");setIaProg(null);
+    chargerActe().then(function(pdf){
+      return textesParPage(pdf).then(function(txts){
+        var totalTexte=txts.join("").replace(/\s+/g,"").length;
+        var moyenneParPage=totalTexte/Math.max(1,Math.min(pdf.numPages,txts.length));
+        // Vrai texte seulement si la densite est credible (sinon: scan avec bribes -> vision)
+        if(totalTexte>500&&moyenneParPage>150){
+          setIaProg(null);
+          return Promise.resolve(extraireIA()).then(function(){
+            var ex=window._dernierEx||{};
+            var quorumOk=ex.quorumAGO&&parseInt(ex.quorumAGO)>0;
+            var anneeOk=(ex.anneeConstitution||ex.anneeConstruction)&&parseInt(ex.anneeConstitution||ex.anneeConstruction)>1900;
+            if(quorumOk&&anneeOk)return null;
+            // Il manque le quorum ou l annee: COMPLEMENT automatique par vision sur tout le document
+            setIaSuccess("Quorum ou annee de constitution introuvables dans le texte - complement automatique par vision IA...");
+            return lancerVisionComplete(pdf);
+          });
+        }
+        return lancerVisionComplete(pdf);
       });
     }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);setIaProg(null);});
   }
 
   function extraireIA(){
-    if(iaLoading)return;
+    if(iaLoading)return Promise.resolve();
     setIaLoading(true);setIaError("");setIaSuccess("");
     var files=[];
     if(window._reqFile)files.push(window._reqFile);
@@ -643,7 +671,7 @@ function Onboarding(p){
         reader.readAsArrayBuffer(file);
       });
     }
-    Promise.all(files.map(lirePDF)).then(function(textes){
+    return Promise.all(files.map(lirePDF)).then(function(textes){
       // Assemblage intelligent: REQ complet + debut de la declaration (identite)
       // + extraits cibles sur les assemblees/quorum/majorites (souvent loin dans l acte)
       var idx=0;
@@ -673,6 +701,7 @@ function Onboarding(p){
         setIaError("PDF non-textuel (image scannee). Saisissez manuellement.");
         setIaLoading(false);return null;
       }
+      window._dernierEx=null;
       return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:texte,mode:"syndicat"})});
     }).then(function(r){
       if(!r)return;
@@ -682,6 +711,7 @@ function Onboarding(p){
       if(!resp)return;
       if(resp.error){setIaError(resp.error);setIaLoading(false);return;}
       var ex=resp.data||{};
+      window._dernierEx=ex;
       setData(function(old){
         var u=Object.assign({},old);
         if(ex.nom)u.nom=ex.nom;
@@ -814,7 +844,7 @@ function Onboarding(p){
       {step===1&&(
         <div>
           <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 1 - Acte de copropriete et informations du syndicat</div>
-          <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Collez le texte du REQ ou importez la declaration PDF - les informations seront extraites automatiquement. Vous pourrez les modifier avant de continuer.</div>
+          <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Importez le REQ et la declaration PDF - toutes les informations sont extraites automatiquement. Vous pourrez les modifier avant de continuer.</div>
           <div style={{background:"#F0F7FF",border:"1px solid #1A56DB33",borderRadius:10,padding:14,marginBottom:16}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
               <div>
@@ -850,7 +880,7 @@ function Onboarding(p){
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
               <div style={{background:"#FFF8EE",border:"2px solid #E8A020",borderRadius:8,padding:12}}>
                 <div style={{fontSize:11,fontWeight:700,color:"#B86020",marginBottom:3}}>Registre entreprises du Quebec (REQ)</div>
-                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Copiez le texte du REQ depuis registreentreprises.gouv.qc.ca et collez ci-dessous</div>
+                <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Etat de renseignements PDF - analyse automatique des le televersement</div>
                 <input type="file" accept=".pdf,.PDF" id="pdfREQ" style={{display:"none"}} onChange={function(e){
                   var file=e.target.files&&e.target.files[0];
                   if(!file)return;
@@ -895,46 +925,6 @@ function Onboarding(p){
                 }}/>
                 <button onClick={function(){document.getElementById("pdfREQ").click();}} style={{background:"#fff",border:"1px solid #E8A020",borderRadius:6,padding:"5px 12px",fontSize:10,fontWeight:700,color:"#B86020",cursor:"pointer",marginBottom:6,marginRight:6}}>
                   Selectionner le PDF du REQ (scan accepte)
-                </button>
-                <span style={{fontSize:9,color:"#7C7568"}}>ou collez le texte ci-dessous</span>
-                <textarea id="txtREQ" rows={6} style={{width:"100%",border:"1px solid #E8A020",borderRadius:6,padding:"6px 8px",fontSize:10,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:6}} placeholder="Collez ici le texte complet du REQ (nom, NEQ, adresse, administrateurs...)"/>
-                <button onClick={function(){
-                  var t=document.getElementById("txtREQ")?document.getElementById("txtREQ").value:"";
-                  if(!t||t.trim().length<10){setIaError("Collez le texte du REQ avant d extraire.");return;}
-                  setIaLoading(true);setIaError("");setIaSuccess("");
-                  fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:t,mode:"syndicat"})})
-                  .then(function(r){return r.json();})
-                  .then(function(resp){
-                    if(!resp||resp.error){setIaError(resp&&resp.error?resp.error:"Erreur");setIaLoading(false);return;}
-                    var ex=resp.data||{};
-                    setData(function(o){
-                      var u=Object.assign({},o);
-                      if(ex.nom)u.nom=ex.nom;
-                      if(ex.immat)u.immat=ex.immat;
-                      if(ex.adr)u.adr=ex.adr;
-                      if(ex.ville)u.ville=ex.ville;
-                      if(ex.province&&ex.province.length===2)u.province=ex.province;
-                      if(ex.codePostal)u.codePostal=ex.codePostal;
-                      if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);
-                      if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;
-                      if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);
-                      var anCst=ex.anneeConstitution||ex.anneeConstruction;if(anCst&&parseInt(anCst)>1900)u.anneeConstruction=parseInt(anCst);
-                      if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
-                      if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}
-                      if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
-                        u.nbMembresCA=ex.admins.length;
-                        u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};});
-                      }
-                      return u;
-                    });
-                    var ks=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];
-                    var n=ks.filter(function(k){return ex[k]&&ex[k]!=="";}).length;
-                    if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;
-                    setIaSuccess(n+" champs extraits - verifiez et completez");
-                    setIaLoading(false);
-                  }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});
-                }} disabled={iaLoading} style={{background:"#B86020",color:"#fff",border:"none",borderRadius:6,padding:"6px 16px",fontSize:11,fontWeight:700,cursor:iaLoading?"not-allowed":"pointer"}}>
-                  {iaLoading?"Extraction en cours...":"Extraire avec l IA"}
                 </button>
               </div>
               <div style={{background:"#E8F2EC",border:"2px dashed "+(data.acteNom?"#1B5E3B":"#1B5E3B66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
@@ -1218,6 +1208,22 @@ function Onboarding(p){
           <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 4 - Documents officiels</div>
           <div style={{fontSize:12,color:T.muted,marginBottom:10}}>Importez les documents fondamentaux du syndicat. Les dates cles (expiration d assurance, dates des etudes) sont extraites automatiquement.</div>
           {docMsg&&<div style={{background:"#EFF6FF",border:"1px solid #1A56DB44",borderRadius:8,padding:"8px 12px",fontSize:11,color:"#1A56DB",fontWeight:600,marginBottom:10}}>{docMsg}</div>}
+          {!data.reglementsResume&&(data.acteNom||window._acteFile)&&(
+            <div style={{background:"#FEF3E2",border:"2px solid #B86020",borderRadius:8,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+              <div style={{fontSize:11,color:"#B86020",fontWeight:700,flex:1,minWidth:220}}>Les reglements de la declaration n ont pas encore ete extraits.</div>
+              <button disabled={iaLoading} onClick={function(){
+                if(!window._acteFile){setDocMsg("Retournez a l etape 1 pour reimporter la declaration.");return;}
+                setDocMsg("Relance de l analyse de la declaration...");
+                analyserActeAuto();
+              }} style={{background:"#B86020",color:"#fff",border:"none",borderRadius:6,padding:"6px 14px",fontSize:11,fontWeight:700,cursor:iaLoading?"not-allowed":"pointer"}}>{iaLoading?"Analyse en cours...":"Relancer l extraction des reglements"}</button>
+            </div>
+          )}
+          {iaLoading&&(
+            <div style={{background:"#EFF6FF",border:"1px solid #1A56DB44",borderRadius:8,padding:"10px 14px",fontSize:11,color:"#1A56DB",fontWeight:600,marginBottom:10}}>
+              {iaSuccess||"Analyse en cours..."}
+              {iaProg&&iaProg.total?<div style={{fontSize:10,marginTop:3,fontWeight:700}}>{iaProg.fait} / {iaProg.total} pages ({Math.round(iaProg.fait/iaProg.total*100)} %)</div>:null}
+            </div>
+          )}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
             {[{cat:"declaration",l:"Declaration de copropriete",desc:"Document fondateur - acte notarie",obligatoire:true},{cat:"reglement",l:"Reglement de l immeuble",desc:"Regles de vie approuvees en assemblee",obligatoire:true},{cat:"police",l:"Police d assurance",desc:"Assurance syndicat - l expiration est extraite automatiquement",obligatoire:false},{cat:"etude_assurance",l:"Etude aux fins d assurance",desc:"Evaluation de la valeur de reconstruction - la date est extraite pour planifier l appel d offres",obligatoire:false},{cat:"financier",l:"Etats financiers annuels",desc:"Derniers etats financiers verifies",obligatoire:false},{cat:"carnet_prev",l:"Etude du fonds de prevoyance",desc:"Etude Loi 16 - la date est extraite pour planifier le renouvellement",obligatoire:false},{cat:"autre",l:"Autre document",desc:"Tout autre document pertinent",obligatoire:false}].map(function(dtype){
               var uploaded=data.documents.filter(function(d){return d.cat===dtype.cat;});

@@ -215,8 +215,15 @@ export default function Unites(){
       return sb.update("unites",uid,row);
     }).then(function(res){
       if(res&&res.error){setMsgEdit("ECHEC de la sauvegarde: "+(res.error.message||"erreur"));setEditEnCours(false);return;}
+      // Journal detaille: chaque champ modifie, de quoi a quoi
+      var orig=unites.find(function(x){return x.id===uid;})||{};
+      var diffs=[];
+      Object.keys(row).forEach(function(k){
+        var av=orig[k];var ap=row[k];
+        if(String(av==null?"":av)!==String(ap==null?"":ap))diffs.push(k+": \""+(av==null?"":av)+"\" -> \""+(ap==null?"":ap)+"\"");
+      });
       setUnites(function(prev){return prev.map(function(u){return u.id===uid?Object.assign({},u,row):u;});});
-      sb.log("unites","modification","Unite modifiee","",sel?sel.code||"":"");
+      sb.log("unites","modification","Unite "+(orig.no_unite||"")+" modifiee ("+diffs.length+" champ(s))",diffs.join(" | ").substring(0,1800),sel?sel.code||"":"");
       setCeFile(null);setAssFile(null);setEditEnCours(false);setEditId(null);
     }).catch(function(e){setMsgEdit("ECHEC: "+(e.message||"erreur inconnue"));setEditEnCours(false);});
   }

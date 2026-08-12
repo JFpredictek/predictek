@@ -66,7 +66,10 @@ export default function Historique(){
                     <td style={{padding:"8px 12px",fontWeight:600,color:T.navy,fontSize:11}}>{l.utilisateur_nom||"-"}</td>
                     <td style={{padding:"8px 12px",color:T.muted,fontSize:11}}>{l.categorie||"-"}</td>
                     <td style={{padding:"8px 12px",fontWeight:600,color:T.navy}}>{l.action||"-"}</td>
-                    <td style={{padding:"8px 12px",color:T.muted}}>{l.description||"-"}</td>
+                    <td style={{padding:"8px 12px",color:T.muted}}>
+                      {l.description||"-"}
+                      {l.details&&<div style={{fontSize:10,color:"#8a8375",marginTop:3,whiteSpace:"pre-wrap",wordBreak:"break-word",background:"#F5F3EE",borderRadius:5,padding:"4px 8px"}}>{l.details.split(" | ").join("\n")}</div>}
+                    </td>
                   </tr>
                 );
               })}

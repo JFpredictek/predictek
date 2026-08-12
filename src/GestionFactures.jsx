@@ -367,7 +367,7 @@ export default function GestionFactures(){
     setSaving(true);setErrSauve("");
     var glFinal=nf.no_compte_gl||codeGLAuto(nf.fournisseur_nom,nf.description||"");
     var glNom=CODES_GL_DEPENSES.find(function(g){return g.no===glFinal;});
-    var row={syndicat_id:sel.id,fournisseur_nom:nf.fournisseur_nom,no_facture:nf.no_facture||"",date_facture:nf.date_facture||null,date_echeance:nf.date_echeance||null,sous_total:parseFloat(nf.sous_total)||0,tps:parseFloat(nf.tps)||0,tvq:parseFloat(nf.tvq)||0,total:parseFloat(nf.total)||0,no_compte_gl:glFinal,categorie_depense:glNom?glNom.nom:"Depenses diverses",description:nf.description||"",no_tps_fournisseur:nf.no_tps_fournisseur||"",no_tvq_fournisseur:nf.no_tvq_fournisseur||"",source:"manuel",statut:parseFloat(nf.total||0)>1000?"en_attente_approbation":"approuvee",nb_approbations_requises:parseFloat(nf.total||0)>5000?2:1};
+    var row={syndicat_id:sel.id,fournisseur:nf.fournisseur_nom,montant:parseFloat(nf.total)||0,fournisseur_nom:nf.fournisseur_nom,no_facture:nf.no_facture||"",date_facture:nf.date_facture||null,date_echeance:nf.date_echeance||null,sous_total:parseFloat(nf.sous_total)||0,tps:parseFloat(nf.tps)||0,tvq:parseFloat(nf.tvq)||0,total:parseFloat(nf.total)||0,no_compte_gl:glFinal,categorie_depense:glNom?glNom.nom:"Depenses diverses",description:nf.description||"",no_tps_fournisseur:nf.no_tps_fournisseur||"",no_tvq_fournisseur:nf.no_tvq_fournisseur||"",source:"manuel",statut:parseFloat(nf.total||0)>1000?"en_attente_approbation":"approuvee",nb_approbations_requises:parseFloat(nf.total||0)>5000?2:1};
     var etapes=Promise.resolve();
     if(facFile){
       etapes=etapes.then(function(){
