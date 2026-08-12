@@ -22,7 +22,7 @@ var DEPTS=["Direction","Administration","Operations","Comptabilite","Terrain","S
 // Postes standardises - serviront a comptabiliser les salaires PAR POSTE dans la comptabilite Predictek
 var POSTES=["Gestionnaire de copropriete","Adjoint(e) administratif(ve)","Comptable / technicien comptable","Concierge / entretien menager","Surintendant","Homme/femme de maintenance","Direction","Support technique","Autre"];
 var STATUTS=["actif","inactif","conge","essai"];
-var EMP_VIDE={prenom:"",nom:"",courriel:"",tel:"",cellulaire:"",no_civique:"",rue:"",ville:"",province:"QC",code_postal:"",naissance:"",poste:"",dept:"Administration",statut:"actif",salaire:"",date_embauche:"",nas:"",reserve_vacances_pct:"4",urg_nom:"",urg_lien:"",urg_tel:"",notes:""};
+var EMP_VIDE={prenom:"",nom:"",courriel:"",tel:"",cellulaire:"",no_civique:"",rue:"",ville:"",province:"QC",code_postal:"",naissance:"",poste:"",dept:"Administration",statut:"actif",salaire:"",date_embauche:"",nas:"",reserve_vacances_pct:"4",urg_nom:"",urg_lien:"",urg_tel:"",permis_requis:false,permis_expiration:"",notes:""};
 
 export default function GestionEmployes(){
   var s0=useState([]);var emps=s0[0];var setEmps=s0[1];
@@ -33,6 +33,9 @@ export default function GestionEmployes(){
   var s5=useState("");var err=s5[0];var setErr=s5[1];
   var s6=useState("");var ok=s6[0];var setOk=s6[1];
   var s7=useState(false);var enCours=s7[0];var setEnCours=s7[1];
+  var s8r=useState([]);var ruesSugg=s8r[0];var setRuesSugg=s8r[1];
+  var s9f=useState(null);var cvFile=s9f[0];var setCvFile=s9f[1];
+  var s10f=useState(null);var permisFile=s10f[0];var setPermisFile=s10f[1];
 
   function charger(){
     sb.select("employes",{order:"nom.asc"}).then(function(r){
@@ -61,6 +64,7 @@ export default function GestionEmployes(){
       salaire:parseFloat(form.salaire)||null,date_embauche:form.date_embauche||null,
       reserve_vacances_pct:parseFloat(form.reserve_vacances_pct)||null,
       urg_nom:form.urg_nom||"",urg_lien:form.urg_lien||"",urg_tel:form.urg_tel||"",
+      permis_requis:!!form.permis_requis,permis_expiration:form.permis_expiration||null,
       notes:form.notes||""
     };
     var apres=function(){
@@ -78,11 +82,38 @@ export default function GestionEmployes(){
       var op=form.id?sb.update("employes",form.id,ligne):sb.insert("employes",ligne);
       return op;
     }).then(function(r){
+      if(r&&r.error){setEnCours(false);setErr("ECHEC de la sauvegarde: "+(r.error.message||r.error.hint||"erreur inconnue"));return null;}
+      var empId=(r&&r.data&&r.data.id)||form.id;
+      if(!empId){setEnCours(false);setErr("ECHEC: identifiant introuvable apres la sauvegarde.");return null;}
+      // Pieces jointes: CV et permis de conduire au coffre
+      var etapes=Promise.resolve();var maj={};
+      if(cvFile){
+        etapes=etapes.then(function(){
+          var ext=(cvFile.name.match(/\.[a-zA-Z0-9]+$/)||[".pdf"])[0];
+          return sb.uploadFichier("preuves","employes/"+empId+"/cv"+ext,cvFile).then(function(rU){
+            if(rU.error)throw new Error("CV: "+rU.error.message);
+            maj.cv_doc=rU.chemin;
+          });
+        });
+      }
+      if(permisFile){
+        etapes=etapes.then(function(){
+          var ext=(permisFile.name.match(/\.[a-zA-Z0-9]+$/)||[".pdf"])[0];
+          return sb.uploadFichier("preuves","employes/"+empId+"/permis"+ext,permisFile).then(function(rU){
+            if(rU.error)throw new Error("Permis: "+rU.error.message);
+            maj.permis_doc=rU.chemin;
+          });
+        });
+      }
+      return etapes.then(function(){
+        if(Object.keys(maj).length>0)return sb.update("employes",empId,maj);
+      }).then(function(){return true;});
+    }).then(function(okFin){
+      if(okFin===null||okFin===undefined&&err)return;
       setEnCours(false);
-      if(r&&r.error){setErr("ECHEC de la sauvegarde: "+(r.error.message||r.error.hint||"erreur inconnue"));return;}
       setOk(avertNas+(form.id?"Employe modifie.":"Employe cree."));
       sb.log("employes",form.id?"modification":"creation","Dossier employe "+form.prenom+" "+form.nom,"","");
-      setShowForm(false);setForm(EMP_VIDE);setSel(null);
+      setShowForm(false);setForm(EMP_VIDE);setSel(null);setCvFile(null);setPermisFile(null);
       charger();
       setTimeout(function(){setOk("");},4000);
     }).catch(function(e){setEnCours(false);setErr("Erreur: "+(e&&e.message?e.message:""));});
@@ -140,7 +171,7 @@ export default function GestionEmployes(){
                     <td style={{padding:"10px 12px"}}><Badge s={e.statut}/></td>
                     <td style={{padding:"10px 12px"}}>
                       <div style={{display:"flex",gap:4}}>
-                        <Btn sm onClick={function(ev){ev.stopPropagation();setForm(Object.assign({},EMP_VIDE,e,{nas:"",salaire:e.salaire||"",reserve_vacances_pct:e.reserve_vacances_pct||"4"}));setShowForm(true);setSel(null);setErr("");}}>Modifier</Btn>
+                        <Btn sm onClick={function(ev){ev.stopPropagation();setForm(Object.assign({},EMP_VIDE,e,{nas:"",salaire:e.salaire||"",reserve_vacances_pct:e.reserve_vacances_pct||"4",permis_expiration:e.permis_expiration||""}));setCvFile(null);setPermisFile(null);setShowForm(true);setSel(null);setErr("");}}>Modifier</Btn>
                         <Btn sm bg={e.statut==="actif"?T.redL:T.accentL} tc={e.statut==="actif"?T.red:T.accent} onClick={function(ev){ev.stopPropagation();desactiver(e);}}>{e.statut==="actif"?"Desactiver":"Reactiver"}</Btn>
                       </div>
                     </td>
@@ -161,6 +192,18 @@ export default function GestionEmployes(){
             </div>
             <div style={{marginBottom:10}}><Lbl l="Contact"/><div style={{fontSize:12}}>{selE.courriel||"-"}</div><div style={{fontSize:12,color:T.muted}}>Tel: {selE.tel||"-"} | Cell: {selE.cellulaire||"-"}</div><div style={{fontSize:11,color:T.muted}}>{(selE.adresse||"")+(selE.ville?", "+selE.ville:"")+(selE.code_postal?" "+selE.code_postal:"")}</div></div>
             <div style={{marginBottom:10}}><Lbl l="Emploi"/><div style={{fontSize:12}}>Embauche: {selE.date_embauche||"-"}</div><div style={{fontSize:13,fontWeight:700,color:T.accent}}>{selE.salaire?money(selE.salaire)+" /an":"-"}</div><div style={{fontSize:11,color:T.muted}}>Reserve vacances: {selE.reserve_vacances_pct?selE.reserve_vacances_pct+" %":"-"}</div></div>
+            <div style={{marginBottom:10}}><Lbl l="Documents"/>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {selE.cv_doc&&<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){sb.lienFichier("preuves",selE.cv_doc).then(function(u){if(u)window.open(u,"_blank");});}}>CV</Btn>}
+                {selE.permis_doc&&<Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){sb.lienFichier("preuves",selE.permis_doc).then(function(u){if(u)window.open(u,"_blank");});}}>Permis de conduire</Btn>}
+                {!selE.cv_doc&&!selE.permis_doc&&<span style={{fontSize:11,color:T.muted}}>-</span>}
+              </div>
+              {selE.permis_requis&&(function(){
+                var exp=selE.permis_expiration?new Date(selE.permis_expiration):null;
+                var ok=exp&&exp>new Date();
+                return <div style={{marginTop:5,fontSize:11,fontWeight:700,color:ok?T.accent:T.red}}>{ok?"Permis valide jusqu au "+selE.permis_expiration:"PERMIS A VALIDER (vehicule de compagnie) - "+(selE.permis_expiration?"expire le "+selE.permis_expiration:"date d expiration manquante")}</div>;
+              })()}
+            </div>
             <div style={{marginBottom:10}}><Lbl l="NAS"/><div style={{fontSize:12,color:selE.nas_chiffre?T.accent:T.muted,fontWeight:600}}>{selE.nas_chiffre?"Enregistre (chiffre)":"Non fourni"}</div></div>
             <div style={{marginBottom:10}}><Lbl l="Urgence"/>{selE.urg_nom?(<div style={{fontSize:12}}>{selE.urg_nom} ({selE.urg_lien||"-"})<div style={{color:T.muted}}>{selE.urg_tel||""}</div></div>):(<div style={{fontSize:12,color:T.muted}}>-</div>)}</div>
             {selE.notes&&<div style={{background:T.alt,borderRadius:6,padding:"6px 10px",fontSize:11,color:T.muted}}>{selE.notes}</div>}
@@ -182,8 +225,21 @@ export default function GestionEmployes(){
               <div><Lbl l="Date de naissance"/><input type="date" value={form.naissance||""} onChange={function(e){sf("naissance",e.target.value);}} style={INP}/></div>
               <div><Lbl l="NAS (chiffre a la sauvegarde)"/><input type="text" inputMode="numeric" autoComplete="off" value={form.nas} onChange={function(e){sf("nas",fmtNAS(e.target.value));}} style={Object.assign({},INP,form.nas?(nasValide(form.nas)?{border:"2px solid #1B5E3B"}:{border:"2px solid #B83232"}):{})} placeholder="000-000-000" maxLength={11}/>{form.id&&<div style={{fontSize:9,color:T.muted,marginTop:2}}>Laisser vide pour conserver le NAS deja chiffre</div>}</div>
               <div><Lbl l="No civique"/><input value={form.no_civique||""} onChange={function(e){sf("no_civique",e.target.value.replace(/[^0-9A-Za-z-]/g,""));}} style={INP} placeholder="1234"/></div>
-              <div><Lbl l="Rue"/><input value={form.rue||""} onChange={function(e){sf("rue",e.target.value);}} style={INP} placeholder="rue Principale"/></div>
-              <div><Lbl l="Code postal (remplit ville/province)"/><input value={form.code_postal||""} onChange={function(e){var cp=fmtCP(e.target.value);sf("code_postal",cp);var fsa=cp.replace(" ","");if(fsa.length>=3){fetch("https://api.zippopotam.us/ca/"+fsa.substring(0,3)).then(function(r){return r.ok?r.json():null;}).then(function(d){if(d&&d.places&&d.places[0]){sf("ville",d.places[0]["place name"]);sf("province",d.places[0]["state abbreviation"]||"QC");}}).catch(function(){});}}} style={INP} placeholder="G1A 1A1" maxLength={7}/></div>
+              <div><Lbl l="Code postal (propose rue et ville)"/><input value={form.code_postal||""} onChange={function(e){var cp=fmtCP(e.target.value);sf("code_postal",cp);var six=cp.replace(" ","");
+                if(six.length===6){
+                  // Code postal COMPLET: geocoder.ca donne la rue et la ville exactes
+                  fetch("https://geocoder.ca/?postal="+six+"&json=1").then(function(r){return r.ok?r.json():null;}).then(function(d){
+                    if(d&&d.standard){
+                      if(d.standard.staddress)setRuesSugg([d.standard.staddress]);
+                      if(d.standard.staddress&&!form.rue)sf("rue",d.standard.staddress);
+                      if(d.standard.city)sf("ville",d.standard.city);
+                      if(d.standard.prov)sf("province",d.standard.prov);
+                    }
+                  }).catch(function(){});
+                } else if(six.length>=3){
+                  fetch("https://api.zippopotam.us/ca/"+six.substring(0,3)).then(function(r){return r.ok?r.json():null;}).then(function(d){if(d&&d.places&&d.places[0]){if(!form.ville)sf("ville",d.places[0]["place name"]);sf("province",d.places[0]["state abbreviation"]||"QC");}}).catch(function(){});
+                }}} style={INP} placeholder="J2B 4W4" maxLength={7}/></div>
+              <div><Lbl l="Rue (proposee selon le code postal)"/><input list="ruesSuggListe" value={form.rue||""} onChange={function(e){sf("rue",e.target.value);}} style={INP} placeholder="rue Principale"/><datalist id="ruesSuggListe">{ruesSugg.map(function(rr){return <option key={rr} value={rr}/>;})}</datalist></div>
               <div><Lbl l="Ville"/><input value={form.ville||""} onChange={function(e){sf("ville",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Province"/><select value={form.province||"QC"} onChange={function(e){sf("province",e.target.value);}} style={INP}><option>QC</option><option>ON</option><option>NB</option><option>NS</option><option>AB</option><option>BC</option><option>MB</option><option>SK</option><option>PE</option><option>NL</option></select></div>
               <Sec l="Coordonnees"/>
@@ -197,6 +253,11 @@ export default function GestionEmployes(){
               <div><Lbl l="Date d embauche"/><input type="date" value={form.date_embauche||""} onChange={function(e){sf("date_embauche",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Salaire annuel ($)"/><input type="number" value={form.salaire} onChange={function(e){sf("salaire",e.target.value);}} style={INP}/></div>
               <div><Lbl l="% reserve pour vacances"/><select value={form.reserve_vacances_pct} onChange={function(e){sf("reserve_vacances_pct",e.target.value);}} style={INP}>{["0","2","4","6","8","10","12"].map(function(x){return <option key={x} value={x}>{x} %</option>;})}</select></div>
+              <Sec l="Documents et permis"/>
+              <div><Lbl l="CV (piece jointe)"/><input type="file" accept=".pdf,.doc,.docx,image/*" onChange={function(e){setCvFile(e.target.files&&e.target.files[0]?e.target.files[0]:null);}} style={{fontSize:11,fontFamily:"inherit"}}/>{cvFile&&<div style={{fontSize:10,color:T.accent}}>{cvFile.name}</div>}</div>
+              <div><Lbl l="Conduit un vehicule de compagnie?"/><button onClick={function(){sf("permis_requis",!form.permis_requis);}} style={{background:form.permis_requis?T.accentL:T.alt,border:"2px solid "+(form.permis_requis?T.accent:T.border),borderRadius:20,padding:"6px 16px",fontSize:11,fontWeight:800,color:form.permis_requis?T.accent:T.muted,cursor:"pointer",fontFamily:"inherit"}}>{form.permis_requis?"OUI - permis obligatoire":"NON"}</button></div>
+              <div><Lbl l="Permis de conduire (piece jointe)"/><input type="file" accept=".pdf,image/*" onChange={function(e){setPermisFile(e.target.files&&e.target.files[0]?e.target.files[0]:null);}} style={{fontSize:11,fontFamily:"inherit"}}/>{permisFile&&<div style={{fontSize:10,color:T.accent}}>{permisFile.name}</div>}</div>
+              <div><Lbl l="Expiration du permis (validation ANNUELLE)"/><input type="date" value={form.permis_expiration||""} onChange={function(e){sf("permis_expiration",e.target.value);}} style={INP}/></div>
               <Sec l="Contact en cas d urgence"/>
               <div><Lbl l="Nom du contact"/><input value={form.urg_nom} onChange={function(e){sf("urg_nom",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Lien (conjoint, parent...)"/><input value={form.urg_lien} onChange={function(e){sf("urg_lien",e.target.value);}} style={INP}/></div>

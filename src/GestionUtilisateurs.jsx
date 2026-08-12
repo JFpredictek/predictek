@@ -77,9 +77,9 @@ export default function GestionUtilisateurs(){
       sb.select("coproprietaires",{eq:{statut:"actif"},limit:2000})
     ]).then(function(rs){
       var out=[];
-      ((rs[0]&&rs[0].data)||[]).forEach(function(e){if(e.courriel)out.push({source:"Employe",prenom:e.prenom||"",nom:e.nom||"",courriel:e.courriel,roleDefaut:"gestionnaire",syndicat_id:null,detail:e.poste||""});});
-      ((rs[1]&&rs[1].data)||[]).forEach(function(m){if(m.courriel)out.push({source:"Membre CA",prenom:m.prenom||"",nom:m.nom||"",courriel:m.courriel,roleDefaut:"ca",syndicat_id:m.syndicat_id||null,detail:m.role_ca||""});});
-      ((rs[2]&&rs[2].data)||[]).forEach(function(c){if(c.courriel)out.push({source:"Coproprietaire",prenom:c.prenom||"",nom:c.nom||"",courriel:c.courriel,roleDefaut:"copropri-taire",syndicat_id:c.syndicat_id||null,detail:"Unite "+(c.unite||"?")});});
+      ((rs[0]&&rs[0].data)||[]).forEach(function(e){out.push({source:"Employe",prenom:e.prenom||"",nom:e.nom||"",courriel:e.courriel||"",roleDefaut:"gestionnaire",syndicat_id:null,detail:e.poste||""});});
+      ((rs[1]&&rs[1].data)||[]).forEach(function(m){out.push({source:"Membre CA",prenom:m.prenom||"",nom:m.nom||"",courriel:m.courriel||"",roleDefaut:"ca",syndicat_id:m.syndicat_id||null,detail:m.role_ca||""});});
+      ((rs[2]&&rs[2].data)||[]).forEach(function(c){out.push({source:"Coproprietaire",prenom:c.prenom||"",nom:c.nom||"",courriel:c.courriel||"",roleDefaut:"copropri-taire",syndicat_id:c.syndicat_id||null,detail:"Unite "+(c.unite||"?")});});
       setCandidats(out);
     }).catch(function(){});
   },[]);
@@ -249,16 +249,20 @@ export default function GestionUtilisateurs(){
             if(srcInv!=="employes"&&!syndInv)return <div style={{fontSize:12,color:T.muted,padding:14}}>Choisissez un syndicat pour afficher la liste.</div>;
             if(liste.length===0)return <div style={{fontSize:12,color:T.muted,padding:14}}>{srcInv==="employes"?"Aucun employe avec courriel - creez les dossiers dans Predictek > Configuration > Equipe.":"Aucune personne avec courriel pour ce syndicat."}</div>;
             return liste.map(function(c,i){
-              var deja=users.find(function(u){return (u.courriel||"").toLowerCase()===c.courriel.toLowerCase();});
+              var deja=c.courriel?users.find(function(u){return (u.courriel||"").toLowerCase()===c.courriel.toLowerCase();}):null;
               return(
                 <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderTop:i>0?"1px solid "+T.border:"none",flexWrap:"wrap"}}>
                   <div style={{flex:1,minWidth:180}}>
                     <div style={{fontSize:12,fontWeight:700,color:T.navy}}>{(c.prenom+" "+c.nom).trim()}{c.detail?<span style={{fontWeight:400,color:T.muted}}> - {c.detail}</span>:null}</div>
                     <div style={{fontSize:11,color:T.muted}}>{c.courriel}</div>
                   </div>
-                  {deja?(
+                  {!c.courriel?(
+                    <span style={{background:T.amberL,color:T.amber,borderRadius:20,padding:"3px 12px",fontSize:10,fontWeight:700}}>
+                      Aucun courriel - completez la fiche pour pouvoir inviter
+                    </span>
+                  ):deja?(
                     <span style={{background:deja.actif?T.accentL:T.redL,color:deja.actif?T.accent:T.red,borderRadius:20,padding:"3px 12px",fontSize:10,fontWeight:700}}>
-                      {deja.actif?"Invitation envoyee ("+(deja.role||"")+")":"Compte desactive"}
+                      {deja.actif?"INVITE le "+(deja.created_at?new Date(deja.created_at).toLocaleString("fr-CA",{hour12:false}).replace(",","").substring(0,17):"-")+" ("+(deja.role||"")+")":"Compte desactive"}
                     </span>
                   ):(
                     <span style={{display:"flex",gap:6,alignItems:"center"}}>

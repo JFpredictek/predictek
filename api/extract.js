@@ -4,6 +4,9 @@ export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
 var SB_URL = "https://yzbauupamxbwcnnuiunf.supabase.co";
 var SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6YmF1dXBhbXhid2NubnVpdW5mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMzY0NzIsImV4cCI6MjA5MjgxMjQ3Mn0.ZcoZtbeej2wol4TFyuOUg4vv8QVAI5efKlWbLu4H6L4";
 var ORIGINS = ["https://predictek-d9sy.vercel.app","http://localhost:3000"];
+// Modele FORT pour l extraction de documents (precision), RAPIDE pour la vision par lots (volume)
+var MODEL_FORT = "claude-sonnet-4-5-20250929";
+var MODEL_RAPIDE = "claude-haiku-4-5-20251001";
 
 async function verifierJeton(req) {
   var auth = req.headers.authorization || "";
@@ -43,14 +46,16 @@ export default async function handler(req, res) {
 
     if(mode === "reglements") {
       var promptR = "Voici le texte d une declaration de copropriete quebecoise.\n\n" + texte.substring(0,30000) + "\n\nGenere un resume structure des reglements importants EN CITANT LES NUMEROS D ARTICLES (ex: Art. 12.3 - Animaux: ...). Format: liste par categorie avec numero d article au debut de chaque regle, francais, max 900 mots.";
-      var rR = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:1200,messages:[{role:"user",content:[{type:"text",text:promptR}]}]})});
+      var rR = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:MODEL_FORT,max_tokens:2000,messages:[{role:"user",content:[{type:"text",text:promptR}]}]})});
       var rawR = await rR.text();
       var dR; try{dR=JSON.parse(rawR);}catch(e){return res.status(500).json({error:"JSON invalide"});}
       if(dR.error) return res.status(500).json({error:dR.error.message});
       return res.status(200).json({ok:true,resume:(dR.content&&dR.content[0]&&dR.content[0].text)||""});
     }
 
-    var prompt = "Voici le texte extrait de documents officiels d un syndicat de copropriete quebecois (REQ et/ou declaration).\n\n"
+    var prompt = "Voici le texte extrait de documents officiels d un syndicat de copropriete quebecois (etat de renseignements du REQ et/ou declaration). "
+      + "IMPORTANT: le REQ presente les informations COURANTES du registre. Utilise l adresse du domicile ACTUELLE du syndicat (section Adresse du domicile), JAMAIS une adresse anterieure ou historique. "
+      + "Pour chaque administrateur, utilise sa propre adresse de domicile telle qu inscrite dans SA fiche et la date de debut de charge EXACTE (colonne Date du debut de la charge) - ne les invente pas et ne les melange pas entre administrateurs.\n\n"
       + texte.substring(0,30000)
       + "\n\nReponds UNIQUEMENT avec un objet JSON valide. Cles requises:\n"
       + "nom, immat (NEQ 11 chiffres), adr (domicile REQ), ville, province, codePostal, nbUnites (entier), gestionnaire, "
@@ -131,7 +136,9 @@ export default async function handler(req, res) {
         return res.status(400).json({error:"Aucun PDF ou image fourni pour la validation des quotes-parts"});
       }
     } else if(pdfB64){
-      var promptPdf = "Voici le document officiel PDF d un syndicat de copropriete quebecois (REQ et/ou declaration). Lis-le attentivement, y compris s il s agit d un document numerise."
+      var promptPdf = "Voici le document officiel PDF d un syndicat de copropriete quebecois (etat de renseignements du REQ et/ou declaration). Lis-le attentivement, y compris s il s agit d un document numerise. "
+        + "IMPORTANT: le REQ presente les informations COURANTES. Utilise l adresse du domicile ACTUELLE du syndicat (section Adresse du domicile), JAMAIS une adresse anterieure. "
+        + "Pour chaque administrateur, utilise sa propre adresse de domicile telle qu inscrite dans SA fiche et la date de debut de charge EXACTE (colonne Date du debut de la charge) - relis la section des administrateurs au complet pour n en oublier AUCUN."
         + "\n\nReponds UNIQUEMENT avec un objet JSON valide. Cles requises:\n"
         + "nom, immat (NEQ 11 chiffres), adr (domicile REQ), ville, province, codePostal, nbUnites (entier), gestionnaire, "
         + "quorumAGO (% entier pour AGO - cherche dans les extraits de la declaration le quorum requis aux assemblees generales; s il est exprime comme majorite des voix des presents ou majorite simple, mets 50), anneeConstitution (entier: annee de CONSTITUTION du syndicat = annee de publication de la declaration de copropriete INITIALE au registre foncier, c est-a-dire l acte notarie ORIGINAL; si le document mentionne plusieurs dates comme des modifications ou refontes, prends TOUJOURS la date la PLUS ANCIENNE), typeCopro (horizontale/verticale/mixte),"
@@ -152,7 +159,7 @@ export default async function handler(req, res) {
     } else {
       contenu = [{type:"text",text:prompt}];
     }
-    var r2 = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:3500,messages:[{role:"user",content:contenu}]})});
+    var r2 = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:(imagesIn.length>0?MODEL_RAPIDE:MODEL_FORT),max_tokens:4000,messages:[{role:"user",content:contenu}]})});
     var raw2 = await r2.text();
     var d2; try{d2=JSON.parse(raw2);}catch(e){return res.status(500).json({error:"JSON invalide: "+raw2.substring(0,100)});}
     if(d2.error) return res.status(500).json({error:d2.error.message,type:d2.error.type});

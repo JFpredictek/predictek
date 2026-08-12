@@ -708,15 +708,30 @@ function Onboarding(p){
       var n=champs.filter(function(k){return ex[k]&&ex[k]!==""&&ex[k]!==0;}).length;
       if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;
       var dbg=resp.debug?" (texte: "+resp.debug.texteLen+" chars)":"";setIaSuccess(n+" champs extraits avec succes - verifiez et completez"+dbg);
-      // Extraction automatique des reglements de la declaration (texte complet)
+      // Extraction automatique des reglements: TOUTE la declaration, par segments successifs
       if(window._texteActeComplet&&window._texteActeComplet.length>500){
-        fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:window._texteActeComplet,mode:"reglements"})})
-        .then(lireReponseAPI).then(function(rr){
-          if(rr&&rr.ok&&rr.resume){
-            setData(function(o){return Object.assign({},o,{reglementsResume:rr.resume});});
-            setIaSuccess(function(prev){return (typeof prev==="string"?prev:"")+" | Reglements extraits de la declaration";});
+        var texteRg=window._texteActeComplet;
+        var TAILLE_SEG=26000;
+        var segments=[];
+        for(var sg=0;sg<texteRg.length&&segments.length<10;sg+=TAILLE_SEG)segments.push(texteRg.substring(sg,sg+TAILLE_SEG));
+        var resumes=[];
+        var chaineRg=Promise.resolve();
+        segments.forEach(function(seg,iSeg){
+          chaineRg=chaineRg.then(function(){
+            setIaSuccess("Extraction des reglements: section "+(iSeg+1)+" sur "+segments.length+"...");
+            return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:seg,mode:"reglements"})})
+              .then(lireReponseAPI).then(function(rr){
+                if(rr&&rr.ok&&rr.resume&&rr.resume.trim().length>20)resumes.push(rr.resume.trim());
+              }).catch(function(){});
+          });
+        });
+        chaineRg.then(function(){
+          if(resumes.length>0){
+            var complet=resumes.join("\n\n").substring(0,24000);
+            setData(function(o){return Object.assign({},o,{reglementsResume:complet});});
+            setIaSuccess("Extraction terminee - reglements captes sur l ENSEMBLE de la declaration ("+segments.length+" section(s) analysee(s)).");
           }
-        }).catch(function(){});
+        });
       }console.log("EXTRACT DEBUG:",resp.debug,"DATA:",ex);
       setIaLoading(false);
     }).catch(function(e){
@@ -1527,6 +1542,16 @@ export default function Hub(){
         return;
       }
       var sid=res.data.id;
+      // La declaration COMPLETE est conservee au coffre - disponible au portail coproprietaire
+      if(window._acteFile){
+        (function(){
+          var fA=window._acteFile;
+          var extA=(fA.name.match(/\.[a-zA-Z0-9]+$/)||[".pdf"])[0];
+          sb.uploadFichier("preuves",sid+"/declaration/declaration"+extA,fA).then(function(rU){
+            if(rU&&rU.chemin)sb.update("syndicats",sid,{declaration_doc:rU.chemin}).catch(function(){});
+          }).catch(function(){});
+        })();
+      }
       setSyndicats(function(prev){return prev.map(function(s){return s.code===nouveau.code?Object.assign({},s,{id:sid}):s;});});
       setRecup(function(prev){return prev.filter(function(c){return c!==nouveau.code;});});
       sb.log("syndicat","creation","Nouveau syndicat: "+nouveau.nom,"",nouveau.code);

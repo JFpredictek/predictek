@@ -67,6 +67,8 @@ function Tableau(p){
   var s1=useState([]);var tickets=s1[0];var setTickets=s1[1];
   var s2=useState([]);var docs=s2[0];var setDocs=s2[1];
   var s3=useState("accueil");var ong=s3[0];var setOng=s3[1];
+  var s4s=useState(null);var syndic=s4s[0];var setSyndic=s4s[1];
+  var s5r=useState(false);var voirReglements=s5r[0];var setVoirReglements=s5r[1];
 
   useEffect(function(){
     if(!copro)return;
@@ -79,6 +81,11 @@ function Tableau(p){
     sb.select("documents",{eq:{niveau:"coproprietaire",coproprietaire_id:copro.id},order:"created_at.desc"}).then(function(res){
       if(res&&res.data)setDocs(res.data);
     }).catch(function(){});
+    if(copro.syndicat_id){
+      sb.selectOne("syndicats",{eq:{id:copro.syndicat_id}}).then(function(res){
+        if(res&&res.data)setSyndic(res.data);
+      }).catch(function(){});
+    }
   },[copro]);
 
   var payes=paiements.filter(function(p){return p.statut==="paye";});
@@ -179,7 +186,25 @@ function Tableau(p){
         {ong==="docs"&&(
           <div>
             <div style={{fontSize:14,fontWeight:700,color:T.navy,marginBottom:16}}>Mes documents</div>
-            {docs.length===0&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucun document disponible pour l instant</div>}
+
+            <div style={{background:T.surface,border:"2px solid "+T.navy+"33",borderRadius:12,padding:16,marginBottom:14}}>
+              <div style={{fontSize:12,fontWeight:800,color:T.navy,marginBottom:8}}>Documents du syndicat</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {syndic&&syndic.declaration_doc?(
+                  <Btn sm bg={T.navy} onClick={function(){sb.lienFichier("preuves",syndic.declaration_doc).then(function(url){if(url)window.open(url,"_blank");});}}>Declaration de copropriete (acte complet)</Btn>
+                ):(
+                  <span style={{fontSize:11,color:T.muted}}>Declaration de copropriete: pas encore deposee par le gestionnaire.</span>
+                )}
+                {syndic&&syndic.reglements_resume&&(
+                  <Btn sm bg={T.blue} onClick={function(){setVoirReglements(!voirReglements);}}>{voirReglements?"Masquer le resume des reglements":"Resume des reglements de l immeuble"}</Btn>
+                )}
+              </div>
+              {voirReglements&&syndic&&syndic.reglements_resume&&(
+                <div style={{marginTop:10,background:T.blueL,borderRadius:8,padding:12,fontSize:12,color:"#1C1A17",whiteSpace:"pre-wrap",lineHeight:1.55,maxHeight:400,overflowY:"auto"}}>{syndic.reglements_resume}</div>
+              )}
+            </div>
+
+            {docs.length===0&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucun autre document personnel pour l instant</div>}
             {docs.map(function(d){return(
               <div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",background:T.surface,border:"1px solid "+T.border,borderRadius:10,marginBottom:8}}>
                 <div>

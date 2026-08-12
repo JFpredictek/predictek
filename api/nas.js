@@ -86,13 +86,14 @@ module.exports = async function(req, res){
   if(action === "encrypt"){
     var nas = ((req.body && req.body.nas) || "").replace(/\D/g, "");
     if(nas.length !== 9) return res.status(400).json({error:"NAS invalide: 9 chiffres requis"});
-    if(!validerNAS(nas)) return res.status(400).json({error:"NAS invalide: echec de la validation (verifiez les chiffres)"});
+    // Un NAS qui echoue Luhn est chiffre QUAND MEME (valid:false) - on ne bloque jamais la saisie,
+    // l interface affiche un avertissement pour verification.
     try{
       var encrypted = chiffrer(nas, key);
       return res.status(200).json({
         encrypted: encrypted,
         masked: "***-***-" + nas.slice(6),
-        valid: true
+        valid: validerNAS(nas)
       });
     }catch(e){
       return res.status(500).json({error:"Erreur chiffrement: " + e.message});
