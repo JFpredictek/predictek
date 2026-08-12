@@ -108,7 +108,7 @@ export default function RegistreIncidents(){
                 <div style={{fontSize:12,color:T.navy,marginBottom:4}}>{x.description}</div>
                 {x.renseignements_vises?<div style={{fontSize:11,color:T.muted}}>Renseignements: {x.renseignements_vises} {x.personnes_touchees?"("+x.personnes_touchees+" personne(s))":""}</div>:null}
                 {x.mesures_prises?<div style={{fontSize:11,color:T.muted}}>Mesures: {x.mesures_prises}</div>:null}
-                <div style={{fontSize:10,color:T.muted,marginTop:4}}>Consigne par {x.cree_par||"-"} le {x.created_at?x.created_at.substring(0,10):"-"}</div>
+                <div style={{fontSize:10,color:T.muted,marginTop:4}}>Consigne par {x.cree_par||"-"} le {x.created_at?new Date(x.created_at).toLocaleDateString("fr-CA"):"-"}</div>
               </div>
               {x.statut!=="resolu"&&<Btn sm onClick={function(){fermer(x.id);}}>Marquer resolu</Btn>}
             </div>

@@ -23,7 +23,6 @@ function FormulaireCP(p){
       <div><Lbl l="Courriel"/><input type="email" value={nf.courriel||""} onChange={function(e){setField("courriel",e.target.value);}} style={INP} placeholder="prenom@email.com"/></div>
       <div><Lbl l="Telephone"/><input value={nf.telephone||""} onChange={function(e){setField("telephone",e.target.value);}} style={INP} placeholder="418-555-0000"/></div>
       <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse unitaire (si differente)"/><input value={nf.adresse||""} onChange={function(e){setField("adresse",e.target.value);}} style={INP}/></div>
-      <div><Lbl l="Cotisation mensuelle ($)"/><input type="number" step="0.01" value={nf.cotisation_mensuelle||""} onChange={function(e){setField("cotisation_mensuelle",e.target.value);}} style={INP} placeholder="250.00"/></div>
       <div><Lbl l="Code d acces portail"/><input value={nf.code_acces||""} onChange={function(e){setField("code_acces",e.target.value);}} style={INP} placeholder="Min. 4 caracteres"/></div>
       <div><Lbl l="Statut"/><select value={nf.statut||"actif"} onChange={function(e){setField("statut",e.target.value);}} style={INP}><option value="actif">Actif</option><option value="inactif">Inactif</option><option value="vendu">Vendu</option></select></div>
       <div style={{gridColumn:"1/-1",display:"flex",gap:20}}>

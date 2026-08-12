@@ -1,16 +1,58 @@
 // Gestion PAR UNITE - l unite est l entite centrale:
-// 1-2 coproprietaires (50/50), locataire, contact d urgence, chauffe-eau, assurance.
+// 1-2 coproprietaires (50/50), locataire/resident, urgence, chauffe-eau, assurance,
+// informations bancaires de prelevement. La cotisation mensuelle est EN LECTURE SEULE:
+// elle proviendra du module Budget (budget annuel x quote-part / 12).
 
 import sb from "./lib/supabase";
 import { useState, useEffect } from "react";
 
-var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",amber:"#B86020",amberL:"#FEF3E2",red:"#B83232",redL:"#FDECEA"};
+var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",amber:"#B86020",amberL:"#FEF3E2",red:"#B83232",redL:"#FDECEA",purple:"#6B3FA0",purpleL:"#F3EEFF"};
 var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
 function Lbl(p){return <div style={{fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:5}}>{p.l}</div>;}
 function Btn(p){return <button onClick={p.onClick} disabled={p.dis} style={{background:p.dis?"#ccc":p.bg||T.accent,border:p.bdr||"none",borderRadius:7,padding:p.sm?"5px 12px":"8px 18px",color:p.tc||"#fff",fontSize:p.sm?11:12,fontWeight:600,cursor:p.dis?"not-allowed":"pointer",fontFamily:"inherit"}}>{p.children}</button>;}
 function Bdg(p){return <span style={{fontSize:10,fontWeight:700,padding:"2px 8px",borderRadius:20,background:p.bg||T.accentL,color:p.c||T.accent,whiteSpace:"nowrap"}}>{p.children}</span>;}
+function SecTitre(p){return <div style={{gridColumn:"1/-1",fontSize:11,fontWeight:800,color:p.c||T.navy,textTransform:"uppercase",letterSpacing:"0.06em",borderBottom:"2px solid "+(p.c||T.navy)+"33",paddingBottom:4,marginTop:p.first?0:6}}>{p.l}</div>;}
+// Petit bloc d information theme sur la fiche
+function InfoBloc(p){
+  return(
+    <div style={{background:p.bg||T.alt,borderRadius:8,padding:"8px 10px",minWidth:0}}>
+      <div style={{fontSize:9,fontWeight:800,color:p.c||T.muted,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:3}}>{p.titre}</div>
+      <div style={{fontSize:11,color:"#1C1A17",lineHeight:1.45,wordBreak:"break-word"}}>{p.children}</div>
+    </div>
+  );
+}
 
+function fmtTel(v){var d=(v||"").replace(/\D/g,"").slice(0,10);if(d.length>6)return d.slice(0,3)+"-"+d.slice(3,6)+"-"+d.slice(6);if(d.length>3)return d.slice(0,3)+"-"+d.slice(3);return d;}
 function joursAvant(d){if(!d)return null;return Math.ceil((new Date(d)-new Date())/86400000);}
+function lireReponse(r){return r.text().then(function(t){try{return JSON.parse(t);}catch(e){return {error:"Reponse inattendue du serveur (code "+r.status+")"};}});}
+
+// Convertit un fichier (pdf ou image) en base64; les images sont recompressees en JPEG
+function fichierPourExtraction(file){
+  return new Promise(function(resolve,reject){
+    var isPdf=/pdf$/i.test(file.type)||/\.pdf$/i.test(file.name);
+    var fr=new FileReader();
+    fr.onerror=function(){reject(new Error("Lecture du fichier impossible"));};
+    fr.onload=function(ev){
+      var b64=String(ev.target.result).split(",")[1];
+      if(isPdf){
+        if(b64.length>4200000){reject(new Error("PDF trop volumineux pour l extraction automatique (max ~3 Mo)"));return;}
+        resolve({pdf:b64});
+      }else{
+        var img=new Image();
+        img.onload=function(){
+          var cv=document.createElement("canvas");
+          var sc=Math.min(1,1600/Math.max(img.width,img.height));
+          cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
+          cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+          resolve({images:[cv.toDataURL("image/jpeg",0.8).split(",")[1]]});
+        };
+        img.onerror=function(){reject(new Error("Image illisible"));};
+        img.src=ev.target.result;
+      }
+    };
+    fr.readAsDataURL(file);
+  });
+}
 
 export default function Unites(){
   var s0=useState([]);var syndicats=s0[0];var setSyndicats=s0[1];
@@ -28,11 +70,12 @@ export default function Unites(){
   var s12=useState(null);var assFile=s12[0];var setAssFile=s12[1];
   var s13=useState("");var msgEdit=s13[0];var setMsgEdit=s13[1];
   var s14=useState(false);var editEnCours=s14[0];var setEditEnCours=s14[1];
+  var s15=useState("");var assExtrait=s15[0];var setAssExtrait=s15[1];
 
   function voirFichier(chemin){
     sb.lienFichier("preuves",chemin).then(function(url){
       if(url)window.open(url,"_blank");
-      else alert("Impossible de generer le lien du fichier.");
+      else setMsgEdit("Impossible de generer le lien du fichier.");
     });
   }
 
@@ -55,12 +98,8 @@ export default function Unites(){
   function toutePersonneDe(u){
     return copros.filter(function(c){return (c.unite_id&&c.unite_id===u.id)||(!c.unite_id&&c.unite===u.no_unite);});
   }
-  function propsDe(u){
-    return toutePersonneDe(u).filter(function(c){return c.statut!=="ancien";});
-  }
-  function anciensDe(u){
-    return toutePersonneDe(u).filter(function(c){return c.statut==="ancien";});
-  }
+  function propsDe(u){return toutePersonneDe(u).filter(function(c){return c.statut!=="ancien";});}
+  function anciensDe(u){return toutePersonneDe(u).filter(function(c){return c.statut==="ancien";});}
 
   function setV(k,v){setVf(function(pr){var n=Object.assign({},pr);n[k]=v;return n;});}
 
@@ -96,7 +135,6 @@ export default function Unites(){
       var ok=rs.every(function(r){return r&&r.data&&r.data.id;});
       if(!ok){setMsgVente("Erreur lors de la creation du nouveau proprietaire. Verifiez et reessayez.");setVenteEnCours(false);return;}
       sb.log("unites","vente","Vente unite "+u.no_unite+" le "+vf.date_vente+": "+actuels.map(function(c){return (c.prenom||"")+" "+(c.nom||"");}).join(", ")+" -> "+nouveaux.map(function(n){return (n.prenom||"")+" "+n.nom;}).join(", "),"",sel?sel.code||"":"");
-      // recharger les personnes
       sb.select("coproprietaires",{eq:{syndicat_id:sel.id},limit:2000}).then(function(res){if(res&&res.data)setCopros(res.data);}).catch(function(){});
       setMsgVente("Vente enregistree: a partir du "+vf.date_vente+", les cotisations et cotisations speciales sont au nom du nouveau proprietaire. L historique de l unite est conserve.");
       setVenteEnCours(false);setVenteId(null);
@@ -107,25 +145,50 @@ export default function Unites(){
 
   function editer(u){
     setEditId(u.id);
-    setCeFile(null);setAssFile(null);setMsgEdit("");
-    setNf({fraction:u.fraction!=null?String(u.fraction):"",cotisation_mensuelle:u.cotisation_mensuelle!=null?String(u.cotisation_mensuelle):"",
+    setCeFile(null);setAssFile(null);setMsgEdit("");setAssExtrait("");
+    setNf({fraction:u.fraction!=null?String(u.fraction):"",
       chauffe_eau:u.chauffe_eau||"",ce_date_install:u.ce_date_install?String(u.ce_date_install).substring(0,7):"",
       assurance_police:u.assurance_police||"",assurance_debut:u.assurance_debut||"",assurance_exp:u.assurance_exp||"",ass_cie:u.ass_cie||"",
       occupation:u.occupation||(u.locataire?"locataire":"proprietaire"),
       nom_locataire:u.nom_locataire||"",tel_locataire:u.tel_locataire||"",courriel_locataire:u.courriel_locataire||"",
       urg_nom:u.urg_nom||"",urg_lien:u.urg_lien||"",urg_tel:u.urg_tel||"",
+      banque_institution:u.banque_institution||"",banque_transit:u.banque_transit||"",banque_compte:u.banque_compte||"",
       stationnement:u.stationnement||"",rangement:u.rangement||"",notes:u.notes||""});
+  }
+
+  // Extraction automatique de la preuve d assurance televisee (police, assureur, dates)
+  function extraireAssurance(file){
+    setAssExtrait("Extraction automatique des informations d assurance en cours...");
+    fichierPourExtraction(file).then(function(src){
+      var corps=Object.assign({mode:"assurance"},src);
+      return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify(corps)}).then(lireReponse);
+    }).then(function(resp){
+      if(!resp||resp.error){setAssExtrait("Extraction impossible ("+((resp&&resp.error)||"erreur")+") - saisissez les champs manuellement.");return;}
+      var d=resp.data||{};
+      var pris=[];
+      setNf(function(pr){
+        var n=Object.assign({},pr);
+        if(d.police){n.assurance_police=d.police;pris.push("police "+d.police);}
+        if(d.compagnie){n.ass_cie=d.compagnie;pris.push(d.compagnie);}
+        if(d.dateDebut&&/^\d{4}-\d{2}-\d{2}$/.test(d.dateDebut)){n.assurance_debut=d.dateDebut;pris.push("debut "+d.dateDebut);}
+        if(d.dateExp&&/^\d{4}-\d{2}-\d{2}$/.test(d.dateExp)){n.assurance_exp=d.dateExp;pris.push("expiration "+d.dateExp);}
+        return n;
+      });
+      setAssExtrait(pris.length>0?"Extrait automatiquement: "+pris.join(", ")+" - verifiez avant de sauvegarder.":"Aucune information lisible dans ce document - saisissez manuellement.");
+    }).catch(function(e){setAssExtrait("Extraction impossible ("+e.message+") - saisissez les champs manuellement.");});
   }
 
   function sauvegarder(){
     if(editEnCours)return;
     setEditEnCours(true);setMsgEdit("");
-    var row={fraction:parseFloat(nf.fraction)||0,cotisation_mensuelle:parseFloat(nf.cotisation_mensuelle)||0,
+    // NOTE: cotisation_mensuelle N EST PAS modifiable ici - elle proviendra du module Budget.
+    var row={fraction:parseFloat(nf.fraction)||0,
       chauffe_eau:nf.chauffe_eau||"",ce_date_install:nf.ce_date_install?nf.ce_date_install+"-01":null,
       assurance_police:nf.assurance_police||"",assurance_debut:nf.assurance_debut||null,assurance_exp:nf.assurance_exp||null,ass_cie:nf.ass_cie||"",
       occupation:nf.occupation||"proprietaire",locataire:(nf.occupation==="locataire"),
       nom_locataire:nf.nom_locataire||"",tel_locataire:nf.tel_locataire||"",courriel_locataire:nf.courriel_locataire||"",
       urg_nom:nf.urg_nom||"",urg_lien:nf.urg_lien||"",urg_tel:nf.urg_tel||"",
+      banque_institution:nf.banque_institution||"",banque_transit:nf.banque_transit||"",banque_compte:nf.banque_compte||"",
       stationnement:nf.stationnement||"",rangement:nf.rangement||"",notes:nf.notes||""};
     var uid=editId;
     var etapes=Promise.resolve();
@@ -183,50 +246,69 @@ export default function Unites(){
           var props=propsDe(u);
           var jrs=joursAvant(u.assurance_exp);
           var enEdition=editId===u.id;
+          var occLbl=u.occupation==="locataire"||(!u.occupation&&u.locataire)?"Louee":u.occupation==="resident"?"Resident":"Proprietaire occupant";
           return(
             <div key={u.id} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:16,marginBottom:10}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,flexWrap:"wrap"}}>
-                <div style={{flex:1,minWidth:280}}>
-                  <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:8,flexWrap:"wrap"}}>
-                    <div style={{width:46,height:36,borderRadius:8,background:T.navy,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:13,color:"#fff"}}>{u.no_unite}</div>
-                    <Bdg bg={T.blueL} c={T.blue}>{(parseFloat(u.fraction)||0).toFixed(3)} %</Bdg>
-                    {Number(u.cotisation_mensuelle)>0&&<Bdg>{Number(u.cotisation_mensuelle).toFixed(2)} $/mois</Bdg>}
-                    {(u.occupation==="locataire"||(!u.occupation&&u.locataire))&&<Bdg bg={T.amberL} c={T.amber}>LOUEE{u.nom_locataire?": "+u.nom_locataire:""}</Bdg>}
-                    {u.occupation==="resident"&&<Bdg bg={T.blueL} c={T.blue}>RESIDENT{u.nom_locataire?": "+u.nom_locataire:""}</Bdg>}
-                    {u.assurance_exp&&(jrs<0
-                      ?<Bdg bg={T.redL} c={T.red}>Assurance EXPIREE</Bdg>
-                      :jrs<=90?<Bdg bg={T.amberL} c={T.amber}>Assurance expire dans {jrs} j</Bdg>
-                      :<Bdg>Assurance OK jusqu au {u.assurance_exp}</Bdg>)}
-                  </div>
-                  <div style={{fontSize:12,color:T.navy,marginBottom:2}}>
-                    <b>Proprietaire(s):</b> {props.length===0?"-":props.map(function(c){return ((c.prenom||"")+" "+(c.nom||"")).trim()+(props.length>1?" ("+(c.part_pourcent||50)+" %)":"");}).join(" et ")}
-                  </div>
-                  {props.map(function(c,i){return (c.courriel||c.telephone)?<div key={i} style={{fontSize:10,color:T.muted}}>{((c.prenom||"")+" "+(c.nom||"")).trim()}: {c.courriel||"-"} {c.telephone?" | "+c.telephone:""}</div>:null;})}
-                  <div style={{fontSize:11,color:T.muted,marginTop:4}}>
-                    {u.urg_nom?"Urgence: "+u.urg_nom+(u.urg_lien?" ("+u.urg_lien+")":"")+(u.urg_tel?" "+u.urg_tel:""):"Urgence: -"}
-                    {u.chauffe_eau||u.ce_date_install?" | Chauffe-eau: "+(u.chauffe_eau||"")+(u.ce_date_install?" (installe "+String(u.ce_date_install).substring(0,7)+")":""):""}
-                    {u.stationnement?" | Stat.: "+u.stationnement:""}
-                    {u.rangement?" | Rang.: "+u.rangement:""}
-                    {u.assurance_debut||u.assurance_exp?" | Assurance: du "+(u.assurance_debut||"?")+" au "+(u.assurance_exp||"?"):""}
-                  </div>
-                  {(u.ce_photo||u.assurance_doc)&&(
-                    <div style={{marginTop:5,display:"flex",gap:8}}>
-                      {u.ce_photo&&<button onClick={function(){voirFichier(u.ce_photo);}} style={{background:T.blueL,border:"1px solid "+T.blue+"44",borderRadius:6,padding:"3px 10px",fontSize:10,fontWeight:700,color:T.blue,cursor:"pointer",fontFamily:"inherit"}}>Photo chauffe-eau</button>}
-                      {u.assurance_doc&&<button onClick={function(){voirFichier(u.assurance_doc);}} style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:6,padding:"3px 10px",fontSize:10,fontWeight:700,color:T.accent,cursor:"pointer",fontFamily:"inherit"}}>Preuve d assurance</button>}
-                    </div>
-                  )}
-                  {u.notes?<div style={{fontSize:10,color:T.muted,marginTop:2,fontStyle:"italic"}}>{u.notes}</div>:null}
-                  {anciensDe(u).length>0&&(
-                    <div style={{fontSize:10,color:T.muted,marginTop:4}}>
-                      Anciens proprietaires: {anciensDe(u).map(function(c){return ((c.prenom||"")+" "+(c.nom||"")).trim()+" ("+(c.date_debut||"?")+" au "+(c.date_fin||"?")+")";}).join(", ")}
-                    </div>
-                  )}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",marginBottom:10}}>
+                <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+                  <div style={{width:52,height:38,borderRadius:8,background:T.navy,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:14,color:"#fff"}}>{u.no_unite}</div>
+                  <Bdg bg={T.blueL} c={T.blue}>{(parseFloat(u.fraction)||0).toFixed(3)} %</Bdg>
+                  {Number(u.cotisation_mensuelle)>0&&<Bdg>{Number(u.cotisation_mensuelle).toFixed(2)} $/mois</Bdg>}
+                  {(u.occupation==="locataire"||(!u.occupation&&u.locataire))&&<Bdg bg={T.amberL} c={T.amber}>LOUEE{u.nom_locataire?": "+u.nom_locataire:""}</Bdg>}
+                  {u.occupation==="resident"&&<Bdg bg={T.blueL} c={T.blue}>RESIDENT{u.nom_locataire?": "+u.nom_locataire:""}</Bdg>}
+                  {u.assurance_exp&&(jrs<0
+                    ?<Bdg bg={T.redL} c={T.red}>Assurance EXPIREE</Bdg>
+                    :jrs<=90?<Bdg bg={T.amberL} c={T.amber}>Assurance expire dans {jrs} j</Bdg>
+                    :<Bdg>Assurance OK</Bdg>)}
                 </div>
                 <div style={{display:"flex",gap:6,flexShrink:0}}>
                   <Btn sm onClick={function(){enEdition?setEditId(null):editer(u);}}>{enEdition?"Fermer":"Modifier"}</Btn>
                   <Btn sm bg={T.amber} onClick={function(){venteId===u.id?setVenteId(null):ouvrirVente(u);}}>{venteId===u.id?"Annuler la vente":"Vente de l unite"}</Btn>
                 </div>
               </div>
+
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:8}}>
+                <InfoBloc titre="Proprietaire(s)" bg={T.accentL} c={T.accent}>
+                  {props.length===0?"-":props.map(function(c,i){return(
+                    <div key={i} style={{marginBottom:i<props.length-1?4:0}}>
+                      <b>{((c.prenom||"")+" "+(c.nom||"")).trim()}</b>{props.length>1?" ("+(c.part_pourcent||50)+" %)":""}
+                      <div style={{fontSize:10,color:T.muted}}>{c.courriel||"-"}{c.telephone?" | "+c.telephone:""}</div>
+                    </div>
+                  );})}
+                </InfoBloc>
+                <InfoBloc titre="Occupation" bg={T.blueL} c={T.blue}>
+                  {occLbl}
+                  {u.nom_locataire?<div>{u.nom_locataire}<div style={{fontSize:10,color:T.muted}}>{u.courriel_locataire||"-"}{u.tel_locataire?" | "+u.tel_locataire:""}</div></div>:null}
+                </InfoBloc>
+                <InfoBloc titre="Chauffe-eau" bg={T.purpleL} c={T.purple}>
+                  {u.chauffe_eau||u.ce_date_install?(
+                    <div>{u.chauffe_eau||"-"}{u.ce_date_install?<div style={{fontSize:10,color:T.muted}}>Installe {String(u.ce_date_install).substring(0,7)}</div>:null}
+                    {u.ce_photo&&<button onClick={function(){voirFichier(u.ce_photo);}} style={{background:"none",border:"none",padding:0,fontSize:10,fontWeight:700,color:T.purple,cursor:"pointer",fontFamily:"inherit",textDecoration:"underline"}}>Voir la photo</button>}</div>
+                  ):"-"}
+                </InfoBloc>
+                <InfoBloc titre="Assurance" bg={jrs!==null&&jrs<0?T.redL:T.accentL} c={jrs!==null&&jrs<0?T.red:T.accent}>
+                  {u.assurance_police||u.assurance_exp?(
+                    <div>{u.ass_cie||""} {u.assurance_police?"#"+u.assurance_police:""}
+                      <div style={{fontSize:10,color:T.muted}}>{u.assurance_debut?"du "+u.assurance_debut:""} {u.assurance_exp?"au "+u.assurance_exp:""}</div>
+                      {u.assurance_doc&&<button onClick={function(){voirFichier(u.assurance_doc);}} style={{background:"none",border:"none",padding:0,fontSize:10,fontWeight:700,color:T.accent,cursor:"pointer",fontFamily:"inherit",textDecoration:"underline"}}>Voir la preuve</button>}
+                    </div>
+                  ):"-"}
+                </InfoBloc>
+                <InfoBloc titre="Urgence" bg={T.amberL} c={T.amber}>
+                  {u.urg_nom?(<div>{u.urg_nom}{u.urg_lien?" ("+u.urg_lien+")":""}<div style={{fontSize:10,color:T.muted}}>{u.urg_tel||""}</div></div>):"-"}
+                </InfoBloc>
+                <InfoBloc titre="Divers">
+                  {u.stationnement?"Stat. "+u.stationnement:""}{u.rangement?(u.stationnement?" | ":"")+"Rang. "+u.rangement:""}
+                  {u.banque_institution||u.banque_compte?<div style={{fontSize:10,color:T.muted}}>Prelevement bancaire configure</div>:null}
+                  {!u.stationnement&&!u.rangement&&!u.banque_institution?"-":null}
+                </InfoBloc>
+              </div>
+              {u.notes?<div style={{fontSize:10,color:T.muted,marginTop:6,fontStyle:"italic"}}>{u.notes}</div>:null}
+              {anciensDe(u).length>0&&(
+                <div style={{fontSize:10,color:T.muted,marginTop:4}}>
+                  Anciens proprietaires: {anciensDe(u).map(function(c){return ((c.prenom||"")+" "+(c.nom||"")).trim()+" ("+(c.date_debut||"?")+" au "+(c.date_fin||"?")+")";}).join(", ")}
+                </div>
+              )}
 
               {venteId===u.id&&(
                 <div style={{marginTop:14,paddingTop:14,borderTop:"2px solid "+T.amber}}>
@@ -237,7 +319,7 @@ export default function Unites(){
                     <div><Lbl l="Nouveau prop. 1 - prenom"/><input value={vf.p1_prenom||""} onChange={function(e){setV("p1_prenom",e.target.value);}} style={INP}/></div>
                     <div><Lbl l="Nouveau prop. 1 - nom"/><input value={vf.p1_nom||""} onChange={function(e){setV("p1_nom",e.target.value);}} style={INP}/></div>
                     <div><Lbl l="Courriel"/><input value={vf.p1_courriel||""} onChange={function(e){setV("p1_courriel",e.target.value);}} style={INP}/></div>
-                    <div><Lbl l="Telephone"/><input value={vf.p1_tel||""} onChange={function(e){setV("p1_tel",e.target.value);}} style={INP}/></div>
+                    <div><Lbl l="Telephone"/><input value={vf.p1_tel||""} onChange={function(e){setV("p1_tel",fmtTel(e.target.value));}} style={INP} maxLength={12}/></div>
                     <div><Lbl l="Prop. 2 - prenom (optionnel)"/><input value={vf.p2_prenom||""} onChange={function(e){setV("p2_prenom",e.target.value);}} style={INP}/></div>
                     <div><Lbl l="Prop. 2 - nom (optionnel)"/><input value={vf.p2_nom||""} onChange={function(e){setV("p2_nom",e.target.value);}} style={INP} placeholder="Si 2 proprietaires: 50/50"/></div>
                     <div><Lbl l="Prop. 2 - courriel"/><input value={vf.p2_courriel||""} onChange={function(e){setV("p2_courriel",e.target.value);}} style={INP}/></div>
@@ -249,32 +331,50 @@ export default function Unites(){
                   </div>
                 </div>
               )}
+
               {enEdition&&(
                 <div style={{marginTop:14,paddingTop:14,borderTop:"1px solid "+T.border}}>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:10}}>
+                    <SecTitre l="Unite" first/>
                     <div><Lbl l="Quote-part (%)"/><input type="number" step="0.001" value={nf.fraction} onChange={function(e){setN("fraction",e.target.value);}} style={INP}/></div>
-                    <div><Lbl l="Cotisation ($/mois)"/><input type="number" step="0.01" value={nf.cotisation_mensuelle} onChange={function(e){setN("cotisation_mensuelle",e.target.value);}} style={INP}/></div>
+                    <div><Lbl l="Cotisation ($/mois) - lecture seule"/><input value={u.cotisation_mensuelle?Number(u.cotisation_mensuelle).toFixed(2):"-"} readOnly style={Object.assign({},INP,{background:T.alt,color:T.muted})}/><div style={{fontSize:9,color:T.muted,marginTop:2}}>Calculee par le module Budget (quote-part x budget)</div></div>
                     <div><Lbl l="Stationnement"/><input value={nf.stationnement} onChange={function(e){setN("stationnement",e.target.value);}} style={INP}/></div>
                     <div><Lbl l="Rangement"/><input value={nf.rangement} onChange={function(e){setN("rangement",e.target.value);}} style={INP}/></div>
-                    <div><Lbl l="Chauffe-eau (marque)"/><input value={nf.chauffe_eau} onChange={function(e){setN("chauffe_eau",e.target.value);}} style={INP} placeholder="Giant 60 gal"/></div>
-                    <div><Lbl l="Installation (mois-annee)"/><input type="month" value={nf.ce_date_install||""} onChange={function(e){setN("ce_date_install",e.target.value);}} style={INP}/></div>
-                    <div style={{gridColumn:"span 2"}}><Lbl l="Photo du chauffe-eau (preuve)"/><input type="file" accept="image/*,.pdf" onChange={function(e){setCeFile(e.target.files&&e.target.files[0]?e.target.files[0]:null);}} style={{fontSize:11,fontFamily:"inherit"}}/>{ceFile&&<span style={{fontSize:10,color:T.accent,marginLeft:6}}>{ceFile.name}</span>}</div>
-                    <div><Lbl l="No police assurance"/><input value={nf.assurance_police} onChange={function(e){setN("assurance_police",e.target.value);}} style={INP}/></div>
-                    <div><Lbl l="Assureur"/><input value={nf.ass_cie} onChange={function(e){setN("ass_cie",e.target.value);}} style={INP}/></div>
-                    <div><Lbl l="Debut assurance"/><input type="date" value={nf.assurance_debut||""} onChange={function(e){setN("assurance_debut",e.target.value);}} style={INP}/></div>
-                    <div><Lbl l="Expiration assurance"/><input type="date" value={nf.assurance_exp||""} onChange={function(e){setN("assurance_exp",e.target.value);}} style={INP}/></div>
-                    <div style={{gridColumn:"span 2"}}><Lbl l="Preuve d assurance (document)"/><input type="file" accept=".pdf,image/*" onChange={function(e){setAssFile(e.target.files&&e.target.files[0]?e.target.files[0]:null);}} style={{fontSize:11,fontFamily:"inherit"}}/>{assFile&&<span style={{fontSize:10,color:T.accent,marginLeft:6}}>{assFile.name}</span>}</div>
+
+                    <SecTitre l="Occupation" c={T.blue}/>
                     <div><Lbl l="Occupation de l unite"/><select value={nf.occupation||"proprietaire"} onChange={function(e){setN("occupation",e.target.value);}} style={INP}>
                       <option value="proprietaire">Proprietaire occupant</option>
                       <option value="locataire">Louee (locataire)</option>
                       <option value="resident">Resident (non locataire)</option>
                     </select></div>
                     <div><Lbl l={nf.occupation==="resident"?"Nom du resident":"Nom du locataire"}/><input value={nf.nom_locataire} onChange={function(e){setN("nom_locataire",e.target.value);}} style={INP}/></div>
-                    <div><Lbl l="Telephone"/><input value={nf.tel_locataire} onChange={function(e){setN("tel_locataire",e.target.value);}} style={INP}/></div>
-                    <div><Lbl l="Courriel"/><input value={nf.courriel_locataire} onChange={function(e){setN("courriel_locataire",e.target.value);}} style={INP}/></div>
-                    <div><Lbl l="Urgence - nom"/><input value={nf.urg_nom} onChange={function(e){setN("urg_nom",e.target.value);}} style={INP}/></div>
-                    <div><Lbl l="Urgence - lien"/><input value={nf.urg_lien} onChange={function(e){setN("urg_lien",e.target.value);}} style={INP} placeholder="Fils, soeur..."/></div>
-                    <div><Lbl l="Urgence - telephone"/><input value={nf.urg_tel} onChange={function(e){setN("urg_tel",e.target.value);}} style={INP}/></div>
+                    <div><Lbl l="Telephone"/><input value={nf.tel_locataire} onChange={function(e){setN("tel_locataire",fmtTel(e.target.value));}} style={INP} maxLength={12}/></div>
+                    <div><Lbl l="Courriel"/><input value={nf.courriel_locataire} onChange={function(e){setN("courriel_locataire",e.target.value.trim());}} style={INP}/></div>
+
+                    <SecTitre l="Chauffe-eau" c={T.purple}/>
+                    <div><Lbl l="Marque / modele"/><input value={nf.chauffe_eau} onChange={function(e){setN("chauffe_eau",e.target.value);}} style={INP} placeholder="Giant 60 gal"/></div>
+                    <div><Lbl l="Installation (mois-annee)"/><input type="month" value={nf.ce_date_install||""} onChange={function(e){setN("ce_date_install",e.target.value);}} style={INP}/></div>
+                    <div style={{gridColumn:"span 2"}}><Lbl l="Photo du chauffe-eau (preuve)"/><input type="file" accept="image/*,.pdf" onChange={function(e){setCeFile(e.target.files&&e.target.files[0]?e.target.files[0]:null);}} style={{fontSize:11,fontFamily:"inherit"}}/>{ceFile&&<span style={{fontSize:10,color:T.accent,marginLeft:6}}>{ceFile.name}</span>}</div>
+
+                    <SecTitre l="Assurance" c={T.accent}/>
+                    <div style={{gridColumn:"span 2"}}><Lbl l="Preuve d assurance (les champs se remplissent automatiquement)"/><input type="file" accept=".pdf,image/*" onChange={function(e){var f=e.target.files&&e.target.files[0]?e.target.files[0]:null;setAssFile(f);if(f)extraireAssurance(f);}} style={{fontSize:11,fontFamily:"inherit"}}/>{assFile&&<span style={{fontSize:10,color:T.accent,marginLeft:6}}>{assFile.name}</span>}</div>
+                    <div><Lbl l="No police"/><input value={nf.assurance_police} onChange={function(e){setN("assurance_police",e.target.value);}} style={INP}/></div>
+                    <div><Lbl l="Assureur"/><input value={nf.ass_cie} onChange={function(e){setN("ass_cie",e.target.value);}} style={INP}/></div>
+                    <div><Lbl l="Debut"/><input type="date" value={nf.assurance_debut||""} onChange={function(e){setN("assurance_debut",e.target.value);}} style={INP}/></div>
+                    <div><Lbl l="Expiration"/><input type="date" value={nf.assurance_exp||""} onChange={function(e){setN("assurance_exp",e.target.value);}} style={INP}/></div>
+                    {assExtrait&&<div style={{gridColumn:"1/-1",background:T.blueL,borderRadius:8,padding:"8px 12px",fontSize:11,color:T.blue,fontWeight:600}}>{assExtrait}</div>}
+
+                    <SecTitre l="Urgence" c={T.amber}/>
+                    <div><Lbl l="Nom"/><input value={nf.urg_nom} onChange={function(e){setN("urg_nom",e.target.value);}} style={INP}/></div>
+                    <div><Lbl l="Lien"/><input value={nf.urg_lien} onChange={function(e){setN("urg_lien",e.target.value);}} style={INP} placeholder="Fils, soeur..."/></div>
+                    <div><Lbl l="Telephone"/><input value={nf.urg_tel} onChange={function(e){setN("urg_tel",fmtTel(e.target.value));}} style={INP} maxLength={12}/></div>
+
+                    <SecTitre l="Prelevement bancaire (PAP)" c={T.navy}/>
+                    <div><Lbl l="Institution (3 chiffres)"/><input value={nf.banque_institution} onChange={function(e){setN("banque_institution",e.target.value.replace(/\D/g,"").slice(0,3));}} style={INP} placeholder="815"/></div>
+                    <div><Lbl l="Transit (5 chiffres)"/><input value={nf.banque_transit} onChange={function(e){setN("banque_transit",e.target.value.replace(/\D/g,"").slice(0,5));}} style={INP} placeholder="30040"/></div>
+                    <div><Lbl l="No de compte"/><input value={nf.banque_compte} onChange={function(e){setN("banque_compte",e.target.value.replace(/\D/g,"").slice(0,12));}} style={INP}/></div>
+                    <div style={{alignSelf:"end",fontSize:9,color:T.muted}}>Les informations bancaires appartiennent a l UNITE (transferees a la vente si le nouveau proprietaire les fournit).</div>
+
                     <div style={{gridColumn:"1/-1"}}><Lbl l="Notes"/><input value={nf.notes} onChange={function(e){setN("notes",e.target.value);}} style={INP}/></div>
                   </div>
                   {msgEdit&&<div style={{background:T.redL,border:"1px solid "+T.red+"44",borderRadius:8,padding:"8px 12px",fontSize:12,color:T.red,marginBottom:10}}>{msgEdit}</div>}

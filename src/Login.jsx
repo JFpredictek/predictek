@@ -2,7 +2,7 @@
 
 import sb from "./lib/supabase";
 import PolitiqueConfidentialite from "./PolitiqueConfidentialite";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 var T={bg:"#F5F3EE",surface:"#FFF",muted:"#7C7568",accent:"#1B5E3B",navy:"#13233A",blue:"#1A56DB",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2"};
 var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:8,padding:"10px 14px",fontSize:13,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
@@ -18,6 +18,13 @@ export default function Login(p){
   var s5=useState(false);var showPwd=s5[0];var setShowPwd=s5[1];
   var s6=useState(false);var resetSent=s6[0];var setResetSent=s6[1];
   var s7=useState(false);var showPol=s7[0];var setShowPol=s7[1];
+  var s8=useState(function(){try{return localStorage.getItem("predictek_logo")||null;}catch(e){return null;}});
+  var logo=s8[0];var setLogo=s8[1];
+  useEffect(function(){
+    sb.selectOne("config_publique",{eq:{cle:"logo"}}).then(function(r){
+      if(r&&r.data&&r.data.valeur){setLogo(r.data.valeur);try{localStorage.setItem("predictek_logo",r.data.valeur);}catch(e){}}
+    }).catch(function(){});
+  },[]);
 
   function handleLogin(){
     if(!email||!pwd){setErr("Veuillez entrer votre courriel et mot de passe.");return;}
@@ -64,9 +71,14 @@ export default function Login(p){
     <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0d1b2a 0%,#13233A 50%,#1B3A2F 100%)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Georgia,serif",padding:20}}>
       <div style={{width:"100%",maxWidth:420}}>
         <div style={{textAlign:"center",marginBottom:32}}>
-          <div style={{width:72,height:72,borderRadius:20,background:"linear-gradient(135deg,#1B5E3B,#3CAF6E)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",boxShadow:"0 8px 32px rgba(27,94,59,0.4)"}}>
-            <span style={{color:"#fff",fontWeight:900,fontSize:36}}>P</span>
-          </div>
+          {(function(){var lg=logo;
+            return lg?(
+              <img src={lg} alt="Logo" style={{width:88,height:88,borderRadius:20,objectFit:"contain",background:"#fff",margin:"0 auto 16px",display:"block",boxShadow:"0 8px 32px rgba(27,94,59,0.4)"}}/>
+            ):(
+              <div style={{width:72,height:72,borderRadius:20,background:"linear-gradient(135deg,#1B5E3B,#3CAF6E)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",boxShadow:"0 8px 32px rgba(27,94,59,0.4)"}}>
+                <span style={{color:"#fff",fontWeight:900,fontSize:36}}>P</span>
+              </div>
+            );})()}
           <div style={{fontSize:26,fontWeight:900,color:"#fff",letterSpacing:"-0.02em"}}>Predictek</div>
           <div style={{fontSize:12,color:"#8da0bb",marginTop:4,letterSpacing:"0.06em",textTransform:"uppercase"}}>Gestion de copropriete</div>
         </div>

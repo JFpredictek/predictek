@@ -31,7 +31,6 @@ import RechercheGlobale from "./RechercheGlobale";
 import AgendaCalendrier from "./AgendaCalendrier";
 import GestionEmployes from "./GestionEmployes";
 import GestionRoles from "./GestionRoles";
-import ImportCSVCopros from "./ImportCSVCopros";
 import RegistreIncidents from "./RegistreIncidents";
 import Unites from "./Unites";
 
@@ -116,6 +115,8 @@ function sectionsPourRole(role){
 
 export default function App(){
   var s0=useState(null);var user=s0[0];var setUser=s0[1];
+  var sLogo=useState(function(){try{return localStorage.getItem("predictek_logo")||null;}catch(e){return null;}});
+  var logoApp=sLogo[0];var setLogoApp=sLogo[1];
   var s1=useState(true);var checking=s1[0];var setChecking=s1[1];
   var s2=useState("dashboard");var active=s2[0];var setActive=s2[1];
   var s3=useState("predictek");var activeSec=s3[0];var setActiveSec=s3[1];
@@ -129,6 +130,10 @@ export default function App(){
     var iv=setInterval(function(){sb.checkSession().catch(function(){});},600000);
     var onFocus=function(){sb.checkSession().catch(function(){});};
     window.addEventListener("focus",onFocus);
+    // Logo de l entreprise (configure dans Predictek > Configuration > Parametres > Logo)
+    sb.selectOne("config_publique",{eq:{cle:"logo"}}).then(function(r){
+      if(r&&r.data&&r.data.valeur){setLogoApp(r.data.valeur);try{localStorage.setItem("predictek_logo",r.data.valeur);}catch(e){}}
+    }).catch(function(){});
     return function(){clearInterval(iv);window.removeEventListener("focus",onFocus);};
   },[]);
 
@@ -176,11 +181,15 @@ export default function App(){
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
       <div style={{background:"#0d1b2a",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",borderBottom:"1px solid #ffffff10"}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,padding:"0 14px",borderRight:"1px solid #ffffff15",height:44,flexShrink:0}}>
-            <div style={{width:28,height:28,borderRadius:7,background:"linear-gradient(135deg,#1B5E3B,#3CAF6E)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <span style={{color:"#fff",fontWeight:900,fontSize:14,fontFamily:"Georgia,serif"}}>P</span>
-            </div>
-            <span style={{color:"#fff",fontWeight:800,fontSize:12,fontFamily:"Georgia,serif",whiteSpace:"nowrap"}}>Predictek</span>
+          <div style={{display:"flex",alignItems:"center",gap:10,padding:"0 16px",borderRight:"1px solid #ffffff15",height:52,flexShrink:0}}>
+            {logoApp?(
+              <img src={logoApp} alt="Logo" style={{width:36,height:36,borderRadius:8,objectFit:"contain",background:"#fff",flexShrink:0}}/>
+            ):(
+              <div style={{width:36,height:36,borderRadius:8,background:"linear-gradient(135deg,#1B5E3B,#3CAF6E)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <span style={{color:"#fff",fontWeight:900,fontSize:18,fontFamily:"Georgia,serif"}}>P</span>
+              </div>
+            )}
+            <span style={{color:"#fff",fontWeight:800,fontSize:16,fontFamily:"Georgia,serif",whiteSpace:"nowrap"}}>Predictek</span>
           </div>
           <div style={{flex:1,padding:"0 8px"}}>
             <RechercheGlobale onNavigate={function(id){
@@ -188,28 +197,28 @@ export default function App(){
               if(sec)setMod(sec.id,id);
             }}/>
           </div>
-          <div style={{padding:"0 12px",display:"flex",alignItems:"center",gap:8,flexShrink:0,borderLeft:"1px solid #ffffff15",height:44}}>
-            <span style={{fontSize:10,color:"#8da0bb",whiteSpace:"nowrap"}}>{user.nom||user.email}</span>
-            <button onClick={handleLogout} style={{background:"#ffffff15",border:"1px solid #ffffff25",borderRadius:6,padding:"3px 8px",color:"#8da0bb",fontSize:10,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Quitter</button>
+          <div style={{padding:"0 14px",display:"flex",alignItems:"center",gap:10,flexShrink:0,borderLeft:"1px solid #ffffff15",height:52}}>
+            <span style={{fontSize:12,color:"#c6d2e2",whiteSpace:"nowrap"}}>{user.nom||user.email}</span>
+            <button onClick={handleLogout} style={{background:"#ffffff15",border:"1px solid #ffffff25",borderRadius:7,padding:"6px 12px",color:"#c6d2e2",fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Quitter</button>
           </div>
         </div>
-        <div style={{display:"flex",height:40}}>
+        <div style={{display:"flex",height:50}}>
           {sectionsVisibles.map(function(sec){
             var isActive=activeSec===sec.id;
             return(
-              <button key={sec.id} onClick={function(){setActiveSec(sec.id);var first=sec.modules[0];if(first)setActive(first.id);}} style={{display:"flex",alignItems:"center",gap:6,padding:"0 16px",background:isActive?sec.bg+"cc":"transparent",border:"none",borderBottom:isActive?"2px solid "+sec.color:"2px solid transparent",cursor:"pointer",fontFamily:"Georgia,serif",color:isActive?sec.color:"#8da0bb",fontSize:11,fontWeight:isActive?700:400,flexShrink:0,transition:"all 0.15s"}}>
-                <div style={{width:6,height:6,borderRadius:"50%",background:isActive?sec.color:"#ffffff30",flexShrink:0}}/>
+              <button key={sec.id} onClick={function(){setActiveSec(sec.id);var first=sec.modules[0];if(first)setActive(first.id);}} style={{display:"flex",alignItems:"center",gap:8,padding:"0 22px",background:isActive?sec.bg+"cc":"transparent",border:"none",borderBottom:isActive?"3px solid "+sec.color:"3px solid transparent",cursor:"pointer",fontFamily:"Georgia,serif",color:isActive?sec.color:"#9fb0c6",fontSize:14,fontWeight:isActive?700:500,flexShrink:0,transition:"all 0.15s"}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:isActive?sec.color:"#ffffff30",flexShrink:0}}/>
                 {sec.label}
               </button>
             );
           })}
         </div>
-        <div style={{display:"flex",height:36,background:activeSectionDef.bg+"55",borderTop:"1px solid #ffffff08",overflowX:"auto"}}>
+        <div style={{display:"flex",height:46,background:activeSectionDef.bg+"55",borderTop:"1px solid #ffffff08",overflowX:"auto"}}>
           {activeSectionDef.modules.map(function(m){
             var isActive=active===m.id;
             return(
-              <button key={m.id} onClick={function(){setActive(m.id);}} style={{display:"flex",alignItems:"center",gap:4,padding:"0 10px",background:isActive?"#ffffff15":"transparent",border:"none",borderBottom:isActive?"2px solid "+activeSectionDef.color:"2px solid transparent",cursor:"pointer",fontFamily:"Georgia,serif",color:isActive?"#fff":"#8da0bb",fontSize:10,fontWeight:isActive?700:400,flexShrink:0,whiteSpace:"nowrap"}}>
-                <div style={{width:16,height:16,borderRadius:4,background:isActive?activeSectionDef.color:"#ffffff18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:6,fontWeight:700,color:isActive?"#fff":"#8da0bb",flexShrink:0}}>{m.icon}</div>
+              <button key={m.id} onClick={function(){setActive(m.id);}} style={{display:"flex",alignItems:"center",gap:7,padding:"0 14px",background:isActive?"#ffffff18":"transparent",border:"none",borderBottom:isActive?"3px solid "+activeSectionDef.color:"3px solid transparent",cursor:"pointer",fontFamily:"Georgia,serif",color:isActive?"#fff":"#9fb0c6",fontSize:13,fontWeight:isActive?700:500,flexShrink:0,whiteSpace:"nowrap"}}>
+                <div style={{width:22,height:22,borderRadius:5,background:isActive?activeSectionDef.color:"#ffffff18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,color:isActive?"#fff":"#9fb0c6",flexShrink:0}}>{m.icon}</div>
                 {m.label}
               </button>
             );

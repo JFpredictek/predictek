@@ -78,7 +78,7 @@ function SectionTickets(p){
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
               <div style={{flex:1,marginRight:8}}>
                 <div style={{fontSize:11,fontWeight:600,color:T.navy}}>{t.sujet}</div>
-                <div style={{fontSize:10,color:T.muted}}>Unite {t.unite||"-"}{t.created_at?" - "+t.created_at.substring(0,10):""}</div>
+                <div style={{fontSize:10,color:T.muted}}>Unite {t.unite||"-"}{t.created_at?" - "+new Date(t.created_at).toLocaleDateString("fr-CA"):""}</div>
               </div>
               <span style={{background:c.bg,color:c.tc,borderRadius:20,padding:"1px 8px",fontSize:9,fontWeight:700,whiteSpace:"nowrap"}}>{t.statut}</span>
             </div>

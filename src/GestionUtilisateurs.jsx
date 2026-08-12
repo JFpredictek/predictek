@@ -36,7 +36,7 @@ function CarteUtilisateur(p){
             {!u.actif&&<span style={{background:T.redL,color:T.red,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:700}}>INACTIF</span>}
           </div>
           {u.syndicat_nom&&<div style={{fontSize:11,color:T.muted}}>Syndicat: <span style={{color:T.navy,fontWeight:600}}>{u.syndicat_nom}</span></div>}
-          <div style={{fontSize:10,color:T.muted,marginTop:4}}>Cree le: {u.created_at?u.created_at.substring(0,10):"-"}</div>
+          <div style={{fontSize:10,color:T.muted,marginTop:4}}>Cree le: {u.created_at?new Date(u.created_at).toLocaleDateString("fr-CA"):"-"}</div>
         </div>
         <div style={{display:"flex",gap:6,flexShrink:0,marginLeft:12}}>
           <Btn sm onClick={function(){p.onEdit(u);}}>Modifier</Btn>

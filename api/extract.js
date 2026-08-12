@@ -54,7 +54,7 @@ export default async function handler(req, res) {
       + texte.substring(0,30000)
       + "\n\nReponds UNIQUEMENT avec un objet JSON valide. Cles requises:\n"
       + "nom, immat (NEQ 11 chiffres), adr (domicile REQ), ville, province, codePostal, nbUnites (entier), gestionnaire, "
-      + "quorumAGO (% entier pour AGO - cherche dans les extraits de la declaration le quorum requis aux assemblees generales; s il est exprime comme majorite des voix des presents ou majorite simple, mets 50), anneeConstitution (entier: annee de CONSTITUTION du syndicat = date de publication de la declaration de copropriete au registre foncier, souvent aux premieres pages de l acte), typeCopro (horizontale/verticale/mixte), "
+      + "quorumAGO (% entier pour AGO - cherche dans les extraits de la declaration le quorum requis aux assemblees generales; s il est exprime comme majorite des voix des presents ou majorite simple, mets 50), anneeConstitution (entier: annee de CONSTITUTION du syndicat = annee de publication de la declaration de copropriete INITIALE au registre foncier, c est-a-dire l acte notarie ORIGINAL; si le document mentionne plusieurs dates comme des modifications ou refontes, prends TOUJOURS la date la PLUS ANCIENNE), typeCopro (horizontale/verticale/mixte),"
       + "admins (tableau ADMINS ACTUELS EN FONCTION uniquement: [{prenom,nom,adr,ville,province,codePostal,role,dateDebut}]). "
       + "IMPORTANT pour role: croise la liste des administrateurs avec la section des fonctions/dirigeants du REQ. "
       + "role DOIT etre exactement une de ces valeurs: president, vice-president, secretaire, tresorier, administrateur. "
@@ -62,7 +62,47 @@ export default async function handler(req, res) {
       + "Si un champ est absent mettre valeur vide ou 0.";
 
     var contenu;
-    if(mode==="quoteparts"){
+    if(mode==="quoteparts_liste"){
+      // Extraction brute des quotes-parts visibles (texte OU images de pages numerisees).
+      // La comparaison avec le fichier Excel est faite cote client (deterministe).
+      var promptQL = "Voici un extrait de la declaration de copropriete d un syndicat quebecois. "
+        + "Liste TOUTES les quotes-parts (fractions des parties communes, en %) que tu peux lire, avec le numero d unite ou de fraction associe. "
+        + "Cherche les tableaux de fractions/quotes-parts. "
+        + "Reponds UNIQUEMENT avec un objet JSON valide: {\"trouvees\":[{\"unite\":\"numero\",\"fraction\":\"valeur en % (ex: 2.778)\"}]}. "
+        + "Si aucune quote-part n est visible, reponds {\"trouvees\":[]}.";
+      if(imagesIn.length>0){
+        contenu = imagesIn.slice(0,8).map(function(im){return {type:"image",source:{type:"base64",media_type:"image/jpeg",data:im}};});
+        contenu.push({type:"text",text:promptQL});
+      } else if(texte){
+        contenu = [{type:"text",text:promptQL+"\n\nEXTRAIT:\n"+texte.substring(0,30000)}];
+      } else {
+        return res.status(400).json({error:"Aucun texte ou image fourni"});
+      }
+    } else if(mode==="assurance"){
+      var promptAss = "Voici une preuve d assurance (police d assurance habitation/copropriete quebecoise). "
+        + "Extrais les informations suivantes. Reponds UNIQUEMENT avec un objet JSON valide (chaine vide si absent): "
+        + "{\"compagnie\":\"nom de l assureur\",\"police\":\"numero de police\",\"dateDebut\":\"AAAA-MM-JJ\",\"dateExp\":\"AAAA-MM-JJ (date d expiration/fin de la periode)\",\"assure\":\"nom de l assure\",\"montantResponsabilite\":\"montant de responsabilite civile si visible\"}";
+      if(pdfB64){
+        contenu = [{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:promptAss}];
+      } else if(imagesIn.length>0){
+        contenu = imagesIn.slice(0,8).map(function(im){return {type:"image",source:{type:"base64",media_type:"image/jpeg",data:im}};});
+        contenu.push({type:"text",text:promptAss});
+      } else {
+        return res.status(400).json({error:"Aucun document fourni"});
+      }
+    } else if(mode==="facture"){
+      var promptFac = "Voici une facture de fournisseur (Quebec, Canada). "
+        + "Extrais les informations suivantes. Reponds UNIQUEMENT avec un objet JSON valide (chaine vide ou 0 si absent): "
+        + "{\"fournisseur\":\"nom du fournisseur\",\"numero\":\"numero de facture\",\"date\":\"AAAA-MM-JJ\",\"echeance\":\"AAAA-MM-JJ\",\"sousTotal\":nombre,\"tps\":nombre,\"tvq\":nombre,\"total\":nombre (montant total TTC),\"description\":\"description courte des biens/services\",\"categorie\":\"une valeur parmi: entretien, reparation, deneigement, paysagement, assurance, energie, administration, autre\"}";
+      if(pdfB64){
+        contenu = [{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:promptFac}];
+      } else if(imagesIn.length>0){
+        contenu = imagesIn.slice(0,8).map(function(im){return {type:"image",source:{type:"base64",media_type:"image/jpeg",data:im}};});
+        contenu.push({type:"text",text:promptFac});
+      } else {
+        return res.status(400).json({error:"Aucun document fourni"});
+      }
+    } else if(mode==="quoteparts"){
       var promptQP = "Voici la declaration de copropriete d un syndicat quebecois (PDF ou pages numerisees). "
         + "Un fichier Excel a ete importe avec ces quotes-parts par unite (en %): " + JSON.stringify(unites) + ". "
         + "Trouve dans la declaration la quote-part (fraction des parties communes) de CHAQUE unite listee et compare. "
@@ -82,7 +122,7 @@ export default async function handler(req, res) {
       var promptPdf = "Voici le document officiel PDF d un syndicat de copropriete quebecois (REQ et/ou declaration). Lis-le attentivement, y compris s il s agit d un document numerise."
         + "\n\nReponds UNIQUEMENT avec un objet JSON valide. Cles requises:\n"
         + "nom, immat (NEQ 11 chiffres), adr (domicile REQ), ville, province, codePostal, nbUnites (entier), gestionnaire, "
-        + "quorumAGO (% entier pour AGO - cherche dans les extraits de la declaration le quorum requis aux assemblees generales; s il est exprime comme majorite des voix des presents ou majorite simple, mets 50), anneeConstitution (entier: annee de CONSTITUTION du syndicat = date de publication de la declaration de copropriete au registre foncier, souvent aux premieres pages de l acte), typeCopro (horizontale/verticale/mixte), "
+        + "quorumAGO (% entier pour AGO - cherche dans les extraits de la declaration le quorum requis aux assemblees generales; s il est exprime comme majorite des voix des presents ou majorite simple, mets 50), anneeConstitution (entier: annee de CONSTITUTION du syndicat = annee de publication de la declaration de copropriete INITIALE au registre foncier, c est-a-dire l acte notarie ORIGINAL; si le document mentionne plusieurs dates comme des modifications ou refontes, prends TOUJOURS la date la PLUS ANCIENNE), typeCopro (horizontale/verticale/mixte),"
         + "admins (tableau ADMINS ACTUELS EN FONCTION uniquement: [{prenom,nom,adr,ville,province,codePostal,role,dateDebut}]). "
       + "IMPORTANT pour role: croise la liste des administrateurs avec la section des fonctions/dirigeants du REQ. "
       + "role DOIT etre exactement une de ces valeurs: president, vice-president, secretaire, tresorier, administrateur. "
@@ -93,13 +133,14 @@ export default async function handler(req, res) {
       contenu = req.body.images.slice(0,8).map(function(im){return {type:"image",source:{type:"base64",media_type:"image/jpeg",data:im}};});
       contenu.push({type:"text",text:"Voici des pages numerisees de la declaration de copropriete d un syndicat quebecois. Lis-les attentivement."
         + "\n\nReponds UNIQUEMENT avec un objet JSON valide. Cles requises (mets vide ou 0 si absent):\n"
-        + "anneeConstitution (annee de constitution/publication de la declaration au registre foncier), "
+        + "anneeConstitution (annee de publication de la declaration de copropriete INITIALE au registre foncier - l acte notarie ORIGINAL; si plusieurs dates sont visibles comme des modifications ou refontes, prends TOUJOURS la plus ancienne), "
         + "quorumAGO (quorum des assemblees generales en % entier; majorite des voix des presents ou majorite simple = 50), "
-        + "nbUnites (entier), typeCopro (horizontale/verticale/mixte)."});
+        + "nbUnites (entier), typeCopro (horizontale/verticale/mixte), "
+        + "reglements (resume en francais des reglements de gestion, restrictions, penalites et regles de vie visibles sur ces pages, max 250 mots; chaine vide si aucun)."});
     } else {
       contenu = [{type:"text",text:prompt}];
     }
-    var r2 = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:2000,messages:[{role:"user",content:contenu}]})});
+    var r2 = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:3500,messages:[{role:"user",content:contenu}]})});
     var raw2 = await r2.text();
     var d2; try{d2=JSON.parse(raw2);}catch(e){return res.status(500).json({error:"JSON invalide: "+raw2.substring(0,100)});}
     if(d2.error) return res.status(500).json({error:d2.error.message,type:d2.error.type});

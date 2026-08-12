@@ -19,13 +19,12 @@ function EcranLogin(p){
     setLoading(true);setErr("");
     sb.select("coproprietaires",{eq:{unite:unite.trim().toUpperCase()}}).then(function(res){
       if(res&&res.data&&res.data.length>0){
-        var cp=res.data[0];
-        if(cp.code_acces&&cp.code_acces===code.trim()){
-          p.onLogin(cp);
-        }else if(!cp.code_acces&&code.trim().length>=4){
+        // SECURITE: le code d acces DOIT correspondre exactement - aucune connexion sans code defini.
+        var cp=res.data.find(function(x){return x.code_acces&&x.code_acces===code.trim();});
+        if(cp){
           p.onLogin(cp);
         }else{
-          setErr("Code d acces invalide.");
+          setErr("Code d acces invalide. Si vous n avez pas encore de code, contactez votre gestionnaire.");
         }
       }else{
         setErr("Unite "+unite.toUpperCase()+" non trouvee dans ce systeme.");
@@ -251,7 +250,7 @@ function TabTickets(p){
             <Badge s={t.statut} l={t.statut==="nouveau"?"Nouveau":t.statut==="en_cours"?"En cours":"Resolu"}/>
           </div>
           {t.description&&<div style={{fontSize:11,color:T.muted}}>{t.description}</div>}
-          <div style={{fontSize:10,color:T.muted,marginTop:6}}>Soumis le {t.created_at?t.created_at.substring(0,10):"-"} - Priorite: {t.priorite}</div>
+          <div style={{fontSize:10,color:T.muted,marginTop:6}}>Soumis le {t.created_at?new Date(t.created_at).toLocaleDateString("fr-CA"):"-"} - Priorite: {t.priorite}</div>
         </div>
       );})}
     </div>

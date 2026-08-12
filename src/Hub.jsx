@@ -1,5 +1,8 @@
 import sb from "./lib/supabase";
 import { useState, useRef, useEffect } from "react";
+import Communications from "./Communications";
+import GestionUtilisateurs from "./GestionUtilisateurs";
+import GestionEmployes from "./GestionEmployes";
 
 // Normalise un role de CA (texte libre du REQ/IA) vers les valeurs standard de l app
 function normRole(r){
@@ -29,38 +32,17 @@ function lireReponseAPI(r){
   });
 }
 
-// Rend des pages de la declaration (window._acteFile) en images JPEG base64 pour l analyse par vision IA.
-// spec: "12-15,20" - retourne une Promise avec le tableau d images (max 8 pages).
-function rendrePagesActe(spec, max){
-  return new Promise(function(resolve, reject){
+// ===== Outils PDF (declaration de copropriete) =====
+// Charge le PDF de la declaration (window._acteFile) avec pdf.js
+function chargerActe(){
+  return new Promise(function(resolve,reject){
     if(!window._acteFile){reject(new Error("Aucune declaration PDF importee a l etape 1."));return;}
-    var pages=[];
-    (spec||"").split(",").forEach(function(part){
-      var m=part.trim().match(/^(\d+)\s*-\s*(\d+)$/);
-      if(m){for(var pp=parseInt(m[1]);pp<=parseInt(m[2]);pp++)pages.push(pp);}
-      else if(/^\d+$/.test(part.trim()))pages.push(parseInt(part.trim()));
-    });
-    pages=pages.slice(0,max||8);
-    if(pages.length===0){reject(new Error("Indiquez des pages valides, ex: 12-15"));return;}
     var lancer=function(){
       var fr=new FileReader();
       fr.onerror=function(){reject(new Error("Lecture du PDF impossible"));};
       fr.onload=function(ev){
         window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-        window.pdfjsLib.getDocument({data:new Uint8Array(ev.target.result)}).promise.then(function(pdf){
-          return Promise.all(pages.filter(function(n){return n>=1&&n<=pdf.numPages;}).map(function(n){
-            return pdf.getPage(n).then(function(pg){
-              var vp=pg.getViewport({scale:1.5});
-              var cv=document.createElement("canvas");cv.width=vp.width;cv.height=vp.height;
-              return pg.render({canvasContext:cv.getContext("2d"),viewport:vp}).promise.then(function(){
-                return cv.toDataURL("image/jpeg",0.72).split(",")[1];
-              });
-            });
-          }));
-        }).then(function(images){
-          if(!images||images.length===0){reject(new Error("Aucune de ces pages n existe dans le PDF."));return;}
-          resolve(images);
-        }).catch(reject);
+        window.pdfjsLib.getDocument({data:new Uint8Array(ev.target.result)}).promise.then(resolve).catch(reject);
       };
       fr.readAsArrayBuffer(window._acteFile);
     };
@@ -72,6 +54,82 @@ function rendrePagesActe(spec, max){
     }else{lancer();}
   });
 }
+// Texte de chaque page (tableau indexe 0 = page 1). Une page numerisee retourne une chaine vide.
+function textesParPage(pdf,maxPages){
+  var n=Math.min(pdf.numPages,maxPages||300);
+  var proms=[];
+  for(var i=1;i<=n;i++){
+    (function(num){
+      proms.push(pdf.getPage(num).then(function(pg){
+        return pg.getTextContent().then(function(tc){
+          return tc.items.map(function(it){return it.str;}).join(" ");
+        });
+      }).catch(function(){return "";}));
+    })(i);
+  }
+  return Promise.all(proms);
+}
+// Rend un lot de pages en images JPEG base64
+function rendreLot(pdf,pages){
+  return Promise.all(pages.filter(function(nn){return nn>=1&&nn<=pdf.numPages;}).map(function(nn){
+    return pdf.getPage(nn).then(function(pg){
+      var vp=pg.getViewport({scale:1.5});
+      var cv=document.createElement("canvas");cv.width=vp.width;cv.height=vp.height;
+      return pg.render({canvasContext:cv.getContext("2d"),viewport:vp}).promise.then(function(){
+        var d=cv.toDataURL("image/jpeg",0.72).split(",")[1];
+        cv.width=1;cv.height=1;
+        return d;
+      });
+    });
+  }));
+}
+// Analyse par vision IA TOUT le document numerise, lot par lot (sequentiel).
+// traiterLot(data) recoit la reponse de chaque lot; stop() true = arret anticipe.
+// onProgress(pageDebut,pageFin,total) informe l utilisateur.
+function visionToutLeDocument(pdf,corpsRequete,traiterLot,stop,onProgress){
+  var total=Math.min(pdf.numPages,240);
+  var TAILLE=6;
+  var lots=[];
+  for(var d=1;d<=total;d+=TAILLE){
+    var pg=[];for(var k=d;k<Math.min(d+TAILLE,total+1);k++)pg.push(k);
+    lots.push(pg);
+  }
+  var chaine=Promise.resolve();
+  lots.forEach(function(lot){
+    chaine=chaine.then(function(){
+      if(stop&&stop())return;
+      if(onProgress)onProgress(lot[0],lot[lot.length-1],total);
+      return rendreLot(pdf,lot).then(function(images){
+        var corps=Object.assign({},corpsRequete,{images:images});
+        return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify(corps)}).then(lireReponseAPI);
+      }).then(function(resp){
+        if(resp&&!resp.error&&resp.data)traiterLot(resp.data);
+      });
+    });
+  });
+  return chaine;
+}
+// Comparaison DETERMINISTE des quotes-parts (Excel vs declaration) - tolerance 0.002
+function comparerQuoteparts(trouvees,liste){
+  var map={};
+  (trouvees||[]).forEach(function(t){
+    var k=String(t.unite||"").replace(/\D/g,"");
+    var v=parseFloat(String(t.fraction||"").replace(",",".").replace(/[^0-9.]/g,""));
+    if(k&&!isNaN(v)&&map[k]===undefined)map[k]=v;
+  });
+  var ecarts=[],nb=0,manquantes=[];
+  (liste||[]).forEach(function(c){
+    var k=String(c.unite||"").replace(/\D/g,"");
+    var exc=parseFloat(String(c.fraction||"").replace(",","."));
+    var dec=map[k];
+    if(dec===undefined||isNaN(dec)){manquantes.push(c.unite);return;}
+    if(Math.abs(dec-exc)<=0.002)nb++;
+    else ecarts.push({unite:c.unite,excel:c.fraction,declaration:String(dec)});
+  });
+  return {concordance:ecarts.length===0&&manquantes.length===0&&nb>0,nbValides:nb,ecarts:ecarts,
+    note:manquantes.length>0?manquantes.length+" unite(s) introuvable(s) dans la declaration ("+manquantes.slice(0,8).join(", ")+(manquantes.length>8?"...":"")+")":""};
+}
+
 var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",pop:"#3CAF6E",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",purple:"#6B3FA0",purpleL:"#F3EEFF"};
 var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
 var money=function(n){return Math.abs(n||0).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
@@ -103,41 +161,13 @@ var SYNDICATS_INIT=[];
 var USAGERS_INIT=[];
 
 // ===== SCORE SANTE =====
-function ScoreBarre(p){
-  var c=p.v>=85?T.accent:p.v>=70?T.amber:T.red;
-  return(
-    <div>
-      <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-        <span style={{fontSize:10,color:T.muted}}>{p.l}</span>
-        <span style={{fontSize:11,fontWeight:700,color:c}}>{p.v}%</span>
-      </div>
-      <div style={{height:5,background:T.border,borderRadius:3,overflow:"hidden"}}>
-        <div style={{width:p.v+"%",height:"100%",background:c,borderRadius:3}}/>
-      </div>
-    </div>
-  );
-}
-
-function ScoreGlobal(p){
-  var score=Math.round((p.s.scoreFinancier+p.s.scoreConformite+p.s.scoreEntretien)/3);
-  var c=score>=85?T.accent:score>=70?T.amber:T.red;
-  return(
-    <div style={{width:48,height:48,borderRadius:"50%",background:c+"22",border:"2px solid "+c,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",flexShrink:0}}>
-      <div style={{fontSize:14,fontWeight:800,color:c,lineHeight:1}}>{score}</div>
-      <div style={{fontSize:7,color:c,fontWeight:600}}>sante</div>
-    </div>
-  );
-}
-
-// ===== CARTE SYNDICAT =====
+// ===== CARTE SYNDICAT (donnees reelles seulement) =====
 function CarteSyndicat(p){
   var s=p.syndicat;
-  var totalAlertes=s.alertesCE+s.alertesAss+s.alertesPAP+s.alertesCarnet;
-  var totalSoldes=s.soldeOp+s.soldePrev+s.soldeAss;
 
   if(s.statut==="setup"){
     return(
-      <div style={{background:T.surface,border:"2px dashed "+T.border,borderRadius:12,padding:20,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:200,cursor:"pointer"}} onClick={p.onSetup}>
+      <div style={{background:T.surface,border:"2px dashed "+T.border,borderRadius:12,padding:20,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:160,cursor:"pointer"}} onClick={p.onSetup}>
         <div style={{width:44,height:44,borderRadius:"50%",background:T.accentL,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:12}}>
           <span style={{fontSize:22,color:T.accent,fontWeight:300,lineHeight:1}}>+</span>
         </div>
@@ -148,55 +178,34 @@ function CarteSyndicat(p){
   }
 
   return(
-    <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:16,cursor:"pointer",transition:"box-shadow 0.1s"}} onClick={p.onClick}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-        <div style={{flex:1}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
-            <div style={{fontSize:9,fontWeight:800,color:"#fff",background:T.navy,padding:"2px 7px",borderRadius:4,letterSpacing:"0.05em"}}>{s.code}</div>
-            <Bdg bg={T.accentL} c={T.accent}>{s.statut==="actif"?"Actif":"Inactif"}</Bdg>
-          </div>
-          <div style={{fontSize:14,fontWeight:700,color:T.navy}}>{s.nom}</div>
-          <div style={{fontSize:10,color:T.muted,marginTop:2}}>{s.nbUnites} unites | {s.adr.split(",")[1]||""}</div>
-        </div>
-        <ScoreGlobal s={s}/>
+    <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:16,cursor:"pointer"}} onClick={p.onClick}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+        <div style={{fontSize:9,fontWeight:800,color:"#fff",background:T.navy,padding:"2px 7px",borderRadius:4,letterSpacing:"0.05em"}}>{s.code}</div>
+        <Bdg bg={s.statut==="actif"?T.accentL:T.alt} c={s.statut==="actif"?T.accent:T.muted}>{s.statut==="actif"?"Actif":s.statut||"-"}</Bdg>
       </div>
-
+      <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:2}}>{s.nom}</div>
+      <div style={{fontSize:11,color:T.muted,marginBottom:12}}>{(s.adr||"")+((s.adr&&s.ville)?", ":"")+(s.ville||"")}</div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
         <div style={{background:T.accentL,borderRadius:8,padding:"8px 10px"}}>
-          <div style={{fontSize:9,color:T.accent,fontWeight:600,marginBottom:2}}>COTISATIONS/MOIS</div>
-          <div style={{fontSize:13,fontWeight:700,color:T.accent}}>{money(s.cotisationMensuelle)}</div>
+          <div style={{fontSize:9,color:T.accent,fontWeight:600,marginBottom:2}}>UNITES</div>
+          <div style={{fontSize:16,fontWeight:800,color:T.accent}}>{s.nbUnites||0}</div>
         </div>
         <div style={{background:T.blueL,borderRadius:8,padding:"8px 10px"}}>
-          <div style={{fontSize:9,color:T.blue,fontWeight:600,marginBottom:2}}>SOLDE TOTAL</div>
-          <div style={{fontSize:13,fontWeight:700,color:T.blue}}>{money(totalSoldes)}</div>
+          <div style={{fontSize:9,color:T.blue,fontWeight:600,marginBottom:2}}>NEQ</div>
+          <div style={{fontSize:12,fontWeight:700,color:T.blue,marginTop:3}}>{s.immat||"-"}</div>
         </div>
       </div>
-
-      <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
-        {totalAlertes>0&&<Bdg bg={T.redL} c={T.red}>{totalAlertes} alerte(s)</Bdg>}
-        {s.facturesEnAttente>0&&<Bdg bg={T.amberL} c={T.amber}>{s.facturesEnAttente} facture(s)</Bdg>}
-        {s.prochReunion&&<Bdg bg={T.purpleL} c={T.purple}>CA: {s.prochReunion}</Bdg>}
-      </div>
-
-      <div style={{display:"grid",gap:5}}>
-        <ScoreBarre l="Financier" v={s.scoreFinancier}/>
-        <ScoreBarre l="Conformite" v={s.scoreConformite}/>
-        <ScoreBarre l="Entretien" v={s.scoreEntretien}/>
-      </div>
-
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10,paddingTop:8,borderTop:"1px solid "+T.border}}>
-        <div style={{fontSize:10,color:T.muted}}>{s.gestionnaire||"-"}</div>
-        <div style={{fontSize:10,color:T.muted}}>{s.nbCoprosPortail} portail(s) actif(s)</div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingTop:8,borderTop:"1px solid "+T.border}}>
+        <div style={{fontSize:10,color:T.muted}}>{s.courriel||"-"}</div>
+        <div style={{fontSize:10,color:T.muted}}>{s.tel||""}</div>
       </div>
     </div>
   );
 }
 
-// ===== VUE DETAIL SYNDICAT =====
+// ===== VUE DETAIL SYNDICAT (donnees reelles seulement) =====
 function DetailSyndicat(p){
   var s=p.syndicat;
-  var totalSoldes=s.soldeOp+s.soldePrev+s.soldeAss;
-  var totalAlertes=s.alertesCE+s.alertesAss+s.alertesPAP+s.alertesCarnet;
   return(
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
@@ -206,17 +215,16 @@ function DetailSyndicat(p){
             <Bdg bg={T.accentL} c={T.accent}>{s.statut}</Bdg>
           </div>
           <div style={{fontSize:18,fontWeight:800,color:T.navy}}>{s.nom}</div>
-          <div style={{fontSize:12,color:T.muted}}>{s.adr}</div>
+          <div style={{fontSize:12,color:T.muted}}>{s.adr||""}{s.ville?", "+s.ville:""}</div>
         </div>
         <div style={{display:"flex",gap:8}}><Btn sm bg={T.purple} tc={"#fff"} onClick={p.onParams}>Parametres</Btn><Btn sm bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={p.onRetour}>Retour</Btn></div>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
         {[
-          {l:"Unites",v:s.nbUnites,c:T.navy,bg:T.blueL},
-          {l:"Cotisations/mois",v:money(s.cotisationMensuelle),c:T.accent,bg:T.accentL},
-          {l:"Solde total",v:money(totalSoldes),c:T.blue,bg:T.blueL},
-          {l:"Alertes totales",v:totalAlertes,c:totalAlertes>0?T.red:T.accent,bg:totalAlertes>0?T.redL:T.accentL},
+          {l:"Unites",v:s.nbUnites||0,c:T.navy,bg:T.blueL},
+          {l:"NEQ",v:s.immat||"-",c:T.accent,bg:T.accentL},
+          {l:"Statut",v:s.statut||"-",c:T.blue,bg:T.blueL},
         ].map(function(st,i){return(
           <div key={i} style={{background:st.bg,borderRadius:10,padding:"11px 13px",border:"1px solid "+st.c+"33"}}>
             <div style={{fontSize:9,color:st.c,fontWeight:700,marginBottom:3,textTransform:"uppercase"}}>{st.l}</div>
@@ -225,357 +233,27 @@ function DetailSyndicat(p){
         );})}
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
-        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14}}>
-          <Lbl l="Informations generales"/>
-          {[
-            {l:"President",v:s.president||"-"},
-            {l:"Courriel",v:s.courriel||"-"},
-            {l:"Telephone",v:s.tel||"-"},
-            {l:"Immatriculation",v:s.immat||"-"},
-            {l:"Annee constitution",v:s.anneeConstruction||"-"},
-            {l:"Exercice financier",v:s.exercice||"-"},
-            {l:"Gestionnaire Predictek",v:s.gestionnaire||"-"},
-          ].map(function(item,i){return(
-            <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid "+T.border}}>
-              <span style={{fontSize:11,color:T.muted}}>{item.l}</span>
-              <span style={{fontSize:12,fontWeight:500,color:T.text,textAlign:"right",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis"}}>{item.v}</span>
-            </div>
-          );})}
-        </div>
-
-        <div>
-          <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14,marginBottom:12}}>
-            <Lbl l="Score de sante"/>
-            <div style={{display:"grid",gap:10,marginTop:8}}>
-              <ScoreBarre l="Financier" v={s.scoreFinancier}/>
-              <ScoreBarre l="Conformite coproprietaires" v={s.scoreConformite}/>
-              <ScoreBarre l="Entretien (Loi 16)" v={s.scoreEntretien}/>
-            </div>
-          </div>
-          <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14}}>
-            <Lbl l="Comptes bancaires"/>
-            {[
-              {l:"Compte operation",v:s.soldeOp},
-              {l:"Fonds prevoyance",v:s.soldePrev},
-              {l:"Fonds assurance",v:s.soldeAss},
-            ].map(function(c,i){return(
-              <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:i<2?"1px solid "+T.border:"none"}}>
-                <span style={{fontSize:11,color:T.muted}}>{c.l}</span>
-                <span style={{fontSize:12,fontWeight:600,color:T.accent}}>{money(c.v)}</span>
-              </div>
-            );})}
-            <div style={{display:"flex",justifyContent:"space-between",paddingTop:8,marginTop:4,borderTop:"2px solid "+T.border}}>
-              <span style={{fontSize:12,fontWeight:700,color:T.navy}}>Total</span>
-              <span style={{fontSize:13,fontWeight:800,color:T.navy}}>{money(totalSoldes)}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+      <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14,marginBottom:14,maxWidth:520}}>
+        <Lbl l="Informations generales"/>
         {[
-          {l:"CE expire",v:s.alertesCE,c:s.alertesCE>0?T.red:T.accent,bg:s.alertesCE>0?T.redL:T.accentL},
-          {l:"Ass. expiree",v:s.alertesAss,c:s.alertesAss>0?T.red:T.accent,bg:s.alertesAss>0?T.redL:T.accentL},
-          {l:"PAP manquant",v:s.alertesPAP,c:s.alertesPAP>0?T.amber:T.accent,bg:s.alertesPAP>0?T.amberL:T.accentL},
-          {l:"Carnet entretien",v:s.alertesCarnet,c:s.alertesCarnet>0?T.amber:T.accent,bg:s.alertesCarnet>0?T.amberL:T.accentL},
-        ].map(function(al,i){return(
-          <div key={i} style={{background:al.bg,borderRadius:9,padding:"10px 12px",border:"1px solid "+al.c+"33",textAlign:"center"}}>
-            <div style={{fontSize:9,color:al.c,fontWeight:700,marginBottom:4,textTransform:"uppercase"}}>{al.l}</div>
-            <div style={{fontSize:22,fontWeight:800,color:al.c}}>{al.v}</div>
-          </div>
-        );})}
-      </div>
-    </div>
-  );
-}
-
-// ===== CREATION SYNDICAT =====
-function CreerSyndicat(p){
-  var s0=useState(1);var etape=s0[0];var setEtape=s0[1];
-  var s1=useState({nom:"",code:"",adr:"",president:"",courriel:"",tel:"",immat:"",anneeConstruction:"",nbUnites:"",exercice:"1 nov au 31 oct",gestionnaire:""});
-  var form=s1[0];var setForm=s1[1];
-  var s2=useState("");var importMsg=s2[0];var setImportMsg=s2[1];
-  var s3=useState(0);var nbImport=s3[0];var setNbImport=s3[1];
-  function sf(k,v){setForm(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
-
-  function parseCSV(text){
-  if(!text)return{ok:false,msg:"Fichier vide",rows:[],errors:[]};
-  var rawLines=text.split("\n");
-  var lines=[];
-  for(var i=0;i<rawLines.length;i++){var l=rawLines[i].trim();if(l.length>0)lines.push(l);}
-  if(lines.length<2)return{ok:false,msg:"Aucune donnee",rows:[],errors:[]};
-  var sep=lines[0].indexOf("\t")>=0?"\t":";";
-  if(lines[0].indexOf(",")>=0&&lines[0].indexOf("\t")<0)sep=",";
-  function splitLine(l){var cells=l.split(sep);return cells.map(function(c){return c.trim().replace(/^["']|["']$/g,"");});}
-  var headers=splitLine(lines[0]).map(function(h){return h.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[\u2019\u0027]/g," ").replace(/\s+/g," ").trim();});
-  function col(row,keys){for(var k=0;k<keys.length;k++){var v=row[keys[k]];if(v!==undefined&&v!=="")return v;}return "";}
-  var rows=[],errors=[];
-  for(var i=1;i<lines.length;i++){
-    var cells=splitLine(lines[i]);
-    if(cells.length<2)continue;
-    var row={};
-    for(var j=0;j<headers.length;j++)row[headers[j]]=cells[j]||"";
-    var unite=col(row,["nom de l unite","unite","unit","no_unite","numero"]);
-    if(!unite)continue;
-    if(unite.toLowerCase().indexOf("total")>=0)continue;
-    var nomComplet=col(row,["proprietaire1 nom","proprietaire 1 nom","nom"]);
-    var prenom="",nom=nomComplet;
-    if(nomComplet&&nomComplet.indexOf(" ")>0){var pts=nomComplet.split(" ");prenom=pts[0];nom=pts.slice(1).join(" ");}
-    var courriel=col(row,["proprietaire1 courriel","proprietaire 1 courriel","courriel","email"]);
-    var tel=col(row,["proprietaire1 telephone","proprietaire 1 telephone","telephone","tel"]);
-    var mobile=col(row,["proprietaire1 telephone cellulaire","cellulaire","mobile"]);
-    var adr=col(row,["proprietaire1 adresse","proprietaire 1 adresse","adresse"]);
-    var langue=col(row,["proprietaire1 langue","langue"]);
-    var estCAval=col(row,["proprietaire1 est membre du conseil?","est membre du conseil?"]);
-    var estOccupantVal=col(row,["proprietaire1 est occupant?","est occupant?"]);
-    var prop2nom=col(row,["proprietaire2 nom","proprietaire 2 nom"]);
-    var prop2courriel=col(row,["proprietaire2 courriel","proprietaire 2 courriel"]);
-    var prop2tel=col(row,["proprietaire2 telephone","proprietaire 2 telephone"]);
-    var fraction=col(row,["fraction totale (%)","fraction totale","fraction de l unite (%)","fraction","quote_part"]).replace(/[%\s]/g,"").replace(",",".");
-    var cadastre=col(row,["cadastre de l unite","cadastre","no_cadastre"]);
-    var cotisation=col(row,["cotisation","mensualite"]).replace(/[$\s]/g,"").replace(",",".");
-    var stationnement=col(row,["stationnement"]);
-    var rangement=col(row,["rangement"]);
-    var acces=col(row,["acces","acc s"]);
-    var vehicule=col(row,["vehicule","v hicule"]);
-    var assurancePolice=col(row,["numero de police","numero police"]);
-    var assuranceExp=col(row,["expiration assurance","expiration"]);
-    var locNom=col(row,["locataire1 nom","locataire nom"]);
-    var locCourriel=col(row,["locataire1 courriel"]);
-    var locTel=col(row,["locataire1 telephone"]);
-    var chauffeEau=col(row,["annee de fabrication du chauffe eau","chauffe eau"]);
-    var foyer=col(row,["foyer"]);
-    var mobilite=col(row,["mobilite reduite","mobilite"]);
-    var estCAb=(estCAval.toLowerCase().indexOf("oui")>=0||estCAval==="1"||estCAval.toLowerCase()==="true");
-    var estOccupantb=(estOccupantVal.toLowerCase().indexOf("oui")>=0||estOccupantVal==="1");
-    rows.push({unite:unite,prenom:prenom,nom:nom,courriel:courriel,tel:tel,mobile:mobile,adr:adr,langue:langue,estCA:estCAb,estOccupant:estOccupantb,prop2nom:prop2nom,prop2courriel:prop2courriel,prop2tel:prop2tel,fraction:fraction,quotePart:fraction,cadastre:cadastre,cotisation:cotisation,stationnement:stationnement,rangement:rangement,acces:acces,vehicule:vehicule,assurancePolice:assurancePolice,assuranceExp:assuranceExp,locNom:locNom,locCourriel:locCourriel,locTel:locTel,chauffeEau:chauffeEau,foyer:foyer,mobilite:mobilite,urgenceNom:col(row,["proprietaire1 telephone (urgences)","urgence nom"]),urgenceTel:col(row,["proprietaire1 telephone (urgences)","urgence tel"]),urgNom:"",urgTel:"",urgLien:"",pap:false,ce:"",ass:"",loc:!!locNom,animaux:0});
-  }
-  var sumF=rows.reduce(function(a,r){var f=parseFloat(r.fraction)||0;return a+(f<0.9?f:0);},0);
-  var multF=(sumF>0&&sumF<=1.5)?100:1;
-  rows.forEach(function(r){var f=parseFloat(r.fraction);if(f&&(multF===1||f<0.9)){var v=(f*multF).toFixed(3);r.fraction=v;r.quotePart=v;}});
-  return{ok:rows.length>0,msg:rows.length+" coproprietaires importes"+(errors.length>0?" ("+errors.length+" erreurs)":""),rows:rows,errors:errors};
-}
-  function handleCSV(e){
-    var file=e&&e.target&&e.target.files&&e.target.files[0];
-    if(!file)return;
-    var name=file.name?file.name.toLowerCase():"";
-    var isXlsx=(name.indexOf(".xlsx")>=0||name.indexOf(".xls")>=0)&&name.indexOf(".csv")<0;
-    if(isXlsx){
-      if(typeof XLSX==="undefined"){
-        var script=document.createElement("script");
-        script.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
-        script.onload=function(){handleCSV(e);};
-        document.head.appendChild(script);
-        return;
-      }
-      var reader2=new FileReader();
-      reader2.onload=function(ev){
-        try{
-          var wb=XLSX.read(ev.target.result,{type:"array"});
-          var ws=wb.Sheets[wb.SheetNames[0]];
-          var csv=XLSX.utils.sheet_to_csv(ws,{FS:"\t"});
-          var nb=parseCSV(csv);
-      if(nb&&nb.ok){setNbImport(nb.rows?nb.rows.length:0);setCopros(nb.rows||[]);setImportMsg(nb.msg||"");}
-      else{setImportMsg("Erreur: format CSV invalide");}
-;
-        }catch(err){
-          alert("Erreur lecture Excel: "+err.message);
-        }
-      };
-      reader2.readAsArrayBuffer(file);
-      return;
-    }
-var reader=new FileReader();
-    reader.onload=function(ev){
-      var nb=parseCSV(ev.target.result);
-      if(nb&&nb.ok){setNbImport(nb.rows?nb.rows.length:0);setCopros(nb.rows||[]);setImportMsg(nb.msg||"");}
-      else{setImportMsg("Erreur: format CSV invalide");}
-    };
-    reader.readAsText(file);
-  }
-
-  var ETAPES=["Informations","Registre","Confirmation"];
-
-  return(
-    <div style={{maxWidth:600,margin:"0 auto"}}>
-      <div style={{display:"flex",gap:0,marginBottom:24,background:T.alt,borderRadius:10,padding:4}}>
-        {ETAPES.map(function(et,i){var a=etape===i+1;var done=etape>i+1;return(
-          <div key={i} style={{flex:1,textAlign:"center",padding:"8px",borderRadius:8,background:a?T.navy:done?T.accentL:"transparent"}}>
-            <div style={{fontSize:11,fontWeight:a||done?700:400,color:a?"#fff":done?T.accent:T.muted}}>{i+1}. {et}</div>
+          {l:"President",v:s.president||"-"},
+          {l:"Courriel",v:s.courriel||"-"},
+          {l:"Telephone",v:s.tel||"-"},
+          {l:"Immatriculation",v:s.immat||"-"},
+          {l:"Annee de constitution",v:s.anneeConstitution||"-"},
+          {l:"Quorum AGO",v:s.quorumAGO?s.quorumAGO+" %":"-"},
+          {l:"Exercice financier",v:s.exercice||"-"},
+        ].map(function(item,i){return(
+          <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid "+T.border}}>
+            <span style={{fontSize:11,color:T.muted}}>{item.l}</span>
+            <span style={{fontSize:12,fontWeight:500,color:T.text,textAlign:"right",maxWidth:220,overflow:"hidden",textOverflow:"ellipsis"}}>{item.v}</span>
           </div>
         );})}
       </div>
 
-      {etape===1&&(
-        <div>
-          <div style={{fontSize:14,fontWeight:700,color:T.navy,marginBottom:16}}>Informations du syndicat</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
-            <FRow l="Nom du syndicat" full><input value={form.nom} onChange={function(e){sf("nom",e.target.value);}} style={INP} placeholder="ex: Syndicat Les Erables"/></FRow>
-            <FRow l="Code (4 lettres)"><input value={form.code} onChange={function(e){sf("code",e.target.value.toUpperCase().slice(0,4));}} style={INP} placeholder="ERAB" maxLength={4}/></FRow>
-            <FRow l="Annee constitution"><input type="number" value={form.anneeConstruction} onChange={function(e){sf("anneeConstruction",e.target.value);}} style={INP} placeholder="2013"/></FRow>
-            <FRow l="Adresse" full><input value={form.adr} onChange={function(e){sf("adr",e.target.value);}} style={INP} placeholder="123 rue des Erables, Quebec QC"/></FRow>
-            <FRow l="Immatriculation"><input value={form.immat} onChange={function(e){sf("immat",e.target.value);}} style={INP} placeholder="1144524577"/></FRow>
-            <FRow l="Exercice financier">
-              <select value={form.exercice} onChange={function(e){sf("exercice",e.target.value);}} style={INP}>
-                <option value="1 nov au 31 oct">1 nov au 31 oct</option>
-                <option value="1 jan au 31 dec">1 jan au 31 dec</option>
-                <option value="1 avr au 31 mars">1 avr au 31 mars</option>
-              </select>
-            </FRow>
-            <FRow l="Nom du president"><input value={form.president} onChange={function(e){sf("president",e.target.value);}} style={INP}/></FRow>
-            <FRow l="Courriel president"><input value={form.courriel} onChange={function(e){sf("courriel",e.target.value);}} style={INP}/></FRow>
-            <FRow l="Telephone"><input value={form.tel} onChange={function(e){sf("tel",e.target.value);}} style={INP}/></FRow>
-            <FRow l="Gestionnaire Predictek"><input value={form.gestionnaire} onChange={function(e){sf("gestionnaire",e.target.value);}} style={INP}/></FRow>
-          </div>
-          <Btn onClick={function(){if(form.nom&&form.code)setEtape(2);}}>Continuer</Btn>
-        </div>
-      )}
-
-      {etape===2&&(
-        <div>
-          <div style={{fontSize:14,fontWeight:700,color:T.navy,marginBottom:8}}>Importer le registre des coproprietaires</div>
-          <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Importez votre fichier Excel/CSV avec les informations des coproprietaires. Ce n est pas obligatoire - vous pouvez les ajouter manuellement plus tard.</div>
-          <div style={{background:T.blueL,borderRadius:10,padding:14,marginBottom:16,border:"1px solid "+T.blue+"44"}}>
-            <div style={{fontSize:12,fontWeight:600,color:T.blue,marginBottom:8}}>Format CSV attendu (colonnes):</div>
-            <div style={{fontSize:11,color:T.blue,fontFamily:"monospace",lineHeight:1.8}}>
-              Unite | Prenom | Nom | Courriel | Telephone | Fraction % | Cotisation | PAP (Oui/Non) | CE expiry | Assurance expiry
-            </div>
-          </div>
-          <div style={{border:"2px dashed "+T.border,borderRadius:10,padding:30,textAlign:"center",marginBottom:14,background:T.alt,cursor:"pointer"}} onClick={function(){document.getElementById("csvCreer").click();}}>
-            <div style={{fontSize:24,marginBottom:8,color:T.muted}}>XLSX / CSV</div>
-            <div style={{fontSize:13,fontWeight:600,color:T.text,marginBottom:4}}>Cliquez pour selectionner votre fichier</div>
-            <div style={{fontSize:11,color:T.muted}}>Formats acceptes: .xlsx, .xls, .csv</div>
-            <input id="csvCreer" type="file" accept=".xlsx,.xls,.csv,.txt" onChange={handleCSV} style={{display:"none"}}/>
-          </div>
-          {importMsg&&(
-            <div style={{background:importMsg.includes("Erreur")?T.redL:T.accentL,color:importMsg.includes("Erreur")?T.red:T.accent,borderRadius:8,padding:"9px 13px",fontSize:12,marginBottom:14}}>{importMsg}</div>
-          )}
-          <div style={{display:"flex",gap:8}}>
-            <Btn onClick={function(){setEtape(3);}}>Continuer{nbImport>0?" ("+nbImport+" copros)":""}</Btn>
-            <Btn onClick={function(){setEtape(1);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Retour</Btn>
-          </div>
-        </div>
-      )}
-
-      {etape===3&&(
-        <div>
-          <div style={{fontSize:14,fontWeight:700,color:T.navy,marginBottom:16}}>Confirmation</div>
-          <div style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:10,padding:16,marginBottom:16}}>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-              {[
-                {l:"Nom",v:form.nom},{l:"Code",v:form.code},
-                {l:"President",v:form.president||"-"},{l:"Immatriculation",v:form.immat||"-"},
-                {l:"Exercice",v:form.exercice},{l:"Gestionnaire",v:form.gestionnaire||"-"},
-                {l:"Adresse",v:form.adr||"-"},{l:"Coproprietaires CSV",v:nbImport>0?nbImport+" detectes":"A ajouter manuellement"},
-              ].map(function(item,i){return(
-                <div key={i}>
-                  <div style={{fontSize:9,color:T.accent,fontWeight:700,textTransform:"uppercase",marginBottom:2}}>{item.l}</div>
-                  <div style={{fontSize:12,fontWeight:600,color:T.text}}>{item.v}</div>
-                </div>
-              );})}
-            </div>
-          </div>
-          <div style={{background:T.amberL,borderRadius:8,padding:"9px 13px",fontSize:11,color:T.amber,marginBottom:16}}>
-            Apres la creation, le syndicat sera actif dans Predictek. Vous pourrez configurer les comptes bancaires, le budget et le carnet d entretien dans le Portail du CA.
-          </div>
-          <div style={{display:"flex",gap:8}}>
-            <Btn onClick={function(){
-              var nouveau=Object.assign({},form,{
-                id:Date.now(),nbUnites:nbImport||0,cotisationMensuelle:0,
-                soldeOp:0,soldePrev:0,soldeAss:0,alertesCE:0,alertesAss:0,
-                alertesPAP:0,alertesCarnet:0,facturesEnAttente:0,montantFactures:0,
-                prochReunion:"",statut:"actif",scoreFinancier:50,
-                scoreConformite:50,scoreEntretien:50,nbCoprosPortail:0,
-                dernierRapport:"",anneeConstruction:parseInt(form.anneeConstruction)||0,
-                nbUnites:nbImport||0,
-              });
-              p.onCreer(nouveau);
-            }}>Creer le syndicat</Btn>
-            <Btn onClick={function(){setEtape(2);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Retour</Btn>
-            <Btn onClick={p.onAnnuler} bg={T.redL} tc={T.red} bdr={"1px solid "+T.red}>Annuler</Btn>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ===== GESTION USAGERS PREDICTEK =====
-function GestionUsagers(p){
-  var s0=useState(USAGERS_INIT);var usagers=s0[0];var setUsagers=s0[1];
-  var s1=useState(false);var showN=s1[0];var setShowN=s1[1];
-  var s2=useState({});var nf=s2[0];var setNf=s2[1];
-  function snf(k,v){setNf(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
-
-  var ROLES=["Admin","Gestionnaire","Terrain","Lecture seule"];
-  var CODES=p.syndicats.filter(function(s){return s.statut==="actif";}).map(function(s){return s.code;});
-
-  return(
-    <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <b style={{fontSize:13,color:T.navy}}>Usagers Predictek</b>
-        <Btn sm onClick={function(){setNf({nom:"",courriel:"",role:"Gestionnaire",syndicats:[],actif:true});setShowN(true);}}>+ Nouvel usager</Btn>
+      <div style={{background:T.blueL,borderRadius:10,padding:"10px 14px",fontSize:11,color:T.blue,maxWidth:520}}>
+        Les soldes et budgets se gerent dans le module Budget (section CA). Les unites et quotes-parts dans le module Unites.
       </div>
-      <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
-        <table style={{width:"100%",borderCollapse:"collapse"}}>
-          <thead>
-            <tr style={{background:T.navy}}>
-              {["Nom","Courriel","Role","Syndicats","Statut","Derniere connexion","Action"].map(function(h){return <th key={h} style={{padding:"7px 12px",fontSize:9,fontWeight:700,color:"#8da0bb",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>;})}
-            </tr>
-          </thead>
-          <tbody>
-            {usagers.map(function(u){return(
-              <tr key={u.id} style={{borderBottom:"1px solid "+T.border,background:u.actif?T.surface:T.alt}}>
-                <td style={{padding:"9px 12px",fontSize:12,fontWeight:600,color:T.text}}>{u.nom}</td>
-                <td style={{padding:"9px 12px",fontSize:11,color:T.muted}}>{u.courriel}</td>
-                <td style={{padding:"9px 12px"}}>
-                  <Bdg bg={u.role==="Admin"?T.purpleL:u.role==="Gestionnaire"?T.blueL:T.accentL} c={u.role==="Admin"?T.purple:u.role==="Gestionnaire"?T.blue:T.accent}>{u.role}</Bdg>
-                </td>
-                <td style={{padding:"9px 12px"}}>
-                  <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                    {u.syndicats.map(function(code){return <Bdg key={code} bg={T.alt} c={T.muted}>{code}</Bdg>;})}
-                    {u.syndicats.length===0&&<span style={{fontSize:10,color:T.muted}}>Aucun</span>}
-                  </div>
-                </td>
-                <td style={{padding:"9px 12px"}}><Bdg bg={u.actif?T.accentL:T.redL} c={u.actif?T.accent:T.red}>{u.actif?"Actif":"Inactif"}</Bdg></td>
-                <td style={{padding:"9px 12px",fontSize:11,color:T.muted}}>{u.derniereConnexion||"-"}</td>
-                <td style={{padding:"9px 12px"}}>
-                  <Btn sm bg={u.actif?T.redL:T.accentL} tc={u.actif?T.red:T.accent} bdr={"1px solid "+(u.actif?T.red:T.accent)} onClick={function(){setUsagers(function(prev){return prev.map(function(x){return x.id===u.id?Object.assign({},x,{actif:!x.actif}):x;});});}}>
-                    {u.actif?"Desactiver":"Reactiver"}
-                  </Btn>
-                </td>
-              </tr>
-            );})}
-          </tbody>
-        </table>
-      </div>
-      <Modal show={showN} onClose={function(){setShowN(false);}} title="Nouvel usager Predictek" w={500}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-          <FRow l="Nom complet" full><input value={nf.nom||""} onChange={function(e){snf("nom",e.target.value);}} style={INP}/></FRow>
-          <FRow l="Courriel" full><input value={nf.courriel||""} onChange={function(e){snf("courriel",e.target.value);}} style={INP}/></FRow>
-          <FRow l="Role" full>
-            <select value={nf.role||"Gestionnaire"} onChange={function(e){snf("role",e.target.value);}} style={INP}>
-              {ROLES.map(function(r){return <option key={r} value={r}>{r}</option>;})}
-            </select>
-          </FRow>
-          <FRow l="Acces aux syndicats" full>
-            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:4}}>
-              {CODES.map(function(code){var sel=(nf.syndicats||[]).includes(code);return(
-                <button key={code} onClick={function(){var cur=nf.syndicats||[];snf("syndicats",sel?cur.filter(function(c){return c!==code;}):cur.concat([code]));}} style={{padding:"4px 10px",border:"1px solid "+(sel?T.accent:T.border),borderRadius:20,background:sel?T.accentL:T.surface,color:sel?T.accent:T.muted,cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:sel?600:400}}>{code}</button>
-              );})}
-            </div>
-          </FRow>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <Btn onClick={function(){
-            if(!nf.nom||!nf.courriel)return;
-            setUsagers(function(prev){return prev.concat([Object.assign({},nf,{id:Date.now(),actif:true,derniereConnexion:""})]);});
-            setShowN(false);
-          }}>Creer l usager</Btn>
-          <Btn onClick={function(){setShowN(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
-        </div>
-      </Modal>
     </div>
   );
 }
@@ -589,436 +267,97 @@ function Toggle(p){return(
   </button>
 );}
 
-var PARAMS_DEFAUT={
-  // Identite
-  nom:"Syndicat Piedmont",
-  adr:"Chemin du Hibou",
-  ville:"Stoneham-et-Tewkesbury",
-  province:"QC",
-  codePostal:"G3C 1T1",
-  immat:"1144524577",
-  exercice:"1 nov au 31 oct",
-  anneeConstruction:"2013",
-  nbUnites:"36",
-  // CA
-  nbMembresCA:5,
-  president:"Jean-Francois Laroche",
-  secretaire:"Maryse Fredette",
-  tresorier:"Claude Pinard",
-  membresCA:["Jean-Francois Laroche","Maryse Fredette","Claude Pinard","Robert Donnelly","Emile Poulin"],
-  // Courriels
-  courrielCA:"ca@syndicatpiedmont.com",
-  courrielFacturesFournisseurs:"factures@syndicatpiedmont.com",
-  courrielCoproprietaires:"info@syndicatpiedmont.com",
-  courrielUrgences:"urgence@syndicatpiedmont.com",
-  courrielComptabilite:"comptabilite@predictek.com",
-  // Traitement auto
-  autoFacturesFournisseurs:true,
-  autoNotifCA:true,
-  autoNotifCopros:true,
-  autoRappelsCotisations:true,
-  autoAlertesConformite:true,
-  // Quorum
-  quorumCA:"majorite",
-  quorumAGO:25,
-  // Documents
-  documents:[
-    {id:1,nom:"Declaration de copropriete",type:"declaration",date:"2013-09-01",taille:"2.4 MB",dispo:true},
-    {id:2,nom:"Reglement de l immeuble",type:"reglement",date:"2023-01-15",taille:"850 KB",dispo:true},
-    {id:3,nom:"Reglement 2024-001 - Animaux",type:"reglement",date:"2024-03-20",taille:"120 KB",dispo:true},
-    {id:4,nom:"Reglement 2024-002 - Stationnement",type:"reglement",date:"2024-06-15",taille:"95 KB",dispo:false},
-  ],
-};
-
+// Parametres d un syndicat - donnees REELLES chargees et sauvegardees en base
 function ParamsSyndicat(p){
-  var syndicat = p.syndicat || "PIED";
-  var s0=useState(PARAMS_DEFAUT);var params=s0[0];var setParams=s0[1];
-  var s1=useState("identite");var ong=s1[0];var setOng=s1[1];
-  var s2=useState("");var newMembre=s2[0];var setNewMembre=s2[1];
-  var s3=useState("");var newCourrielInput=s3[0];var setNewCourrielInput=s3[1];
-  var s4=useState("");var savedMsg=s4[0];var setSavedMsg=s4[1];
-  var s5=useState(false);var showUpload=s5[0];var setShowUpload=s5[1];
-  var s6=useState({nom:"",type:"declaration",dispo:true});var uploadForm=s6[0];var setUploadForm=s6[1];
-  var s7=useState(false);var iaLoading=s7[0];var setIaLoading=s7[1];
-  var s8=useState("");var iaError=s8[0];var setIaError=s8[1];
-  var s9=useState("");var iaSuccess=s9[0];var setIaSuccess=s9[1];
+  var code = p.syndicat || "";
+  var s0=useState(null);var f=s0[0];var setF=s0[1];
+  var s1=useState("");var msg=s1[0];var setMsg=s1[1];
+  var s2=useState("");var err=s2[0];var setErr=s2[1];
+  var s3=useState(false);var enCours=s3[0];var setEnCours=s3[1];
+  var s4=useState(0);var nbU=s4[0];var setNbU=s4[1];
 
-  function extraireIA(){
-    if(iaLoading)return;
-    setIaLoading(true);setIaError("");setIaSuccess("");
-    var files=[];
-    if(window._reqFile)files.push(window._reqFile);
-    if(window._acteFile)files.push(window._acteFile);
-    if(files.length===0){setIaError("Selectionnez au moins un PDF.");setIaLoading(false);return;}
-    function lirePDF(file){
-      return new Promise(function(res,rej){
-        var reader=new FileReader();
-        reader.onerror=function(){rej(new Error("Lecture impossible"));};
-        reader.onload=function(ev){
-          var arr=new Uint8Array(ev.target.result);
-          function run(){
-            pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-            pdfjsLib.getDocument({data:arr}).promise.then(function(pdf){
-              var pages=[];for(var p=1;p<=Math.min(pdf.numPages,60);p++)pages.push(p);
-              return Promise.all(pages.map(function(n){
-                return pdf.getPage(n).then(function(pg){
-                  return pg.getTextContent().then(function(tc){
-                    return tc.items.map(function(it){return it.str;}).join(" ");
-                  });
-                });
-              }));
-            }).then(function(t){res(t.join("\n"));}).catch(rej);
-          }
-          if(typeof pdfjsLib==="undefined"){
-            var s=document.createElement("script");
-            s.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-            s.onload=run;s.onerror=function(){rej(new Error("PDF.js indisponible"));};
-            document.head.appendChild(s);
-          }else{run();}
-        };
-        reader.readAsArrayBuffer(file);
-      });
-    }
-    Promise.all(files.map(lirePDF)).then(function(textes){
-      // Assemblage intelligent: REQ complet + debut de la declaration (identite)
-      // + extraits cibles sur les assemblees/quorum/majorites (souvent loin dans l acte)
-      var idx=0;
-      var texteREQ=window._reqFile?(textes[idx++]||""):"";
-      var texteActe=window._acteFile?(textes[idx]||""):"";
-      var extraitsActe="";
-      if(texteActe){
-        var phrases=texteActe.split(/\.\s+/);
-        var gard=[];
-        for(var pi=0;pi<phrases.length;pi++){
-          if(/quorum|assembl|majorit|vote|convoc/i.test(phrases[pi])){
-            if(pi>0)gard.push(phrases[pi-1]);
-            gard.push(phrases[pi]);
-            if(pi+1<phrases.length)gard.push(phrases[pi+1]);
-          }
-        }
-        extraitsActe=gard.join(". ").substring(0,9000);
+  useEffect(function(){
+    sb.selectOne("syndicats",{eq:{code:code}}).then(function(r){
+      if(r&&r.data){
+        setF(r.data);
+        sb.select("unites",{eq:{syndicat_id:r.data.id},cols:"id",limit:1000}).then(function(ru){
+          if(ru&&ru.data)setNbU(ru.data.length);
+        }).catch(function(){});
       }
-      var texte="";
-      if(texteREQ)texte+=texteREQ.substring(0,12000);
-      if(texteActe){
-        texte+="\n\n=== DEBUT DE LA DECLARATION DE COPROPRIETE ===\n"+texteActe.substring(0,4000);
-        if(extraitsActe)texte+="\n\n=== EXTRAITS PERTINENTS DE LA DECLARATION (assemblees, quorum, majorites, votes) ===\n"+extraitsActe;
-      }
-      if(!texte||texte.trim().length<20){
-        setIaError("PDF non-textuel (image scannee). Saisissez manuellement.");
-        setIaLoading(false);return null;
-      }
-      return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:texte,mode:"syndicat"})});
-    }).then(function(r){
-      if(!r)return;
-      if(!r.ok){setIaError("Erreur serveur "+r.status);setIaLoading(false);return;}
-      return r.json();
-    }).then(function(resp){
-      if(!resp)return;
-      if(resp.error){setIaError(resp.error);setIaLoading(false);return;}
-      var ex=resp.data||{};
-      setData(function(old){
-        var u=Object.assign({},old);
-        if(ex.nom)u.nom=ex.nom;
-        if(ex.immat)u.immat=ex.immat;
-        if(ex.adr)u.adr=ex.adr;
-        if(ex.ville)u.ville=ex.ville;
-        if(ex.province&&ex.province.length===2)u.province=ex.province;
-        if(ex.codePostal)u.codePostal=ex.codePostal;
-        if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);
-        if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;
-        if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);
-        var anCst=ex.anneeConstitution||ex.anneeConstruction;if(anCst&&parseInt(anCst)>1900)u.anneeConstruction=parseInt(anCst);
-        if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
-                      if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}
-        if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
-          u.nbMembresCA=ex.admins.length;
-          u.admins=ex.admins.map(function(a){
-            return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};
-          });
-        }
-        return u;
-      });
-      var champs=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];
-      var n=champs.filter(function(k){return ex[k]&&ex[k]!==""&&ex[k]!==0;}).length;
-      if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;
-      var dbg=resp.debug?" (texte: "+resp.debug.texteLen+" chars)":"";setIaSuccess(n+" champs extraits avec succes - verifiez et completez"+dbg);console.log("EXTRACT DEBUG:",resp.debug,"DATA:",ex);
-      setIaLoading(false);
-    }).catch(function(e){
-      setIaError("Erreur: "+(e&&e.message?e.message:String(e)));
-      setIaLoading(false);
-    });
-  }
-  function handleDoc(e){
-    var file=e.target.files[0];
-    if(!file)return;
-    var newDoc={id:Date.now(),nom:uploadForm.nom||file.name,type:uploadForm.type,date:new Date().toISOString().slice(0,10),taille:file.size>1048576?(file.size/1048576).toFixed(1)+" MB":(file.size/1024).toFixed(0)+" KB",dispo:uploadForm.dispo};
-    sp("documents",params.documents.concat([newDoc]));
-    setShowUpload(false);
-    setSavedMsg("Document ajoute: "+newDoc.nom);
-    setTimeout(function(){setSavedMsg("");},3000);
+      else setErr("Syndicat introuvable en base de donnees (code "+code+").");
+    }).catch(function(e){setErr("Erreur de chargement: "+(e&&e.message?e.message:""));});
+  },[code]);
+
+  function ch(k,v){setF(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
+
+  function sauvegarder(){
+    if(!f||enCours)return;
+    setEnCours(true);setMsg("");setErr("");
+    var maj={nom:f.nom||"",adr:f.adr||"",ville:f.ville||"",province:f.province||"QC",code_postal:f.code_postal||"",immat:f.immat||"",courriel:f.courriel||"",tel:f.tel||"",quorum_ago:parseInt(f.quorum_ago)||null,annee_constitution:parseInt(f.annee_constitution)||null,type_copro:f.type_copro||"",exercice:f.exercice||""};
+    sb.update("syndicats",f.id,maj).then(function(r){
+      setEnCours(false);
+      if(r&&r.error){setErr("ECHEC de la sauvegarde: "+(r.error.message||r.error.hint||"erreur inconnue"));return;}
+      setMsg("Parametres sauvegardes avec succes");
+      sb.log("syndicat","modification","Parametres du syndicat "+(f.nom||code)+" modifies","",code);
+      setTimeout(function(){setMsg("");},4000);
+    }).catch(function(e){setEnCours(false);setErr("Erreur: "+(e&&e.message?e.message:""));});
   }
 
-  var TABS=[
-    {id:"identite",l:"Identite syndicat"},
-    {id:"ca",l:"Conseil d administration"},
-    {id:"courriels",l:"Courriels et automatisation"},
-    {id:"documents",l:"Documents officiels"},
-  ];
-
-  var TYPE_DOC={declaration:{l:"Declaration",bg:T.purpleL,c:T.purple},reglement:{l:"Reglement",bg:T.blueL,c:T.blue},police:{l:"Assurance",bg:T.amberL,c:T.amber},financier:{l:"Financier",bg:T.accentL,c:T.accent},autre:{l:"Autre",bg:T.alt,c:T.muted}};
+  if(err&&!f)return <div style={{padding:30,fontFamily:"Georgia,serif",color:T.red,fontSize:13,fontWeight:600}}>{err}</div>;
+  if(!f)return <div style={{padding:30,fontFamily:"Georgia,serif",color:T.muted,fontSize:13}}>Chargement des parametres...</div>;
 
   return(
-    <div style={{padding:20,fontFamily:"Georgia,serif",maxWidth:860,margin:"0 auto"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+    <div style={{padding:20,fontFamily:"Georgia,serif",maxWidth:780,margin:"0 auto"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <div>
-          <div style={{fontSize:18,fontWeight:800,color:T.navy}}>Parametres - {params.nom}</div>
-          <div style={{fontSize:11,color:T.muted}}>Configuration du syndicat | Code: {syndicat}</div>
+          <div style={{fontSize:18,fontWeight:800,color:T.navy}}>Parametres - {f.nom||code}</div>
+          <div style={{fontSize:11,color:T.muted}}>Code: {code} | {nbU} unite(s) en base</div>
         </div>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          {savedMsg&&<Bdg bg={T.accentL} c={T.accent}>{savedMsg}</Bdg>}
-          <Btn onClick={sauvegarder}>Sauvegarder</Btn>
+        <Btn dis={enCours} onClick={sauvegarder}>{enCours?"Sauvegarde...":"Sauvegarder"}</Btn>
+      </div>
+      {msg&&<div style={{background:"#E8F2EC",border:"2px solid #1B5E3B",borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:12,color:"#1B5E3B",fontWeight:700}}>{msg}</div>}
+      {err&&<div style={{background:"#FDECEA",border:"2px solid #B83232",borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:12,color:"#B83232",fontWeight:700}}>{err}</div>}
+
+      <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:18,marginBottom:14}}>
+        <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:12}}>Identite du syndicat</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div style={{gridColumn:"1/-1"}}><Lbl l="Nom du syndicat"/><input value={f.nom||""} onChange={function(e){ch("nom",e.target.value);}} style={INP}/></div>
+          <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse"/><input value={f.adr||""} onChange={function(e){ch("adr",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Ville"/><input value={f.ville||""} onChange={function(e){ch("ville",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Province"/><select value={f.province||"QC"} onChange={function(e){ch("province",e.target.value);}} style={INP}><option>QC</option><option>ON</option><option>NB</option></select></div>
+          <div><Lbl l="Code postal"/><input value={f.code_postal||""} onChange={function(e){ch("code_postal",fmtCP(e.target.value));}} style={INP} placeholder="G1A 1A1"/></div>
+          <div><Lbl l="NEQ (immatriculation)"/><input value={f.immat||""} onChange={function(e){ch("immat",fmtNEQ(e.target.value));}} style={INP} placeholder="11 chiffres"/></div>
+          <div><Lbl l="Courriel du syndicat"/><input value={f.courriel||""} onChange={function(e){ch("courriel",e.target.value.trim());}} style={Object.assign({},INP,f.courriel&&!courrielValide(f.courriel)?{border:"2px solid #B83232"}:{})}/></div>
+          <div><Lbl l="Telephone"/><input value={f.tel||""} onChange={function(e){ch("tel",fmtTel(e.target.value));}} style={INP} placeholder="418-555-0000" maxLength={12}/></div>
         </div>
       </div>
 
-      <div style={{display:"flex",gap:3,marginBottom:20,background:T.surface,padding:5,borderRadius:10,border:"1px solid "+T.border}}>
-        {TABS.map(function(t){var a=ong===t.id;return(
-          <button key={t.id} onClick={function(){setOng(t.id);}} style={{background:a?T.navy:"transparent",border:"none",borderRadius:7,padding:"7px 14px",color:a?"#fff":T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400,whiteSpace:"nowrap"}}>{t.l}</button>
-        );})}
+      <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:18,marginBottom:14}}>
+        <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:12}}>Constitution et regles</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div><Lbl l="Annee de constitution"/><input type="number" value={f.annee_constitution||""} onChange={function(e){ch("annee_constitution",e.target.value);}} style={INP} placeholder="ex: 1987"/></div>
+          <div><Lbl l="Quorum AGO (%)"/><input type="number" min="10" max="100" value={f.quorum_ago||""} onChange={function(e){ch("quorum_ago",e.target.value);}} style={INP} placeholder="ex: 50"/></div>
+          <div><Lbl l="Type de copropriete"/><select value={f.type_copro||""} onChange={function(e){ch("type_copro",e.target.value);}} style={INP}><option value="">-</option><option value="horizontale">Horizontale</option><option value="verticale">Verticale</option><option value="mixte">Mixte</option></select></div>
+          <div><Lbl l="Exercice financier"/><input value={f.exercice||""} onChange={function(e){ch("exercice",e.target.value);}} style={INP} placeholder="ex: 1 nov au 31 oct"/></div>
+          <div><Lbl l="Nombre d unites (calcule)"/><input value={nbU||f.nb_unites||0} readOnly style={Object.assign({},INP,{background:T.alt,color:T.muted})}/></div>
+          <div><Lbl l="Statut"/><input value={f.statut||""} readOnly style={Object.assign({},INP,{background:T.alt,color:T.muted})}/></div>
+        </div>
       </div>
 
-      {ong==="identite"&&(
-        <div>
-          <Card>
-            <CardTitle>Informations generales</CardTitle>
-            <CardSub>Informations de base du syndicat telles qu inscrites au Registre foncier</CardSub>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div style={{gridColumn:"1/-1"}}><Lbl l="Nom du syndicat"/><input value={params.nom} onChange={function(e){sp("nom",e.target.value);}} style={INP}/></div>
-              <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse du syndicat"/><input value={params.adr} onChange={function(e){sp("adr",e.target.value);}} style={INP}/></div>
-              <div><Lbl l="Ville"/><input value={params.ville} onChange={function(e){sp("ville",e.target.value);}} style={INP}/></div>
-              <div><Lbl l="Province"/><input value={params.province} onChange={function(e){sp("province",e.target.value);}} style={INP}/></div>
-              <div><Lbl l="Code postal"/><input value={params.codePostal} onChange={function(e){sp("codePostal",e.target.value);}} style={INP}/></div>
-              <div><Lbl l="Immatriculation REQ"/><input value={params.immat} onChange={function(e){sp("immat",e.target.value);}} style={INP}/></div>
-              <div><Lbl l="Annee de constitution"/><input value={params.anneeConstruction} onChange={function(e){sp("anneeConstruction",e.target.value);}} style={INP}/></div>
-              <div><Lbl l="Nombre d unites"/><input type="number" value={params.nbUnites} onChange={function(e){sp("nbUnites",e.target.value);}} style={INP}/></div>
-              <div><Lbl l="Exercice financier"/>
-                <select value={params.exercice} onChange={function(e){sp("exercice",e.target.value);}} style={INP}>
-                  <option value="1 nov au 31 oct">1 nov au 31 oct</option>
-                  <option value="1 jan au 31 dec">1 jan au 31 dec</option>
-                  <option value="1 avr au 31 mars">1 avr au 31 mars</option>
-                  <option value="1 juil au 30 juin">1 juil au 30 juin</option>
-                </select>
-              </div>
-            </div>
-          </Card>
-          <Card>
-            <CardTitle>Quorum</CardTitle>
-            <CardSub>Regles de quorum selon la declaration de copropriete</CardSub>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div>
-                <Lbl l="Quorum reunion CA"/>
-                <select value={params.quorumCA} onChange={function(e){sp("quorumCA",e.target.value);}} style={INP}>
-                  <option value="majorite">Majorite simple (50%+1)</option>
-                  <option value="2tiers">Deux tiers (66.7%)</option>
-                  <option value="tous">Unanimite</option>
-                </select>
-              </div>
-              <div>
-                <Lbl l="Quorum AGO (% des voix)"/>
-                <input type="number" min="10" max="75" value={params.quorumAGO} onChange={function(e){sp("quorumAGO",parseInt(e.target.value)||25);}} style={INP}/>
-                <div style={{fontSize:10,color:T.muted,marginTop:3}}>Minimum requis pour tenir l assemblee</div>
-              </div>
-            </div>
-          </Card>
+      {f.reglements_resume&&(
+        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:18,marginBottom:14}}>
+          <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:8}}>Reglements extraits de la declaration</div>
+          <div style={{fontSize:12,color:T.text,whiteSpace:"pre-wrap",lineHeight:1.5}}>{f.reglements_resume}</div>
         </div>
       )}
 
-      {ong==="ca"&&(
-        <div>
-          <Card>
-            <CardTitle>Composition du conseil d administration</CardTitle>
-            <CardSub>Selon la declaration de copropriete - le nombre de membres doit etre impair (3, 5, 7 ou 9)</CardSub>
-            <div style={{marginBottom:16}}>
-              <Lbl l="Nombre de membres du CA"/>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                {[3,5,7,9].map(function(n){var a=params.nbMembresCA===n;return(
-                  <button key={n} onClick={function(){sp("nbMembresCA",n);}} style={{width:60,height:60,borderRadius:10,border:"2px solid "+(a?T.accent:T.border),background:a?T.accentL:T.surface,color:a?T.accent:T.muted,fontSize:20,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>{n}</button>
-                );})}
-              </div>
-              <div style={{fontSize:11,color:T.muted,marginTop:8}}>Actuellement: {params.nbMembresCA} membres | Quorum CA: {Math.ceil(params.nbMembresCA/2)} presents requis</div>
-            </div>
-          </Card>
-          <Card>
-            <CardTitle>Membres du CA</CardTitle>
-            <CardSub>Noms des administrateurs selon la derniere election</CardSub>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
-              <div><Lbl l="President"/><input value={params.president} onChange={function(e){sp("president",e.target.value);}} style={INP}/></div>
-              <div><Lbl l="Secretaire"/><input value={params.secretaire} onChange={function(e){sp("secretaire",e.target.value);}} style={INP}/></div>
-              <div><Lbl l="Tresorier"/><input value={params.tresorier} onChange={function(e){sp("tresorier",e.target.value);}} style={INP}/></div>
-            </div>
-            <Lbl l="Tous les membres du CA"/>
-            <div style={{marginBottom:10,minHeight:36,background:T.alt,borderRadius:8,padding:"6px 8px",display:"flex",flexWrap:"wrap"}}>
-              {params.membresCA.map(function(m,i){return(
-                <Tag key={i} onRemove={function(){sp("membresCA",params.membresCA.filter(function(_,j){return j!==i;}));}}>
-                  {m}
-                </Tag>
-              );})}
-            </div>
-            <div style={{display:"flex",gap:8}}>
-              <input value={newMembre} onChange={function(e){setNewMembre(e.target.value);}} onKeyDown={function(e){if(e.key==="Enter"&&newMembre.trim()){sp("membresCA",params.membresCA.concat([newMembre.trim()]));setNewMembre("");}}} placeholder="Ajouter un membre..." style={Object.assign({},INP,{flex:1})}/>
-              <Btn sm onClick={function(){if(newMembre.trim()){sp("membresCA",params.membresCA.concat([newMembre.trim()]));setNewMembre("");}}}> Ajouter</Btn>
-            </div>
-            {params.membresCA.length>params.nbMembresCA&&(
-              <div style={{background:T.amberL,borderRadius:8,padding:"8px 12px",fontSize:11,color:T.amber,marginTop:10}}>
-                Attention: {params.membresCA.length} membres listes mais le CA est configure pour {params.nbMembresCA} membres.
-              </div>
-            )}
-            {params.membresCA.length<params.nbMembresCA&&(
-              <div style={{background:T.redL,borderRadius:8,padding:"8px 12px",fontSize:11,color:T.red,marginTop:10}}>
-                Poste(s) vacant(s): {params.nbMembresCA-params.membresCA.length} poste(s) a combler.
-              </div>
-            )}
-          </Card>
-        </div>
-      )}
-
-      {ong==="courriels"&&(
-        <div>
-          <Card>
-            <CardTitle>Adresses courriel du syndicat</CardTitle>
-            <CardSub>Ces adresses sont utilisees pour les communications automatiques et la reception des factures</CardSub>
-            <div style={{display:"grid",gridTemplateColumns:"1fr",gap:12}}>
-              {[
-                {k:"courrielCA",l:"Courriel du CA (notifications, PV, reunions)",ph:"ca@syndicat.com",desc:"Recoit les convocations, PV et alertes destinees aux administrateurs"},
-                {k:"courrielFacturesFournisseurs",l:"Courriel reception factures fournisseurs",ph:"factures@syndicat.com",desc:"Les fournisseurs envoient leurs factures a cette adresse pour traitement automatique"},
-                {k:"courrielCoproprietaires",l:"Courriel communications coproprietaires",ph:"info@syndicat.com",desc:"Adresse de contact general pour les coproprietaires"},
-                {k:"courrielUrgences",l:"Courriel urgences 24/7",ph:"urgence@syndicat.com",desc:"Notifie immediatement le CA en cas d urgence"},
-                {k:"courrielComptabilite",l:"Courriel comptabilite Predictek",ph:"comptabilite@predictek.com",desc:"Recoit les factures Predictek et les rapports financiers"},
-              ].map(function(item){return(
-                <div key={item.k} style={{background:T.alt,borderRadius:10,padding:14}}>
-                  <Lbl l={item.l}/>
-                  <input value={params[item.k]||""} onChange={function(e){sp(item.k,e.target.value);}} placeholder={item.ph} style={INP}/>
-                  <div style={{fontSize:10,color:T.muted,marginTop:5}}>{item.desc}</div>
-                </div>
-              );})}
-            </div>
-          </Card>
-
-          <Card>
-            <CardTitle>Automatisation des communications</CardTitle>
-            <CardSub>Activez ou desactivez les envois automatiques pour ce syndicat</CardSub>
-            <div style={{display:"grid",gap:0}}>
-              {[
-                {k:"autoFacturesFournisseurs",l:"Reception et traitement automatique des factures fournisseurs",desc:"Les factures recues par courriel sont automatiquement creees dans le systeme et envoyees pour approbation au CA"},
-                {k:"autoNotifCA",l:"Notifications automatiques au CA",desc:"Rappels de reunions, alertes de conformite, factures en attente"},
-                {k:"autoNotifCopros",l:"Notifications automatiques aux coproprietaires",desc:"Avis de convocations, rappels cotisations, documents disponibles"},
-                {k:"autoRappelsCotisations",l:"Rappels cotisations en retard",desc:"J+5, J+15, J+30 automatiquement"},
-                {k:"autoAlertesConformite",l:"Alertes conformite automatiques",desc:"CE, assurance, PAP - 90 jours, 30 jours, 7 jours avant expiration"},
-              ].map(function(item,i){return(
-                <div key={item.k} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"14px 0",borderBottom:i<4?"1px solid "+T.border:"none"}}>
-                  <div style={{flex:1,paddingRight:16}}>
-                    <div style={{fontSize:13,fontWeight:500,color:T.text,marginBottom:3}}>{item.l}</div>
-                    <div style={{fontSize:11,color:T.muted}}>{item.desc}</div>
-                  </div>
-                  <Toggle on={params[item.k]} onClick={function(){sp(item.k,!params[item.k]);}}/>
-                </div>
-              );})}
-            </div>
-            <div style={{marginTop:16,background:T.amberL,borderRadius:8,padding:"10px 14px",fontSize:11,color:T.amber}}>
-              Note: Les envois reels par courriel necessitent la connexion Supabase + SendGrid (prochaine etape). En mode demo, les alertes s affichent dans le module Notifications.
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {ong==="documents"&&(
-        <div>
-          <Card>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
-              <div>
-                <CardTitle>Documents officiels du syndicat</CardTitle>
-                <CardSub style={{marginBottom:0}}>Declaration de copropriete, reglements votes, polices d assurance. Ces documents sont accessibles aux coproprietaires via leur portail.</CardSub>
-              </div>
-              <Btn sm onClick={function(){setUploadForm({nom:"",type:"declaration",dispo:true});setShowUpload(true);}}>+ Ajouter document</Btn>
-            </div>
-
-            <div style={{display:"grid",gap:10}}>
-              {params.documents.map(function(doc,i){var tp=TYPE_DOC[doc.type]||TYPE_DOC.autre;return(
-                <div key={doc.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:T.alt,borderRadius:10,padding:"12px 16px"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:12}}>
-                    <div style={{width:40,height:40,borderRadius:8,background:tp.bg,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                      <span style={{fontSize:9,fontWeight:800,color:tp.c}}>PDF</span>
-                    </div>
-                    <div>
-                      <div style={{fontSize:13,fontWeight:600,color:T.text}}>{doc.nom}</div>
-                      <div style={{fontSize:10,color:T.muted}}>{doc.date} | {doc.taille}</div>
-                    </div>
-                  </div>
-                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                    <Bdg bg={tp.bg} c={tp.c}>{tp.l}</Bdg>
-                    <div style={{display:"flex",alignItems:"center",gap:6}}>
-                      <span style={{fontSize:10,color:T.muted}}>Copros:</span>
-                      <Toggle on={doc.dispo} onClick={function(){sp("documents",params.documents.map(function(d,j){return j===i?Object.assign({},d,{dispo:!d.dispo}):d;}));}}/>
-                    </div>
-                    <Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red} onClick={function(){sp("documents",params.documents.filter(function(_,j){return j!==i;}));}}>Retirer</Btn>
-                  </div>
-                </div>
-              );})}
-              {params.documents.length===0&&(
-                <div style={{textAlign:"center",padding:40,color:T.muted,fontSize:13}}>Aucun document. Ajoutez votre declaration de copropriete.</div>
-              )}
-            </div>
-
-            <div style={{marginTop:16,background:T.blueL,borderRadius:8,padding:"10px 14px",fontSize:11,color:T.blue}}>
-              Les documents marques "Copros: actif" apparaissent dans l onglet Documents du Portail Coproprietaire. Les coproprietaires peuvent les consulter mais pas les modifier.
-            </div>
-          </Card>
-
-          {showUpload&&(
-            <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}} onClick={function(e){if(e.target===e.currentTarget)setShowUpload(false);}}>
-              <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:14,padding:24,width:480,maxWidth:"94vw"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-                  <b style={{fontSize:14,color:T.text}}>Ajouter un document</b>
-                  <button onClick={function(){setShowUpload(false);}} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:T.muted,lineHeight:1}}>x</button>
-                </div>
-                <div style={{display:"grid",gap:12,marginBottom:14}}>
-                  <div><Lbl l="Nom du document"/><input value={uploadForm.nom} onChange={function(e){setUploadForm(function(o){return Object.assign({},o,{nom:e.target.value});});}} placeholder="ex: Declaration de copropriete 2013" style={INP}/></div>
-                  <div><Lbl l="Type de document"/>
-                    <select value={uploadForm.type} onChange={function(e){setUploadForm(function(o){return Object.assign({},o,{type:e.target.value});});}} style={INP}>
-                      <option value="declaration">Declaration de copropriete</option>
-                      <option value="reglement">Reglement vote</option>
-                      <option value="police">Police d assurance</option>
-                      <option value="financier">Document financier</option>
-                      <option value="autre">Autre</option>
-                    </select>
-                  </div>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:T.alt,borderRadius:8,padding:"10px 14px"}}>
-                    <div>
-                      <div style={{fontSize:12,fontWeight:500}}>Visible aux coproprietaires</div>
-                      <div style={{fontSize:10,color:T.muted}}>Disponible dans le Portail Coproprietaire</div>
-                    </div>
-                    <Toggle on={uploadForm.dispo} onClick={function(){setUploadForm(function(o){return Object.assign({},o,{dispo:!o.dispo});});}}/>
-                  </div>
-                  <div>
-                    <Lbl l="Fichier (PDF recommande)"/>
-                    <input type="file" accept=".pdf,.doc,.docx,.jpg,.png" id="docUpload" onChange={handleDoc} style={{width:"100%",border:"1px solid "+T.border,borderRadius:7,padding:8,fontFamily:"inherit",fontSize:12,boxSizing:"border-box"}}/>
-                  </div>
-                </div>
-                <div style={{background:T.amberL,borderRadius:8,padding:"8px 12px",fontSize:11,color:T.amber,marginBottom:14}}>
-                  Note: En mode demo, le fichier est enregistre localement. Avec Supabase, les documents seront stockes dans le nuage.
-                </div>
-                <div style={{display:"flex",gap:8}}>
-                  <Btn onClick={function(){document.getElementById("docUpload").click();}}>Selectionner et ajouter</Btn>
-                  <Btn onClick={function(){setShowUpload(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      <div style={{background:T.blueL,borderRadius:10,padding:"10px 14px",fontSize:11,color:T.blue}}>
+        Les membres du CA se gerent dans la section Conseil d administration (module Membres CA). Les documents officiels se gerent dans le module Documents. Les unites et quotes-parts dans le module Unites.
+      </div>
     </div>
   );
 }
+
 
 
 function StepIndicator(p){
@@ -1194,7 +533,7 @@ function Onboarding(p){
           function run(){
             pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
             pdfjsLib.getDocument({data:arr}).promise.then(function(pdf){
-              var pages=[];for(var p=1;p<=Math.min(pdf.numPages,60);p++)pages.push(p);
+              var pages=[];for(var p=1;p<=Math.min(pdf.numPages,300);p++)pages.push(p);
               return Promise.all(pages.map(function(n){
                 return pdf.getPage(n).then(function(pg){
                   return pg.getTextContent().then(function(tc){
@@ -1220,6 +559,7 @@ function Onboarding(p){
       var idx=0;
       var texteREQ=window._reqFile?(textes[idx++]||""):"";
       var texteActe=window._acteFile?(textes[idx]||""):"";
+      window._texteActeComplet=texteActe;
       var extraitsActe="";
       if(texteActe){
         var phrases=texteActe.split(/\.\s+/);
@@ -1277,7 +617,17 @@ function Onboarding(p){
       var champs=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];
       var n=champs.filter(function(k){return ex[k]&&ex[k]!==""&&ex[k]!==0;}).length;
       if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;
-      var dbg=resp.debug?" (texte: "+resp.debug.texteLen+" chars)":"";setIaSuccess(n+" champs extraits avec succes - verifiez et completez"+dbg);console.log("EXTRACT DEBUG:",resp.debug,"DATA:",ex);
+      var dbg=resp.debug?" (texte: "+resp.debug.texteLen+" chars)":"";setIaSuccess(n+" champs extraits avec succes - verifiez et completez"+dbg);
+      // Extraction automatique des reglements de la declaration (texte complet)
+      if(window._texteActeComplet&&window._texteActeComplet.length>500){
+        fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:window._texteActeComplet,mode:"reglements"})})
+        .then(lireReponseAPI).then(function(rr){
+          if(rr&&rr.ok&&rr.resume){
+            setData(function(o){return Object.assign({},o,{reglementsResume:rr.resume});});
+            setIaSuccess(function(prev){return (typeof prev==="string"?prev:"")+" | Reglements extraits de la declaration";});
+          }
+        }).catch(function(){});
+      }console.log("EXTRACT DEBUG:",resp.debug,"DATA:",ex);
       setIaLoading(false);
     }).catch(function(e){
       setIaError("Erreur: "+(e&&e.message?e.message:String(e)));
@@ -1313,8 +663,10 @@ function Onboarding(p){
     var syndicat={
       id:Date.now(),
       nom:data.nom,code:data.code,
-      adr:data.adr+", "+data.ville+" "+data.province+" "+data.codePostal,
+      adr:data.adr,ville:data.ville,province:data.province,codePostal:data.codePostal,
       immat:data.immat,anneeConstruction:anneeConstruction,
+      quorumAGO:parseInt(data.quorumAGO)||null,typeCopro:data.typeCopro||"",
+      reglementsResume:data.reglementsResume||"",
       nbUnites:copros.length||parseInt(data.nbUnites)||0,
       exercice:data.exercice,
       president:data.president||nomPourRole("president").replace("-",""),secretaire:data.secretaire||nomPourRole("secretaire").replace("-",""),tresorier:data.tresorier||nomPourRole("tresorier").replace("-",""),
@@ -1323,7 +675,6 @@ function Onboarding(p){
       soldeOp:parseFloat(data.soldeOp)||0,soldePrev:parseFloat(data.soldePrev)||0,soldeAss:parseFloat(data.soldeAss)||0,
       copros:copros,documents:data.documents,composantes:data.composantes,
       statut:"actif",dateCreation:today(),
-      scoreFinancier:75,scoreConformite:80,scoreEntretien:85,
       cotisationMensuelle:copros.reduce(function(a,c){return a+(parseFloat(c.cotisation)||0);},0)||parseFloat(data.cotisationMoyenne)*copros.length||0,
     };
     // Copie locale SANS les NAS (jamais de NAS en clair dans le navigateur)
@@ -1334,7 +685,6 @@ function Onboarding(p){
     if(p.onTermine)p.onTermine(syndicat);
   }
 
-  var totalCot=copros.reduce(function(a,c){return a+(parseFloat(c.cotisation)||0);},0);
 
   // Nom de l administrateur qui occupe un role donne (pour le resume etape 5)
   var nomPourRole=function(r){
@@ -1342,8 +692,6 @@ function Onboarding(p){
     return a?((a.prenom||"")+" "+(a.nom||"")).trim():"-";
   };
   var totalFraction=copros.reduce(function(a,c){return a+(parseFloat(c.fraction)||0);},0);
-  var compOk=data.composantes.filter(function(c){return c.obligatoire&&c.anneeInstall;}).length;
-  var compOblig=data.composantes.filter(function(c){return c.obligatoire;}).length;
 
   return(
     <div style={{padding:20,fontFamily:"Georgia,serif",maxWidth:900,margin:"0 auto"}}>
@@ -1374,67 +722,41 @@ function Onboarding(p){
               <div style={{marginTop:10,background:"#FFF8EE",border:"2px solid #E8A020",borderRadius:8,padding:10}}><div style={{fontSize:11,color:"#B86020",fontWeight:700,marginBottom:4}}>PDF scanne ? Collez le texte du REQ ici</div><textarea id="txtREQ" rows={5} style={{width:"100%",border:"1px solid #E8A020",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:6}} placeholder="Collez le texte copie depuis registreentreprises.gouv.qc.ca..."/><button onClick={function(){var t=document.getElementById("txtREQ")?document.getElementById("txtREQ").value:"";if(!t||t.length<10){setIaError("Collez du texte.");return;}setIaLoading(true);setIaError("");setIaSuccess("");fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:t,mode:"syndicat"})}).then(function(r){return r.json();}).then(function(resp){if(!resp||resp.error){setIaError(resp?resp.error:"Erreur");setIaLoading(false);return;}var ex=resp.data||{};setData(function(o){var u=Object.assign({},o);if(ex.nom)u.nom=ex.nom;if(ex.immat)u.immat=ex.immat;if(ex.adr)u.adr=ex.adr;if(ex.ville)u.ville=ex.ville;if(ex.province&&ex.province.length===2)u.province=ex.province;if(ex.codePostal)u.codePostal=ex.codePostal;if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);var anCst=ex.anneeConstitution||ex.anneeConstruction;if(anCst&&parseInt(anCst)>1900)u.anneeConstruction=parseInt(anCst);if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
                       if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){u.nbMembresCA=ex.admins.length;u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};});}return u;});var ks=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];var n=ks.filter(function(k){return ex[k]&&ex[k]!=="";}).length;if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;setIaSuccess(n+" champs extraits");setIaLoading(false);}).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});}} style={{background:"#B86020",color:"#fff",border:"none",borderRadius:6,padding:"5px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Extraire depuis ce texte</button></div>
               <div style={{marginTop:10,background:"#EFF6FF",border:"2px solid #1A56DB",borderRadius:8,padding:10}}>
-                <div style={{fontSize:11,color:"#1A56DB",fontWeight:700,marginBottom:4}}>Declaration numerisee (scan) ? Analyse par vision IA</div>
-                <div style={{fontSize:10,color:"#7C7568",marginBottom:6}}>Indiquez les pages ou se trouvent la date de constitution et les regles d assemblee (quorum). Exemple: 1-3,25-28 (max 8 pages)</div>
-                <div style={{display:"flex",gap:8}}>
-                  <input id="pagesVision" placeholder="1-3,25-28" style={{flex:1,border:"1px solid #1A56DB55",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit"}}/>
-                  <button onClick={function(){
+                <div style={{fontSize:11,color:"#1A56DB",fontWeight:700,marginBottom:4}}>Declaration numerisee (scan) ? Analyse complete par vision IA</div>
+                <div style={{fontSize:10,color:"#7C7568",marginBottom:6}}>Le document ENTIER est analyse automatiquement, page par page: annee de constitution, quorum, reglements de gestion, penalites. Aucun numero de page a fournir.</div>
+                <button onClick={function(){
                     if(!window._acteFile){setIaError("Importez d abord la declaration de copropriete (PDF) ci-dessus.");return;}
-                    var spec=(document.getElementById("pagesVision")||{}).value||"";
-                    var pages=[];
-                    spec.split(",").forEach(function(part){
-                      var m=part.trim().match(/^(\d+)\s*-\s*(\d+)$/);
-                      if(m){for(var pp=parseInt(m[1]);pp<=parseInt(m[2]);pp++)pages.push(pp);}
-                      else if(/^\d+$/.test(part.trim()))pages.push(parseInt(part.trim()));
-                    });
-                    pages=pages.slice(0,8);
-                    if(pages.length===0){setIaError("Indiquez des pages valides, ex: 1-3,25-28");return;}
-                    setIaLoading(true);setIaError("");setIaSuccess("");
-                    var lancer=function(){
-                      var fr=new FileReader();
-                      fr.onload=function(ev){
-                        pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-                        pdfjsLib.getDocument({data:new Uint8Array(ev.target.result)}).promise.then(function(pdf){
-                          return Promise.all(pages.filter(function(n){return n>=1&&n<=pdf.numPages;}).map(function(n){
-                            return pdf.getPage(n).then(function(pg){
-                              var vp=pg.getViewport({scale:1.5});
-                              var cv=document.createElement("canvas");cv.width=vp.width;cv.height=vp.height;
-                              return pg.render({canvasContext:cv.getContext("2d"),viewport:vp}).promise.then(function(){
-                                return cv.toDataURL("image/jpeg",0.72).split(",")[1];
-                              });
-                            });
-                          }));
-                        }).then(function(images){
-                          return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({images:images,mode:"syndicat"})}).then(lireReponseAPI);
-                        }).then(function(resp){
-                          if(!resp||resp.error){setIaError((resp&&resp.error)||"Erreur");setIaLoading(false);return;}
-                          var ex=resp.data||{};
-                          setData(function(o){
-                            var u=Object.assign({},o);
-                            var anC=ex.anneeConstitution||ex.anneeConstruction;
-                            if(anC&&parseInt(anC)>1900)u.anneeConstruction=parseInt(anC);
-                            if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);
-                            if(ex.nbUnites&&parseInt(ex.nbUnites)>0&&!u.nbUnites)u.nbUnites=parseInt(ex.nbUnites);
-                            if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
-                            return u;
-                          });
-                          var trouve=[];
-                          if(ex.quorumAGO)trouve.push("quorum "+ex.quorumAGO+" %");
-                          if(ex.anneeConstitution||ex.anneeConstruction)trouve.push("constitution "+(ex.anneeConstitution||ex.anneeConstruction));
-                          setIaSuccess(trouve.length>0?"Vision IA: "+trouve.join(", ")+" extraits des pages "+spec:"Vision IA: rien trouve dans ces pages - essayez d autres pages.");
-                          setIaLoading(false);
-                        }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});
-                      };
-                      fr.readAsArrayBuffer(window._acteFile);
-                    };
-                    if(typeof pdfjsLib==="undefined"){
-                      var sc=document.createElement("script");
-                      sc.src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-                      sc.onload=lancer;sc.onerror=function(){setIaError("PDF.js indisponible");setIaLoading(false);};
-                      document.head.appendChild(sc);
-                    }else{lancer();}
-                  }} style={{background:"#1A56DB",color:"#fff",border:"none",borderRadius:6,padding:"5px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Analyser ces pages</button>
-                </div>
+                    setIaLoading(true);setIaError("");setIaSuccess("Analyse de la declaration en cours...");
+                    var acc={reglements:[]};
+                    chargerActe().then(function(pdf){
+                      return visionToutLeDocument(pdf,{mode:"syndicat"},function(dd){
+                        if(dd.anneeConstitution&&(!acc.anneeConstitution||parseInt(dd.anneeConstitution)<parseInt(acc.anneeConstitution)))acc.anneeConstitution=dd.anneeConstitution;
+                        if(dd.quorumAGO&&!acc.quorumAGO)acc.quorumAGO=dd.quorumAGO;
+                        if(dd.nbUnites&&!acc.nbUnites)acc.nbUnites=dd.nbUnites;
+                        if(dd.typeCopro&&!acc.typeCopro)acc.typeCopro=dd.typeCopro;
+                        if(dd.reglements&&String(dd.reglements).trim().length>10)acc.reglements.push(String(dd.reglements).trim());
+                      },null,function(p1,p2,tot){
+                        setIaSuccess("Vision IA: analyse des pages "+p1+"-"+p2+" sur "+tot+"...");
+                      });
+                    }).then(function(){
+                      setData(function(o){
+                        var u=Object.assign({},o);
+                        if(acc.anneeConstitution&&parseInt(acc.anneeConstitution)>1900)u.anneeConstruction=parseInt(acc.anneeConstitution);
+                        if(acc.quorumAGO&&parseInt(acc.quorumAGO)>0)u.quorumAGO=parseInt(acc.quorumAGO);
+                        if(acc.nbUnites&&parseInt(acc.nbUnites)>0&&!u.nbUnites)u.nbUnites=parseInt(acc.nbUnites);
+                        if(acc.typeCopro&&["horizontale","verticale","mixte"].indexOf(acc.typeCopro)>=0)u.typeCopro=acc.typeCopro;
+                        if(acc.reglements.length>0)u.reglementsResume=acc.reglements.join("\n\n").substring(0,8000);
+                        return u;
+                      });
+                      var trouve=[];
+                      if(acc.quorumAGO)trouve.push("quorum "+acc.quorumAGO+" %");
+                      if(acc.anneeConstitution)trouve.push("constitution "+acc.anneeConstitution);
+                      if(acc.nbUnites)trouve.push(acc.nbUnites+" unites");
+                      if(acc.reglements.length>0)trouve.push("reglements extraits ("+acc.reglements.length+" section(s))");
+                      setIaSuccess(trouve.length>0?"Analyse complete terminee: "+trouve.join(", "):"Analyse terminee - rien de lisible trouve. Le scan est peut-etre de trop faible qualite.");
+                      setIaLoading(false);
+                    }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});
+                  }} style={{background:"#1A56DB",color:"#fff",border:"none",borderRadius:6,padding:"6px 16px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Analyser toute la declaration</button>
               </div></>
               )}
               {iaLoading&&(
@@ -1670,7 +992,7 @@ function Onboarding(p){
                   <Field l="Courriel"><input type="email" value={admin.courriel} onChange={function(e){sadmin(i,"courriel",e.target.value.trim());}} style={Object.assign({},INP,admin.courriel&&!courrielValide(admin.courriel)?{border:"2px solid #B83232"}:{})} placeholder="nom@exemple.com"/>{admin.courriel&&!courrielValide(admin.courriel)&&<div style={{fontSize:10,color:"#B83232",marginTop:2}}>Format de courriel invalide</div>}</Field>
                   <Field l="Mobile"><input type="tel" value={admin.mobile} onChange={function(e){sadmin(i,"mobile",fmtTel(e.target.value));}} style={INP} placeholder="418-555-0000" maxLength={12}/></Field>
                   <Field l="Debut du mandat"><input type="date" value={admin.dateDebut} onChange={function(e){sadmin(i,"dateDebut",e.target.value);}} style={INP}/></Field>
-                  <Field l="NAS (chiffre)" hint="9 chiffres - jamais affiche en clair"><input type="password" value={admin.nas} onChange={function(e){sadmin(i,"nas",fmtNAS(e.target.value));}} style={Object.assign({},INP,admin.nas?(nasValide(admin.nas)?{border:"2px solid #1B5E3B"}:{border:"2px solid #B83232"}):{})} placeholder="000-000-000" maxLength={11}/>{admin.nas&&!nasValide(admin.nas)&&<div style={{fontSize:10,color:"#B83232",marginTop:2}}>NAS invalide - 9 chiffres requis (verification Luhn)</div>}</Field>
+                  <Field l="NAS" hint="Visible pendant la saisie - chiffre des l activation, jamais stocke en clair"><input type="text" inputMode="numeric" autoComplete="off" value={admin.nas} onChange={function(e){sadmin(i,"nas",fmtNAS(e.target.value));}} style={Object.assign({},INP,admin.nas?(nasValide(admin.nas)?{border:"2px solid #1B5E3B"}:{border:"2px solid #B83232"}):{})} placeholder="000-000-000" maxLength={11}/>{admin.nas&&!nasValide(admin.nas)&&<div style={{fontSize:10,color:"#B83232",marginTop:2}}>NAS invalide - 9 chiffres requis (verification Luhn)</div>}</Field>
                 </div>
               </div>
             );})}
@@ -1777,32 +1099,48 @@ function Onboarding(p){
               {!window._acteB64&&<div style={{fontSize:11,color:"#B86020"}}>Aucune declaration fournie a l etape 1 - retournez a l etape 1 pour l importer si vous souhaitez valider les quote-parts.</div>}
               {window._acteB64&&(
                 <div>
-                  <div style={{fontSize:10,color:T.muted,marginBottom:6}}>Declaration volumineuse ou numerisee (scan)? Indiquez les pages du tableau des quotes-parts (ex: 12-15, max 8 pages) - elles seront analysees par vision IA.</div>
-                  <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-                    <input id="pagesQP" placeholder="Pages (ex: 12-15)" style={{width:150,border:"1px solid #1B5E3B55",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit"}}/>
-                    <button onClick={function(){
-                      var spec=((document.getElementById("pagesQP")||{}).value||"").trim();
-                      var unitesEnvoi=copros.map(function(c){return {unite:c.unite,fraction:c.fraction};});
-                      var traiter=function(resp){
-                        if(!resp||resp.error){setQpResult({error:(resp&&resp.error)||"Erreur"});return;}
-                        setQpResult(resp.data||{});
-                      };
-                      if(spec){
-                        setQpResult({loading:true});
-                        rendrePagesActe(spec,8).then(function(images){
-                          return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({images:images,mode:"quoteparts",unites:unitesEnvoi})}).then(lireReponseAPI);
-                        }).then(traiter).catch(function(e){setQpResult({error:e.message});});
-                        return;
-                      }
-                      if(window._acteB64&&window._acteB64.length>4200000){setQpResult({error:"La declaration PDF est volumineuse (plus de 3 Mo). Indiquez ci-dessus les pages du tableau des quotes-parts (ex: 12-15) puis cliquez de nouveau sur le bouton."});return;}
-                      setQpResult({loading:true});
-                      fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({pdf:window._acteB64,mode:"quoteparts",unites:unitesEnvoi})})
-                      .then(lireReponseAPI)
-                      .then(traiter).catch(function(e){setQpResult({error:e.message});});
-                    }} disabled={qpResult&&qpResult.loading} style={{background:"#1B5E3B",color:"#fff",border:"none",borderRadius:6,padding:"7px 16px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
-                      {qpResult&&qpResult.loading?"Validation en cours...":"Valider les quote-parts avec la declaration"}
-                    </button>
-                  </div>
+                  <div style={{fontSize:10,color:T.muted,marginBottom:6}}>La declaration COMPLETE est analysee automatiquement (texte ou scan). Aucun numero de page a fournir.</div>
+                  <button onClick={function(){
+                    if(qpResult&&qpResult.loading)return;
+                    var unitesEnvoi=copros.map(function(c){return {unite:c.unite,fraction:c.fraction};});
+                    var attendu=unitesEnvoi.length;
+                    setQpResult({loading:true,msg:"Lecture de la declaration..."});
+                    var trouvees=[];
+                    chargerActe().then(function(pdf){
+                      return textesParPage(pdf).then(function(txts){
+                        var totalTexte=txts.join("").replace(/\s+/g,"").length;
+                        if(totalTexte>500){
+                          // Declaration TEXTUELLE: reperer les pages contenant des quotes-parts/fractions
+                          var cibles=[];
+                          txts.forEach(function(t,i){
+                            if(/quote|fraction|parties communes/i.test(t)&&/\d+[.,]\d{2,}/.test(t))cibles.push(i);
+                          });
+                          if(cibles.length===0)txts.forEach(function(t,i){if(/quote|fraction/i.test(t))cibles.push(i);});
+                          var texte=cibles.map(function(i){return "PAGE "+(i+1)+":\n"+txts[i];}).join("\n\n").substring(0,29000);
+                          if(!texte){setQpResult({error:"Aucune page de quotes-parts reperee dans le texte de la declaration."});return null;}
+                          setQpResult({loading:true,msg:"Analyse des quotes-parts ("+cibles.length+" page(s) reperee(s))..."});
+                          return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:texte,mode:"quoteparts_liste"})}).then(lireReponseAPI).then(function(resp){
+                            if(!resp||resp.error){setQpResult({error:(resp&&resp.error)||"Erreur"});return null;}
+                            trouvees=(resp.data&&resp.data.trouvees)||[];
+                            return true;
+                          });
+                        }
+                        // Declaration NUMERISEE: vision IA sur tout le document, arret des que tout est trouve
+                        return visionToutLeDocument(pdf,{mode:"quoteparts_liste"},function(dd){
+                          if(dd&&Array.isArray(dd.trouvees))trouvees=trouvees.concat(dd.trouvees);
+                        },function(){
+                          return trouvees.length>=attendu&&attendu>0;
+                        },function(p1,p2,tot){
+                          setQpResult({loading:true,msg:"Vision IA: pages "+p1+"-"+p2+" sur "+tot+" ("+trouvees.length+"/"+attendu+" quotes-parts trouvees)..."});
+                        }).then(function(){return true;});
+                      });
+                    }).then(function(ok){
+                      if(!ok)return;
+                      setQpResult(comparerQuoteparts(trouvees,unitesEnvoi));
+                    }).catch(function(e){setQpResult({error:e.message});});
+                  }} disabled={qpResult&&qpResult.loading} style={{background:"#1B5E3B",color:"#fff",border:"none",borderRadius:6,padding:"7px 16px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                    {qpResult&&qpResult.loading?(qpResult.msg||"Validation en cours..."):"Valider les quote-parts avec la declaration"}
+                  </button>
                 </div>
               )}
               {qpResult&&qpResult.error&&<div style={{marginTop:8,fontSize:11,color:"#B83232"}}>Erreur: {qpResult.error}</div>}
@@ -1847,14 +1185,14 @@ function Onboarding(p){
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
             {[{cat:"declaration",l:"Declaration de copropriete",desc:"Document fondateur - acte notarie",obligatoire:true},{cat:"reglement",l:"Reglement de l immeuble",desc:"Regles de vie approuvees en assemblee",obligatoire:true},{cat:"police",l:"Police d assurance",desc:"Assurance syndicat en vigueur",obligatoire:false},{cat:"financier",l:"Etats financiers annuels",desc:"Derniers etats financiers verifies",obligatoire:false},{cat:"carnet_prev",l:"Etude du fonds de prevoyance",desc:"Etude actuarielle Loi 16",obligatoire:false},{cat:"autre",l:"Autre document",desc:"Tout autre document pertinent",obligatoire:false}].map(function(dtype){
               var uploaded=data.documents.filter(function(d){return d.cat===dtype.cat;});
-                  var viaEtape1=(dtype.cat==="declaration"&&data.acteNom)?true:false;
+                  var viaEtape1=(dtype.cat==="declaration"&&data.acteNom)?true:(dtype.cat==="reglement"&&data.reglementsResume)?true:false;
               return(
                 <div key={dtype.cat} style={{background:T.surface,border:"1px solid "+((uploaded.length>0||viaEtape1)?T.accent:dtype.obligatoire?T.amber:T.border),borderRadius:10,padding:12}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
                     <div>
                       <div style={{fontSize:12,fontWeight:700,color:T.text}}>{dtype.l}{dtype.obligatoire&&<span style={{color:T.red,marginLeft:4}}>*</span>}</div>
                       <div style={{fontSize:10,color:T.muted}}>{dtype.desc}</div>
-                          {viaEtape1&&<div style={{fontSize:10,color:"#155724",background:"#D4EDDA",borderRadius:5,padding:"2px 8px",display:"inline-block",marginTop:3,fontWeight:600}}>Fournie a l etape 1: {data.acteNom}</div>}
+                          {viaEtape1&&<div style={{fontSize:10,color:"#155724",background:"#D4EDDA",borderRadius:5,padding:"2px 8px",display:"inline-block",marginTop:3,fontWeight:600}}>{dtype.cat==="declaration"?"Fournie a l etape 1: "+data.acteNom:"Reglements extraits automatiquement de la declaration"}</div>}
                     </div>
                     {(uploaded.length>0||viaEtape1)&&<span style={{fontSize:16,color:T.accent}}>OK</span>}
                   </div>
@@ -1882,12 +1220,10 @@ function Onboarding(p){
           <div style={{fontSize:12,color:T.muted,marginBottom:20}}>Verifiez le resume de la configuration avant d activer le syndicat.</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:20}}>
             {[
-              {titre:"Syndicat",items:[{l:"Nom",v:data.nom},{l:"Code",v:data.code},{l:"Immatriculation",v:data.immat||"-"},{l:"Construction",v:data.anneeConstruction},{l:"Exercice",v:data.exercice}]},
-              {titre:"CA",items:[{l:"Membres",v:(data.admins||[]).filter(function(a){return a&&(a.nom||a.prenom);}).length+" membres"},{l:"President",v:nomPourRole("president")},{l:"Secretaire",v:nomPourRole("secretaire")},{l:"Tresorier",v:nomPourRole("tresorier")}]},
-              {titre:"Coproprietaires",items:[{l:"Importes",v:copros.length||data.nbUnites||"0"},{l:"Cotisations/mois",v:totalCot>0?money(totalCot):"-"},{l:"Fraction totale",v:totalFraction>0?totalFraction.toFixed(3)+"%":"-"}]},
-              {titre:"Finances",items:[{l:"Exploitation",v:money(parseFloat(data.soldeOp)||0)},{l:"Prevoyance",v:money(parseFloat(data.soldePrev)||0)},{l:"Assurance",v:money(parseFloat(data.soldeAss)||0)},{l:"Budget annuel",v:data.budgetAnnuel?money(parseFloat(data.budgetAnnuel)):"-"}]},
-              {titre:"Documents",items:[{l:"Importes",v:data.documents.length+" document(s)"},{l:"Declaration",v:(data.documents.find(function(d){return d.cat==="declaration";})||data.acteNom)?"- Presente":"- Manquante"},{l:"Reglement",v:data.documents.find(function(d){return d.cat==="reglement";})?"- Present":"-"}]},
-              {titre:"Carnet Loi 16",items:[{l:"Composantes",v:data.composantes.length+" total"},{l:"Completees",v:compOk+"/"+compOblig+" obligatoires"},{l:"Inspecteur",v:data.inspecteur||"-"},{l:"Date inspection",v:data.dateInspection||"-"}]},
+              {titre:"Syndicat",items:[{l:"Nom",v:data.nom},{l:"Code",v:data.code},{l:"Immatriculation",v:data.immat||"-"},{l:"Annee de constitution",v:data.anneeConstruction||"-"},{l:"Quorum AGO",v:data.quorumAGO?data.quorumAGO+" %":"-"},{l:"Exercice",v:data.exercice}]},
+              {titre:"Conseil d administration",items:(data.admins||[]).filter(function(a){return a&&(a.nom||a.prenom);}).map(function(a){var rl={president:"President(e)",vice:"Vice-president(e)",tresorier:"Tresorier(e)",secretaire:"Secretaire",membre:"Membre"};return {l:rl[a.role]||"Membre",v:((a.prenom||"")+" "+(a.nom||"")).trim()};})},
+              {titre:"Unites et quotes-parts",items:[{l:"Unites importees",v:copros.length||data.nbUnites||"0"},{l:"Fraction totale",v:totalFraction>0?totalFraction.toFixed(3)+" %":"-"},{l:"Quotes-parts validees",v:qpResult&&qpResult.concordance===true?"Oui":"A valider"}]},
+              {titre:"Documents",items:[{l:"Importes",v:data.documents.length+" document(s)"},{l:"Declaration",v:(data.documents.find(function(d){return d.cat==="declaration";})||data.acteNom)?"- Presente":"- Manquante"},{l:"Reglements",v:(data.reglementsResume?"- Extraits de la declaration":(data.documents.find(function(d){return d.cat==="reglement";})?"- Fichier fourni":"-"))}]},
             ].map(function(section){return(
               <div key={section.titre} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14}}>
                 <div style={{fontSize:11,fontWeight:700,color:T.navy,marginBottom:10,paddingBottom:6,borderBottom:"1px solid "+T.border}}>{section.titre}</div>
@@ -1901,7 +1237,10 @@ function Onboarding(p){
             );})}
           </div>
           <div style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:10,padding:"12px 16px",marginBottom:16,fontSize:12,color:T.accent}}>
-            <b>Pret a activer!</b> Le syndicat {data.nom} sera cree et accessible dans tous les modules Predictek. Toutes les donnees importees seront disponibles immediatement.
+            <b>Pret a activer!</b> Le syndicat {data.nom} sera cree et accessible dans tous les modules Predictek.
+          </div>
+          <div style={{background:T.blueL,borderRadius:10,padding:"10px 14px",marginBottom:16,fontSize:11,color:T.blue}}>
+            Prochaines etapes apres l activation: creer le BUDGET (les cotisations mensuelles par unite seront calculees a partir du budget et des quotes-parts), puis les soldes bancaires et le carnet d entretien Loi 16.
           </div>
           <div style={{display:"flex",justifyContent:"space-between"}}>
             <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setStep(4);}}>- Retour</Btn>
@@ -1942,7 +1281,15 @@ function ParamsPredictek(){
   function sauver(){
     save("entreprise",infos);save("fiscalite",fisc);save("banque",banque);save("logo",logo);
     try{if(logo.url)localStorage.setItem("predictek_logo",logo.url);}catch(e){}
-    setOk("Sauvegarde!");setTimeout(function(){setOk("");},3000);
+    // Le logo est publie en base pour apparaitre dans l entete et au login de TOUS les usagers
+    if(logo.url){
+      sb.upsert("config_publique",[{cle:"logo",valeur:logo.url}],"cle").then(function(r){
+        if(r&&r.error)setOk("Sauvegarde locale OK mais publication du logo ECHOUEE: "+(r.error.message||""));
+        else {setOk("Sauvegarde! Logo publie pour tous les usagers.");setTimeout(function(){setOk("");},4000);}
+      });
+    } else {
+      setOk("Sauvegarde!");setTimeout(function(){setOk("");},3000);
+    }
   }
   function handleLogo(e){
     var file=e.target.files[0];if(!file)return;
@@ -2046,481 +1393,26 @@ function ParamsPredictek(){
   );
 }
 
-
-
-
-var HISTORIQUE_INIT=[
-  {id:1,date:"2026-04-25 09:15",type:"courriel",dest:"jf.laroche@email.com",sujet:"Rapport mensuel avril 2026",statut:"simule",syndicat:"PIED",moyen:"courriel"},
-  {id:2,date:"2026-04-24 14:30",type:"sms",dest:"+1 418-555-0539",sujet:"Rappel cotisation en retard - Unite 539",statut:"simule",syndicat:"PIED",moyen:"sms"},
-  {id:3,date:"2026-04-22 10:00",type:"courriel",dest:"ca@syndicatpiedmont.com",sujet:"Convocation reunion CA - 15 mai 2026",statut:"simule",syndicat:"PIED",moyen:"courriel"},
-  {id:4,date:"2026-04-20 16:45",type:"courriel",dest:"m.beaudoin@email.com",sujet:"Alerte chauffe-eau - Unite 515",statut:"simule",syndicat:"PIED",moyen:"courriel"},
-  {id:5,date:"2026-04-18 11:20",type:"portail",dest:"Coproprietaires portail actif (3)",sujet:"Avis travaux deneigement",statut:"simule",syndicat:"PIED",moyen:"portail"},
-];
-var TEMPLATES=[
-  {id:1,cat:"Cotisations",nom:"Rappel cotisation J+5",sujet:"[{{syndicat}}] Cotisation en retard - Unite {{unite}}",corps:"Madame, Monsieur,Nous constatons que votre cotisation mensuelle pour l unite {{unite}} d un montant de {{montant}} $ n a pas ete recue.Merci de regulariser sous 10 jours.Cordialement,Administration {{syndicat}}Gere par Predictek",moyens:["courriel"],auto:true},
-  {id:2,cat:"Conformite",nom:"Alerte chauffe-eau expire",sujet:"[{{syndicat}}] Action requise - Chauffe-eau Unite {{unite}}",corps:"Madame, Monsieur,Votre chauffe-eau de l unite {{unite}} est arrive a son terme de vie.Vous devez proceder a son remplacement dans les 60 jours et nous transmettre la preuve d installation.Cordialement,Administration {{syndicat}}",moyens:["courriel","sms"],auto:false},
-  {id:3,cat:"Reunions",nom:"Convocation CA",sujet:"[{{syndicat}}] Convocation - Reunion CA le {{date}}",corps:"Madame, Monsieur,Vous etes convoques a la reunion du CA le {{date}} a {{heure}} - {{lieu}}.Ordre du jour:{{ordre_du_jour}}Merci de confirmer votre presence.Cordialement,{{president}}, President{{syndicat}}",moyens:["courriel"],auto:false},
-  {id:4,cat:"Documents",nom:"Nouveau document disponible",sujet:"[{{syndicat}}] Nouveau document disponible sur votre portail",corps:"Madame, Monsieur,Un nouveau document est maintenant disponible sur votre portail coproprietaire:{{nom_document}}Connectez-vous sur app.predictek.ca pour y acceder.Cordialement,Administration {{syndicat}}",moyens:["courriel","portail"],auto:true},
-  {id:5,cat:"Urgences",nom:"Alerte urgence immeuble",sujet:"URGENT - {{syndicat}}: {{titre_urgence}}",corps:"ALERTE URGENCE{{description}}Action requise: {{action}}Contacter immediatement: {{contact_urgence}}Administration {{syndicat}}",moyens:["courriel","sms"],auto:false},
-  {id:6,cat:"Finances",nom:"Rapport mensuel CA",sujet:"[{{syndicat}}] Rapport mensuel - {{mois}} {{annee}}",corps:"Rapport mensuel - {{mois}} {{annee}}Soldes:- Exploitation: {{solde_op}} $- Prevoyance: {{solde_prev}} $Cotisations recues: {{cot_recues}} $Factures approuvees: {{fact_approuvees}}Rapport genere automatiquement par Predictek",moyens:["courriel"],auto:true},
-];
-var DESTINATAIRES=[
-  {id:1,nom:"Jean-Francois Laroche",unite:"531",courriel:"jf.laroche@email.com",tel:"819-479-4203",groupes:["CA","president"]},
-  {id:2,nom:"Maryse Fredette",unite:"",courriel:"m.fredette@email.com",tel:"418-555-0301",groupes:["CA","secretaire"]},
-  {id:3,nom:"Michel Beaudoin",unite:"515",courriel:"m.beaudoin@email.com",tel:"418-555-0101",groupes:["copros_portail"]},
-  {id:4,nom:"Lucette Tremblay",unite:"539",courriel:"l.tremblay@email.com",tel:"418-555-0539",groupes:["copros_portail","retard"]},
-  {id:5,nom:"CA Syndicat Piedmont",unite:"",courriel:"ca@syndicatpiedmont.com",tel:"",groupes:["CA","liste_ca"]},
-];
-
-function TabEnvoiManuel(){
-  var s0=useState(null);var tmpl=s0[0];var setTmpl=s0[1];
-  var s1=useState({sujet:"",corps:"",moyens:["courriel"],destType:"individuel",destId:"1",destGroupe:"CA",schedule:"maintenant",schedulDate:today()});
-  var form=s1[0];var setForm=s1[1];
-  var s2=useState(HISTORIQUE_INIT);var hist=s2[0];var setHist=s2[1];
-  var s3=useState(false);var sent=s3[0];var setSent=s3[1];
-  function sf(k,v){setForm(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
-
-  function appliquerTemplate(t){
-    setTmpl(t);
-    sf("sujet",t.sujet.replace(/{{syndicat}}/g,"Syndicat Piedmont").replace(/{{unite}}/g,"XXX").replace(/{{date}}/g,"15 mai 2026").replace(/{{mois}}/g,"Avril").replace(/{{annee}}/g,"2026"));
-    sf("corps",t.corps.replace(/{{syndicat}}/g,"Syndicat Piedmont"));
-    sf("moyens",t.moyens);
-  }
-
-  function envoyer(){
-    var dest=form.destType==="individuel"?DESTINATAIRES.find(function(d){return d.id===parseInt(form.destId);}):null;
-    var entry={
-      id:Date.now(),
-      date:now_ts(),
-      type:form.moyens[0],
-      dest:dest?dest.nom+" ("+dest.courriel+")":(form.destGroupe==="CA"?"Conseil CA":form.destGroupe==="copros_portail"?"Copros portail actif":"Tous"),
-      sujet:form.sujet,
-      statut:"simule",
-      syndicat:"PIED",
-      moyen:form.moyens.join("+"),
-    };
-    setHist(function(p){return [entry].concat(p);});
-    setSent(true);
-    setTimeout(function(){setSent(false);},3000);
-  }
-
-  var MOYEN_COLORS={courriel:{c:T.blue,bg:T.blueL},sms:{c:T.accent,bg:T.accentL},portail:{c:T.purple,bg:T.purpleL}};
-
-  return(
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1.2fr",gap:16}}>
-      <div>
-        <div style={{marginBottom:14}}>
-          <Lbl l="Choisir un modele"/>
-          <div style={{display:"grid",gap:6}}>
-            {["Cotisations","Conformite","Reunions","Finances","Urgences","Documents"].map(function(cat){
-              var tpls=TEMPLATES.filter(function(t){return t.cat===cat;});
-              return(
-                <div key={cat}>
-                  <div style={{fontSize:9,color:T.muted,fontWeight:700,textTransform:"uppercase",marginBottom:4,marginTop:4}}>{cat}</div>
-                  {tpls.map(function(t){return(
-                    <button key={t.id} onClick={function(){appliquerTemplate(t);}} style={{display:"block",width:"100%",textAlign:"left",background:tmpl&&tmpl.id===t.id?T.accentL:T.surface,border:"1px solid "+(tmpl&&tmpl.id===t.id?T.accent:T.border),borderRadius:7,padding:"7px 10px",fontSize:11,color:T.text,cursor:"pointer",fontFamily:"inherit",marginBottom:4}}>
-                      <div style={{fontWeight:600}}>{t.nom}</div>
-                      <div style={{display:"flex",gap:4,marginTop:3}}>
-                        {t.moyens.map(function(m){var mc=MOYEN_COLORS[m]||{c:T.muted,bg:T.alt};return <Bdg key={m} bg={mc.bg} c={mc.c}>{m}</Bdg>;})}
-                        {t.auto&&<Bdg bg={T.purpleL} c={T.purple}>Auto</Bdg>}
-                      </div>
-                    </button>
-                  );})}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <div style={{marginBottom:10}}>
-          <Lbl l="Destinataires"/>
-          <div style={{display:"flex",gap:8,marginBottom:8}}>
-            <button onClick={function(){sf("destType","individuel");}} style={{flex:1,padding:"6px",border:"1px solid "+(form.destType==="individuel"?T.accent:T.border),borderRadius:7,background:form.destType==="individuel"?T.accentL:T.surface,color:form.destType==="individuel"?T.accent:T.muted,cursor:"pointer",fontFamily:"inherit",fontSize:11}}>Individuel</button>
-            <button onClick={function(){sf("destType","groupe");}} style={{flex:1,padding:"6px",border:"1px solid "+(form.destType==="groupe"?T.accent:T.border),borderRadius:7,background:form.destType==="groupe"?T.accentL:T.surface,color:form.destType==="groupe"?T.accent:T.muted,cursor:"pointer",fontFamily:"inherit",fontSize:11}}>Groupe</button>
-          </div>
-          {form.destType==="individuel"?(
-            <select value={form.destId} onChange={function(e){sf("destId",e.target.value);}} style={INP}>
-              {DESTINATAIRES.map(function(d){return <option key={d.id} value={d.id}>{d.nom}{d.unite?" ("+d.unite+")":""}</option>;})}
-            </select>
-          ):(
-            <select value={form.destGroupe} onChange={function(e){sf("destGroupe",e.target.value);}} style={INP}>
-              <option value="CA">Conseil d administration (5 membres)</option>
-              <option value="copros_portail">Coproprietaires portail actif (3)</option>
-              <option value="tous_copros">Tous les coproprietaires (15)</option>
-              <option value="retard">Coproprietaires en retard (2)</option>
-            </select>
-          )}
-        </div>
-
-        <div style={{marginBottom:10}}>
-          <Lbl l="Moyens d envoi"/>
-          <div style={{display:"flex",gap:8}}>
-            {["courriel","sms","portail"].map(function(m){
-              var on=form.moyens.includes(m);
-              var mc=MOYEN_COLORS[m]||{c:T.muted,bg:T.alt};
-              return(
-                <button key={m} onClick={function(){sf("moyens",on?form.moyens.filter(function(x){return x!==m;}):form.moyens.concat([m]));}} style={{flex:1,padding:"8px",border:"1px solid "+(on?mc.c:T.border),borderRadius:7,background:on?mc.bg:T.surface,color:on?mc.c:T.muted,cursor:"pointer",fontFamily:"inherit",fontSize:12,fontWeight:on?600:400,textTransform:"capitalize"}}>{m}</button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div style={{marginBottom:10}}>
-          <Lbl l="Sujet"/>
-          <input value={form.sujet} onChange={function(e){sf("sujet",e.target.value);}} style={INP}/>
-        </div>
-
-        <div style={{marginBottom:10}}>
-          <Lbl l="Message"/>
-          <textarea value={form.corps} onChange={function(e){sf("corps",e.target.value);}} rows={8} style={Object.assign({},INP,{resize:"vertical"})}/>
-        </div>
-
-        <div style={{marginBottom:14,display:"flex",gap:8}}>
-          <div style={{flex:1}}>
-            <Lbl l="Envoi"/>
-            <select value={form.schedule} onChange={function(e){sf("schedule",e.target.value);}} style={INP}>
-              <option value="maintenant">Maintenant</option>
-              <option value="planifie">Date planifiee</option>
-            </select>
-          </div>
-          {form.schedule==="planifie"&&<div style={{flex:1}}>
-            <Lbl l="Date d envoi"/>
-            <input type="datetime-local" value={form.schedulDate} onChange={function(e){sf("schedulDate",e.target.value);}} style={INP}/>
-          </div>}
-        </div>
-
-        {sent&&<div style={{background:T.accentL,borderRadius:8,padding:"9px 14px",fontSize:12,color:T.accent,marginBottom:10,fontWeight:600}}>Communication envoyee (simulation) - apparait dans l historique ci-dessous.</div>}
-
-        <div style={{background:T.amberL,borderRadius:8,padding:"8px 12px",fontSize:11,color:T.amber,marginBottom:12}}>
-          Mode simulation - Les envois reels necessitent SendGrid (courriel) et Twilio (SMS). Chaque envoi est loggue dans l historique.
-        </div>
-
-        <Btn fw dis={!form.sujet||!form.corps||form.moyens.length===0} onClick={envoyer}>
-          {form.schedule==="planifie"?"Planifier l envoi":"Envoyer maintenant"}
-        </Btn>
-
-        <div style={{marginTop:16}}>
-          <Lbl l="Historique recent"/>
-          <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:9,overflow:"hidden"}}>
-            {hist.slice(0,5).map(function(h,i){return(
-              <div key={h.id} style={{padding:"8px 12px",borderBottom:i<4?"1px solid "+T.border:"none",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div>
-                  <div style={{fontSize:11,fontWeight:600,color:T.text}}>{h.sujet.length>45?h.sujet.slice(0,45)+"...":h.sujet}</div>
-                  <div style={{fontSize:10,color:T.muted}}>{h.dest} | {h.date}</div>
-                </div>
-                <Bdg bg={T.accentL} c={T.accent}>{h.moyen}</Bdg>
-              </div>
-            );})}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TabHistorique(){
-  var s0=useState("tous");var filtre=s0[0];var setFiltre=s0[1];
-  var hist=HISTORIQUE_INIT;
-  var MOYEN_COLORS={courriel:{c:T.blue,bg:T.blueL},sms:{c:T.accent,bg:T.accentL},portail:{c:T.purple,bg:T.purpleL}};
-  var liste=filtre==="tous"?hist:hist.filter(function(h){return h.moyen===filtre||h.moyen.includes(filtre);});
-  return(
-    <div>
-      <div style={{display:"flex",gap:6,marginBottom:14}}>
-        {["tous","courriel","sms","portail"].map(function(f){var a=filtre===f;return(
-          <button key={f} onClick={function(){setFiltre(f);}} style={{background:a?T.navy:"#fff",border:"1px solid "+(a?T.navy:T.border),borderRadius:20,padding:"4px 12px",color:a?"#fff":T.muted,fontSize:11,cursor:"pointer",fontFamily:"inherit",textTransform:"capitalize"}}>{f}</button>
-        );})}
-        <span style={{marginLeft:"auto",fontSize:11,color:T.muted}}>{liste.length} envoi(s)</span>
-      </div>
-      <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
-        <table style={{width:"100%",borderCollapse:"collapse"}}>
-          <thead>
-            <tr style={{background:T.navy}}>
-              {["Date","Sujet","Destinataire","Syndicat","Moyen","Statut"].map(function(h){return <th key={h} style={{padding:"8px 12px",fontSize:10,fontWeight:700,color:"#8da0bb",textAlign:"left",whiteSpace:"nowrap"}}>{h}</th>;})}
-            </tr>
-          </thead>
-          <tbody>
-            {liste.map(function(h){var mc=MOYEN_COLORS[h.moyen]||{c:T.muted,bg:T.alt};return(
-              <tr key={h.id} style={{borderBottom:"1px solid "+T.border}}>
-                <td style={{padding:"9px 12px",fontSize:11,color:T.muted,whiteSpace:"nowrap"}}>{h.date}</td>
-                <td style={{padding:"9px 12px",fontSize:12,color:T.text,maxWidth:220,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h.sujet}</td>
-                <td style={{padding:"9px 12px",fontSize:11,color:T.muted}}>{h.dest}</td>
-                <td style={{padding:"9px 12px"}}><Bdg bg={T.blueL} c={T.blue}>{h.syndicat}</Bdg></td>
-                <td style={{padding:"9px 12px"}}><Bdg bg={mc.bg} c={mc.c}>{h.moyen}</Bdg></td>
-                <td style={{padding:"9px 12px"}}><Bdg bg={T.accentL} c={T.accent}>{h.statut}</Bdg></td>
-              </tr>
-            );})}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function TabConfig(){
-  var s0=useState({
-    sendgridKey:"SG.xxxx-demo",sendgridFrom:"noreply@predictek.ca",sendgridNom:"Predictek",
-    twilioSid:"AC-demo",twilioToken:"demo",twilioFrom:"+18191234567",
-    modeSimulation:true,
-    courrielAdminErreurs:"admin@predictek.com",
-    loggerTout:true,
-  });
-  var cfg=s0[0];var setCfg=s0[1];
-  var s1=useState("");var testDest=s1[0];var setTestDest=s1[1];
-  var s2=useState("");var testMsg=s2[0];var setTestMsg=s2[1];
-  function sc(k,v){setCfg(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
-
-  return(
-    <div>
-      <div style={{background:cfg.modeSimulation?T.amberL:T.accentL,border:"1px solid "+(cfg.modeSimulation?T.amber:T.accent)+"44",borderRadius:10,padding:"12px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div>
-          <div style={{fontSize:13,fontWeight:700,color:cfg.modeSimulation?T.amber:T.accent}}>
-            {cfg.modeSimulation?"Mode simulation actif":"Mode production actif"}
-          </div>
-          <div style={{fontSize:11,color:cfg.modeSimulation?T.amber:T.accent,marginTop:2}}>
-            {cfg.modeSimulation?"Les envois sont logges mais non transmis reellement":"Les courriels et SMS sont envoyes en temps reel"}
-          </div>
-        </div>
-        <button onClick={function(){sc("modeSimulation",!cfg.modeSimulation);}} style={{width:50,height:26,borderRadius:13,background:cfg.modeSimulation?T.amber:T.accent,border:"none",cursor:"pointer",position:"relative"}}>
-          <div style={{width:20,height:20,borderRadius:"50%",background:"#fff",position:"absolute",top:3,left:cfg.modeSimulation?3:27,transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
-        </button>
-      </div>
-
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
-          <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:14}}>Configuration SendGrid (Courriel)</div>
-          <div style={{display:"grid",gap:10}}>
-            <div><Lbl l="Cle API SendGrid"/><input value={cfg.sendgridKey} onChange={function(e){sc("sendgridKey",e.target.value);}} style={INP} type="password" placeholder="SG.xxxxxxxxxxxx"/></div>
-            <div><Lbl l="Adresse d expedition"/><input value={cfg.sendgridFrom} onChange={function(e){sc("sendgridFrom",e.target.value);}} style={INP} placeholder="noreply@predictek.ca"/></div>
-            <div><Lbl l="Nom expediteur"/><input value={cfg.sendgridNom} onChange={function(e){sc("sendgridNom",e.target.value);}} style={INP}/></div>
-          </div>
-          <div style={{marginTop:12,background:T.blueL,borderRadius:8,padding:"8px 12px",fontSize:11,color:T.blue}}>
-            SendGrid gratuit: 100 courriels/jour. Plan Essentials: 14.95$/mois pour 50 000/mois.
-          </div>
-        </div>
-
-        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
-          <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:14}}>Configuration Twilio (SMS)</div>
-          <div style={{display:"grid",gap:10}}>
-            <div><Lbl l="Account SID"/><input value={cfg.twilioSid} onChange={function(e){sc("twilioSid",e.target.value);}} style={INP} type="password" placeholder="ACxxxxxxxxxxxx"/></div>
-            <div><Lbl l="Auth Token"/><input value={cfg.twilioToken} onChange={function(e){sc("twilioToken",e.target.value);}} style={INP} type="password"/></div>
-            <div><Lbl l="Numero expediteur"/><input value={cfg.twilioFrom} onChange={function(e){sc("twilioFrom",e.target.value);}} style={INP} placeholder="+18191234567"/></div>
-          </div>
-          <div style={{marginTop:12,background:T.blueL,borderRadius:8,padding:"8px 12px",fontSize:11,color:T.blue}}>
-            Twilio: ~0.0079 USD/SMS. Environ 8$/mois pour 1000 SMS.
-          </div>
-        </div>
-
-        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
-          <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:14}}>Test d envoi</div>
-          <div style={{display:"grid",gap:8,marginBottom:10}}>
-            <div><Lbl l="Destinataire (courriel ou tel)"/><input value={testDest} onChange={function(e){setTestDest(e.target.value);}} style={INP} placeholder="test@email.com ou +14181234567"/></div>
-            <div><Lbl l="Message test"/><input value={testMsg} onChange={function(e){setTestMsg(e.target.value);}} style={INP} placeholder="Ceci est un test Predictek"/></div>
-          </div>
-          <Btn sm fw onClick={function(){if(!testDest||!testMsg)return;alert("Test envoye (simulation) a: "+testDest+"Connectez SendGrid/Twilio pour envois reels.");}} dis={!testDest||!testMsg}>Envoyer test</Btn>
-        </div>
-
-        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
-          <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:14}}>Options</div>
-          {[
-            {k:"loggerTout",l:"Logger tous les envois",desc:"Conserve l historique complet"},
-            {k:"modeSimulation",l:"Mode simulation",desc:"Desactiver pour envois reels"},
-          ].map(function(item){return(
-            <div key={item.k} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid "+T.border}}>
-              <div>
-                <div style={{fontSize:12,fontWeight:500,color:T.text}}>{item.l}</div>
-                <div style={{fontSize:10,color:T.muted}}>{item.desc}</div>
-              </div>
-              <button onClick={function(){sc(item.k,!cfg[item.k]);}} style={{width:44,height:24,borderRadius:12,background:cfg[item.k]?T.accent:T.border,border:"none",cursor:"pointer",position:"relative",flexShrink:0}}>
-                <div style={{width:18,height:18,borderRadius:"50%",background:"#fff",position:"absolute",top:3,left:cfg[item.k]?23:3,transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
-              </button>
-            </div>
-          );})}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-function StatCard(p){return(
-  <div style={{background:p.bg||T.accentL,borderRadius:10,padding:"13px 15px",border:"1px solid "+(p.c||T.accent)+"33"}}>
-    <div style={{fontSize:9,color:p.c||T.accent,fontWeight:700,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.07em"}}>{p.l}</div>
-    <div style={{fontSize:20,fontWeight:800,color:p.c||T.accent}}>{p.v}</div>
-    {p.sub&&<div style={{fontSize:10,color:(p.c||T.accent)+"99",marginTop:2}}>{p.sub}</div>}
-  </div>
-);}
-function Th(p){return <th style={{padding:"8px 12px",textAlign:p.r?"right":"left",fontSize:10,fontWeight:700,color:p.light?"#8da0bb":T.muted,background:p.dark?T.navy:T.alt,whiteSpace:"nowrap",borderBottom:"1px solid "+T.border}}>{p.children}</th>;}
-function Td(p){return <td style={{padding:"8px 12px",fontSize:12,color:p.c||T.text,fontWeight:p.bold?700:400,textAlign:p.r?"right":"left",borderBottom:"1px solid "+T.border,background:p.bg||"transparent"}}>{p.children}</td>;}
-
-function TabEmployes(){
-  var EMPLOYES_INIT=[];
-  var s0=useState(EMPLOYES_INIT);var employes=s0[0];var setEmployes=s0[1];
-  var s1=useState(null);var sel=s1[0];var setSel=s1[1];
-  var s2=useState(false);var showN=s2[0];var setShowN=s2[1];
-  var s3=useState({});var nf=s3[0];var setNf=s3[1];
-  function snf(k,v){setNf(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
-
-  var actifs=employes.filter(function(e){return e.actif;});
-  var totalMasseSal=actifs.reduce(function(a,e){return a+e.salaire;},0);
-
-  var selE=sel?employes.find(function(e){return e.id===sel;}):null;
-
-  return(
-    <div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:18}}>
-        <StatCard l="Employes actifs" v={actifs.length} c={T.navy} bg={T.blueL}/>
-        <StatCard l="Masse salariale" v={money(totalMasseSal)} c={T.accent} bg={T.accentL} sub="annuelle"/>
-        <StatCard l="Masse salariale" v={money(totalMasseSal/26)} c={T.purple} bg={T.purpleL} sub="par periode (26)"/>
-        <StatCard l="Charges patronales" v={money(totalMasseSal*0.15)} c={T.amber} bg={T.amberL} sub="estimees ~15%"/>
-      </div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <b style={{fontSize:14,color:T.navy}}>Registre des employes</b>
-        <Btn sm onClick={function(){setNf({nom:"",prenom:"",poste:"",dept:"Operations",type:"TP",salaire:"",dateEmbauche:today(),tel:"",courriel:"",naiss:"",nas:"",adresse:"",federal:"M",provincial:"M",rrq:true,rqap:true,vacances:3,actif:true,notes:""});setShowN(true);}}>+ Nouvel employe</Btn>
-      </div>
-      <div style={{display:"flex",gap:14}}>
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
-            <table style={{width:"100%",borderCollapse:"collapse"}}>
-              <thead><tr><Th dark light>Employe</Th><Th dark light>Poste</Th><Th dark light>Dept</Th><Th dark light r>Salaire annuel</Th><Th dark light>Embauche</Th><Th dark light>Vacances</Th><Th dark light>Statut</Th></tr></thead>
-              <tbody>
-                {employes.map(function(e){return(
-                  <tr key={e.id} onClick={function(){setSel(e.id);}} style={{borderBottom:"1px solid "+T.border,background:sel===e.id?T.accentL:e.actif?T.surface:T.alt,cursor:"pointer"}}>
-                    <Td bold>{e.prenom} {e.nom}</Td>
-                    <Td c={T.muted}>{e.poste}</Td>
-                    <Td><Bdg bg={T.blueL} c={T.blue}>{e.dept}</Bdg></Td>
-                    <Td r bold>{money(e.salaire)}</Td>
-                    <Td c={T.muted}>{e.dateEmbauche}</Td>
-                    <Td>{e.vacances} sem.</Td>
-                    <Td><Bdg bg={e.actif?T.accentL:T.redL} c={e.actif?T.accent:T.red}>{e.actif?"Actif":"Inactif"}</Bdg></Td>
-                  </tr>
-                );})}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {selE&&(
-          <div style={{width:320,flexShrink:0}}>
-            <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:16}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
-                <div>
-                  <div style={{fontSize:15,fontWeight:800,color:T.navy}}>{selE.prenom} {selE.nom}</div>
-                  <div style={{fontSize:12,color:T.muted}}>{selE.poste}</div>
-                </div>
-                <button onClick={function(){setSel(null);}} style={{background:"none",border:"none",cursor:"pointer",color:T.muted,fontSize:18,lineHeight:1}}>x</button>
-              </div>
-              <div style={{display:"grid",gap:0}}>
-                {[
-                  {l:"Departement",v:selE.dept},
-                  {l:"Type",v:selE.type==="TP"?"Temps plein":"Temps partiel"},
-                  {l:"Salaire annuel",v:money(selE.salaire)},
-                  {l:"Salaire bimensuel",v:money(Math.round(selE.salaire/26*100)/100)},
-                  {l:"Date d embauche",v:selE.dateEmbauche},
-                  {l:"Semaines vacances",v:selE.vacances+" semaines"},
-                  {l:"Telephone",v:selE.tel||"-"},
-                  {l:"Courriel",v:selE.courriel||"-"},
-                  {l:"Date de naissance",v:selE.naiss||"-"},
-                  {l:"Adresse",v:selE.adresse||"-"},
-                  {l:"Code federal",v:selE.federal},
-                  {l:"Code provincial",v:selE.provincial},
-                  {l:"RRQ",v:selE.rrq?"Cotisant":"Exempte"},
-                  {l:"RQAP",v:selE.rqap?"Cotisant":"Exempte"},
-                ].map(function(item,i){return(
-                  <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"7px 0",borderBottom:"1px solid "+T.border}}>
-                    <span style={{fontSize:10,color:T.muted,flexShrink:0,marginRight:8}}>{item.l}</span>
-                    <span style={{fontSize:11,fontWeight:500,color:T.text,textAlign:"right",wordBreak:"break-word"}}>{item.v}</span>
-                  </div>
-                );})}
-              </div>
-              {selE.notes&&<div style={{marginTop:10,background:T.alt,borderRadius:7,padding:"8px 10px",fontSize:11,color:T.muted}}>{selE.notes}</div>}
-              <div style={{marginTop:12,display:"flex",gap:6}}>
-                <Btn sm fw bg={selE.actif?T.redL:T.accentL} tc={selE.actif?T.red:T.accent} bdr={"1px solid "+(selE.actif?T.red:T.accent)} onClick={function(){setEmployes(function(prev){return prev.map(function(e){return e.id===selE.id?Object.assign({},e,{actif:!e.actif}):e;});});}}>
-                  {selE.actif?"Desactiver":"Reactiver"}
-                </Btn>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <Modal show={showN} onClose={function(){setShowN(false);}} title="Nouvel employe" w={580}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-          <div><Lbl l="Prenom"/><input value={nf.prenom||""} onChange={function(e){snf("prenom",e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Nom"/><input value={nf.nom||""} onChange={function(e){snf("nom",e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Poste"/><input value={nf.poste||""} onChange={function(e){snf("poste",e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Departement"/>
-            <select value={nf.dept||"Operations"} onChange={function(e){snf("dept",e.target.value);}} style={INP}>
-              {["Administration","Operations","Terrain","Comptabilite","Direction"].map(function(d){return <option key={d}>{d}</option>;})}
-            </select>
-          </div>
-          <div><Lbl l="Salaire annuel ($)"/><input type="number" value={nf.salaire||""} onChange={function(e){snf("salaire",parseFloat(e.target.value)||0);}} style={INP}/></div>
-          <div><Lbl l="Date d embauche"/><input type="date" value={nf.dateEmbauche||""} onChange={function(e){snf("dateEmbauche",e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Telephone"/><input value={nf.tel||""} onChange={function(e){snf("tel",e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Courriel"/><input value={nf.courriel||""} onChange={function(e){snf("courriel",e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Date de naissance"/><input type="date" value={nf.naiss||""} onChange={function(e){snf("naiss",e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Semaines de vacances"/>
-            <select value={nf.vacances||3} onChange={function(e){snf("vacances",parseInt(e.target.value));}} style={INP}>
-              {[2,3,4,5,6].map(function(n){return <option key={n} value={n}>{n} semaines</option>;})}
-            </select>
-          </div>
-          <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse"/><input value={nf.adresse||""} onChange={function(e){snf("adresse",e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Code fiscal federal"/>
-            <select value={nf.federal||"M"} onChange={function(e){snf("federal",e.target.value);}} style={INP}><option value="M">M - Marie</option><option value="C">C - Celibataire</option><option value="E">E - Exempte</option></select>
-          </div>
-          <div><Lbl l="Code fiscal provincial"/>
-            <select value={nf.provincial||"M"} onChange={function(e){snf("provincial",e.target.value);}} style={INP}><option value="M">M - Marie</option><option value="C">C - Celibataire</option><option value="E">E - Exempte</option></select>
-          </div>
-          <div style={{gridColumn:"1/-1"}}><Lbl l="Notes"/><textarea value={nf.notes||""} onChange={function(e){snf("notes",e.target.value);}} rows={2} style={Object.assign({},INP,{resize:"vertical"})}/></div>
-        </div>
-        <div style={{display:"flex",gap:8}}>
-          <Btn onClick={function(){if(!nf.nom||!nf.prenom)return;setEmployes(function(prev){return prev.concat([Object.assign({},nf,{id:Date.now(),type:"TP",nas:"***-***-***",actif:true})]);});setShowN(false);}}>Ajouter l employe</Btn>
-          <Btn onClick={function(){setShowN(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
-        </div>
-      </Modal>
-    </div>
-  );
-}
-
+// Equipe et acces: modules REELS (employes en base + invitations Supabase)
 function TabEquipeAcces(){
   var s0=useState("employes");var eOng=s0[0];var setEOng=s0[1];
   var ETABS=[{id:"employes",l:"Employes Predictek"},{id:"usagers",l:"Usagers systeme"}];
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div><div style={{fontSize:14,fontWeight:800,color:T.navy}}>Equipe et acces</div><div style={{fontSize:11,color:T.muted}}>Employes Predictek et acces au systeme</div></div>
-      </div>
       <div style={{display:"flex",gap:3,marginBottom:14,background:T.surface,padding:4,borderRadius:9,border:"1px solid "+T.border,width:"fit-content"}}>
         {ETABS.map(function(t){var a=eOng===t.id;return(<button key={t.id} onClick={function(){setEOng(t.id);}} style={{background:a?"#6B3FA0":"transparent",border:"none",borderRadius:7,padding:"6px 14px",color:a?"#fff":T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400}}>{t.l}</button>);})}
       </div>
-      {eOng==="employes"&&<TabEmployes/>}
-      {eOng==="usagers"&&<GestionUsagers syndicats={[]}/>}
+      {eOng==="employes"&&<GestionEmployes/>}
+      {eOng==="usagers"&&<GestionUtilisateurs/>}
     </div>
   );
 }
 
+// Communications: module REEL branche a la base (plus de donnees de demonstration)
 function TabCommunicationsHub(){
-  var s0=useState("envoi");var cOng=s0[0];var setCOng=s0[1];
-  var CTABS=[{id:"envoi",l:"Envoi"},{id:"historique",l:"Historique"},{id:"config",l:"Configuration"}];
-  return(
-    <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div><div style={{fontSize:14,fontWeight:800,color:T.navy}}>Communications Predictek</div><div style={{fontSize:11,color:T.muted}}>Courriel, SMS et portail - geres par l equipe Predictek</div></div>
-        <div style={{display:"flex",gap:6}}>
-          <span style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:20,background:T.blueL,color:T.blue}}>SendGrid</span>
-          <span style={{fontSize:10,fontWeight:600,padding:"2px 8px",borderRadius:20,background:T.accentL,color:T.accent}}>Twilio</span>
-        </div>
-      </div>
-      <div style={{display:"flex",gap:3,marginBottom:14,background:T.surface,padding:4,borderRadius:9,border:"1px solid "+T.border}}>
-        {CTABS.map(function(t){var a=cOng===t.id;return(<button key={t.id} onClick={function(){setCOng(t.id);}} style={{background:a?T.blue:"transparent",border:"none",borderRadius:7,padding:"6px 14px",color:a?"#fff":T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit",fontWeight:a?600:400}}>{t.l}</button>);})}
-      </div>
-      {cOng==="envoi"&&<TabEnvoiManuel/>}
-      {cOng==="historique"&&<TabHistorique/>}
-      {cOng==="config"&&<TabConfig/>}
-    </div>
-  );
+  return <Communications/>;
 }
+
 
 
 
@@ -2551,7 +1443,7 @@ export default function Hub(){
       var d=new Date(s);
       return isNaN(d.getTime())?null:d.toISOString().substring(0,10);
     };
-    sb.insert("syndicats",{code:nouveau.code,nom:nouveau.nom,adr:nouveau.adr||"",ville:nouveau.ville||"",province:nouveau.province||"QC",immat:nouveau.immat||"",nb_unites:nouveau.nbUnites||0,president:nouveau.president||"",courriel:nouveau.courriel||"",tel:nouveau.tel||"",statut:"actif"}).then(function(res){
+    sb.insert("syndicats",{code:nouveau.code,nom:nouveau.nom,adr:nouveau.adr||"",ville:nouveau.ville||"",province:nouveau.province||"QC",code_postal:nouveau.codePostal||"",immat:nouveau.immat||"",nb_unites:nouveau.nbUnites||0,president:nouveau.president||"",courriel:nouveau.courriel||"",tel:nouveau.tel||"",annee_constitution:parseInt(nouveau.anneeConstruction)||null,quorum_ago:nouveau.quorumAGO||null,type_copro:nouveau.typeCopro||"",exercice:nouveau.exercice||"",reglements_resume:nouveau.reglementsResume||"",statut:"actif"}).then(function(res){
       if(!res||!res.data||!res.data.id){
         var msg=(res&&res.error&&(res.error.message||res.error.hint))||"raison inconnue";
         setErrSync("ECHEC de la sauvegarde du syndicat "+(nouveau.nom||"")+" en base de donnees ("+msg+"). Vos donnees restent dans la sauvegarde locale du navigateur - utilisez le bouton Recuperer ci-dessous apres correction.");
@@ -2690,6 +1582,8 @@ export default function Hub(){
             president:s.president||"",courriel:s.courriel||"",
             tel:s.tel||"",telUrgences:s.tel_urgences||"",
             statut:s.statut||"actif",
+            anneeConstitution:s.annee_constitution||"",quorumAGO:s.quorum_ago||"",
+            exercice:s.exercice||"",
             cotisationMensuelle:0,alertesCE:0,alertesAss:0,
             alertesPAP:0,alertesCarnet:0
           };
@@ -2713,10 +1607,9 @@ export default function Hub(){
   var totalUnites=actifs.reduce(function(a,s){return a+s.nbUnites;},0);
   var totalCot=actifs.reduce(function(a,s){return a+s.cotisationMensuelle;},0);
   var totalAlertes=actifs.reduce(function(a,s){return a+s.alertesCE+s.alertesAss+s.alertesPAP+s.alertesCarnet;},0);
-  var totalFact=actifs.reduce(function(a,s){return a+s.facturesEnAttente;},0);
-  var scoreMoyen=actifs.length>0?Math.round(actifs.reduce(function(a,s){return a+Math.round((s.scoreFinancier+s.scoreConformite+s.scoreEntretien)/3);},0)/actifs.length):0;
+  var totalFact=actifs.reduce(function(a,s){return a+(s.facturesEnAttente||0);},0);
 
-  var TABS=[{id:"syndicats",l:"Syndicats"},{id:"equipe",l:"Equipe et acces"},{id:"comms_hub",l:"Communications"},{id:"params_predictek",l:"Parametres"},{id:"rapports",l:"Rapports"}];
+  var TABS=[{id:"syndicats",l:"Syndicats"},{id:"equipe",l:"Equipe et acces"},{id:"comms_hub",l:"Communications"},{id:"params_predictek",l:"Parametres"}];
 
   if(creer){
     return(
@@ -2809,29 +1702,6 @@ export default function Hub(){
       {ong==="comms_hub"&&<TabCommunicationsHub/>}
       {ong==="params_predictek"&&<ParamsPredictek/>}
 
-      {ong==="rapports"&&(
-        <div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:16}}>
-            {actifs.map(function(s){return(
-              <div key={s.id} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                  <div style={{fontSize:12,fontWeight:700,color:T.navy}}>{s.nom}</div>
-                  <ScoreGlobal s={s}/>
-                </div>
-                <div style={{fontSize:11,color:T.muted,marginBottom:8}}>Dernier rapport: {s.dernierRapport||"-"}</div>
-                <div style={{display:"grid",gap:6}}>
-                  <ScoreBarre l="Financier" v={s.scoreFinancier}/>
-                  <ScoreBarre l="Conformite" v={s.scoreConformite}/>
-                  <ScoreBarre l="Entretien" v={s.scoreEntretien}/>
-                </div>
-                <div style={{marginTop:10}}>
-                  <Btn sm fw onClick={function(){alert("Rapport "+s.nom+" genere! (Supabase requis pour envoi reel)");}}>Generer rapport</Btn>
-                </div>
-              </div>
-            );})}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

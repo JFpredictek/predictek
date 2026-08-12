@@ -63,7 +63,7 @@ export default function RelancesAuto(){
           <tbody>
             {relances.map(function(x){return(
               <tr key={x.id} style={{borderBottom:"1px solid "+T.border}}>
-                <td style={{padding:"7px 12px",color:T.muted,fontSize:11,whiteSpace:"nowrap"}}>{x.created_at?x.created_at.substring(0,16).replace("T"," "):"-"}</td>
+                <td style={{padding:"7px 12px",color:T.muted,fontSize:11,whiteSpace:"nowrap"}}>{x.created_at?new Date(x.created_at).toLocaleString("fr-CA",{hour12:false}).replace(",","").substring(0,17):"-"}</td>
                 <td style={{padding:"7px 12px",fontWeight:600,color:x.type&&x.type.indexOf("expiree")>=0?T.red:T.navy,fontSize:11,whiteSpace:"nowrap"}}>{LIBELLES[x.type]||x.type}</td>
                 <td style={{padding:"7px 12px",color:T.muted,fontSize:11}}>{x.courriel}</td>
                 <td style={{padding:"7px 12px",fontSize:11}}>{x.sujet}</td>

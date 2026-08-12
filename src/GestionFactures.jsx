@@ -9,6 +9,35 @@ function Lbl(p){return <div style={{fontSize:10,color:T.muted,textTransform:"upp
 function Btn(p){return <button onClick={p.onClick} disabled={p.dis} style={{background:p.dis?"#ccc":p.bg||T.accent,border:p.bdr||"none",borderRadius:7,padding:p.sm?"5px 12px":"8px 18px",color:p.tc||"#fff",fontSize:p.sm?11:12,fontWeight:600,cursor:p.dis?"not-allowed":"pointer",fontFamily:"inherit"}}>{p.children}</button>;}
 
 var STATUTS={recue:{l:"Recue",bg:"#EFF6FF",tc:"#1A56DB"},en_attente_approbation:{l:"En attente CA",bg:"#FEF3E2",tc:"#B86020"},approuvee:{l:"Approuvee",bg:"#D4EDDA",tc:"#155724"},rejetee:{l:"Rejetee",bg:"#F8D7DA",tc:"#721C24"},payee:{l:"Payee",bg:"#D4EDDA",tc:"#155724"},annulee:{l:"Annulee",bg:"#F0EDE8",tc:"#7C7568"}};
+// --- Extraction automatique d une facture televisee (PDF ou photo) ---
+function lireReponseFacture(r){return r.text().then(function(t){try{return JSON.parse(t);}catch(e){return {error:"Reponse inattendue du serveur (code "+r.status+")"};}});}
+function fichierFactureB64(file){
+  return new Promise(function(resolve,reject){
+    var isPdf=/pdf$/i.test(file.type)||/\.pdf$/i.test(file.name);
+    var fr=new FileReader();
+    fr.onerror=function(){reject(new Error("Lecture du fichier impossible"));};
+    fr.onload=function(ev){
+      var b64=String(ev.target.result).split(",")[1];
+      if(isPdf){
+        if(b64.length>4200000){reject(new Error("PDF trop volumineux (max ~3 Mo)"));return;}
+        resolve({pdf:b64});
+      }else{
+        var img=new Image();
+        img.onload=function(){
+          var cv=document.createElement("canvas");
+          var sc=Math.min(1,1600/Math.max(img.width,img.height));
+          cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
+          cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+          resolve({images:[cv.toDataURL("image/jpeg",0.8).split(",")[1]]});
+        };
+        img.onerror=function(){reject(new Error("Image illisible"));};
+        img.src=ev.target.result;
+      }
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
 function StatutBadge(p){var s=STATUTS[p.s]||STATUTS.recue;return <span style={{background:s.bg,color:s.tc,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:700,whiteSpace:"nowrap"}}>{s.l}</span>;}
 
 var CODES_GL_DEPENSES=[
@@ -102,8 +131,35 @@ function CarteFacture(p){
 function FormFacture(p){
   var nf=p.nf;var sf=p.setField;
   var glSuggere=codeGLAuto(nf.fournisseur_nom||"",nf.description||"");
+  var sx=useState("");var extraitMsg=sx[0];var setExtraitMsg=sx[1];
+  function extraire(file){
+    setExtraitMsg("Extraction automatique de la facture en cours...");
+    fichierFactureB64(file).then(function(src){
+      var corps=Object.assign({mode:"facture"},src);
+      return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify(corps)}).then(lireReponseFacture);
+    }).then(function(resp){
+      if(!resp||resp.error){setExtraitMsg("Extraction impossible ("+((resp&&resp.error)||"erreur")+") - saisissez manuellement.");return;}
+      var d=resp.data||{};
+      var pris=[];
+      if(d.fournisseur){sf("fournisseur_nom",d.fournisseur);pris.push(d.fournisseur);}
+      if(d.numero){sf("no_facture",d.numero);pris.push("#"+d.numero);}
+      if(d.date&&/^\d{4}-\d{2}-\d{2}$/.test(d.date))sf("date_facture",d.date);
+      if(d.echeance&&/^\d{4}-\d{2}-\d{2}$/.test(d.echeance))sf("date_echeance",d.echeance);
+      if(d.sousTotal)sf("sous_total",Number(d.sousTotal));
+      if(d.tps)sf("tps",Number(d.tps));
+      if(d.tvq)sf("tvq",Number(d.tvq));
+      if(d.total){sf("total",Number(d.total));pris.push(Number(d.total).toFixed(2)+" $");}
+      if(d.description)sf("description",d.description);
+      setExtraitMsg(pris.length>0?"Extrait automatiquement: "+pris.join(", ")+" - verifiez avant de sauvegarder.":"Aucune information lisible - saisissez manuellement.");
+    }).catch(function(e){setExtraitMsg("Extraction impossible ("+e.message+") - saisissez manuellement.");});
+  }
   return(
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+      <div style={{gridColumn:"1/-1",background:T.blueL,border:"2px dashed "+T.blue+"66",borderRadius:10,padding:12}}>
+        <div style={{fontSize:11,fontWeight:700,color:T.blue,marginBottom:4}}>Televersez la facture (PDF ou photo) - les champs se remplissent automatiquement</div>
+        <input type="file" accept=".pdf,image/*" onChange={function(e){var f=e.target.files&&e.target.files[0];if(f)extraire(f);}} style={{fontSize:11,fontFamily:"inherit"}}/>
+        {extraitMsg&&<div style={{fontSize:11,color:T.blue,fontWeight:600,marginTop:6}}>{extraitMsg}</div>}
+      </div>
       <div style={{gridColumn:"1/-1"}}><Lbl l="Fournisseur"/><input value={nf.fournisseur_nom||""} onChange={function(e){sf("fournisseur_nom",e.target.value);}} style={INP} placeholder="Nom de l entreprise..."/></div>
       <div><Lbl l="No facture"/><input value={nf.no_facture||""} onChange={function(e){sf("no_facture",e.target.value);}} style={INP} placeholder="INV-2024-001"/></div>
       <div><Lbl l="Date facture"/><input type="date" value={nf.date_facture||""} onChange={function(e){sf("date_facture",e.target.value);}} style={INP}/></div>

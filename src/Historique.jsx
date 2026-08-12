@@ -62,7 +62,7 @@ export default function Historique(){
               {filtres.map(function(l,i){
                 return(
                   <tr key={l.id||i} style={{borderBottom:"1px solid "+T.border}}>
-                    <td style={{padding:"8px 12px",color:T.muted,fontSize:11}}>{l.created_at?l.created_at.substring(0,16).replace("T"," "):"-"}</td>
+                    <td style={{padding:"8px 12px",color:T.muted,fontSize:11}}>{l.created_at?new Date(l.created_at).toLocaleString("fr-CA",{hour12:false}).replace(",","").substring(0,17):"-"}</td>
                     <td style={{padding:"8px 12px",fontWeight:600,color:T.navy,fontSize:11}}>{l.utilisateur_nom||"-"}</td>
                     <td style={{padding:"8px 12px",color:T.muted,fontSize:11}}>{l.categorie||"-"}</td>
                     <td style={{padding:"8px 12px",fontWeight:600,color:T.navy}}>{l.action||"-"}</td>

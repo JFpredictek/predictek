@@ -68,7 +68,7 @@ function HistoriqueEnvois(p){
         <div key={e.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"10px 14px",background:T.surface,border:"1px solid "+T.border,borderRadius:8,marginBottom:6}}>
           <div style={{flex:1}}>
             <div style={{fontSize:12,fontWeight:600,color:T.navy,marginBottom:2}}>{e.sujet}</div>
-            <div style={{fontSize:10,color:T.muted}}>{e.destinataires} destinataire(s) - {e.created_at?e.created_at.substring(0,16).replace("T"," "):"-"}</div>
+            <div style={{fontSize:10,color:T.muted}}>{e.destinataires} destinataire(s) - {e.created_at?new Date(e.created_at).toLocaleString("fr-CA",{hour12:false}).replace(",","").substring(0,17):"-"}</div>
           </div>
           <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0,marginLeft:10}}>
             <span style={{background:e.statut==="envoye"?T.accentL:e.statut==="erreur"?T.redL:T.amberL,color:e.statut==="envoye"?T.accent:e.statut==="erreur"?T.red:T.amber,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:700}}>{e.statut==="envoye"?"Envoye":e.statut==="erreur"?"Erreur":"En attente"}</span>
