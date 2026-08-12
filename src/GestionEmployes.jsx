@@ -11,6 +11,7 @@ function fmtNAS(v){var d=(v||"").replace(/\D/g,"").slice(0,9);return d.replace(/
 function nasValide(v){var d=(v||"").replace(/\D/g,"");if(d.length!==9)return false;var s=0;for(var i=0;i<9;i++){var x=parseInt(d[i],10);if(i%2===1){x*=2;if(x>9)x-=9;}s+=x;}return s%10===0;}
 function fmtTel(v){var d=(v||"").replace(/\D/g,"").slice(0,10);if(d.length>6)return d.slice(0,3)+"-"+d.slice(3,6)+"-"+d.slice(6);if(d.length>3)return d.slice(0,3)+"-"+d.slice(3);return d;}
 function courrielValide(v){return !v||/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);}
+function fmtCP(v){var x=(v||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,6);return x.length>3?x.slice(0,3)+" "+x.slice(3):x;}
 
 function Btn(p){return <button onClick={p.onClick} disabled={p.dis} style={{background:p.bg||T.accent,border:p.bdr||"none",borderRadius:7,padding:p.sm?"5px 11px":"8px 16px",color:p.tc||"#fff",fontSize:p.sm?10:12,fontWeight:600,cursor:p.dis?"not-allowed":"pointer",opacity:p.dis?0.5:1,fontFamily:"inherit"}}>{p.children}</button>;}
 function Lbl(p){return <div style={{fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:5}}>{p.l}</div>;}
@@ -19,7 +20,7 @@ function Sec(p){return <div style={{gridColumn:"1/-1",fontSize:11,fontWeight:800
 
 var DEPTS=["Direction","Administration","Operations","Comptabilite","Terrain","Support"];
 var STATUTS=["actif","inactif","conge","essai"];
-var EMP_VIDE={prenom:"",nom:"",courriel:"",tel:"",cellulaire:"",adresse:"",naissance:"",poste:"",dept:"Administration",statut:"actif",salaire:"",date_embauche:"",nas:"",reserve_assurance_pct:"4",urg_nom:"",urg_lien:"",urg_tel:"",notes:""};
+var EMP_VIDE={prenom:"",nom:"",courriel:"",tel:"",cellulaire:"",no_civique:"",rue:"",ville:"",province:"QC",code_postal:"",naissance:"",poste:"",dept:"Administration",statut:"actif",salaire:"",date_embauche:"",nas:"",reserve_vacances_pct:"4",urg_nom:"",urg_lien:"",urg_tel:"",notes:""};
 
 export default function GestionEmployes(){
   var s0=useState([]);var emps=s0[0];var setEmps=s0[1];
@@ -46,14 +47,17 @@ export default function GestionEmployes(){
     if(enCours)return;
     if(!form.prenom||!form.nom){setErr("Prenom et nom requis.");return;}
     if(form.courriel&&!courrielValide(form.courriel)){setErr("Courriel invalide.");return;}
-    if(form.nas&&!nasValide(form.nas)){setErr("NAS invalide (9 chiffres, verification Luhn).");return;}
+    var avertNas=(form.nas&&!nasValide(form.nas))?"ATTENTION: le NAS saisi semble invalide (verification Luhn) - il a ete enregistre quand meme, verifiez-le. ":"";
     setEnCours(true);setErr("");setOk("");
     var ligne={
       prenom:form.prenom,nom:form.nom,courriel:form.courriel||"",tel:form.tel||"",
-      cellulaire:form.cellulaire||"",adresse:form.adresse||"",naissance:form.naissance||null,
+      cellulaire:form.cellulaire||"",
+      adresse:((form.no_civique||"")+" "+(form.rue||"")).trim(),
+      no_civique:form.no_civique||"",rue:form.rue||"",ville:form.ville||"",province:form.province||"QC",code_postal:form.code_postal||"",
+      naissance:form.naissance||null,
       poste:form.poste||"",dept:form.dept||"",statut:form.statut||"actif",
       salaire:parseFloat(form.salaire)||null,date_embauche:form.date_embauche||null,
-      reserve_assurance_pct:parseFloat(form.reserve_assurance_pct)||null,
+      reserve_vacances_pct:parseFloat(form.reserve_vacances_pct)||null,
       urg_nom:form.urg_nom||"",urg_lien:form.urg_lien||"",urg_tel:form.urg_tel||"",
       notes:form.notes||""
     };
@@ -74,7 +78,7 @@ export default function GestionEmployes(){
     }).then(function(r){
       setEnCours(false);
       if(r&&r.error){setErr("ECHEC de la sauvegarde: "+(r.error.message||r.error.hint||"erreur inconnue"));return;}
-      setOk(form.id?"Employe modifie.":"Employe cree.");
+      setOk(avertNas+(form.id?"Employe modifie.":"Employe cree."));
       sb.log("employes",form.id?"modification":"creation","Dossier employe "+form.prenom+" "+form.nom,"","");
       setShowForm(false);setForm(EMP_VIDE);setSel(null);
       charger();
@@ -134,7 +138,7 @@ export default function GestionEmployes(){
                     <td style={{padding:"10px 12px"}}><Badge s={e.statut}/></td>
                     <td style={{padding:"10px 12px"}}>
                       <div style={{display:"flex",gap:4}}>
-                        <Btn sm onClick={function(ev){ev.stopPropagation();setForm(Object.assign({},EMP_VIDE,e,{nas:"",salaire:e.salaire||"",reserve_assurance_pct:e.reserve_assurance_pct||"4"}));setShowForm(true);setSel(null);setErr("");}}>Modifier</Btn>
+                        <Btn sm onClick={function(ev){ev.stopPropagation();setForm(Object.assign({},EMP_VIDE,e,{nas:"",salaire:e.salaire||"",reserve_vacances_pct:e.reserve_vacances_pct||"4"}));setShowForm(true);setSel(null);setErr("");}}>Modifier</Btn>
                         <Btn sm bg={e.statut==="actif"?T.redL:T.accentL} tc={e.statut==="actif"?T.red:T.accent} onClick={function(ev){ev.stopPropagation();desactiver(e);}}>{e.statut==="actif"?"Desactiver":"Reactiver"}</Btn>
                       </div>
                     </td>
@@ -153,8 +157,8 @@ export default function GestionEmployes(){
               <div style={{fontSize:11,color:T.muted,marginBottom:4}}>{selE.poste||"-"} - {selE.dept||"-"}</div>
               <Badge s={selE.statut}/>
             </div>
-            <div style={{marginBottom:10}}><Lbl l="Contact"/><div style={{fontSize:12}}>{selE.courriel||"-"}</div><div style={{fontSize:12,color:T.muted}}>Tel: {selE.tel||"-"} | Cell: {selE.cellulaire||"-"}</div><div style={{fontSize:11,color:T.muted}}>{selE.adresse||""}</div></div>
-            <div style={{marginBottom:10}}><Lbl l="Emploi"/><div style={{fontSize:12}}>Embauche: {selE.date_embauche||"-"}</div><div style={{fontSize:13,fontWeight:700,color:T.accent}}>{selE.salaire?money(selE.salaire)+" /an":"-"}</div><div style={{fontSize:11,color:T.muted}}>Reserve assurance: {selE.reserve_assurance_pct?selE.reserve_assurance_pct+" %":"-"}</div></div>
+            <div style={{marginBottom:10}}><Lbl l="Contact"/><div style={{fontSize:12}}>{selE.courriel||"-"}</div><div style={{fontSize:12,color:T.muted}}>Tel: {selE.tel||"-"} | Cell: {selE.cellulaire||"-"}</div><div style={{fontSize:11,color:T.muted}}>{(selE.adresse||"")+(selE.ville?", "+selE.ville:"")+(selE.code_postal?" "+selE.code_postal:"")}</div></div>
+            <div style={{marginBottom:10}}><Lbl l="Emploi"/><div style={{fontSize:12}}>Embauche: {selE.date_embauche||"-"}</div><div style={{fontSize:13,fontWeight:700,color:T.accent}}>{selE.salaire?money(selE.salaire)+" /an":"-"}</div><div style={{fontSize:11,color:T.muted}}>Reserve vacances: {selE.reserve_vacances_pct?selE.reserve_vacances_pct+" %":"-"}</div></div>
             <div style={{marginBottom:10}}><Lbl l="NAS"/><div style={{fontSize:12,color:selE.nas_chiffre?T.accent:T.muted,fontWeight:600}}>{selE.nas_chiffre?"Enregistre (chiffre)":"Non fourni"}</div></div>
             <div style={{marginBottom:10}}><Lbl l="Urgence"/>{selE.urg_nom?(<div style={{fontSize:12}}>{selE.urg_nom} ({selE.urg_lien||"-"})<div style={{color:T.muted}}>{selE.urg_tel||""}</div></div>):(<div style={{fontSize:12,color:T.muted}}>-</div>)}</div>
             {selE.notes&&<div style={{background:T.alt,borderRadius:6,padding:"6px 10px",fontSize:11,color:T.muted}}>{selE.notes}</div>}
@@ -175,7 +179,11 @@ export default function GestionEmployes(){
               <div><Lbl l="Nom *"/><input value={form.nom} onChange={function(e){sf("nom",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Date de naissance"/><input type="date" value={form.naissance||""} onChange={function(e){sf("naissance",e.target.value);}} style={INP}/></div>
               <div><Lbl l="NAS (chiffre a la sauvegarde)"/><input type="text" inputMode="numeric" autoComplete="off" value={form.nas} onChange={function(e){sf("nas",fmtNAS(e.target.value));}} style={Object.assign({},INP,form.nas?(nasValide(form.nas)?{border:"2px solid #1B5E3B"}:{border:"2px solid #B83232"}):{})} placeholder="000-000-000" maxLength={11}/>{form.id&&<div style={{fontSize:9,color:T.muted,marginTop:2}}>Laisser vide pour conserver le NAS deja chiffre</div>}</div>
-              <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse"/><input value={form.adresse} onChange={function(e){sf("adresse",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="No civique"/><input value={form.no_civique||""} onChange={function(e){sf("no_civique",e.target.value.replace(/[^0-9A-Za-z-]/g,""));}} style={INP} placeholder="1234"/></div>
+              <div><Lbl l="Rue"/><input value={form.rue||""} onChange={function(e){sf("rue",e.target.value);}} style={INP} placeholder="rue Principale"/></div>
+              <div><Lbl l="Code postal (remplit ville/province)"/><input value={form.code_postal||""} onChange={function(e){var cp=fmtCP(e.target.value);sf("code_postal",cp);var fsa=cp.replace(" ","");if(fsa.length>=3){fetch("https://api.zippopotam.us/ca/"+fsa.substring(0,3)).then(function(r){return r.ok?r.json():null;}).then(function(d){if(d&&d.places&&d.places[0]){sf("ville",d.places[0]["place name"]);sf("province",d.places[0]["state abbreviation"]||"QC");}}).catch(function(){});}}} style={INP} placeholder="G1A 1A1" maxLength={7}/></div>
+              <div><Lbl l="Ville"/><input value={form.ville||""} onChange={function(e){sf("ville",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Province"/><select value={form.province||"QC"} onChange={function(e){sf("province",e.target.value);}} style={INP}><option>QC</option><option>ON</option><option>NB</option><option>NS</option><option>AB</option><option>BC</option><option>MB</option><option>SK</option><option>PE</option><option>NL</option></select></div>
               <Sec l="Coordonnees"/>
               <div><Lbl l="Courriel"/><input value={form.courriel} onChange={function(e){sf("courriel",e.target.value.trim());}} style={Object.assign({},INP,form.courriel&&!courrielValide(form.courriel)?{border:"2px solid #B83232"}:{})}/></div>
               <div><Lbl l="Telephone"/><input value={form.tel} onChange={function(e){sf("tel",fmtTel(e.target.value));}} style={INP} maxLength={12}/></div>
@@ -186,7 +194,7 @@ export default function GestionEmployes(){
               <div><Lbl l="Statut"/><select value={form.statut} onChange={function(e){sf("statut",e.target.value);}} style={INP}>{STATUTS.map(function(st){return <option key={st}>{st}</option>;})}</select></div>
               <div><Lbl l="Date d embauche"/><input type="date" value={form.date_embauche||""} onChange={function(e){sf("date_embauche",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Salaire annuel ($)"/><input type="number" value={form.salaire} onChange={function(e){sf("salaire",e.target.value);}} style={INP}/></div>
-              <div><Lbl l="% reserve assurance"/><select value={form.reserve_assurance_pct} onChange={function(e){sf("reserve_assurance_pct",e.target.value);}} style={INP}>{["0","2","4","6","8","10"].map(function(x){return <option key={x} value={x}>{x} %</option>;})}</select></div>
+              <div><Lbl l="% reserve pour vacances"/><select value={form.reserve_vacances_pct} onChange={function(e){sf("reserve_vacances_pct",e.target.value);}} style={INP}>{["0","2","4","6","8","10","12"].map(function(x){return <option key={x} value={x}>{x} %</option>;})}</select></div>
               <Sec l="Contact en cas d urgence"/>
               <div><Lbl l="Nom du contact"/><input value={form.urg_nom} onChange={function(e){sf("urg_nom",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Lien (conjoint, parent...)"/><input value={form.urg_lien} onChange={function(e){sf("urg_lien",e.target.value);}} style={INP}/></div>

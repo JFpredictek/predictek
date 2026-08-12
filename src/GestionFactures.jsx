@@ -118,7 +118,7 @@ function CarteFacture(p){
           <div style={{fontSize:20,fontWeight:800,color:T.navy}}>{Number(f.total||0).toFixed(2)} $</div>
           {f.tps>0&&<div style={{fontSize:10,color:T.muted}}>TPS: {Number(f.tps).toFixed(2)} $ | TVQ: {Number(f.tvq).toFixed(2)} $</div>}
           <div style={{display:"flex",gap:6,marginTop:8,justifyContent:"flex-end",flexWrap:"wrap"}}>
-            <Btn sm onClick={function(){p.onVoir(f);}}>Voir</Btn>
+            {f.fichier&&<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){p.onVoirFichier(f);}}>Voir la facture</Btn>}
             {(f.statut==="recue"||f.statut==="en_attente_approbation")&&<Btn sm bg={T.amberL} tc={T.amber} bdr={"1px solid "+T.amber+"44"} onClick={function(){p.onApprouver(f);}}>Approuver</Btn>}
             {f.statut==="approuvee"&&<Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){p.onPayer(f.id);}}>Marquer payee</Btn>}
           </div>
@@ -129,7 +129,7 @@ function CarteFacture(p){
 }
 
 function FormFacture(p){
-  var nf=p.nf;var sf=p.setField;
+  var nf=p.nf;var sf=p.setField;var onFile=p.onFile||function(){};
   var glSuggere=codeGLAuto(nf.fournisseur_nom||"",nf.description||"");
   var sx=useState("");var extraitMsg=sx[0];var setExtraitMsg=sx[1];
   function extraire(file){
@@ -157,7 +157,7 @@ function FormFacture(p){
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
       <div style={{gridColumn:"1/-1",background:T.blueL,border:"2px dashed "+T.blue+"66",borderRadius:10,padding:12}}>
         <div style={{fontSize:11,fontWeight:700,color:T.blue,marginBottom:4}}>Televersez la facture (PDF ou photo) - les champs se remplissent automatiquement</div>
-        <input type="file" accept=".pdf,image/*" onChange={function(e){var f=e.target.files&&e.target.files[0];if(f)extraire(f);}} style={{fontSize:11,fontFamily:"inherit"}}/>
+        <input type="file" accept=".pdf,image/*" onChange={function(e){var f=e.target.files&&e.target.files[0];if(f){onFile(f);extraire(f);}}} style={{fontSize:11,fontFamily:"inherit"}}/>
         {extraitMsg&&<div style={{fontSize:11,color:T.blue,fontWeight:600,marginTop:6}}>{extraitMsg}</div>}
       </div>
       <div style={{gridColumn:"1/-1"}}><Lbl l="Fournisseur"/><input value={nf.fournisseur_nom||""} onChange={function(e){sf("fournisseur_nom",e.target.value);}} style={INP} placeholder="Nom de l entreprise..."/></div>
@@ -293,6 +293,19 @@ export default function GestionFactures(){
   var s6=useState("toutes");var filtreStatut=s6[0];var setFiltreStatut=s6[1];
   var s7=useState(false);var saving=s7[0];var setSaving=s7[1];
   var s8=useState("liste");var vue=s8[0];var setVue=s8[1];
+  var s9=useState(null);var facFile=s9[0];var setFacFile=s9[1];
+  var s10=useState("");var errSauve=s10[0];var setErrSauve=s10[1];
+  var s11=useState(null);var viewer=s11[0];var setViewer=s11[1];
+  var s12=useState(1);var zoomV=s12[0];var setZoomV=s12[1];
+
+  function ouvrirViewer(f){
+    if(!f.fichier)return;
+    sb.lienFichier("preuves",f.fichier).then(function(url){
+      if(!url){setErrSauve("Impossible de generer le lien du fichier.");return;}
+      setZoomV(1);
+      setViewer({url:url,isPdf:/\.pdf($|\?)/i.test(f.fichier),facture:f});
+    });
+  }
 
   useEffect(function(){
     sb.select("syndicats",{order:"nom.asc"}).then(function(res){
@@ -309,17 +322,45 @@ export default function GestionFactures(){
 
   function setField(k,v){setNf(function(pr){var n=Object.assign({},pr);n[k]=v;return n;});}
 
+  // Cree le fournisseur automatiquement s il n existe pas encore (repertoire des fournisseurs)
+  function assurerFournisseur(nom, glNom){
+    return sb.select("fournisseurs",{eq:{nom:nom},limit:1}).then(function(r){
+      if(r&&r.data&&r.data.length>0)return;
+      return sb.insert("fournisseurs",{nom:nom,categorie:(glNom&&glNom.nom)||"Autre",telephone:"",courriel:"",adresse:"",site_web:"",notes:"Cree automatiquement a partir d une facture",actif:true});
+    }).catch(function(){});
+  }
+
   function sauvegarder(){
-    if(!nf.fournisseur_nom||!sel)return;
-    setSaving(true);
+    if(!nf.fournisseur_nom||!sel||saving)return;
+    setSaving(true);setErrSauve("");
     var glFinal=nf.no_compte_gl||codeGLAuto(nf.fournisseur_nom,nf.description||"");
     var glNom=CODES_GL_DEPENSES.find(function(g){return g.no===glFinal;});
     var row={syndicat_id:sel.id,fournisseur_nom:nf.fournisseur_nom,no_facture:nf.no_facture||"",date_facture:nf.date_facture||null,date_echeance:nf.date_echeance||null,sous_total:parseFloat(nf.sous_total)||0,tps:parseFloat(nf.tps)||0,tvq:parseFloat(nf.tvq)||0,total:parseFloat(nf.total)||0,no_compte_gl:glFinal,categorie_depense:glNom?glNom.nom:"Depenses diverses",description:nf.description||"",no_tps_fournisseur:nf.no_tps_fournisseur||"",no_tvq_fournisseur:nf.no_tvq_fournisseur||"",source:"manuel",statut:parseFloat(nf.total||0)>1000?"en_attente_approbation":"approuvee",nb_approbations_requises:parseFloat(nf.total||0)>5000?2:1};
-    sb.insert("factures",row).then(function(res){
-      if(res&&res.data)setFactures(function(prev){return [res.data].concat(prev);});
+    var etapes=Promise.resolve();
+    if(facFile){
+      etapes=etapes.then(function(){
+        var ext=(facFile.name.match(/\.[a-zA-Z0-9]+$/)||[".pdf"])[0];
+        var chemin=sel.id+"/factures/"+Date.now()+ext;
+        return sb.uploadFichier("preuves",chemin,facFile).then(function(r){
+          if(r.error)throw new Error("Televersement du fichier: "+r.error.message);
+          row.fichier=r.chemin;
+        });
+      });
+    }
+    etapes.then(function(){
+      return sb.insert("factures",row);
+    }).then(function(res){
+      if(!res||!res.data||!res.data.id){
+        var msg=(res&&res.error&&(res.error.message||res.error.hint))||"raison inconnue";
+        setErrSauve("ECHEC de la sauvegarde de la facture ("+msg+"). Rien n a ete enregistre.");
+        setSaving(false);
+        return;
+      }
+      setFactures(function(prev){return [res.data].concat(prev);});
+      assurerFournisseur(nf.fournisseur_nom, glNom);
       sb.log("factures","ajout","Facture ajoutee: "+nf.fournisseur_nom+" - "+nf.total+" $","GL: "+glFinal,sel.code||"");
-      setShowForm(false);setNf(VIDE_F);setSaving(false);
-    }).catch(function(){setSaving(false);});
+      setShowForm(false);setNf(VIDE_F);setFacFile(null);setSaving(false);
+    }).catch(function(e){setErrSauve("ECHEC: "+(e&&e.message?e.message:"erreur inconnue"));setSaving(false);});
   }
 
   function marquerPayee(id){
@@ -394,7 +435,8 @@ export default function GestionFactures(){
         {showForm&&(
           <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:14,padding:20,marginBottom:20}}>
             <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:16}}>Nouvelle facture</div>
-            <FormFacture nf={nf} setField={setField}/>
+            <FormFacture nf={nf} setField={setField} onFile={setFacFile}/>
+            {errSauve&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",marginTop:12,fontSize:12,color:T.red,fontWeight:700}}>{errSauve}</div>}
             <div style={{background:T.amberL,border:"1px solid "+T.amber+"44",borderRadius:8,padding:10,margin:"12px 0",fontSize:11,color:T.amber}}>
               Seuil d approbation: factures &gt; 1 000 $ requierent 1 approbation CA. &gt; 5 000 $ requierent 2 approbations.
             </div>
@@ -413,12 +455,61 @@ export default function GestionFactures(){
 
         {filtrees.map(function(f){return(
           <CarteFacture key={f.id} facture={f}
-            onVoir={function(){}}
+            onVoirFichier={ouvrirViewer}
             onApprouver={function(fac){setFactureAppro(fac);}}
             onPayer={marquerPayee}
           />
         );})}
         {filtrees.length===0&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucune facture dans cette categorie</div>}
+        {viewer&&(
+          <div onClick={function(e){if(e.target===e.currentTarget)setViewer(null);}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999,padding:16}}>
+            <div style={{background:"#fff",borderRadius:14,width:"min(1200px,96vw)",height:"92vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 16px",borderBottom:"1px solid "+T.border,flexShrink:0}}>
+                <b style={{fontSize:13,color:T.navy}}>Facture - {viewer.facture.fournisseur_nom} {viewer.facture.no_facture?"#"+viewer.facture.no_facture:""}</b>
+                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                  {!viewer.isPdf&&(
+                    <span>
+                      <button onClick={function(){setZoomV(function(z){return Math.max(0.5,z-0.25);});}} style={{border:"1px solid "+T.border,background:"#fff",borderRadius:6,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>-</button>
+                      <span style={{fontSize:11,color:T.muted,margin:"0 8px"}}>{Math.round(zoomV*100)} %</span>
+                      <button onClick={function(){setZoomV(function(z){return Math.min(4,z+0.25);});}} style={{border:"1px solid "+T.border,background:"#fff",borderRadius:6,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>+</button>
+                    </span>
+                  )}
+                  <a href={viewer.url} target="_blank" rel="noreferrer" style={{fontSize:11,color:T.blue,fontWeight:700}}>Ouvrir dans un onglet</a>
+                  <button onClick={function(){setViewer(null);}} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:T.muted,lineHeight:1}}>x</button>
+                </div>
+              </div>
+              <div style={{flex:1,display:"flex",minHeight:0}}>
+                <div style={{flex:1,overflow:"auto",background:"#525659",display:"flex",alignItems:"flex-start",justifyContent:"center"}}>
+                  {viewer.isPdf
+                    ?<iframe title="facture" src={viewer.url} style={{width:"100%",height:"100%",border:"none"}}/>
+                    :<img src={viewer.url} alt="Facture" style={{transform:"scale("+zoomV+")",transformOrigin:"top center",maxWidth:"100%"}}/>}
+                </div>
+                <div style={{width:280,flexShrink:0,borderLeft:"1px solid "+T.border,padding:16,overflowY:"auto"}}>
+                  <div style={{fontSize:11,fontWeight:800,color:T.navy,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:10}}>Informations extraites</div>
+                  {[
+                    {l:"Fournisseur",v:viewer.facture.fournisseur_nom},
+                    {l:"No facture",v:viewer.facture.no_facture||"-"},
+                    {l:"Date",v:viewer.facture.date_facture||"-"},
+                    {l:"Echeance",v:viewer.facture.date_echeance||"-"},
+                    {l:"Sous-total",v:(Number(viewer.facture.sous_total)||0).toFixed(2)+" $"},
+                    {l:"TPS",v:(Number(viewer.facture.tps)||0).toFixed(2)+" $"},
+                    {l:"TVQ",v:(Number(viewer.facture.tvq)||0).toFixed(2)+" $"},
+                    {l:"Total",v:(Number(viewer.facture.total)||0).toFixed(2)+" $"},
+                    {l:"Compte GL",v:(viewer.facture.no_compte_gl||"-")+" "+(viewer.facture.categorie_depense||"")},
+                    {l:"Statut",v:viewer.facture.statut||"-"},
+                  ].map(function(it,i){return(
+                    <div key={i} style={{marginBottom:8}}>
+                      <div style={{fontSize:9,color:T.muted,textTransform:"uppercase",fontWeight:700}}>{it.l}</div>
+                      <div style={{fontSize:12,fontWeight:600,color:"#1C1A17"}}>{it.v}</div>
+                    </div>
+                  );})}
+                  {viewer.facture.description&&<div style={{background:T.alt,borderRadius:6,padding:"6px 10px",fontSize:11,color:T.muted,marginTop:4}}>{viewer.facture.description}</div>}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {factureAppro&&(

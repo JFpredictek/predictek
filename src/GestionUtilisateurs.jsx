@@ -59,13 +59,54 @@ export default function GestionUtilisateurs(){
   var s6=useState("actifs");var filtre=s6[0];var setFiltre=s6[1];
   var s7=useState("");var errMsg=s7[0];var setErrMsg=s7[1];
   var s8=useState("");var okMsg=s8[0];var setOkMsg=s8[1];
+  var s9=useState(false);var showInvites=s9[0];var setShowInvites=s9[1];
+  var s10=useState([]);var candidats=s10[0];var setCandidats=s10[1];
+  var s11=useState({});var rolesChoisis=s11[0];var setRolesChoisis=s11[1];
+  var s12=useState("");var inviteEnCours=s12[0];var setInviteEnCours=s12[1];
 
   useEffect(function(){
     sb.select("syndicats",{order:"nom.asc"}).then(function(res){if(res&&res.data)setSyndicats(res.data);}).catch(function(){});
     sb.select("usagers",{order:"nom.asc"}).then(function(res){
       if(res&&res.data)setUsers(res.data);
     }).catch(function(){});
+    // Candidats a inviter: employes Predictek, membres CA et coproprietaires (avec courriel)
+    Promise.all([
+      sb.select("employes",{limit:500}),
+      sb.select("membres_ca",{limit:500}),
+      sb.select("coproprietaires",{eq:{statut:"actif"},limit:2000})
+    ]).then(function(rs){
+      var out=[];
+      ((rs[0]&&rs[0].data)||[]).forEach(function(e){if(e.courriel)out.push({source:"Employe",prenom:e.prenom||"",nom:e.nom||"",courriel:e.courriel,roleDefaut:"gestionnaire",syndicat_id:null,detail:e.poste||""});});
+      ((rs[1]&&rs[1].data)||[]).forEach(function(m){if(m.courriel)out.push({source:"Membre CA",prenom:m.prenom||"",nom:m.nom||"",courriel:m.courriel,roleDefaut:"ca",syndicat_id:m.syndicat_id||null,detail:m.role_ca||""});});
+      ((rs[2]&&rs[2].data)||[]).forEach(function(c){if(c.courriel)out.push({source:"Coproprietaire",prenom:c.prenom||"",nom:c.nom||"",courriel:c.courriel,roleDefaut:"copropri-taire",syndicat_id:c.syndicat_id||null,detail:"Unite "+(c.unite||"?")});});
+      // dedupe par courriel (premier trouve gagne: employe > CA > copro)
+      var vus={};
+      setCandidats(out.filter(function(x){var k=x.courriel.toLowerCase();if(vus[k])return false;vus[k]=true;return true;}));
+    }).catch(function(){});
   },[]);
+
+  function inviterCandidat(c){
+    var role=rolesChoisis[c.courriel]||c.roleDefaut;
+    setInviteEnCours(c.courriel);setErrMsg("");setOkMsg("");
+    fetch("/api/usagers",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({action:"create",courriel:c.courriel,nom:c.nom,prenom:c.prenom,role:role})})
+      .then(function(r){return r.json().then(function(d){return {status:r.status,data:d};});})
+      .then(function(resp){
+        if(resp.status!==200||!resp.data||!resp.data.ok){
+          setErrMsg((resp.data&&resp.data.error)||"Erreur lors de l invitation de "+c.courriel);
+          setInviteEnCours("");
+          return;
+        }
+        var synd=syndicats.find(function(x){return x.id===c.syndicat_id;});
+        var row={nom:c.nom,prenom:c.prenom,courriel:c.courriel,role:role,syndicat_id:c.syndicat_id||null,syndicat_nom:synd?synd.nom:"",actif:true,auth_id:resp.data.auth_id||null};
+        sb.insert("usagers",row).then(function(res){
+          if(res&&res.data)setUsers(function(prev){return [res.data].concat(prev);});
+          sb.log("usagers","creation","Invitation envoyee a "+c.courriel+" ("+role+") depuis la liste "+c.source,"","");
+          setOkMsg("Invitation envoyee a "+c.courriel+" - l utilisateur recevra un courriel pour choisir son mot de passe.");
+          setInviteEnCours("");
+        }).catch(function(){setInviteEnCours("");});
+      })
+      .catch(function(){setErrMsg("API injoignable (fonctionne sur le site deploye).");setInviteEnCours("");});
+  }
 
   function setN(k,v){setNf(function(pr){var n=Object.assign({},pr);n[k]=v;return n;});}
 
@@ -146,7 +187,8 @@ export default function GestionUtilisateurs(){
         <div style={{fontSize:14,fontWeight:800,color:"#fff"}}>Gestion des utilisateurs</div>
         <div style={{marginLeft:"auto",display:"flex",gap:8}}>
           {["actifs","inactifs","tous"].map(function(f){var a=filtre===f;return <button key={f} onClick={function(){setFiltre(f);}} style={{background:a?"#ffffff18":"transparent",border:"none",borderBottom:a?"2px solid #3CAF6E":"2px solid transparent",padding:"6px 12px",color:a?"#fff":"#8da0bb",fontSize:11,cursor:"pointer",fontFamily:"inherit",fontWeight:a?700:400,textTransform:"capitalize"}}>{f}</button>;})}
-          <Btn onClick={function(){setNf(VIDE_USER);setEditId(null);setShowForm(true);}}>+ Ajouter utilisateur</Btn>
+          <Btn bg={T.blue} onClick={function(){setShowInvites(!showInvites);}}>{showInvites?"Fermer les invitations":"Inviter depuis les listes"}</Btn>
+          <Btn onClick={function(){setNf(VIDE_USER);setEditId(null);setShowForm(true);}}>+ Ajouter manuellement</Btn>
         </div>
       </div>
 
@@ -184,6 +226,38 @@ export default function GestionUtilisateurs(){
               <Btn onClick={sauvegarder} dis={saving||!nf.nom||!nf.courriel}>{saving?"Sauvegarde...":"Sauvegarder"}</Btn>
               <Btn onClick={function(){setShowForm(false);setEditId(null);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
             </div>
+          </div>
+        )}
+
+        {showInvites&&(
+          <div style={{background:T.surface,border:"1px solid "+T.blue+"44",borderRadius:14,padding:18,marginBottom:20}}>
+            <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:4}}>Inviter depuis les listes existantes</div>
+            <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Employes, membres du CA et coproprietaires ayant un courriel. Choisissez le role puis cliquez Inviter - un courriel d invitation est envoye pour creer le mot de passe.</div>
+            {candidats.length===0&&<div style={{fontSize:12,color:T.muted,padding:14}}>Aucun candidat avec courriel trouve. Ajoutez d abord des employes, membres de CA ou coproprietaires.</div>}
+            {candidats.map(function(c,i){
+              var deja=users.find(function(u){return (u.courriel||"").toLowerCase()===c.courriel.toLowerCase();});
+              return(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderTop:i>0?"1px solid "+T.border:"none",flexWrap:"wrap"}}>
+                  <span style={{background:c.source==="Employe"?T.purpleL:c.source==="Membre CA"?T.blueL:T.amberL,color:c.source==="Employe"?T.purple:c.source==="Membre CA"?T.blue:T.amber,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:700,flexShrink:0,width:92,textAlign:"center"}}>{c.source}</span>
+                  <div style={{flex:1,minWidth:160}}>
+                    <div style={{fontSize:12,fontWeight:700,color:T.navy}}>{(c.prenom+" "+c.nom).trim()}{c.detail?<span style={{fontWeight:400,color:T.muted}}> - {c.detail}</span>:null}</div>
+                    <div style={{fontSize:11,color:T.muted}}>{c.courriel}</div>
+                  </div>
+                  {deja?(
+                    <span style={{background:deja.actif?T.accentL:T.redL,color:deja.actif?T.accent:T.red,borderRadius:20,padding:"3px 12px",fontSize:10,fontWeight:700}}>
+                      {deja.actif?"Invite - compte cree ("+(deja.role||"")+")":"Compte desactive"}
+                    </span>
+                  ):(
+                    <span style={{display:"flex",gap:6,alignItems:"center"}}>
+                      <select value={rolesChoisis[c.courriel]||c.roleDefaut} onChange={function(e){var v=e.target.value;setRolesChoisis(function(pr){var n=Object.assign({},pr);n[c.courriel]=v;return n;});}} style={Object.assign({},INP,{width:190})}>
+                        {ROLES_DEF.map(function(r){return <option key={r.id} value={r.id}>{r.l}</option>;})}
+                      </select>
+                      <Btn sm bg={T.blue} dis={inviteEnCours===c.courriel} onClick={function(){inviterCandidat(c);}}>{inviteEnCours===c.courriel?"Envoi...":"Inviter"}</Btn>
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 

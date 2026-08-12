@@ -90,6 +90,18 @@ export default async function handler(req, res) {
       } else {
         return res.status(400).json({error:"Aucun document fourni"});
       }
+    } else if(mode==="date_document"){
+      var promptDD = "Voici un document officiel d un syndicat de copropriete quebecois (etude d evaluation aux fins d assurance, etude du fonds de prevoyance, ou autre rapport professionnel). "
+        + "Extrais les informations suivantes. Reponds UNIQUEMENT avec un objet JSON valide (chaine vide si absent): "
+        + "{\"typeDocument\":\"courte description du type de document\",\"date\":\"AAAA-MM-JJ (date de production/signature de l etude ou du rapport)\",\"firme\":\"nom de la firme/professionnel\",\"montant\":\"valeur principale si applicable (ex: valeur de reconstruction)\"}";
+      if(pdfB64){
+        contenu = [{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:promptDD}];
+      } else if(imagesIn.length>0){
+        contenu = imagesIn.slice(0,8).map(function(im){return {type:"image",source:{type:"base64",media_type:"image/jpeg",data:im}};});
+        contenu.push({type:"text",text:promptDD});
+      } else {
+        return res.status(400).json({error:"Aucun document fourni"});
+      }
     } else if(mode==="facture"){
       var promptFac = "Voici une facture de fournisseur (Quebec, Canada). "
         + "Extrais les informations suivantes. Reponds UNIQUEMENT avec un objet JSON valide (chaine vide ou 0 si absent): "

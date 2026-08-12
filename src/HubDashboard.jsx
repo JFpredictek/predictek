@@ -102,7 +102,7 @@ export default function HubDashboard(p){
 
   var RACCOURCIS=[
     {l:"Ajouter un syndicat",icon:"P",nav:"onboarding",color:T.accent},
-    {l:"Copropriétaires",icon:"CP",nav:"copros",color:T.blue},
+    {l:"Unités",icon:"UN",nav:"unites",color:T.blue},
     {l:"Factures",icon:"FA",nav:"factures",color:T.amber},
     {l:"Bons de travail",icon:"BT",nav:"bons",color:T.accent},
     {l:"Communications",icon:"CO",nav:"comm",color:T.navy},
@@ -165,7 +165,7 @@ export default function HubDashboard(p){
         )}
 
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:16}}>
-          {syndicats.map(function(s){return <CarteSyndicat key={s.id} syndicat={s} stats={stats[s.id]||{}} onSelect={function(){if(onNavigate)onNavigate("copros");}} />;})}
+          {syndicats.map(function(s){return <CarteSyndicat key={s.id} syndicat={s} stats={stats[s.id]||{}} onSelect={function(){if(onNavigate)onNavigate("unites");}} />;})}
         </div>
       </div>
     </div>

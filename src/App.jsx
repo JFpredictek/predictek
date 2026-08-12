@@ -27,7 +27,6 @@ import PVReunion from "./PVReunion";
 import ModuleAssurances from "./ModuleAssurances";
 import RelevesCompte from "./RelevesCompte";
 import GestionUtilisateurs from "./GestionUtilisateurs";
-import RechercheGlobale from "./RechercheGlobale";
 import AgendaCalendrier from "./AgendaCalendrier";
 import GestionEmployes from "./GestionEmployes";
 import GestionRoles from "./GestionRoles";
@@ -64,7 +63,6 @@ var SECTIONS=[
     modules:[
       {id:"tableau",label:"Tableau CA",icon:"TB"},
       {id:"unites",label:"Unites",icon:"UN"},
-      {id:"copros",label:"Coproprietaires",icon:"CP"},
             {id:"factures",label:"Factures",icon:"FA"},
       {id:"budget",label:"Budget",icon:"BU"},
       {id:"bons",label:"Bons travaux",icon:"BT"},
@@ -191,12 +189,7 @@ export default function App(){
             )}
             <span style={{color:"#fff",fontWeight:800,fontSize:16,fontFamily:"Georgia,serif",whiteSpace:"nowrap"}}>Predictek</span>
           </div>
-          <div style={{flex:1,padding:"0 8px"}}>
-            <RechercheGlobale onNavigate={function(id){
-              var sec=sectionsVisibles.find(function(s){return s.modules.some(function(m){return m.id===id;});});
-              if(sec)setMod(sec.id,id);
-            }}/>
-          </div>
+          <div style={{flex:1}}/>
           <div style={{padding:"0 14px",display:"flex",alignItems:"center",gap:10,flexShrink:0,borderLeft:"1px solid #ffffff15",height:52}}>
             <span style={{fontSize:12,color:"#c6d2e2",whiteSpace:"nowrap"}}>{user.nom||user.email}</span>
             <button onClick={handleLogout} style={{background:"#ffffff15",border:"1px solid #ffffff25",borderRadius:7,padding:"6px 12px",color:"#c6d2e2",fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Quitter</button>

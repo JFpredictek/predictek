@@ -109,6 +109,34 @@ function visionToutLeDocument(pdf,corpsRequete,traiterLot,stop,onProgress){
   });
   return chaine;
 }
+// Convertit un fichier (pdf ou image) en base64 pour l extraction IA
+function fichierB64PourIA(file){
+  return new Promise(function(resolve,reject){
+    var isPdf=/pdf$/i.test(file.type)||/\.pdf$/i.test(file.name);
+    var fr=new FileReader();
+    fr.onerror=function(){reject(new Error("Lecture du fichier impossible"));};
+    fr.onload=function(ev){
+      var b64=String(ev.target.result).split(",")[1];
+      if(isPdf){
+        if(b64.length>4200000){reject(new Error("PDF trop volumineux pour l extraction (max ~3 Mo)"));return;}
+        resolve({pdf:b64});
+      }else{
+        var img=new Image();
+        img.onload=function(){
+          var cv=document.createElement("canvas");
+          var sc=Math.min(1,1600/Math.max(img.width,img.height));
+          cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
+          cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+          resolve({images:[cv.toDataURL("image/jpeg",0.8).split(",")[1]]});
+        };
+        img.onerror=function(){reject(new Error("Image illisible"));};
+        img.src=ev.target.result;
+      }
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
 // Comparaison DETERMINISTE des quotes-parts (Excel vs declaration) - tolerance 0.002
 function comparerQuoteparts(trouvees,liste){
   var map={};
@@ -206,6 +234,14 @@ function CarteSyndicat(p){
 // ===== VUE DETAIL SYNDICAT (donnees reelles seulement) =====
 function DetailSyndicat(p){
   var s=p.syndicat;
+  var sCA=useState([]);var membresCA=sCA[0];var setMembresCA=sCA[1];
+  useEffect(function(){
+    if(!s||!s.id)return;
+    sb.select("membres_ca",{eq:{syndicat_id:s.id},limit:20}).then(function(r){
+      if(r&&r.data)setMembresCA(r.data);
+    }).catch(function(){});
+  },[s&&s.id]);
+  var roleLbl={president:"President(e)",vice:"Vice-president(e)",tresorier:"Tresorier(e)",secretaire:"Secretaire",membre:"Membre"};
   return(
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
@@ -247,6 +283,17 @@ function DetailSyndicat(p){
           <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid "+T.border}}>
             <span style={{fontSize:11,color:T.muted}}>{item.l}</span>
             <span style={{fontSize:12,fontWeight:500,color:T.text,textAlign:"right",maxWidth:220,overflow:"hidden",textOverflow:"ellipsis"}}>{item.v}</span>
+          </div>
+        );})}
+      </div>
+
+      <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14,marginBottom:14,maxWidth:520}}>
+        <Lbl l="Conseil d administration"/>
+        {membresCA.length===0&&<div style={{fontSize:11,color:T.muted,padding:"6px 0"}}>Aucun membre du CA en base pour ce syndicat.</div>}
+        {membresCA.map(function(m,i){return(
+          <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:i<membresCA.length-1?"1px solid "+T.border:"none"}}>
+            <span style={{fontSize:12,fontWeight:600,color:T.text}}>{((m.prenom||"")+" "+(m.nom||"")).trim()}</span>
+            <span style={{fontSize:11,color:T.muted}}>{roleLbl[m.role_ca]||m.role_ca||"Membre"}</span>
           </div>
         );})}
       </div>
@@ -497,6 +544,8 @@ function Onboarding(p){
   var s4=useState([]);var csvErrors=s4[0];var setCSVErrors=s4[1];
   var s5=useState("");var newMembre=s5[0];var setNewMembre=s5[1];
   var s6=useState(false);var iaLoading=s6[0];var setIaLoading=s6[1];
+  var sPg=useState(null);var iaProg=sPg[0];var setIaProg=sPg[1];
+  var sDm=useState("");var docMsg=sDm[0];var setDocMsg=sDm[1];
   var sQP=useState(null);var qpResult=sQP[0];var setQpResult=sQP[1];
   var s7=useState("");var iaError=s7[0];var setIaError=s7[1];
   var s8=useState("");var iaSuccess=s8[0];var setIaSuccess=s8[1];
@@ -517,6 +566,47 @@ function Onboarding(p){
     while(cur.length>n) cur.pop();
     return Object.assign({},o,{nbMembresCA:n,admins:cur});
   });}
+  // Analyse AUTOMATIQUE de la declaration des le televersement:
+  // texte lisible -> extraction texte + reglements; scan -> vision IA sur TOUT le document avec progression.
+  function analyserActeAuto(){
+    if(!window._acteFile)return;
+    setIaLoading(true);setIaError("");setIaSuccess("Lecture de la declaration...");setIaProg(null);
+    chargerActe().then(function(pdf){
+      return textesParPage(pdf).then(function(txts){
+        var totalTexte=txts.join("").replace(/\s+/g,"").length;
+        if(totalTexte>500){setIaProg(null);extraireIA();return null;}
+        var acc={reglements:[]};
+        setIaSuccess("Declaration numerisee detectee - analyse complete par vision IA...");
+        return visionToutLeDocument(pdf,{mode:"syndicat"},function(dd){
+          if(dd.anneeConstitution&&(!acc.anneeConstitution||parseInt(dd.anneeConstitution)<parseInt(acc.anneeConstitution)))acc.anneeConstitution=dd.anneeConstitution;
+          if(dd.quorumAGO&&!acc.quorumAGO)acc.quorumAGO=dd.quorumAGO;
+          if(dd.nbUnites&&!acc.nbUnites)acc.nbUnites=dd.nbUnites;
+          if(dd.typeCopro&&!acc.typeCopro)acc.typeCopro=dd.typeCopro;
+          if(dd.reglements&&String(dd.reglements).trim().length>10)acc.reglements.push(String(dd.reglements).trim());
+        },null,function(p1,p2,tot){
+          setIaProg({fait:p2,total:tot});
+        }).then(function(){
+          setData(function(o){
+            var u=Object.assign({},o);
+            if(acc.anneeConstitution&&parseInt(acc.anneeConstitution)>1900)u.anneeConstruction=parseInt(acc.anneeConstitution);
+            if(acc.quorumAGO&&parseInt(acc.quorumAGO)>0)u.quorumAGO=parseInt(acc.quorumAGO);
+            if(acc.nbUnites&&parseInt(acc.nbUnites)>0&&!u.nbUnites)u.nbUnites=parseInt(acc.nbUnites);
+            if(acc.typeCopro&&["horizontale","verticale","mixte"].indexOf(acc.typeCopro)>=0)u.typeCopro=acc.typeCopro;
+            if(acc.reglements.length>0)u.reglementsResume=acc.reglements.join("\n\n").substring(0,8000);
+            return u;
+          });
+          var trouve=[];
+          if(acc.quorumAGO)trouve.push("quorum "+acc.quorumAGO+" %");
+          if(acc.anneeConstitution)trouve.push("constitution "+acc.anneeConstitution);
+          if(acc.nbUnites)trouve.push(acc.nbUnites+" unites");
+          if(acc.reglements.length>0)trouve.push("reglements extraits");
+          setIaSuccess(trouve.length>0?"Analyse complete de la declaration terminee: "+trouve.join(", "):"Analyse terminee - rien de lisible. Scan de trop faible qualite?");
+          setIaProg(null);setIaLoading(false);
+        });
+      });
+    }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);setIaProg(null);});
+  }
+
   function extraireIA(){
     if(iaLoading)return;
     setIaLoading(true);setIaError("");setIaSuccess("");
@@ -671,7 +761,8 @@ function Onboarding(p){
       exercice:data.exercice,
       president:data.president||nomPourRole("president").replace("-",""),secretaire:data.secretaire||nomPourRole("secretaire").replace("-",""),tresorier:data.tresorier||nomPourRole("tresorier").replace("-",""),
       nbMembresCA:data.nbMembresCA,membresCA:data.membresCA,admins:data.admins||[],
-      courrielCA:data.courrielCA,courrielFactures:data.courrielFactures,
+      courriel:data.courrielCA||"",courrielCA:data.courrielCA,courrielFactures:data.courrielFactures,
+      assSyndicatExp:data.assSyndicatExp||null,etudeAssuranceDate:data.etudeAssuranceDate||null,etudePrevoyanceDate:data.etudePrevoyanceDate||null,
       soldeOp:parseFloat(data.soldeOp)||0,soldePrev:parseFloat(data.soldePrev)||0,soldeAss:parseFloat(data.soldeAss)||0,
       copros:copros,documents:data.documents,composantes:data.composantes,
       statut:"actif",dateCreation:today(),
@@ -716,52 +807,23 @@ function Onboarding(p){
                 <div style={{fontSize:11,color:T.muted}}>Optionnel  Importez vos PDF pour remplir automatiquement les champs avec l'IA</div>
               </div>
               {(data.reqNom||data.acteNom)&&!iaLoading&&(
-                <><button onClick={extraireIA} style={{background:"linear-gradient(135deg,#1A56DB,#3CAF6E)",border:"none",borderRadius:8,padding:"8px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{fontSize:16}}></span> Extraire avec l'IA
+                <><button onClick={function(){if(window._acteFile)analyserActeAuto();else extraireIA();}} style={{background:"linear-gradient(135deg,#1A56DB,#3CAF6E)",border:"none",borderRadius:8,padding:"8px 16px",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+                  Relancer l analyse IA
                 </button>
-              <div style={{marginTop:10,background:"#FFF8EE",border:"2px solid #E8A020",borderRadius:8,padding:10}}><div style={{fontSize:11,color:"#B86020",fontWeight:700,marginBottom:4}}>PDF scanne ? Collez le texte du REQ ici</div><textarea id="txtREQ" rows={5} style={{width:"100%",border:"1px solid #E8A020",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:6}} placeholder="Collez le texte copie depuis registreentreprises.gouv.qc.ca..."/><button onClick={function(){var t=document.getElementById("txtREQ")?document.getElementById("txtREQ").value:"";if(!t||t.length<10){setIaError("Collez du texte.");return;}setIaLoading(true);setIaError("");setIaSuccess("");fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:t,mode:"syndicat"})}).then(function(r){return r.json();}).then(function(resp){if(!resp||resp.error){setIaError(resp?resp.error:"Erreur");setIaLoading(false);return;}var ex=resp.data||{};setData(function(o){var u=Object.assign({},o);if(ex.nom)u.nom=ex.nom;if(ex.immat)u.immat=ex.immat;if(ex.adr)u.adr=ex.adr;if(ex.ville)u.ville=ex.ville;if(ex.province&&ex.province.length===2)u.province=ex.province;if(ex.codePostal)u.codePostal=ex.codePostal;if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);var anCst=ex.anneeConstitution||ex.anneeConstruction;if(anCst&&parseInt(anCst)>1900)u.anneeConstruction=parseInt(anCst);if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
-                      if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){u.nbMembresCA=ex.admins.length;u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};});}return u;});var ks=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];var n=ks.filter(function(k){return ex[k]&&ex[k]!=="";}).length;if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;setIaSuccess(n+" champs extraits");setIaLoading(false);}).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});}} style={{background:"#B86020",color:"#fff",border:"none",borderRadius:6,padding:"5px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Extraire depuis ce texte</button></div>
-              <div style={{marginTop:10,background:"#EFF6FF",border:"2px solid #1A56DB",borderRadius:8,padding:10}}>
-                <div style={{fontSize:11,color:"#1A56DB",fontWeight:700,marginBottom:4}}>Declaration numerisee (scan) ? Analyse complete par vision IA</div>
-                <div style={{fontSize:10,color:"#7C7568",marginBottom:6}}>Le document ENTIER est analyse automatiquement, page par page: annee de constitution, quorum, reglements de gestion, penalites. Aucun numero de page a fournir.</div>
-                <button onClick={function(){
-                    if(!window._acteFile){setIaError("Importez d abord la declaration de copropriete (PDF) ci-dessus.");return;}
-                    setIaLoading(true);setIaError("");setIaSuccess("Analyse de la declaration en cours...");
-                    var acc={reglements:[]};
-                    chargerActe().then(function(pdf){
-                      return visionToutLeDocument(pdf,{mode:"syndicat"},function(dd){
-                        if(dd.anneeConstitution&&(!acc.anneeConstitution||parseInt(dd.anneeConstitution)<parseInt(acc.anneeConstitution)))acc.anneeConstitution=dd.anneeConstitution;
-                        if(dd.quorumAGO&&!acc.quorumAGO)acc.quorumAGO=dd.quorumAGO;
-                        if(dd.nbUnites&&!acc.nbUnites)acc.nbUnites=dd.nbUnites;
-                        if(dd.typeCopro&&!acc.typeCopro)acc.typeCopro=dd.typeCopro;
-                        if(dd.reglements&&String(dd.reglements).trim().length>10)acc.reglements.push(String(dd.reglements).trim());
-                      },null,function(p1,p2,tot){
-                        setIaSuccess("Vision IA: analyse des pages "+p1+"-"+p2+" sur "+tot+"...");
-                      });
-                    }).then(function(){
-                      setData(function(o){
-                        var u=Object.assign({},o);
-                        if(acc.anneeConstitution&&parseInt(acc.anneeConstitution)>1900)u.anneeConstruction=parseInt(acc.anneeConstitution);
-                        if(acc.quorumAGO&&parseInt(acc.quorumAGO)>0)u.quorumAGO=parseInt(acc.quorumAGO);
-                        if(acc.nbUnites&&parseInt(acc.nbUnites)>0&&!u.nbUnites)u.nbUnites=parseInt(acc.nbUnites);
-                        if(acc.typeCopro&&["horizontale","verticale","mixte"].indexOf(acc.typeCopro)>=0)u.typeCopro=acc.typeCopro;
-                        if(acc.reglements.length>0)u.reglementsResume=acc.reglements.join("\n\n").substring(0,8000);
-                        return u;
-                      });
-                      var trouve=[];
-                      if(acc.quorumAGO)trouve.push("quorum "+acc.quorumAGO+" %");
-                      if(acc.anneeConstitution)trouve.push("constitution "+acc.anneeConstitution);
-                      if(acc.nbUnites)trouve.push(acc.nbUnites+" unites");
-                      if(acc.reglements.length>0)trouve.push("reglements extraits ("+acc.reglements.length+" section(s))");
-                      setIaSuccess(trouve.length>0?"Analyse complete terminee: "+trouve.join(", "):"Analyse terminee - rien de lisible trouve. Le scan est peut-etre de trop faible qualite.");
-                      setIaLoading(false);
-                    }).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});
-                  }} style={{background:"#1A56DB",color:"#fff",border:"none",borderRadius:6,padding:"6px 16px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Analyser toute la declaration</button>
-              </div></>
+              <div style={{marginTop:10,background:"#FFF8EE",border:"2px solid #E8A020",borderRadius:8,padding:10}}><div style={{fontSize:11,color:"#B86020",fontWeight:700,marginBottom:4}}>REQ non lisible ? Collez le texte du REQ ici</div><textarea id="txtREQ" rows={4} style={{width:"100%",border:"1px solid #E8A020",borderRadius:6,padding:"6px 8px",fontSize:11,fontFamily:"inherit",resize:"vertical",boxSizing:"border-box",marginBottom:6}} placeholder="Collez le texte copie depuis registreentreprises.gouv.qc.ca..."/><button onClick={function(){var t=document.getElementById("txtREQ")?document.getElementById("txtREQ").value:"";if(!t||t.length<10){setIaError("Collez du texte.");return;}setIaLoading(true);setIaError("");setIaSuccess("");fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:t,mode:"syndicat"})}).then(function(r){return r.json();}).then(function(resp){if(!resp||resp.error){setIaError(resp?resp.error:"Erreur");setIaLoading(false);return;}var ex=resp.data||{};setData(function(o){var u=Object.assign({},o);if(ex.nom)u.nom=ex.nom;if(ex.immat)u.immat=ex.immat;if(ex.adr)u.adr=ex.adr;if(ex.ville)u.ville=ex.ville;if(ex.province&&ex.province.length===2)u.province=ex.province;if(ex.codePostal)u.codePostal=ex.codePostal;if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);var anCst=ex.anneeConstitution||ex.anneeConstruction;if(anCst&&parseInt(anCst)>1900)u.anneeConstruction=parseInt(anCst);if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
+                      if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){u.nbMembresCA=ex.admins.length;u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};});}return u;});var ks=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];var n=ks.filter(function(k){return ex[k]&&ex[k]!=="";}).length;if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;setIaSuccess(n+" champs extraits");setIaLoading(false);}).catch(function(e){setIaError("Erreur: "+e.message);setIaLoading(false);});}} style={{background:"#B86020",color:"#fff",border:"none",borderRadius:6,padding:"5px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Extraire depuis ce texte</button></div></>
               )}
               {iaLoading&&(
-                <div style={{background:"#EFF6FF",border:"1px solid #1A56DB44",borderRadius:8,padding:"8px 14px",fontSize:11,color:"#1A56DB",fontWeight:600}}>
-                  IA en cours d'analyse...
+                <div style={{background:"#EFF6FF",border:"1px solid #1A56DB44",borderRadius:8,padding:"10px 14px",fontSize:11,color:"#1A56DB",fontWeight:600,minWidth:280}}>
+                  {iaSuccess||"IA en cours d analyse..."}
+                  <div style={{height:12,background:"#d6e4ff",borderRadius:6,overflow:"hidden",marginTop:8}}>
+                    <div style={{height:"100%",background:"linear-gradient(90deg,#1A56DB,#3CAF6E)",borderRadius:6,width:(iaProg&&iaProg.total?Math.round(iaProg.fait/iaProg.total*100):35)+"%",transition:"width 0.7s"}}/>
+                  </div>
+                  {iaProg&&iaProg.total?(
+                    <div style={{fontSize:10,color:"#1A56DB",marginTop:4,fontWeight:700}}>{iaProg.fait} / {iaProg.total} pages analysees ({Math.round(iaProg.fait/iaProg.total*100)} %)</div>
+                  ):(
+                    <div style={{fontSize:10,color:"#7C7568",marginTop:4}}>Cela peut prendre 1 a 3 minutes selon la taille du document...</div>
+                  )}
                 
               <div style={{marginTop:12,padding:10,background:"#FFF8EE",border:"2px dashed #E8A020",borderRadius:8}}>
                 <div style={{fontSize:11,color:"#B86020",fontWeight:700,marginBottom:4}}>PDF non lisible ? Saisissez le texte manuellement</div>
@@ -904,7 +966,7 @@ function Onboarding(p){
               <div style={{background:"#E8F2EC",border:"2px dashed "+(data.acteNom?"#1B5E3B":"#1B5E3B66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
                 <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>Declaration de copropriete</div>
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Quorum AGO, annee construction, structure legale</div>
-                <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFile=f;var fr=new FileReader();fr.onload=function(ev){window._acteB64=ev.target.result.split(",")[1];};fr.readAsDataURL(f);}}} style={{display:"none"}}/>
+                <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFile=f;var fr=new FileReader();fr.onload=function(ev){window._acteB64=ev.target.result.split(",")[1];};fr.readAsDataURL(f);setTimeout(analyserActeAuto,80);}}} style={{display:"none"}}/>
                 <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
                   {data.acteNom?" Changer":" Selectionner PDF"}
                 </button>
@@ -950,10 +1012,9 @@ function Onboarding(p){
             <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:4}}>Courriels du syndicat</div>
             <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Ces adresses seront utilisees pour les communications automatiques</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              <Field l="Courriel du CA" hint="Communications CA"><input value={data.courrielCA} onChange={function(e){sd("courrielCA",e.target.value);}} style={INP} placeholder="ca@syndicat.com"/></Field>
-              <Field l="Courriel factures fournisseurs" hint="Traitement automatique"><input value={data.courrielFactures} onChange={function(e){sd("courrielFactures",e.target.value);}} style={INP} placeholder="factures@syndicat.com"/></Field>
-              <Field l="Courriel copropietaires"><input value={data.courrielCopros} onChange={function(e){sd("courrielCopros",e.target.value);}} style={INP} placeholder="copros@syndicat.com"/></Field>
-              <Field l="Courriel urgences 24/7"><input value={data.courrielUrgences} onChange={function(e){sd("courrielUrgences",e.target.value);}} style={INP} placeholder="urgences@syndicat.com"/></Field>
+              <Field l="Courriel OFFICIEL du syndicat" hint="Adresse principale - affichee dans les parametres et les communications"><input value={data.courrielCA} onChange={function(e){sd("courrielCA",e.target.value.trim());}} style={Object.assign({},INP,data.courrielCA&&!courrielValide(data.courrielCA)?{border:"2px solid #B83232"}:{})} placeholder="ca@syndicat.com"/></Field>
+              <Field l="Courriel factures fournisseurs" hint="Traitement automatique des factures recues"><input value={data.courrielFactures} onChange={function(e){sd("courrielFactures",e.target.value.trim());}} style={INP} placeholder="factures@syndicat.com"/></Field>
+              <Field l="Courriel urgences 24/7"><input value={data.courrielUrgences} onChange={function(e){sd("courrielUrgences",e.target.value.trim());}} style={INP} placeholder="urgences@syndicat.com"/></Field>
             </div>
           </div>
           <div style={{display:"flex",justifyContent:"flex-end",marginTop:20}}>
@@ -1013,8 +1074,8 @@ function Onboarding(p){
             <div style={{fontSize:12,fontWeight:700,color:T.blue,marginBottom:8}}>Formats Excel (.xlsx) et CSV acceptes - colonnes flexibles</div>
             <div style={{fontSize:11,color:T.blue,fontFamily:"monospace",lineHeight:1.9}}>
               unite, cadastre, prenom, nom, courriel, telephone, quote_part, cotisation<br/>
-              531, 1234567, Jean-Francois, Laroche, jf@email.com, 819-479-4203, 2.133, 292.06<br/>
-              539, 1234568, Lucette, Tremblay, l.tremblay@email.com, 418-555-0539, 3.840, 525.80
+              101, 1234567, Jean, Untel, jean@exemple.com, 000-000-0000, 2.133, 292.06<br/>
+              102, 1234568, Marie, Modele, marie@exemple.com, 000-000-0000, 3.840, 525.80
             </div>
             <div style={{fontSize:10,color:T.blue,marginTop:6}}>Colonnes obligatoires: unite. Toutes les autres sont optionnelles.</div>
           </div>
@@ -1181,9 +1242,10 @@ function Onboarding(p){
       {step===4&&(
         <div>
           <div style={{fontSize:15,fontWeight:700,color:T.navy,marginBottom:4}}>Etape 4 - Documents officiels</div>
-          <div style={{fontSize:12,color:T.muted,marginBottom:16}}>Importez les documents fondamentaux du syndicat. La declaration de copropriete est obligatoire.</div>
+          <div style={{fontSize:12,color:T.muted,marginBottom:10}}>Importez les documents fondamentaux du syndicat. Les dates cles (expiration d assurance, dates des etudes) sont extraites automatiquement.</div>
+          {docMsg&&<div style={{background:"#EFF6FF",border:"1px solid #1A56DB44",borderRadius:8,padding:"8px 12px",fontSize:11,color:"#1A56DB",fontWeight:600,marginBottom:10}}>{docMsg}</div>}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-            {[{cat:"declaration",l:"Declaration de copropriete",desc:"Document fondateur - acte notarie",obligatoire:true},{cat:"reglement",l:"Reglement de l immeuble",desc:"Regles de vie approuvees en assemblee",obligatoire:true},{cat:"police",l:"Police d assurance",desc:"Assurance syndicat en vigueur",obligatoire:false},{cat:"financier",l:"Etats financiers annuels",desc:"Derniers etats financiers verifies",obligatoire:false},{cat:"carnet_prev",l:"Etude du fonds de prevoyance",desc:"Etude actuarielle Loi 16",obligatoire:false},{cat:"autre",l:"Autre document",desc:"Tout autre document pertinent",obligatoire:false}].map(function(dtype){
+            {[{cat:"declaration",l:"Declaration de copropriete",desc:"Document fondateur - acte notarie",obligatoire:true},{cat:"reglement",l:"Reglement de l immeuble",desc:"Regles de vie approuvees en assemblee",obligatoire:true},{cat:"police",l:"Police d assurance",desc:"Assurance syndicat - l expiration est extraite automatiquement",obligatoire:false},{cat:"etude_assurance",l:"Etude aux fins d assurance",desc:"Evaluation de la valeur de reconstruction - la date est extraite pour planifier l appel d offres",obligatoire:false},{cat:"financier",l:"Etats financiers annuels",desc:"Derniers etats financiers verifies",obligatoire:false},{cat:"carnet_prev",l:"Etude du fonds de prevoyance",desc:"Etude Loi 16 - la date est extraite pour planifier le renouvellement",obligatoire:false},{cat:"autre",l:"Autre document",desc:"Tout autre document pertinent",obligatoire:false}].map(function(dtype){
               var uploaded=data.documents.filter(function(d){return d.cat===dtype.cat;});
                   var viaEtape1=(dtype.cat==="declaration"&&data.acteNom)?true:(dtype.cat==="reglement"&&data.reglementsResume)?true:false;
               return(
@@ -1202,7 +1264,31 @@ function Onboarding(p){
                       <button onClick={function(){sd("documents",data.documents.filter(function(x){return x.id!==d.id;}));}} style={{background:"none",border:"none",cursor:"pointer",color:T.muted,fontSize:12,lineHeight:1}}>x</button>
                     </div>
                   );})}
-                  <button onClick={function(){var inp=document.createElement("input");inp.type="file";inp.accept=".pdf,.doc,.docx,.jpg,.png";inp.onchange=function(e){var file=e.target.files[0];if(!file)return;var newDoc={id:Date.now(),nom:file.name,type:"Document",taille:file.size>1048576?(file.size/1048576).toFixed(1)+" MB":(file.size/1024).toFixed(0)+" KB",date:today(),dispo:true,cat:dtype.cat};sd("documents",data.documents.concat([newDoc]));};inp.click();}} style={{width:"100%",background:T.alt,border:"1px dashed "+T.border,borderRadius:7,padding:"5px",fontSize:11,color:T.muted,cursor:"pointer",fontFamily:"inherit",marginTop:4}}>+ Ajouter fichier</button>
+                  <button onClick={function(){var inp=document.createElement("input");inp.type="file";inp.accept=".pdf,.doc,.docx,.jpg,.png";inp.onchange=function(e){var file=e.target.files[0];if(!file)return;var newDoc={id:Date.now(),nom:file.name,type:"Document",taille:file.size>1048576?(file.size/1048576).toFixed(1)+" MB":(file.size/1024).toFixed(0)+" KB",date:today(),dispo:true,cat:dtype.cat};sd("documents",data.documents.concat([newDoc]));
+                    // Extraction automatique des dates cles selon le type de document
+                    if(dtype.cat==="police"||dtype.cat==="etude_assurance"||dtype.cat==="carnet_prev"){
+                      setDocMsg("Extraction automatique de "+file.name+" en cours...");
+                      fichierB64PourIA(file).then(function(src){
+                        var mode=dtype.cat==="police"?"assurance":"date_document";
+                        return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify(Object.assign({mode:mode},src))}).then(lireReponseAPI);
+                      }).then(function(resp){
+                        if(!resp||resp.error){setDocMsg("Extraction impossible pour "+file.name+" ("+((resp&&resp.error)||"erreur")+")");return;}
+                        var d=resp.data||{};
+                        if(dtype.cat==="police"&&d.dateExp&&/^\d{4}-\d{2}-\d{2}$/.test(d.dateExp)){
+                          sd("assSyndicatExp",d.dateExp);
+                          setDocMsg("Police d assurance: expiration extraite -> "+d.dateExp+(d.compagnie?" ("+d.compagnie+")":""));
+                        }else if(dtype.cat==="etude_assurance"&&d.date&&/^\d{4}-\d{2}-\d{2}$/.test(d.date)){
+                          sd("etudeAssuranceDate",d.date);
+                          setDocMsg("Etude aux fins d assurance: date extraite -> "+d.date+(d.firme?" ("+d.firme+")":"")+". L appel d offres sera planifie selon l intervalle configure.");
+                        }else if(dtype.cat==="carnet_prev"&&d.date&&/^\d{4}-\d{2}-\d{2}$/.test(d.date)){
+                          sd("etudePrevoyanceDate",d.date);
+                          setDocMsg("Etude du fonds de prevoyance: date extraite -> "+d.date+(d.firme?" ("+d.firme+")":""));
+                        }else{
+                          setDocMsg("Aucune date lisible dans "+file.name+" - vous pourrez la saisir dans les parametres du syndicat.");
+                        }
+                      }).catch(function(err){setDocMsg("Extraction impossible ("+err.message+")");});
+                    }
+                  };inp.click();}} style={{width:"100%",background:T.alt,border:"1px dashed "+T.border,borderRadius:7,padding:"5px",fontSize:11,color:T.muted,cursor:"pointer",fontFamily:"inherit",marginTop:4}}>+ Ajouter fichier</button>
                 </div>
               );
             })}
@@ -1223,7 +1309,7 @@ function Onboarding(p){
               {titre:"Syndicat",items:[{l:"Nom",v:data.nom},{l:"Code",v:data.code},{l:"Immatriculation",v:data.immat||"-"},{l:"Annee de constitution",v:data.anneeConstruction||"-"},{l:"Quorum AGO",v:data.quorumAGO?data.quorumAGO+" %":"-"},{l:"Exercice",v:data.exercice}]},
               {titre:"Conseil d administration",items:(data.admins||[]).filter(function(a){return a&&(a.nom||a.prenom);}).map(function(a){var rl={president:"President(e)",vice:"Vice-president(e)",tresorier:"Tresorier(e)",secretaire:"Secretaire",membre:"Membre"};return {l:rl[a.role]||"Membre",v:((a.prenom||"")+" "+(a.nom||"")).trim()};})},
               {titre:"Unites et quotes-parts",items:[{l:"Unites importees",v:copros.length||data.nbUnites||"0"},{l:"Fraction totale",v:totalFraction>0?totalFraction.toFixed(3)+" %":"-"},{l:"Quotes-parts validees",v:qpResult&&qpResult.concordance===true?"Oui":"A valider"}]},
-              {titre:"Documents",items:[{l:"Importes",v:data.documents.length+" document(s)"},{l:"Declaration",v:(data.documents.find(function(d){return d.cat==="declaration";})||data.acteNom)?"- Presente":"- Manquante"},{l:"Reglements",v:(data.reglementsResume?"- Extraits de la declaration":(data.documents.find(function(d){return d.cat==="reglement";})?"- Fichier fourni":"-"))}]},
+              {titre:"Documents et dates cles",items:[{l:"Importes",v:data.documents.length+" document(s)"},{l:"Declaration",v:(data.documents.find(function(d){return d.cat==="declaration";})||data.acteNom)?"- Presente":"- Manquante"},{l:"Reglements",v:(data.reglementsResume?"- Extraits de la declaration":(data.documents.find(function(d){return d.cat==="reglement";})?"- Fichier fourni":"-"))},{l:"Assurance syndicat expire",v:data.assSyndicatExp||"-"},{l:"Etude assurance (date)",v:data.etudeAssuranceDate||"-"},{l:"Etude prevoyance (date)",v:data.etudePrevoyanceDate||"-"}]},
             ].map(function(section){return(
               <div key={section.titre} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14}}>
                 <div style={{fontSize:11,fontWeight:700,color:T.navy,marginBottom:10,paddingBottom:6,borderBottom:"1px solid "+T.border}}>{section.titre}</div>
@@ -1236,6 +1322,12 @@ function Onboarding(p){
               </div>
             );})}
           </div>
+          {data.reglementsResume&&(
+            <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14,marginBottom:16}}>
+              <div style={{fontSize:11,fontWeight:700,color:T.navy,marginBottom:8,paddingBottom:6,borderBottom:"1px solid "+T.border}}>Reglements extraits de la declaration (conserves avec le syndicat)</div>
+              <div style={{fontSize:11,color:T.text,whiteSpace:"pre-wrap",lineHeight:1.5,maxHeight:180,overflowY:"auto"}}>{data.reglementsResume}</div>
+            </div>
+          )}
           <div style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:10,padding:"12px 16px",marginBottom:16,fontSize:12,color:T.accent}}>
             <b>Pret a activer!</b> Le syndicat {data.nom} sera cree et accessible dans tous les modules Predictek.
           </div>
@@ -1273,6 +1365,19 @@ function ParamsPredictek(){
   var logo=s3[0];var setLogo=s3[1];
   var s4=useState("entreprise");var ong=s4[0];var setOng=s4[1];
   var s5=useState("");var ok=s5[0];var setOk=s5[1];
+  var s6i=useState({etudeAssurance:"5",etudePrevoyance:"5"});var interv=s6i[0];var setInterv=s6i[1];
+  useEffect(function(){
+    sb.select("config_publique",{}).then(function(r){
+      if(r&&r.data){
+        var n={};
+        r.data.forEach(function(x){
+          if(x.cle==="etude_assurance_ans")n.etudeAssurance=x.valeur;
+          if(x.cle==="etude_prevoyance_ans")n.etudePrevoyance=x.valeur;
+        });
+        if(Object.keys(n).length>0)setInterv(function(pr){return Object.assign({},pr,n);});
+      }
+    }).catch(function(){});
+  },[]);
 
   var setI=function(k,v){setInfos(function(p){return Object.assign({},p,{[k]:v});});};
   var setF=function(k,v){setFisc(function(p){return Object.assign({},p,{[k]:v});});};
@@ -1280,6 +1385,7 @@ function ParamsPredictek(){
 
   function sauver(){
     save("entreprise",infos);save("fiscalite",fisc);save("banque",banque);save("logo",logo);
+    sb.upsert("config_publique",[{cle:"etude_assurance_ans",valeur:String(parseInt(interv.etudeAssurance)||5)},{cle:"etude_prevoyance_ans",valeur:String(parseInt(interv.etudePrevoyance)||5)}],"cle").catch(function(){});
     try{if(logo.url)localStorage.setItem("predictek_logo",logo.url);}catch(e){}
     // Le logo est publie en base pour apparaitre dans l entete et au login de TOUS les usagers
     if(logo.url){
@@ -1317,6 +1423,15 @@ function ParamsPredictek(){
       </div>
 
       {ong==="entreprise"&&(
+        <div>
+        <div style={{background:NC.surface,border:"1px solid "+NC.border,borderRadius:12,padding:20,marginBottom:14}}>
+          <div style={{fontSize:13,fontWeight:700,color:NC.navy,marginBottom:4}}>Intervalles reglementaires (tous les syndicats)</div>
+          <div style={{fontSize:11,color:NC.muted,marginBottom:12}}>Frequence de renouvellement des etudes - utilisee pour planifier les appels d offres automatiquement.</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <div><div style={NL}>Etude aux fins d assurance (ans)</div><select value={interv.etudeAssurance} onChange={function(e){setInterv(function(pr){return Object.assign({},pr,{etudeAssurance:e.target.value});});}} style={NI}>{["1","2","3","4","5","6","7","8","9","10"].map(function(x){return <option key={x} value={x}>{x} an(s)</option>;})}</select></div>
+            <div><div style={NL}>Etude du fonds de prevoyance (ans)</div><select value={interv.etudePrevoyance} onChange={function(e){setInterv(function(pr){return Object.assign({},pr,{etudePrevoyance:e.target.value});});}} style={NI}>{["1","2","3","4","5","6","7","8","9","10"].map(function(x){return <option key={x} value={x}>{x} an(s)</option>;})}</select></div>
+          </div>
+        </div>
         <div style={{background:NC.surface,border:"1px solid "+NC.border,borderRadius:12,padding:20}}>
           <div style={{fontSize:13,fontWeight:700,color:NC.navy,marginBottom:14}}>Informations legales et coordonnees</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -1333,6 +1448,7 @@ function ParamsPredictek(){
             <div><div style={NL}>Debut exercice</div><input value={infos.exerciceDebut} onChange={function(e){setI("exerciceDebut",e.target.value);}} style={NI} placeholder="01-11"/></div>
             <div><div style={NL}>Fin exercice</div><input value={infos.exerciceFin} onChange={function(e){setI("exerciceFin",e.target.value);}} style={NI} placeholder="31-10"/></div>
           </div>
+        </div>
         </div>
       )}
 
@@ -1443,7 +1559,7 @@ export default function Hub(){
       var d=new Date(s);
       return isNaN(d.getTime())?null:d.toISOString().substring(0,10);
     };
-    sb.insert("syndicats",{code:nouveau.code,nom:nouveau.nom,adr:nouveau.adr||"",ville:nouveau.ville||"",province:nouveau.province||"QC",code_postal:nouveau.codePostal||"",immat:nouveau.immat||"",nb_unites:nouveau.nbUnites||0,president:nouveau.president||"",courriel:nouveau.courriel||"",tel:nouveau.tel||"",annee_constitution:parseInt(nouveau.anneeConstruction)||null,quorum_ago:nouveau.quorumAGO||null,type_copro:nouveau.typeCopro||"",exercice:nouveau.exercice||"",reglements_resume:nouveau.reglementsResume||"",statut:"actif"}).then(function(res){
+    sb.insert("syndicats",{code:nouveau.code,nom:nouveau.nom,adr:nouveau.adr||"",ville:nouveau.ville||"",province:nouveau.province||"QC",code_postal:nouveau.codePostal||"",immat:nouveau.immat||"",nb_unites:nouveau.nbUnites||0,president:nouveau.president||"",courriel:nouveau.courriel||"",tel:nouveau.tel||"",annee_constitution:parseInt(nouveau.anneeConstruction)||null,quorum_ago:nouveau.quorumAGO||null,type_copro:nouveau.typeCopro||"",exercice:nouveau.exercice||"",reglements_resume:nouveau.reglementsResume||"",assurance_syndicat_exp:nouveau.assSyndicatExp||null,etude_assurance_date:nouveau.etudeAssuranceDate||null,etude_prevoyance_date:nouveau.etudePrevoyanceDate||null,statut:"actif"}).then(function(res){
       if(!res||!res.data||!res.data.id){
         var msg=(res&&res.error&&(res.error.message||res.error.hint))||"raison inconnue";
         setErrSync("ECHEC de la sauvegarde du syndicat "+(nouveau.nom||"")+" en base de donnees ("+msg+"). Vos donnees restent dans la sauvegarde locale du navigateur - utilisez le bouton Recuperer ci-dessous apres correction.");

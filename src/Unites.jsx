@@ -151,7 +151,7 @@ export default function Unites(){
       assurance_police:u.assurance_police||"",assurance_debut:u.assurance_debut||"",assurance_exp:u.assurance_exp||"",ass_cie:u.ass_cie||"",
       occupation:u.occupation||(u.locataire?"locataire":"proprietaire"),
       nom_locataire:u.nom_locataire||"",tel_locataire:u.tel_locataire||"",courriel_locataire:u.courriel_locataire||"",
-      urg_nom:u.urg_nom||"",urg_lien:u.urg_lien||"",urg_tel:u.urg_tel||"",
+      urg_nom:u.urg_nom||"",urg_lien:u.urg_lien||"",urg_tel:u.urg_tel||"",urg_courriel:u.urg_courriel||"",pap_actif:!!u.pap_actif,
       banque_institution:u.banque_institution||"",banque_transit:u.banque_transit||"",banque_compte:u.banque_compte||"",
       stationnement:u.stationnement||"",rangement:u.rangement||"",notes:u.notes||""});
   }
@@ -185,9 +185,10 @@ export default function Unites(){
     var row={fraction:parseFloat(nf.fraction)||0,
       chauffe_eau:nf.chauffe_eau||"",ce_date_install:nf.ce_date_install?nf.ce_date_install+"-01":null,
       assurance_police:nf.assurance_police||"",assurance_debut:nf.assurance_debut||null,assurance_exp:nf.assurance_exp||null,ass_cie:nf.ass_cie||"",
-      occupation:nf.occupation||"proprietaire",locataire:(nf.occupation==="locataire"),
+      occupation:nf.occupation||"proprietaire",locataire:(nf.occupation==="locataire"||nf.occupation==="court_terme"),
       nom_locataire:nf.nom_locataire||"",tel_locataire:nf.tel_locataire||"",courriel_locataire:nf.courriel_locataire||"",
-      urg_nom:nf.urg_nom||"",urg_lien:nf.urg_lien||"",urg_tel:nf.urg_tel||"",
+      urg_nom:nf.urg_nom||"",urg_lien:nf.urg_lien||"",urg_tel:nf.urg_tel||"",urg_courriel:nf.urg_courriel||"",
+      pap_actif:!!nf.pap_actif,
       banque_institution:nf.banque_institution||"",banque_transit:nf.banque_transit||"",banque_compte:nf.banque_compte||"",
       stationnement:nf.stationnement||"",rangement:nf.rangement||"",notes:nf.notes||""};
     var uid=editId;
@@ -246,7 +247,7 @@ export default function Unites(){
           var props=propsDe(u);
           var jrs=joursAvant(u.assurance_exp);
           var enEdition=editId===u.id;
-          var occLbl=u.occupation==="locataire"||(!u.occupation&&u.locataire)?"Louee":u.occupation==="resident"?"Resident":"Proprietaire occupant";
+          var occLbl=u.occupation==="locataire"||(!u.occupation&&u.locataire)?"Louee":u.occupation==="resident"?"Resident":u.occupation==="court_terme"?"Location court terme":"Proprietaire occupant";
           return(
             <div key={u.id} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:16,marginBottom:10}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",marginBottom:10}}>
@@ -256,10 +257,12 @@ export default function Unites(){
                   {Number(u.cotisation_mensuelle)>0&&<Bdg>{Number(u.cotisation_mensuelle).toFixed(2)} $/mois</Bdg>}
                   {(u.occupation==="locataire"||(!u.occupation&&u.locataire))&&<Bdg bg={T.amberL} c={T.amber}>LOUEE{u.nom_locataire?": "+u.nom_locataire:""}</Bdg>}
                   {u.occupation==="resident"&&<Bdg bg={T.blueL} c={T.blue}>RESIDENT{u.nom_locataire?": "+u.nom_locataire:""}</Bdg>}
+                  {u.occupation==="court_terme"&&<Bdg bg={T.purpleL} c={T.purple}>LOCATION COURT TERME</Bdg>}
                   {u.assurance_exp&&(jrs<0
                     ?<Bdg bg={T.redL} c={T.red}>Assurance EXPIREE</Bdg>
                     :jrs<=90?<Bdg bg={T.amberL} c={T.amber}>Assurance expire dans {jrs} j</Bdg>
                     :<Bdg>Assurance OK</Bdg>)}
+                  {u.pap_actif?<Bdg bg={T.accentL} c={T.accent}>PAP ACTIF</Bdg>:<Bdg bg={T.alt} c={T.muted}>PAP inactif</Bdg>}
                 </div>
                 <div style={{display:"flex",gap:6,flexShrink:0}}>
                   <Btn sm onClick={function(){enEdition?setEditId(null):editer(u);}}>{enEdition?"Fermer":"Modifier"}</Btn>
@@ -295,11 +298,11 @@ export default function Unites(){
                   ):"-"}
                 </InfoBloc>
                 <InfoBloc titre="Urgence" bg={T.amberL} c={T.amber}>
-                  {u.urg_nom?(<div>{u.urg_nom}{u.urg_lien?" ("+u.urg_lien+")":""}<div style={{fontSize:10,color:T.muted}}>{u.urg_tel||""}</div></div>):"-"}
+                  {u.urg_nom?(<div>{u.urg_nom}{u.urg_lien?" ("+u.urg_lien+")":""}<div style={{fontSize:10,color:T.muted}}>{u.urg_tel||""}{u.urg_courriel?" | "+u.urg_courriel:""}</div></div>):"-"}
                 </InfoBloc>
                 <InfoBloc titre="Divers">
                   {u.stationnement?"Stat. "+u.stationnement:""}{u.rangement?(u.stationnement?" | ":"")+"Rang. "+u.rangement:""}
-                  {u.banque_institution||u.banque_compte?<div style={{fontSize:10,color:T.muted}}>Prelevement bancaire configure</div>:null}
+                  {u.banque_institution||u.banque_compte||u.pap_actif!==undefined?<div style={{fontSize:10,fontWeight:700,color:u.pap_actif?T.accent:T.muted}}>{u.pap_actif?"PAP actif":(u.banque_institution?"PAP inactif (coordonnees fournies)":"PAP inactif")}</div>:null}
                   {!u.stationnement&&!u.rangement&&!u.banque_institution?"-":null}
                 </InfoBloc>
               </div>
@@ -345,19 +348,20 @@ export default function Unites(){
                     <div><Lbl l="Occupation de l unite"/><select value={nf.occupation||"proprietaire"} onChange={function(e){setN("occupation",e.target.value);}} style={INP}>
                       <option value="proprietaire">Proprietaire occupant</option>
                       <option value="locataire">Louee (locataire)</option>
+                      <option value="court_terme">Location COURT TERME (Airbnb etc. - pas de nom requis)</option>
                       <option value="resident">Resident (non locataire)</option>
                     </select></div>
-                    <div><Lbl l={nf.occupation==="resident"?"Nom du resident":"Nom du locataire"}/><input value={nf.nom_locataire} onChange={function(e){setN("nom_locataire",e.target.value);}} style={INP}/></div>
+                    {nf.occupation!=="court_terme"?<div><Lbl l={nf.occupation==="resident"?"Nom du resident":"Nom du locataire"}/><input value={nf.nom_locataire} onChange={function(e){setN("nom_locataire",e.target.value);}} style={INP}/></div>:<div style={{alignSelf:"end",fontSize:10,color:T.muted}}>Location court terme: aucun nom de locataire conserve.</div>}
                     <div><Lbl l="Telephone"/><input value={nf.tel_locataire} onChange={function(e){setN("tel_locataire",fmtTel(e.target.value));}} style={INP} maxLength={12}/></div>
                     <div><Lbl l="Courriel"/><input value={nf.courriel_locataire} onChange={function(e){setN("courriel_locataire",e.target.value.trim());}} style={INP}/></div>
 
                     <SecTitre l="Chauffe-eau" c={T.purple}/>
                     <div><Lbl l="Marque / modele"/><input value={nf.chauffe_eau} onChange={function(e){setN("chauffe_eau",e.target.value);}} style={INP} placeholder="Giant 60 gal"/></div>
                     <div><Lbl l="Installation (mois-annee)"/><input type="month" value={nf.ce_date_install||""} onChange={function(e){setN("ce_date_install",e.target.value);}} style={INP}/></div>
-                    <div style={{gridColumn:"span 2"}}><Lbl l="Photo du chauffe-eau (preuve)"/><input type="file" accept="image/*,.pdf" onChange={function(e){setCeFile(e.target.files&&e.target.files[0]?e.target.files[0]:null);}} style={{fontSize:11,fontFamily:"inherit"}}/>{ceFile&&<span style={{fontSize:10,color:T.accent,marginLeft:6}}>{ceFile.name}</span>}</div>
+                    <div style={{gridColumn:"span 2"}}><Lbl l="Photo du chauffe-eau (preuve)"/><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><input type="file" accept="image/*,.pdf" onChange={function(e){setCeFile(e.target.files&&e.target.files[0]?e.target.files[0]:null);}} style={{fontSize:11,fontFamily:"inherit"}}/>{ceFile&&<span style={{fontSize:10,color:T.accent}}>{ceFile.name}</span>}{u.ce_photo&&<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){voirFichier(u.ce_photo);}}>Voir le document actuel</Btn>}</div></div>
 
                     <SecTitre l="Assurance" c={T.accent}/>
-                    <div style={{gridColumn:"span 2"}}><Lbl l="Preuve d assurance (les champs se remplissent automatiquement)"/><input type="file" accept=".pdf,image/*" onChange={function(e){var f=e.target.files&&e.target.files[0]?e.target.files[0]:null;setAssFile(f);if(f)extraireAssurance(f);}} style={{fontSize:11,fontFamily:"inherit"}}/>{assFile&&<span style={{fontSize:10,color:T.accent,marginLeft:6}}>{assFile.name}</span>}</div>
+                    <div style={{gridColumn:"span 2"}}><Lbl l="Preuve d assurance (les champs se remplissent automatiquement)"/><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><input type="file" accept=".pdf,image/*" onChange={function(e){var f=e.target.files&&e.target.files[0]?e.target.files[0]:null;setAssFile(f);if(f)extraireAssurance(f);}} style={{fontSize:11,fontFamily:"inherit"}}/>{assFile&&<span style={{fontSize:10,color:T.accent}}>{assFile.name}</span>}{u.assurance_doc&&<Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){voirFichier(u.assurance_doc);}}>Voir le document actuel</Btn>}</div></div>
                     <div><Lbl l="No police"/><input value={nf.assurance_police} onChange={function(e){setN("assurance_police",e.target.value);}} style={INP}/></div>
                     <div><Lbl l="Assureur"/><input value={nf.ass_cie} onChange={function(e){setN("ass_cie",e.target.value);}} style={INP}/></div>
                     <div><Lbl l="Debut"/><input type="date" value={nf.assurance_debut||""} onChange={function(e){setN("assurance_debut",e.target.value);}} style={INP}/></div>
@@ -368,12 +372,17 @@ export default function Unites(){
                     <div><Lbl l="Nom"/><input value={nf.urg_nom} onChange={function(e){setN("urg_nom",e.target.value);}} style={INP}/></div>
                     <div><Lbl l="Lien"/><input value={nf.urg_lien} onChange={function(e){setN("urg_lien",e.target.value);}} style={INP} placeholder="Fils, soeur..."/></div>
                     <div><Lbl l="Telephone"/><input value={nf.urg_tel} onChange={function(e){setN("urg_tel",fmtTel(e.target.value));}} style={INP} maxLength={12}/></div>
+                    <div><Lbl l="Courriel"/><input value={nf.urg_courriel||""} onChange={function(e){setN("urg_courriel",e.target.value.trim());}} style={INP} placeholder="urgence@exemple.com"/></div>
 
                     <SecTitre l="Prelevement bancaire (PAP)" c={T.navy}/>
                     <div><Lbl l="Institution (3 chiffres)"/><input value={nf.banque_institution} onChange={function(e){setN("banque_institution",e.target.value.replace(/\D/g,"").slice(0,3));}} style={INP} placeholder="815"/></div>
                     <div><Lbl l="Transit (5 chiffres)"/><input value={nf.banque_transit} onChange={function(e){setN("banque_transit",e.target.value.replace(/\D/g,"").slice(0,5));}} style={INP} placeholder="30040"/></div>
                     <div><Lbl l="No de compte"/><input value={nf.banque_compte} onChange={function(e){setN("banque_compte",e.target.value.replace(/\D/g,"").slice(0,12));}} style={INP}/></div>
-                    <div style={{alignSelf:"end",fontSize:9,color:T.muted}}>Les informations bancaires appartiennent a l UNITE (transferees a la vente si le nouveau proprietaire les fournit).</div>
+                    <div style={{alignSelf:"end"}}>
+                      <Lbl l="Prelevement (PAP)"/>
+                      <button onClick={function(){setN("pap_actif",!nf.pap_actif);}} style={{background:nf.pap_actif?T.accentL:T.alt,border:"2px solid "+(nf.pap_actif?T.accent:T.border),borderRadius:20,padding:"5px 16px",fontSize:11,fontWeight:800,color:nf.pap_actif?T.accent:T.muted,cursor:"pointer",fontFamily:"inherit"}}>{nf.pap_actif?"PAP ACTIF":"PAP INACTIF"}</button>
+                    </div>
+                    <div style={{gridColumn:"1/-1",fontSize:9,color:T.muted}}>Les informations bancaires appartiennent a l UNITE (transferees a la vente si le nouveau proprietaire les fournit).</div>
 
                     <div style={{gridColumn:"1/-1"}}><Lbl l="Notes"/><input value={nf.notes} onChange={function(e){setN("notes",e.target.value);}} style={INP}/></div>
                   </div>
