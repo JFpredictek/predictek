@@ -766,28 +766,34 @@ function Onboarding(p){
           setIaSuccess("Lecture complete du REQ: "+da.admins.length+" administrateur(s) avec adresses et dates de debut de charge - verifiez a l etape Administrateurs.");
         }).catch(function(){});
       }
-      // Extraction automatique des reglements: TOUTE la declaration, par segments successifs
+      // Extraction automatique des reglements: TOUTE la declaration.
+      // Sections plus grandes, traitees EN PARALLELE, avec limite de temps par appel
+      // (90 s) pour qu un appel bloque ne gele jamais l analyse.
       if(window._texteActeComplet&&window._texteActeComplet.length>500){
         var texteRg=window._texteActeComplet;
-        var TAILLE_SEG=26000;
+        var TAILLE_SEG=55000;
         var segments=[];
-        for(var sg=0;sg<texteRg.length&&segments.length<10;sg+=TAILLE_SEG)segments.push(texteRg.substring(sg,sg+TAILLE_SEG));
-        var resumes=[];
-        var chaineRg=Promise.resolve();
-        segments.forEach(function(seg,iSeg){
-          chaineRg=chaineRg.then(function(){
-            setIaSuccess("Extraction des reglements: section "+(iSeg+1)+" sur "+segments.length+"...");
-            return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:seg,mode:"reglements"})})
-              .then(lireReponseAPI).then(function(rr){
-                if(rr&&rr.ok&&rr.resume&&rr.resume.trim().length>20)resumes.push(rr.resume.trim());
-              }).catch(function(){});
-          });
-        });
-        chaineRg.then(function(){
+        for(var sg=0;sg<texteRg.length&&segments.length<6;sg+=TAILLE_SEG)segments.push(texteRg.substring(sg,sg+TAILLE_SEG));
+        var faits=0;
+        setIaSuccess("Extraction des reglements: "+segments.length+" section(s) en parallele...");
+        Promise.all(segments.map(function(seg,iSeg){
+          var ac=(typeof AbortController!=="undefined")?new AbortController():null;
+          var tmo=ac?setTimeout(function(){try{ac.abort();}catch(e){}},90000):null;
+          return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({texte:seg,mode:"reglements"}),signal:ac?ac.signal:undefined})
+            .then(lireReponseAPI).then(function(rr){
+              if(tmo)clearTimeout(tmo);
+              faits++;
+              setIaSuccess("Extraction des reglements: "+faits+" sur "+segments.length+" section(s) terminee(s)...");
+              return (rr&&rr.ok&&rr.resume&&rr.resume.trim().length>20)?{i:iSeg,txt:rr.resume.trim()}:null;
+            }).catch(function(){if(tmo)clearTimeout(tmo);faits++;return null;});
+        })).then(function(res){
+          var resumes=res.filter(Boolean).sort(function(a,b){return a.i-b.i;}).map(function(x){return x.txt;});
           if(resumes.length>0){
             var complet=resumes.join("\n\n").substring(0,24000);
             setData(function(o){return Object.assign({},o,{reglementsResume:complet});});
-            setIaSuccess("Extraction terminee - reglements captes sur l ENSEMBLE de la declaration ("+segments.length+" section(s) analysee(s)).");
+            setIaSuccess("Extraction terminee - reglements captes sur l ENSEMBLE de la declaration ("+resumes.length+" section(s) sur "+segments.length+").");
+          }else{
+            setIaError("L extraction des reglements n a rien donne - utilisez le bouton Relancer l extraction des reglements a l etape Documents.");
           }
         });
       }console.log("EXTRACT DEBUG:",resp.debug,"DATA:",ex);
