@@ -66,6 +66,11 @@ export default function Encaissements(){
   var s12=useState({titre:"",montant_total:"",date_vote:new Date().toISOString().substring(0,10),nb_versements:"1",date_premier_versement:new Date().toISOString().substring(0,10),notes:""});
   var nfSp=s12[0];var setNfSp=s12[1];
   var s13=useState("0");var tauxInteret=s13[0];var setTauxInteret=s13[1];
+  var s14=useState([]);var factCopros=s14[0];var setFactCopros=s14[1];
+  var s15=useState(false);var showFC=s15[0];var setShowFC=s15[1];
+  var s16=useState({unite:"",type_frais:"frais",description:"",montant:"",date_facture:new Date().toISOString().substring(0,10),date_echeance:""});var nfFC=s16[0];var setNfFC=s16[1];
+  var s17=useState({origId:"",origNom:"",centre:"",noFichier:"1"});var dpa=s17[0];var setDpa=s17[1];
+  var s18=useState(false);var showDpaCfg=s18[0];var setShowDpaCfg=s18[1];
 
   useEffect(function(){
     sb.select("syndicats",{order:"nom.asc"}).then(function(res){
@@ -82,6 +87,10 @@ export default function Encaissements(){
     sb.select("coproprietaires",{eq:{syndicat_id:sel.id},limit:2000}).then(function(r){if(r&&r.data)setCopros(r.data);}).catch(function(){});
     sb.select("paiements",{eq:{syndicat_id:sel.id},order:"date_paiement.desc",limit:5000}).then(function(r){if(r&&r.data)setPaiements(r.data);}).catch(function(){});
     sb.select("cotisations_speciales",{eq:{syndicat_id:sel.id},order:"date_vote.desc",limit:100}).then(function(r){if(r&&r.data)setSpeciales(r.data);}).catch(function(){});
+    sb.select("factures_copros",{eq:{syndicat_id:sel.id},order:"created_at.desc",limit:500}).then(function(r){if(r&&r.data)setFactCopros(r.data);}).catch(function(){});
+    sb.selectOne("config_publique",{eq:{cle:"dpa_config"}}).then(function(r){
+      if(r&&r.data&&r.data.valeur){try{setDpa(Object.assign({origId:"",origNom:"",centre:"",noFichier:"1"},JSON.parse(r.data.valeur)));}catch(e){}}
+    }).catch(function(){});
   }
   useEffect(function(){chargerTout();},[sel&&sel.id]);
 
@@ -257,7 +266,138 @@ export default function Encaissements(){
   var totArr=unites.reduce(function(a,u){return a+calculArrerages(u).arrerages;},0);
   var nbPap=unites.filter(function(u){return u.pap_actif;}).length;
 
-  var TABS=[{id:"encaissements",l:"Encaissements du mois"},{id:"speciales",l:"Cotisations speciales"}];
+  // ----- FACTURES AUX COPROPRIETAIRES (frais, infractions, refacturation) -----
+  var TYPES_FRAIS={frais:"Frais divers",infraction:"Avis d infraction (penalite)",refacturation:"Refacturation (dommages, cles...)"};
+  function setFC(k,v){setNfFC(function(pr){var n=Object.assign({},pr);n[k]=v;return n;});}
+  function creerFactureCopro(){
+    if(enCours||!sel)return;
+    if(!nfFC.unite){setErr("Choisissez l unite.");return;}
+    if(!(parseFloat(nfFC.montant)>0)){setErr("Entrez un montant valide.");return;}
+    if(!nfFC.description){setErr("La description est requise.");return;}
+    setEnCours(true);setErr("");
+    var u=unites.find(function(x){return x.no_unite===nfFC.unite;});
+    var pr=u?propsDe(u)[0]:null;
+    var annee=nfFC.date_facture.substring(0,4);
+    var no="FC-"+annee+"-"+String(factCopros.filter(function(f){return (f.no_facture||"").indexOf("FC-"+annee)===0;}).length+1).padStart(3,"0");
+    var row={syndicat_id:sel.id,unite_id:u?u.id:null,unite:nfFC.unite,coproprietaire_id:pr?pr.id:null,
+      destinataire_nom:u?propsDe(u).map(function(c){return ((c.prenom||"")+" "+(c.nom||"")).trim();}).join(" et "):"",
+      no_facture:no,type_frais:nfFC.type_frais,description:nfFC.description,
+      montant:parseFloat(nfFC.montant)||0,date_facture:nfFC.date_facture,date_echeance:nfFC.date_echeance||null,statut:"emise"};
+    sb.insert("factures_copros",row).then(function(r){
+      setEnCours(false);
+      if(!r||!r.data||!r.data.id){setErr("ECHEC: "+((r&&r.error&&r.error.message)||"la table factures_copros existe-t-elle? (SQL fourni)"));return;}
+      setMsg("Facture "+no+" emise a l unite "+nfFC.unite+" ("+money(row.montant)+"). Imprimez-la et transmettez-la.");
+      sb.log("encaissements","creation","Facture copro "+no+": unite "+nfFC.unite+" - "+TYPES_FRAIS[nfFC.type_frais]+" "+row.montant+" $","",sel.code||"");
+      setShowFC(false);setNfFC({unite:"",type_frais:"frais",description:"",montant:"",date_facture:new Date().toISOString().substring(0,10),date_echeance:""});
+      chargerTout();setTimeout(function(){setMsg("");},6000);
+    }).catch(function(e){setEnCours(false);setErr("Erreur: "+(e&&e.message?e.message:""));});
+  }
+  function payerFactureCopro(f){
+    var auj=new Date().toISOString().substring(0,10);
+    sb.update("factures_copros",f.id,{statut:"payee",date_paiement:auj}).then(function(r){
+      if(r&&r.error){setErr("Echec: "+(r.error.message||""));return;}
+      return sb.insert("paiements",{syndicat_id:sel.id,unite_id:f.unite_id,coproprietaire_id:f.coproprietaire_id,
+        type:f.type_frais==="infraction"?"infraction":"frais",mois:auj.substring(0,7),date_paiement:auj,
+        montant:Number(f.montant)||0,description:"Facture "+f.no_facture+" - "+(f.description||"").substring(0,80),statut:"paye",moyen:"facture_copro"});
+    }).then(function(){
+      sb.log("encaissements","paiement","Facture copro "+f.no_facture+" payee ("+f.montant+" $)","",sel.code||"");
+      chargerTout();
+    });
+  }
+  function annulerFactureCopro(f){
+    sb.update("factures_copros",f.id,{statut:"annulee"}).then(function(){
+      sb.log("encaissements","modification","Facture copro "+f.no_facture+" annulee","",sel.code||"");
+      chargerTout();
+    });
+  }
+  function imprimerFactureCopro(f){
+    var h="<h1>"+(sel.nom||"")+"</h1><div class='muted'>"+(sel.adr||"")+(sel.ville?", "+sel.ville:"")+"</div>";
+    h+="<h2 style='margin-top:18px'>FACTURE "+f.no_facture+"</h2>";
+    h+="<table>";
+    h+="<tr><th>Destinataire</th><td>"+(f.destinataire_nom||"Coproprietaire")+" - unite "+(f.unite||"")+"</td></tr>";
+    h+="<tr><th>Type</th><td>"+(TYPES_FRAIS[f.type_frais]||f.type_frais)+"</td></tr>";
+    h+="<tr><th>Description</th><td>"+(f.description||"")+"</td></tr>";
+    h+="<tr><th>Date de la facture</th><td>"+(f.date_facture||"")+"</td></tr>";
+    if(f.date_echeance)h+="<tr><th>Echeance de paiement</th><td><b>"+f.date_echeance+"</b></td></tr>";
+    h+="<tr class='tot'><th>MONTANT DU</th><td><b>"+money(f.montant)+"</b></td></tr></table>";
+    h+="<p style='margin-top:18px'>Priere d acquitter ce montant au plus tard a l echeance. Les montants impayes portent les interets et frais prevus a la declaration de copropriete.</p>";
+    h+="<br/><p>Le Conseil d administration<br/>"+(sel.nom||"")+"</p>";
+    imprimerHTML("Facture "+f.no_facture,h);
+  }
+
+  // ----- FICHIER DE PRELEVEMENTS BANCAIRES (DPA - standard Paiements Canada CPA-005) -----
+  function pad(v,n,dir,ch){v=String(v==null?"":v);ch=ch||" ";if(v.length>n)return v.substring(0,n);var f="";for(var i=v.length;i<n;i++)f+=ch;return dir==="g"?f+v:v+f;}
+  function dateJulienne(d){
+    var dt=d?new Date(d+"T12:00:00"):new Date();
+    var debut=new Date(dt.getFullYear(),0,0);
+    var jour=Math.floor((dt-debut)/86400000);
+    return "0"+String(dt.getFullYear()).substring(2)+pad(jour,3,"g","0");
+  }
+  function sauverDpaConfig(){
+    sb.upsert("config_publique",[{cle:"dpa_config",valeur:JSON.stringify(dpa)}],"cle").then(function(r){
+      if(r&&r.error){setErr("ECHEC sauvegarde config DPA: "+(r.error.message||""));return;}
+      setMsg("Configuration DPA sauvegardee.");setShowDpaCfg(false);setTimeout(function(){setMsg("");},4000);
+    });
+  }
+  function lignesPrelevement(){
+    return unites.filter(function(u){return u.pap_actif&&u.banque_institution&&u.banque_transit&&u.banque_compte;})
+      .map(function(u){
+        var montant=(Number(u.cotisation_mensuelle)||0)+specialesDues(u,mois);
+        var prs=propsDe(u);
+        return {u:u,montant:Math.round(montant*100)/100,nom:prs.map(function(c){return ((c.prenom||"")+" "+(c.nom||"")).trim();}).join(" ").substring(0,30)||("Unite "+u.no_unite)};
+      }).filter(function(l){return l.montant>0;});
+  }
+  function telecharger(nomFichier,contenu,type){
+    var blob=new Blob([contenu],{type:type||"text/plain;charset=ascii"});
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);a.download=nomFichier;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+  }
+  function genererDPA(){
+    setErr("");
+    if(!dpa.origId||!dpa.origNom){setErr("Configurez d abord le numero d emetteur (fourni par votre institution) - bouton Configuration DPA.");setShowDpaCfg(true);return;}
+    var lignes=lignesPrelevement();
+    if(lignes.length===0){setErr("Aucune unite avec PAP actif, coordonnees bancaires completes et montant du pour "+mois+".");return;}
+    var noF=pad(parseInt(dpa.noFichier)||1,4,"g","0");
+    var dateCrea=dateJulienne(null);
+    var dateEch=dateJulienne(mois+"-01");
+    var L=1464;
+    var recs=[];var cnt=1;
+    // Enregistrement A (entete)
+    recs.push(pad("A"+pad(cnt,9,"g","0")+pad(dpa.origId,10)+noF+dateCrea+pad(dpa.centre||"",5,"g","0")+pad("",20)+"CAD",L));
+    // Enregistrements D (debits) - code d operation CPA 316 = frais de copropriete
+    var totalCents=0;
+    lignes.forEach(function(l){
+      cnt++;
+      var cents=Math.round(l.montant*100);totalCents+=cents;
+      var seg="316"+pad(cents,10,"g","0")+dateEch+"0"+pad(l.u.banque_institution,3,"g","0")+pad(l.u.banque_transit,5,"g","0")+pad(l.u.banque_compte,12)
+        +pad("0",22,"g","0")+pad("0",3,"g","0")+pad(dpa.origNom,15)+pad(l.nom,30)+pad(dpa.origNom,30)
+        +pad(dpa.origId,10)+pad("COTIS "+mois+" U"+l.u.no_unite,19)+pad("0",9,"g","0")+pad("",12)+pad("",15)+pad("0",22,"g","0")+pad("",2)+pad("0",11,"g","0");
+      recs.push(pad("D"+pad(cnt,9,"g","0")+pad(dpa.origId,10)+noF+seg,L));
+    });
+    // Enregistrement Z (total)
+    cnt++;
+    recs.push(pad("Z"+pad(cnt,9,"g","0")+pad(dpa.origId,10)+noF+pad(totalCents,14,"g","0")+pad(lignes.length,8,"g","0")+pad("0",14,"g","0")+pad("0",8,"g","0"),L));
+    telecharger("DPA_"+(sel.code||"syndicat")+"_"+mois+"_"+noF+".txt",recs.join("\r\n")+"\r\n");
+    // Incremente le numero de fichier pour la prochaine generation
+    var nSuiv=String((parseInt(dpa.noFichier)||1)+1);
+    setDpa(Object.assign({},dpa,{noFichier:nSuiv}));
+    sb.upsert("config_publique",[{cle:"dpa_config",valeur:JSON.stringify(Object.assign({},dpa,{noFichier:nSuiv}))}],"cle").catch(function(){});
+    setMsg("Fichier DPA (CPA-005) genere: "+lignes.length+" prelevement(s), total "+money(totalCents/100)+". Transmettez-le a votre institution financiere.");
+    sb.log("encaissements","creation","Fichier DPA "+mois+" genere: "+lignes.length+" prelevements, "+(totalCents/100).toFixed(2)+" $","",sel.code||"");
+    setTimeout(function(){setMsg("");},8000);
+  }
+  function genererCSVBanque(){
+    var lignes=lignesPrelevement();
+    if(lignes.length===0){setErr("Aucune unite avec PAP actif, coordonnees bancaires completes et montant du pour "+mois+".");return;}
+    var out=[["Unite","Nom","Institution","Transit","Compte","Montant","Date"]];
+    lignes.forEach(function(l){out.push([l.u.no_unite,l.nom,l.u.banque_institution,l.u.banque_transit,l.u.banque_compte,l.montant.toFixed(2),mois+"-01"]);});
+    telecharger("Prelevements_"+(sel.code||"syndicat")+"_"+mois+".csv","\uFEFF"+out.map(function(r){return r.join(";");}).join("\r\n"),"text/csv;charset=utf-8");
+    setMsg("Fichier CSV des prelevements genere ("+lignes.length+" ligne(s)) - format simple pour verification ou depot manuel.");
+    setTimeout(function(){setMsg("");},6000);
+  }
+
+  var TABS=[{id:"encaissements",l:"Encaissements du mois"},{id:"speciales",l:"Cotisations speciales"},{id:"factcopros",l:"Factures aux copros"},{id:"dpa",l:"Prelevements (DPA)"}];
 
   if(syndicats.length===0)return <div style={{padding:40,textAlign:"center",fontFamily:"Georgia,serif",color:T.muted}}>Aucun syndicat.</div>;
 
@@ -381,6 +521,114 @@ export default function Encaissements(){
               );
             })}
             {speciales.length===0&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucune cotisation speciale.</div>}
+          </div>
+        )}
+
+        {ong==="factcopros"&&(
+          <div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+              <div style={{fontSize:12,color:T.muted}}>
+                {factCopros.length} facture(s) - impayees: <b style={{color:T.red}}>{money(factCopros.filter(function(f){return f.statut==="emise";}).reduce(function(a,f){return a+(Number(f.montant)||0);},0))}</b>
+              </div>
+              <Btn onClick={function(){setShowFC(true);setErr("");}}>+ Emettre une facture a un copro</Btn>
+            </div>
+
+            {showFC&&(
+              <div style={{background:T.surface,border:"2px solid "+T.navy+"33",borderRadius:12,padding:16,marginBottom:14}}>
+                <div style={{fontSize:13,fontWeight:800,color:T.navy,marginBottom:10}}>Nouvelle facture a un coproprietaire</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:10}}>
+                  <div><Lbl l="Unite"/><select value={nfFC.unite} onChange={function(e){setFC("unite",e.target.value);}} style={INP}>
+                    <option value="">Choisir...</option>
+                    {unites.map(function(u){return <option key={u.id} value={u.no_unite}>{u.no_unite}</option>;})}
+                  </select></div>
+                  <div><Lbl l="Type"/><select value={nfFC.type_frais} onChange={function(e){setFC("type_frais",e.target.value);}} style={INP}>
+                    {Object.keys(TYPES_FRAIS).map(function(t){return <option key={t} value={t}>{TYPES_FRAIS[t]}</option>;})}
+                  </select></div>
+                  <div><Lbl l="Montant ($)"/><input type="number" step="0.01" value={nfFC.montant} onChange={function(e){setFC("montant",e.target.value);}} style={INP}/></div>
+                  <div><Lbl l="Echeance"/><input type="date" value={nfFC.date_echeance} onChange={function(e){setFC("date_echeance",e.target.value);}} style={INP}/></div>
+                  <div style={{gridColumn:"1/-1"}}><Lbl l="Description"/><input value={nfFC.description} onChange={function(e){setFC("description",e.target.value);}} style={INP} placeholder="ex: Penalite - avis d infraction du ... / Remplacement de cle / Reparation de dommages..."/></div>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <Btn onClick={creerFactureCopro} dis={enCours}>{enCours?"Emission...":"Emettre la facture"}</Btn>
+                  <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setShowFC(false);}}>Annuler</Btn>
+                </div>
+              </div>
+            )}
+
+            {factCopros.length===0&&!showFC&&(
+              <div style={{background:T.surface,border:"1px dashed "+T.border,borderRadius:12,padding:30,textAlign:"center",color:T.muted,fontSize:13}}>
+                Aucune facture emise a un coproprietaire.<br/><span style={{fontSize:11}}>Frais divers, penalites d infraction, refacturation de dommages ou de cles.</span>
+              </div>
+            )}
+            {factCopros.map(function(f){
+              var st=f.statut==="payee"?{l:"PAYEE",c:T.accent,bg:T.accentL}:f.statut==="annulee"?{l:"ANNULEE",c:T.muted,bg:T.alt}:{l:"IMPAYEE",c:T.red,bg:T.redL};
+              return(
+                <div key={f.id} style={{background:T.surface,border:"1px solid "+T.border,borderLeft:"4px solid "+st.c,borderRadius:10,padding:"12px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+                  <span style={{background:st.bg,color:st.c,borderRadius:6,padding:"3px 10px",fontSize:10,fontWeight:800,flexShrink:0}}>{st.l}</span>
+                  <div style={{flex:1,minWidth:220}}>
+                    <div style={{fontSize:13,fontWeight:700,color:T.navy}}>{f.no_facture} - Unite {f.unite} - {TYPES_FRAIS[f.type_frais]||f.type_frais}</div>
+                    <div style={{fontSize:11,color:T.muted}}>{f.destinataire_nom||""} - {f.description}</div>
+                    <div style={{fontSize:10,color:T.muted}}>Emise le {f.date_facture}{f.date_echeance?" - echeance "+f.date_echeance:""}{f.date_paiement?" - payee le "+f.date_paiement:""}</div>
+                  </div>
+                  <div style={{fontSize:15,fontWeight:800,color:T.navy,flexShrink:0}}>{money(f.montant)}</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",flexShrink:0}}>
+                    <Btn sm bg={T.alt} tc={T.navy} bdr={"1px solid "+T.border} onClick={function(){imprimerFactureCopro(f);}}>Imprimer</Btn>
+                    {f.statut==="emise"&&<Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){payerFactureCopro(f);}}>Marquer payee</Btn>}
+                    {f.statut==="emise"&&<Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red+"44"} onClick={function(){annulerFactureCopro(f);}}>Annuler</Btn>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {ong==="dpa"&&(
+          <div>
+            <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:16,marginBottom:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8,marginBottom:8}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:800,color:T.navy}}>Retraits directs (debits preautorises) - {mois}</div>
+                  <div style={{fontSize:11,color:T.muted}}>Fichier au standard Paiements Canada CPA-005 (code d operation 316 - frais de copropriete), a transmettre a votre institution financiere.</div>
+                </div>
+                <Btn sm bg={T.alt} tc={T.navy} bdr={"1px solid "+T.border} onClick={function(){setShowDpaCfg(!showDpaCfg);}}>Configuration DPA</Btn>
+              </div>
+              {showDpaCfg&&(
+                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,background:T.blueL,borderRadius:10,padding:12,marginBottom:10}}>
+                  <div><Lbl l="No d emetteur (10 car., fourni par la banque)"/><input value={dpa.origId} onChange={function(e){setDpa(Object.assign({},dpa,{origId:e.target.value.toUpperCase().slice(0,10)}));}} style={INP}/></div>
+                  <div><Lbl l="Nom d emetteur (syndicat)"/><input value={dpa.origNom} onChange={function(e){setDpa(Object.assign({},dpa,{origNom:e.target.value.slice(0,30)}));}} style={INP} placeholder={sel.nom}/></div>
+                  <div><Lbl l="Centre de donnees (5 chiffres, optionnel)"/><input value={dpa.centre} onChange={function(e){setDpa(Object.assign({},dpa,{centre:e.target.value.replace(/\D/g,"").slice(0,5)}));}} style={INP}/></div>
+                  <div><Lbl l="No du prochain fichier"/><input value={dpa.noFichier} onChange={function(e){setDpa(Object.assign({},dpa,{noFichier:e.target.value.replace(/\D/g,"").slice(0,4)}));}} style={INP}/></div>
+                  <div style={{gridColumn:"1/-1"}}><Btn sm onClick={sauverDpaConfig}>Sauvegarder la configuration</Btn></div>
+                </div>
+              )}
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                <Btn onClick={genererDPA}>Generer le fichier DPA (CPA-005)</Btn>
+                <Btn bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={genererCSVBanque}>Exporter en CSV (verification)</Btn>
+              </div>
+            </div>
+            <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,overflow:"hidden"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead><tr style={{background:T.alt}}>{["Unite","Coproprietaire(s)","Institution","Transit","Compte","Montant "+mois].map(function(h,ix){return <th key={h} style={{padding:"7px 10px",textAlign:ix===5?"right":"left",fontSize:10,fontWeight:700,color:T.muted,textTransform:"uppercase"}}>{h}</th>;})}</tr></thead>
+                <tbody>
+                  {lignesPrelevement().map(function(l){return(
+                    <tr key={l.u.id} style={{borderTop:"1px solid "+T.border}}>
+                      <td style={{padding:"6px 10px",fontWeight:700}}>{l.u.no_unite}</td>
+                      <td style={{padding:"6px 10px"}}>{l.nom}</td>
+                      <td style={{padding:"6px 10px"}}>{l.u.banque_institution}</td>
+                      <td style={{padding:"6px 10px"}}>{l.u.banque_transit}</td>
+                      <td style={{padding:"6px 10px"}}>****{String(l.u.banque_compte||"").slice(-4)}</td>
+                      <td style={{padding:"6px 10px",textAlign:"right",fontWeight:800,color:T.accent}}>{money(l.montant)}</td>
+                    </tr>
+                  );})}
+                  {lignesPrelevement().length===0&&<tr><td colSpan={6} style={{padding:20,textAlign:"center",color:T.muted}}>Aucune unite avec PAP ACTIF et coordonnees bancaires completes (module Unites) et montant du pour {mois}.</td></tr>}
+                </tbody>
+                <tfoot><tr style={{background:T.alt,borderTop:"2px solid "+T.navy}}>
+                  <td colSpan={5} style={{padding:"7px 10px",fontWeight:800,color:T.navy}}>TOTAL ({lignesPrelevement().length} prelevement(s))</td>
+                  <td style={{padding:"7px 10px",textAlign:"right",fontWeight:800,color:T.accent}}>{money(lignesPrelevement().reduce(function(a,l){return a+l.montant;},0))}</td>
+                </tr></tfoot>
+              </table>
+            </div>
+            <div style={{fontSize:10,color:T.muted,marginTop:8}}>Les coordonnees bancaires et le bouton PAP ACTIF se gerent sur chaque unite (module Unites). Le numero d emetteur DPA est fourni par votre institution lors de l adhesion au service de debits preautorises.</div>
           </div>
         )}
       </div>

@@ -119,7 +119,7 @@ function SectionAlertes(p){
   );
 }
 
-export default function TableauBordCA(){
+export default function TableauBordCA(props){
   var s0=useState([]);var syndicats=s0[0];var setSyndicats=s0[1];
   var s1=useState(null);var sel=s1[0];var setSel=s1[1];
   var s2=useState([]);var copros=s2[0];var setCopros=s2[1];
@@ -128,12 +128,16 @@ export default function TableauBordCA(){
   var s5=useState([]);var tickets=s5[0];var setTickets=s5[1];
   var s6=useState([]);var budget=s6[0];var setBudget=s6[1];
   var sF=useState([]);var facturesCA=sF[0];var setFacturesCA=sF[1];
+  var sAv=useState([]);var avisCA=sAv[0];var setAvisCA=sAv[1];
   var s7=useState(false);var loading=s7[0];var setLoading=s7[1];
 
   useEffect(function(){
     if(!sel)return;
     sb.select("factures",{eq:{syndicat_id:sel.id},order:"created_at.desc",limit:200}).then(function(r){
       if(r&&r.data)setFacturesCA(r.data);
+    }).catch(function(){});
+    sb.select("avis_conformite",{eq:{syndicat_id:sel.id},limit:500}).then(function(r){
+      if(r&&r.data)setAvisCA(r.data);
     }).catch(function(){});
   },[sel&&sel.id]);
 
@@ -177,6 +181,13 @@ export default function TableauBordCA(){
   var prochaine=reunions.filter(function(r){return new Date(r.date_reunion)>=aujourd_hui;})[0];
   var factAttente=facturesCA.filter(function(f){return f.statut==="en_attente_approbation"||f.statut==="recue";});
   var totalAttenteApprob=factAttente.reduce(function(a,f){return a+(Number(f.total)||Number(f.montant)||0);},0);
+  var aPayer=facturesCA.filter(function(f){return f.statut==="approuvee";}).reduce(function(a,f){return a+(Number(f.total)||Number(f.montant)||0);},0);
+  var nbAPayer=facturesCA.filter(function(f){return f.statut==="approuvee";}).length;
+  var aRecevoir=paiements.filter(function(p){return p.statut==="en_attente";}).reduce(function(a,p){return a+(Number(p.montant)||0);},0);
+  var nbARecevoir=paiements.filter(function(p){return p.statut==="en_attente";}).length;
+  var aujISO=aujourd_hui.toISOString().substring(0,10);
+  var avisActifs=avisCA.filter(function(a){return a.statut==="emis";});
+  var avisEchus=avisActifs.filter(function(a){return a.echeance&&a.echeance<aujISO;});
 
   return(
     <div style={{fontFamily:"Georgia,serif",minHeight:"100vh",background:T.bg}}>
@@ -197,11 +208,34 @@ export default function TableauBordCA(){
           <div style={{fontSize:16,fontWeight:800,color:T.navy,marginBottom:4}}>{sel.nom}</div>
           <div style={{fontSize:11,color:T.muted,marginBottom:20}}>{sel.adr||""}{sel.ville?", "+sel.ville:""} - {coprosActifs.length} unites actives</div>
 
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
+            <div onClick={function(){if(props&&props.onNavigate)props.onNavigate("factures");}} style={{background:T.amberL,border:"2px solid "+(factAttente.length>0?T.amber:T.border),borderRadius:14,padding:14,cursor:"pointer"}}>
+              <div style={{fontSize:10,color:T.muted,fontWeight:700,textTransform:"uppercase"}}>Factures en attente d approbation</div>
+              <div style={{fontSize:22,fontWeight:800,color:T.amber}}>{factAttente.length}</div>
+              <div style={{fontSize:11,color:T.muted}}>{totalAttenteApprob.toFixed(2)} $ - cliquez pour approuver</div>
+            </div>
+            <div onClick={function(){if(props&&props.onNavigate)props.onNavigate("factures");}} style={{background:T.redL,border:"1px solid "+T.red+"44",borderRadius:14,padding:14,cursor:"pointer"}}>
+              <div style={{fontSize:10,color:T.muted,fontWeight:700,textTransform:"uppercase"}}>Comptes a payer (approuvees)</div>
+              <div style={{fontSize:22,fontWeight:800,color:T.red}}>{aPayer.toFixed(2)} $</div>
+              <div style={{fontSize:11,color:T.muted}}>{nbAPayer} facture(s) - cliquez pour voir</div>
+            </div>
+            <div onClick={function(){if(props&&props.onNavigate)props.onNavigate("encaissements");}} style={{background:T.blueL,border:"1px solid #1A56DB44",borderRadius:14,padding:14,cursor:"pointer"}}>
+              <div style={{fontSize:10,color:T.muted,fontWeight:700,textTransform:"uppercase"}}>Comptes a recevoir</div>
+              <div style={{fontSize:22,fontWeight:800,color:"#1A56DB"}}>{aRecevoir.toFixed(2)} $</div>
+              <div style={{fontSize:11,color:T.muted}}>{nbARecevoir} cotisation(s) en attente - cliquez</div>
+            </div>
+            <div onClick={function(){if(props&&props.onNavigate)props.onNavigate("conformite");}} style={{background:avisEchus.length>0?T.redL:T.surface,border:"2px solid "+(avisEchus.length>0?T.red:avisActifs.length>0?T.amber:T.border),borderRadius:14,padding:14,cursor:"pointer"}}>
+              <div style={{fontSize:10,color:T.muted,fontWeight:700,textTransform:"uppercase"}}>Avis de non-conformite en cours</div>
+              <div style={{fontSize:22,fontWeight:800,color:avisEchus.length>0?T.red:T.amber}}>{avisActifs.length}</div>
+              <div style={{fontSize:11,color:avisEchus.length>0?T.red:T.muted,fontWeight:avisEchus.length>0?700:400}}>{avisEchus.length>0?avisEchus.length+" ECHU(S) - infraction possible":"cliquez pour gerer"}</div>
+            </div>
+          </div>
+
           {factAttente.length>0&&(
-            <div style={{background:T.amberL,border:"2px solid "+T.amber,borderRadius:14,padding:16,marginBottom:20}}>
+            <div onClick={function(){if(props&&props.onNavigate)props.onNavigate("factures");}} style={{background:T.amberL,border:"2px solid "+T.amber,borderRadius:14,padding:16,marginBottom:20,cursor:"pointer"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}}>
                 <div style={{fontSize:13,fontWeight:800,color:T.amber}}>{factAttente.length} facture(s) EN ATTENTE D APPROBATION - {totalAttenteApprob.toFixed(2)} $</div>
-                <div style={{fontSize:11,color:T.muted}}>Approuvez-les dans Finances - Payables - Factures (bouton Approuver sur chaque facture)</div>
+                <div style={{fontSize:11,color:T.muted}}>Cliquez pour ouvrir Factures et approuver</div>
               </div>
               {factAttente.slice(0,5).map(function(f){return(
                 <div key={f.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fff",borderRadius:8,padding:"8px 12px",marginBottom:6,gap:10,flexWrap:"wrap"}}>

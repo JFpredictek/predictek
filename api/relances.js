@@ -97,6 +97,7 @@ module.exports = async function(req, res){
   var employes = await sbGet(svc, "employes?select=id,prenom,nom,poste,statut,permis_requis,permis_expiration&statut=eq.actif&limit=500");
   var assemblees = await sbGet(svc, "assemblees?select=id,syndicat_id,type,date_assemblee,statut,convocation_envoyee_le&statut=eq.planifiee&limit=200");
   var factAttente = await sbGet(svc, "factures?select=id,syndicat_id,fournisseur_nom,fournisseur,no_facture,total,montant,date_facture,statut&statut=eq.en_attente_approbation&limit=500");
+  var avisConf = await sbGet(svc, "avis_conformite?select=id,syndicat_id,unite,coproprietaire_id,objet,echeance,statut,niveau&statut=eq.emis&limit=500");
   var membresCA = await sbGet(svc, "membres_ca?select=id,syndicat_id,prenom,nom,courriel,actif&actif=eq.true&limit=500");
   var configRaw = await sbGet(svc, "config_publique?select=cle,valeur");
   var cfgPub = {}; configRaw.forEach(function(x){cfgPub[x.cle]=x.valeur;});
@@ -230,6 +231,28 @@ module.exports = async function(req, res){
     alertesAdmin.push({cle: cle6, type: "convocation_" + niv6, syn: syn6 || null,
       texte: "[" + (syn6 ? syn6.nom : "Syndicat") + "] Assemblee " + (a.type||"") + " du " + a.date_assemblee + " (dans " + j6 + " jours) NON CONVOQUEE - delai requis: " + delaiConv + " jours avant la date. "
         + (marge < 0 ? "DELAI DEPASSE de " + Math.abs(marge) + " jour(s): convoquez immediatement ou reportez l assemblee." : "Il reste " + marge + " jour(s) pour envoyer la convocation (module Assemblees).")});
+  });
+
+  // REGLE 8 - Avis de non-conformite: rappel au coproprietaire 3 jours avant l echeance,
+  // et alerte ADMIN quand l echeance est depassee (un avis d infraction peut etre emis).
+  avisConf.forEach(function(av){
+    if(!av.echeance) return;
+    var syn8 = synMap[av.syndicat_id] || {nom:"votre syndicat", code:""};
+    var j8 = Math.ceil((new Date(av.echeance + "T12:00:00") - maintenant) / 86400000);
+    var copro8 = copros.find(function(c){return c.id === av.coproprietaire_id && c.courriel;});
+    if(j8 >= 0 && j8 <= 3 && copro8){
+      var cle8 = "conf_rappel_" + av.id;
+      if(!deja[cle8]) aEnvoyer.push({
+        type: "conformite_rappel", cle: cle8, copro: copro8, syn: syn8,
+        sujet: "[" + syn8.nom + "] RAPPEL - avis de non-conformite: echeance le " + av.echeance + " (unite " + (av.unite||"") + ")",
+        contexte: "l avis de non-conformite concernant \"" + (av.objet||"") + "\" doit etre corrige au plus tard le " + av.echeance + "; a defaut, un avis d infraction pourra etre emis avec les penalites prevues au reglement de l immeuble"
+      });
+    }
+    if(j8 < 0){
+      var cle8b = "conf_echu_" + av.id;
+      if(!deja[cle8b]) alertesAdmin.push({cle: cle8b, type: "conformite_echu", syn: syn8,
+        texte: "[" + syn8.nom + "] Avis de non-conformite ECHU depuis " + Math.abs(j8) + " jour(s) - unite " + (av.unite||"") + ": " + (av.objet||"") + ". Un AVIS D INFRACTION peut etre emis (module Avis de non-conformite)."});
+    }
   });
 
   // REGLE 7 - Factures en attente d approbation: courriel aux membres du CA (une fois par facture)

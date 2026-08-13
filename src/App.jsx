@@ -36,6 +36,7 @@ import RegistreIncidents from "./RegistreIncidents";
 import Registre1070 from "./Registre1070";
 import Sinistres from "./Sinistres";
 import RequetesCopros from "./RequetesCopros";
+import Conformite from "./Conformite";
 import Facturation from "./Facturation";
 import PredictekCompta from "./PredictekCompta";
 import Unites from "./Unites";
@@ -90,6 +91,7 @@ var SECTIONS=[
       {id:"registre",label:"Registre 1070",icon:"RG"},
       {id:"sinistres",label:"Sinistres",icon:"SN"},
       {id:"requetes",label:"Requetes copros",icon:"RQ"},
+      {id:"conformite",label:"Avis de non-conformite",icon:"NC"},
       {id:"ca",label:"Membres CA",icon:"MC"},
       {id:"fournisseurs",label:"Fournisseurs",icon:"F"},
       {id:"agenda",label:"Agenda",icon:"AGD"},
@@ -125,7 +127,7 @@ var NAV={
     {titre:"Finances",items:[{sub:"Payables"},{id:"factures"},{id:"fournisseurs"},{id:"bons"},{sub:"Recevables"},{id:"encaissements"},{sub:"Comptabilite"},{id:"budget"},{id:"plancomptable"},{id:"etatsfin"},{id:"fondsview"},{id:"banques"},{id:"journalgl"},{id:"rapports"}]},
     {titre:"Immeuble",items:[{id:"unites"},{id:"assurances"},{id:"sinistres"},{id:"agenda"}]},
     {titre:"Instances",items:[{id:"assemblees"},{id:"pv"},{id:"ca"},{id:"registre"}]},
-    {titre:"Communications",items:[{id:"comm"},{id:"requetes"}]}
+    {titre:"Communications",items:[{id:"comm"},{id:"requetes"},{id:"conformite"}]}
   ],
   portail:[
     {titre:"Mon espace",items:[{id:"copro"},{id:"releves"},{id:"docs"}]},
@@ -157,7 +159,7 @@ export default function App(){
   var s1=useState(true);var checking=s1[0];var setChecking=s1[1];
   var s2=useState("dashboard");var active=s2[0];var setActive=s2[1];
   var s3=useState("predictek");var activeSec=s3[0];var setActiveSec=s3[1];
-  var s4=useState({});var ouverts=s4[0];var setOuverts=s4[1];
+  var s4=useState(null);var menuOuvert=s4[0];var setMenuOuvert=s4[1];
 
   useEffect(function(){
     sb.checkSession().then(function(u){
@@ -218,70 +220,80 @@ export default function App(){
   return(
     <div style={{height:"100vh",display:"flex",flexDirection:"column"}}>
       <div style={{background:"#0d1b2a",flexShrink:0}}>
-        <div style={{display:"flex",alignItems:"center",borderBottom:"1px solid #ffffff10"}}>
-          <div style={{display:"flex",alignItems:"center",gap:10,padding:"0 16px",borderRight:"1px solid #ffffff15",height:64,flexShrink:0}}>
-            {logoApp?(
-              <img src={logoApp} alt="Logo" style={{width:50,height:50,borderRadius:10,objectFit:"contain",background:"#fff",flexShrink:0}}/>
-            ):(
-              <div style={{width:50,height:50,borderRadius:10,background:"linear-gradient(135deg,#1B5E3B,#3CAF6E)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <span style={{color:"#fff",fontWeight:900,fontSize:24,fontFamily:"Georgia,serif"}}>P</span>
-              </div>
-            )}
-            <span style={{color:"#fff",fontWeight:800,fontSize:19,fontFamily:"Georgia,serif",whiteSpace:"nowrap"}}>Predictek</span>
-          </div>
+        <div style={{display:"flex",alignItems:"center",height:64,borderBottom:"1px solid #ffffff10"}}>
+          {sectionsVisibles.map(function(sec){
+            var isActive=activeSec===sec.id;
+            if(sec.id==="predictek"){
+              // Le LOGO est le menu maitre Predictek
+              return(
+                <button key={sec.id} onClick={function(){setActiveSec(sec.id);var first=sec.modules[0];if(first)setActive(first.id);}} title="Predictek" style={{display:"flex",alignItems:"center",gap:10,height:64,padding:"0 16px",background:isActive?sec.bg+"cc":"transparent",border:"none",borderBottom:isActive?"3px solid "+sec.color:"3px solid transparent",cursor:"pointer",fontFamily:"Georgia,serif",flexShrink:0}}>
+                  {logoApp?(
+                    <img src={logoApp} alt="Predictek" style={{width:46,height:46,borderRadius:10,objectFit:"contain",background:"#fff",flexShrink:0}}/>
+                  ):(
+                    <div style={{width:46,height:46,borderRadius:10,background:"linear-gradient(135deg,#1B5E3B,#3CAF6E)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <span style={{color:"#fff",fontWeight:900,fontSize:22,fontFamily:"Georgia,serif"}}>P</span>
+                    </div>
+                  )}
+                </button>
+              );
+            }
+            return(
+              <button key={sec.id} onClick={function(){setActiveSec(sec.id);var first=sec.modules[0];if(first)setActive(first.id);}} style={{display:"flex",alignItems:"center",gap:8,height:64,padding:"0 22px",background:isActive?sec.bg+"cc":"transparent",border:"none",borderBottom:isActive?"3px solid "+sec.color:"3px solid transparent",cursor:"pointer",fontFamily:"Georgia,serif",color:isActive?sec.color:"#9fb0c6",fontSize:14,fontWeight:isActive?700:500,flexShrink:0,transition:"all 0.15s"}}>
+                <div style={{width:8,height:8,borderRadius:"50%",background:isActive?sec.color:"#ffffff30",flexShrink:0}}/>
+                {sec.label}
+              </button>
+            );
+          })}
           <div style={{flex:1}}/>
           <div style={{padding:"0 14px",display:"flex",alignItems:"center",gap:10,flexShrink:0,borderLeft:"1px solid #ffffff15",height:64}}>
             <span style={{fontSize:12,color:"#c6d2e2",whiteSpace:"nowrap"}}>{user.nom||user.email}</span>
             <button onClick={handleLogout} style={{background:"#ffffff15",border:"1px solid #ffffff25",borderRadius:7,padding:"6px 12px",color:"#c6d2e2",fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Quitter</button>
           </div>
         </div>
-        <div style={{display:"flex",height:50}}>
-          {sectionsVisibles.map(function(sec){
-            var isActive=activeSec===sec.id;
-            return(
-              <button key={sec.id} onClick={function(){setActiveSec(sec.id);var first=sec.modules[0];if(first)setActive(first.id);}} style={{display:"flex",alignItems:"center",gap:8,padding:"0 22px",background:isActive?sec.bg+"cc":"transparent",border:"none",borderBottom:isActive?"3px solid "+sec.color:"3px solid transparent",cursor:"pointer",fontFamily:"Georgia,serif",color:isActive?sec.color:"#9fb0c6",fontSize:14,fontWeight:isActive?700:500,flexShrink:0,transition:"all 0.15s"}}>
-                <div style={{width:8,height:8,borderRadius:"50%",background:isActive?sec.color:"#ffffff30",flexShrink:0}}/>
-                {sec.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      <div style={{flex:1,display:"flex",minHeight:0}}>
-        <div style={{width:238,flexShrink:0,background:"#13233A",overflowY:"auto",padding:"10px 0 30px"}}>
+        <div style={{display:"flex",height:46,background:activeSectionDef.bg+"55",borderTop:"1px solid #ffffff08",position:"relative",zIndex:50}}>
           {(NAV[activeSectionDef.id]||[]).map(function(gr){
-            // Ne garder que les modules permis par le role
             var items=gr.items.filter(function(it){return it.sub||activeSectionDef.modules.some(function(m){return m.id===it.id;});});
             var modItems=items.filter(function(it){return it.id;});
             if(modItems.length===0)return null;
             var contientActif=modItems.some(function(it){return it.id===active;});
             var cle=activeSectionDef.id+"_"+gr.titre;
-            var ouvert=ouverts[cle]!==undefined?ouverts[cle]:contientActif||modItems.length===1;
+            var ouvert=menuOuvert===cle;
+            var unique=modItems.length===1;
             return(
-              <div key={gr.titre} style={{marginBottom:2}}>
-                <button onClick={function(){setOuverts(function(pr){var n=Object.assign({},pr);n[cle]=!ouvert;return n;});}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",background:contientActif?"#ffffff10":"transparent",border:"none",padding:"10px 16px",cursor:"pointer",fontFamily:"Georgia,serif"}}>
-                  <span style={{fontSize:12,fontWeight:800,color:contientActif?activeSectionDef.color:"#c6d2e2",textTransform:"uppercase",letterSpacing:"0.06em"}}>{gr.titre}</span>
-                  <span style={{fontSize:11,color:"#9fb0c6"}}>{ouvert?"\u25BE":"\u25B8"}</span>
+              <div key={gr.titre} style={{position:"relative"}}>
+                <button onClick={function(){
+                  if(unique){setActive(modItems[0].id);setMenuOuvert(null);}
+                  else setMenuOuvert(ouvert?null:cle);
+                }} style={{display:"flex",alignItems:"center",gap:7,height:46,padding:"0 18px",background:contientActif||ouvert?"#ffffff18":"transparent",border:"none",borderBottom:contientActif?"3px solid "+activeSectionDef.color:"3px solid transparent",cursor:"pointer",fontFamily:"Georgia,serif",color:contientActif||ouvert?"#fff":"#9fb0c6",fontSize:13,fontWeight:contientActif?700:500,whiteSpace:"nowrap"}}>
+                  {gr.titre}
+                  {!unique&&<span style={{fontSize:9}}>{ouvert?"\u25B4":"\u25BE"}</span>}
                 </button>
-                {ouvert&&items.map(function(it,ix){
-                  if(it.sub)return <div key={"s"+ix} style={{fontSize:9,fontWeight:800,color:"#7d90aa",textTransform:"uppercase",letterSpacing:"0.09em",padding:"8px 16px 3px 26px"}}>{it.sub}</div>;
-                  var m=activeSectionDef.modules.find(function(x){return x.id===it.id;});
-                  var isActive=active===it.id;
-                  return(
-                    <button key={it.id} onClick={function(){setActive(it.id);}} style={{display:"flex",alignItems:"center",gap:9,width:"100%",background:isActive?activeSectionDef.color+"33":"transparent",border:"none",borderLeft:isActive?"3px solid "+activeSectionDef.color:"3px solid transparent",padding:"8px 12px 8px 23px",cursor:"pointer",fontFamily:"Georgia,serif",textAlign:"left"}}>
-                      <div style={{width:22,height:22,borderRadius:5,background:isActive?activeSectionDef.color:"#ffffff14",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,color:isActive?"#fff":"#9fb0c6",flexShrink:0}}>{m?m.icon:""}</div>
-                      <span style={{fontSize:13,fontWeight:isActive?700:500,color:isActive?"#fff":"#c6d2e2"}}>{m?m.label:it.id}</span>
-                    </button>
-                  );
-                })}
+                {ouvert&&!unique&&(
+                  <div style={{position:"absolute",top:46,left:0,background:"#13233A",border:"1px solid #ffffff22",borderRadius:"0 0 10px 10px",boxShadow:"0 10px 26px rgba(0,0,0,0.45)",minWidth:250,padding:"6px 0",zIndex:60}}>
+                    {items.map(function(it,ix){
+                      if(it.sub)return <div key={"s"+ix} style={{fontSize:9,fontWeight:800,color:"#7d90aa",textTransform:"uppercase",letterSpacing:"0.09em",padding:"8px 16px 3px"}}>{it.sub}</div>;
+                      var m=activeSectionDef.modules.find(function(x){return x.id===it.id;});
+                      var isActive=active===it.id;
+                      return(
+                        <button key={it.id} onClick={function(){setActive(it.id);setMenuOuvert(null);}} style={{display:"flex",alignItems:"center",gap:9,width:"100%",background:isActive?activeSectionDef.color+"33":"transparent",border:"none",borderLeft:isActive?"3px solid "+activeSectionDef.color:"3px solid transparent",padding:"8px 14px",cursor:"pointer",fontFamily:"Georgia,serif",textAlign:"left"}}>
+                          <div style={{width:22,height:22,borderRadius:5,background:isActive?activeSectionDef.color:"#ffffff14",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,color:isActive?"#fff":"#9fb0c6",flexShrink:0}}>{m?m.icon:""}</div>
+                          <span style={{fontSize:13,fontWeight:isActive?700:500,color:isActive?"#fff":"#c6d2e2",whiteSpace:"nowrap"}}>{m?m.label:it.id}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
+      </div>
+      {menuOuvert&&<div onClick={function(){setMenuOuvert(null);}} style={{position:"fixed",inset:0,zIndex:40}}/>}
+      <div style={{flex:1,display:"flex",minHeight:0}}>
         <div style={{flex:1,background:"#F5F3EE",overflow:"auto"}}>
         {active==="dashboard"&&<HubDashboard onNavigate={function(id){var sec=sectionsVisibles.find(function(s){return s.modules.some(function(m){return m.id===id;});});if(sec)setMod(sec.id,id);}}/>}
         {active==="onboarding"&&<Hub/>}
-        {active==="tableau"&&<TableauBordCA/>}
+        {active==="tableau"&&<TableauBordCA onNavigate={function(id){setMod("ca",id);}}/>}
         {active==="copros"&&<GestionCopros/>}
         {active==="unites"&&<Unites/>}
         {active==="gestion"&&<GestionAuto/>}
@@ -306,6 +318,7 @@ export default function App(){
         {active==="registre"&&<Registre1070/>}
         {active==="sinistres"&&<Sinistres/>}
         {active==="requetes"&&<RequetesCopros/>}
+        {active==="conformite"&&<Conformite/>}
         {active==="facturation"&&<Facturation/>}
         {active==="comptaentreprise"&&<PredictekCompta/>}
         {active==="assurances"&&<ModuleAssurances/>}
