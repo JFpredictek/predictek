@@ -68,6 +68,9 @@ export default function Unites(){
   var s10=useState("");var msgVente=s10[0];var setMsgVente=s10[1];
   var s11=useState(null);var ceFile=s11[0];var setCeFile=s11[1];
   var s12=useState(null);var assFile=s12[0];var setAssFile=s12[1];
+  var sCh=useState(null);var chequeFile=sCh[0];var setChequeFile=sCh[1];
+  var sCh2=useState("");var chExtrait=sCh2[0];var setChExtrait=sCh2[1];
+  var sDpa=useState(null);var dpaFile=sDpa[0];var setDpaFile=sDpa[1];
   var s13=useState("");var msgEdit=s13[0];var setMsgEdit=s13[1];
   var s14=useState(false);var editEnCours=s14[0];var setEditEnCours=s14[1];
   var s15=useState("");var assExtrait=s15[0];var setAssExtrait=s15[1];
@@ -145,7 +148,7 @@ export default function Unites(){
 
   function editer(u){
     setEditId(u.id);
-    setCeFile(null);setAssFile(null);setMsgEdit("");setAssExtrait("");
+    setCeFile(null);setAssFile(null);setChequeFile(null);setDpaFile(null);setChExtrait("");setMsgEdit("");setAssExtrait("");
     setNf({fraction:u.fraction!=null?String(u.fraction):"",
       chauffe_eau:u.chauffe_eau||"",ce_date_install:u.ce_date_install?String(u.ce_date_install).substring(0,7):"",
       assurance_police:u.assurance_police||"",assurance_debut:u.assurance_debut||"",assurance_exp:u.assurance_exp||"",ass_cie:u.ass_cie||"",
@@ -157,6 +160,21 @@ export default function Unites(){
   }
 
   // Extraction automatique de la preuve d assurance televisee (police, assureur, dates)
+  function extraireCheque(file){
+    setChExtrait("Lecture du specimen de cheque en cours...");
+    fichierPourExtraction(file).then(function(src){
+      var corps=Object.assign({mode:"cheque"},src);
+      return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify(corps)}).then(lireReponse);
+    }).then(function(resp){
+      if(!resp||resp.error){setChExtrait("Extraction impossible ("+((resp&&resp.error)||"erreur")+") - saisissez les champs manuellement.");return;}
+      var d=resp.data||{};var pris=[];
+      if(d.institution&&/^\d{3}$/.test(String(d.institution))){setN("banque_institution",String(d.institution));pris.push("institution "+d.institution);}
+      if(d.transit&&/^\d{5}$/.test(String(d.transit))){setN("banque_transit",String(d.transit));pris.push("transit "+d.transit);}
+      if(d.compte){var cpt=String(d.compte).replace(/\D/g,"").slice(0,12);if(cpt.length>=5){setN("banque_compte",cpt);pris.push("compte ****"+cpt.slice(-4));}}
+      setChExtrait(pris.length>0?"Extrait du specimen: "+pris.join(", ")+(d.banque?" ("+d.banque+")":"")+" - verifiez avant de sauvegarder.":"Aucune information lisible sur ce specimen - saisissez manuellement.");
+    }).catch(function(e){setChExtrait("Extraction impossible ("+e.message+") - saisissez manuellement.");});
+  }
+
   function extraireAssurance(file){
     setAssExtrait("Extraction automatique des informations d assurance en cours...");
     fichierPourExtraction(file).then(function(src){
@@ -208,6 +226,24 @@ export default function Unites(){
         return sb.uploadFichier("preuves",(sel?sel.id:"x")+"/"+uid+"/assurance"+ext,assFile).then(function(r){
           if(r.error)throw new Error("Preuve assurance: "+r.error.message);
           row.assurance_doc=r.chemin;
+        });
+      });
+    }
+    if(chequeFile){
+      etapes=etapes.then(function(){
+        var ext=(chequeFile.name.match(/\.[a-zA-Z0-9]+$/)||[".pdf"])[0];
+        return sb.uploadFichier("preuves",(sel?sel.id:"x")+"/"+uid+"/specimen-cheque"+ext,chequeFile).then(function(r){
+          if(r.error)throw new Error("Specimen de cheque: "+r.error.message);
+          row.cheque_doc=r.chemin;
+        });
+      });
+    }
+    if(dpaFile){
+      etapes=etapes.then(function(){
+        var ext=(dpaFile.name.match(/\.[a-zA-Z0-9]+$/)||[".pdf"])[0];
+        return sb.uploadFichier("preuves",(sel?sel.id:"x")+"/"+uid+"/formulaire-dpa"+ext,dpaFile).then(function(r){
+          if(r.error)throw new Error("Formulaire DPA: "+r.error.message);
+          row.dpa_doc=r.chemin;
         });
       });
     }
@@ -389,7 +425,23 @@ export default function Unites(){
                       <Lbl l="Prelevement (PAP)"/>
                       <button onClick={function(){setN("pap_actif",!nf.pap_actif);}} style={{background:nf.pap_actif?T.accentL:T.alt,border:"2px solid "+(nf.pap_actif?T.accent:T.border),borderRadius:20,padding:"5px 16px",fontSize:11,fontWeight:800,color:nf.pap_actif?T.accent:T.muted,cursor:"pointer",fontFamily:"inherit"}}>{nf.pap_actif?"PAP ACTIF":"PAP INACTIF"}</button>
                     </div>
-                    <div style={{gridColumn:"1/-1",fontSize:9,color:T.muted}}>Les informations bancaires appartiennent a l UNITE (transferees a la vente si le nouveau proprietaire les fournit).</div>
+                    <div style={{gridColumn:"span 2"}}>
+                      <Lbl l="Specimen de cheque (les champs bancaires se remplissent automatiquement)"/>
+                      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                        <input type="file" accept=".pdf,image/*" onChange={function(e){var f=e.target.files&&e.target.files[0]?e.target.files[0]:null;setChequeFile(f);if(f)extraireCheque(f);}} style={{fontSize:11,fontFamily:"inherit"}}/>
+                        {u.cheque_doc&&<Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){voirFichier(u.cheque_doc);}}>Voir le specimen actuel</Btn>}
+                      </div>
+                      {chExtrait&&<div style={{fontSize:10,color:T.blue,fontWeight:600,marginTop:4}}>{chExtrait}</div>}
+                    </div>
+                    <div style={{gridColumn:"span 2"}}>
+                      <Lbl l="Formulaire d adhesion DPA signe (obligatoire - regles de Paiements Canada)"/>
+                      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                        <input type="file" accept=".pdf,image/*" onChange={function(e){var f=e.target.files&&e.target.files[0]?e.target.files[0]:null;setDpaFile(f);}} style={{fontSize:11,fontFamily:"inherit"}}/>
+                        {dpaFile&&<span style={{fontSize:10,color:T.accent}}>{dpaFile.name}</span>}
+                        {u.dpa_doc&&<Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){voirFichier(u.dpa_doc);}}>Voir le formulaire actuel</Btn>}
+                      </div>
+                    </div>
+                    <div style={{gridColumn:"1/-1",fontSize:9,color:T.muted}}>Les informations bancaires appartiennent a l UNITE (transferees a la vente si le nouveau proprietaire les fournit). Le PAP ne devrait etre ACTIF qu avec un formulaire DPA signe au dossier.</div>
 
                     <div style={{gridColumn:"1/-1"}}><Lbl l="Notes"/><input value={nf.notes} onChange={function(e){setN("notes",e.target.value);}} style={INP}/></div>
                   </div>

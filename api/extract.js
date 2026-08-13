@@ -119,6 +119,20 @@ export default async function handler(req, res) {
       } else {
         return res.status(400).json({error:"Aucun texte ou image fourni"});
       }
+    } else if(mode==="cheque"){
+      var promptCh = "Voici un SPECIMEN DE CHEQUE canadien (ou un formulaire bancaire equivalent). "
+        + "Lis la ligne MICR au bas du cheque. Format canadien: numero de cheque, puis TRANSIT (5 chiffres), puis INSTITUTION (3 chiffres), puis NUMERO DE COMPTE (7 a 12 chiffres). "
+        + "ATTENTION: sur la ligne MICR le transit (5 chiffres) apparait AVANT le numero d institution (3 chiffres). "
+        + "Reponds UNIQUEMENT avec un objet JSON valide (chaine vide si absent): "
+        + "{\"institution\":\"3 chiffres (ex: 815 Desjardins, 003 RBC, 004 TD, 006 BNC)\",\"transit\":\"5 chiffres\",\"compte\":\"numero de compte sans espaces ni tirets\",\"titulaire\":\"nom imprime sur le cheque\",\"banque\":\"nom de l institution si visible\"}";
+      if(pdfB64){
+        contenu = [{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:promptCh}];
+      } else if(imagesIn.length>0){
+        contenu = imagesIn.slice(0,4).map(function(im){return {type:"image",source:{type:"base64",media_type:"image/jpeg",data:im}};});
+        contenu.push({type:"text",text:promptCh});
+      } else {
+        return res.status(400).json({error:"Aucun document fourni"});
+      }
     } else if(mode==="assurance"){
       var promptAss = "Voici une preuve d assurance (police d assurance habitation/copropriete quebecoise). "
         + "Extrais les informations suivantes. Reponds UNIQUEMENT avec un objet JSON valide (chaine vide si absent): "

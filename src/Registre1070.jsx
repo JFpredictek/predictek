@@ -132,6 +132,14 @@ export default function Registre1070(){
   function coprosDeUnite(u){
     return copros.filter(function(c){return (c.unite_id&&c.unite_id===u.id)||(!c.unite_id&&c.unite===u.no_unite);});
   }
+  function uniteDe(c){
+    return unites.find(function(u){return (c.unite_id&&u.id===c.unite_id)||(!c.unite_id&&u.no_unite===c.unite);})||{};
+  }
+  function urgenceDe(c){
+    var u=uniteDe(c);
+    if(!u.urg_nom&&!u.urg_tel)return "";
+    return (u.urg_nom||"")+(u.urg_lien?" ("+u.urg_lien+")":"")+(u.urg_tel?" - "+u.urg_tel:"");
+  }
 
   function voirDeclaration(){
     if(!sel.declaration_doc)return;
@@ -142,8 +150,8 @@ export default function Registre1070(){
   }
 
   function exporterCoprosCSV(){
-    var lignes=[["Unite","Fraction (%)","Nom","Prenom","Courriel","Telephone","Adresse","Statut"]];
-    copros.forEach(function(c){lignes.push([c.unite||"",c.fraction||"",c.nom||"",c.prenom||"",c.courriel||"",c.telephone||"",c.adresse||"",c.statut||""]);});
+    var lignes=[["Unite","Fraction (%)","Nom","Prenom","Courriel","Telephone","Adresse","Stationnement","Rangement","Urgence - nom","Urgence - lien","Urgence - telephone","Urgence - courriel","Statut"]];
+    copros.forEach(function(c){var u=uniteDe(c);lignes.push([c.unite||"",c.fraction||"",c.nom||"",c.prenom||"",c.courriel||"",c.telephone||"",c.adresse||"",u.stationnement||"",u.rangement||"",u.urg_nom||"",u.urg_lien||"",u.urg_tel||"",u.urg_courriel||"",c.statut||""]);});
     telechargerCSV("registre-coproprietaires-"+(sel.code||"syndicat")+".csv",lignes);
     sb.log("registre","export","Export CSV du registre des coproprietaires ("+copros.length+")","",sel.code||"");
   }
@@ -159,8 +167,8 @@ export default function Registre1070(){
     var h="<h1>Registre de la copropriete (art. 1070 C.c.Q.)</h1>";
     h+="<div class='muted'>"+sel.nom+(sel.immat?" - NEQ "+sel.immat:"")+(sel.annee_constitution?" - constitue en "+sel.annee_constitution:"")+" - genere le "+new Date().toLocaleDateString("fr-CA")+" par Predictek</div>";
 
-    h+="<h2>1. COPROPRIETAIRES ("+copros.length+")</h2><table><tr><th>Unite</th><th>Fraction</th><th>Nom</th><th>Courriel</th><th>Telephone</th><th>Adresse</th></tr>";
-    copros.forEach(function(c){h+="<tr><td>"+(c.unite||"")+"</td><td class='right'>"+(c.fraction?Number(c.fraction).toFixed(3)+" %":"")+"</td><td>"+((c.prenom||"")+" "+(c.nom||"")).trim()+"</td><td>"+(c.courriel||"")+"</td><td>"+(c.telephone||"")+"</td><td>"+(c.adresse||"")+"</td></tr>";});
+    h+="<h2>1. COPROPRIETAIRES ("+copros.length+")</h2><table><tr><th>Unite</th><th>Fraction</th><th>Nom</th><th>Courriel</th><th>Telephone</th><th>Stat.</th><th>Rang.</th><th>Urgence</th></tr>";
+    copros.forEach(function(c){var uC=uniteDe(c);h+="<tr><td>"+(c.unite||"")+"</td><td class='right'>"+(c.fraction?Number(c.fraction).toFixed(3)+" %":"")+"</td><td>"+((c.prenom||"")+" "+(c.nom||"")).trim()+"</td><td>"+(c.courriel||"")+"</td><td>"+(c.telephone||"")+"</td><td>"+(uC.stationnement||"-")+"</td><td>"+(uC.rangement||"-")+"</td><td>"+(urgenceDe(c)||"-")+"</td></tr>";});
     h+="</table>";
 
     h+="<h2>2. LOCATAIRES, RESIDENTS ET OCCUPATION ("+locatives.length+" unite(s))</h2>";
@@ -246,8 +254,8 @@ export default function Registre1070(){
 
         <Section titre="1. Coproprietaires" sousTitre={copros.length+" actif(s)"+(anciens.length>0?" - "+anciens.length+" ancien(s)":"")} ouvert={!!ouverts.copros} onToggle={function(){bascule("copros");}}
           actions={<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(e){e.stopPropagation();exporterCoprosCSV();}}>Exporter CSV</Btn>}>
-          <TableSimple cols={["Unite","Fraction","Nom","Courriel","Telephone","Adresse"]}
-            rows={copros.map(function(c){return [c.unite||"",c.fraction?Number(c.fraction).toFixed(3)+" %":"",((c.prenom||"")+" "+(c.nom||"")).trim(),c.courriel||"",c.telephone||"",c.adresse||""];})}
+          <TableSimple cols={["Unite","Fraction","Nom","Courriel","Telephone","Stationnement","Rangement","Urgence"]}
+            rows={copros.map(function(c){var u=uniteDe(c);return [c.unite||"",c.fraction?Number(c.fraction).toFixed(3)+" %":"",((c.prenom||"")+" "+(c.nom||"")).trim(),c.courriel||"",c.telephone||"",u.stationnement||"-",u.rangement||"-",urgenceDe(c)||"-"];})}
             vide="Aucun coproprietaire"/>
         </Section>
 
