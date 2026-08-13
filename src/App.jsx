@@ -214,18 +214,18 @@ export default function App(){
     <div style={{height:"100vh",display:"flex",flexDirection:"column"}}>
       <div style={{background:"#0d1b2a",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",borderBottom:"1px solid #ffffff10"}}>
-          <div style={{display:"flex",alignItems:"center",gap:10,padding:"0 16px",borderRight:"1px solid #ffffff15",height:52,flexShrink:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,padding:"0 16px",borderRight:"1px solid #ffffff15",height:64,flexShrink:0}}>
             {logoApp?(
-              <img src={logoApp} alt="Logo" style={{width:36,height:36,borderRadius:8,objectFit:"contain",background:"#fff",flexShrink:0}}/>
+              <img src={logoApp} alt="Logo" style={{width:50,height:50,borderRadius:10,objectFit:"contain",background:"#fff",flexShrink:0}}/>
             ):(
-              <div style={{width:36,height:36,borderRadius:8,background:"linear-gradient(135deg,#1B5E3B,#3CAF6E)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                <span style={{color:"#fff",fontWeight:900,fontSize:18,fontFamily:"Georgia,serif"}}>P</span>
+              <div style={{width:50,height:50,borderRadius:10,background:"linear-gradient(135deg,#1B5E3B,#3CAF6E)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <span style={{color:"#fff",fontWeight:900,fontSize:24,fontFamily:"Georgia,serif"}}>P</span>
               </div>
             )}
-            <span style={{color:"#fff",fontWeight:800,fontSize:16,fontFamily:"Georgia,serif",whiteSpace:"nowrap"}}>Predictek</span>
+            <span style={{color:"#fff",fontWeight:800,fontSize:19,fontFamily:"Georgia,serif",whiteSpace:"nowrap"}}>Predictek</span>
           </div>
           <div style={{flex:1}}/>
-          <div style={{padding:"0 14px",display:"flex",alignItems:"center",gap:10,flexShrink:0,borderLeft:"1px solid #ffffff15",height:52}}>
+          <div style={{padding:"0 14px",display:"flex",alignItems:"center",gap:10,flexShrink:0,borderLeft:"1px solid #ffffff15",height:64}}>
             <span style={{fontSize:12,color:"#c6d2e2",whiteSpace:"nowrap"}}>{user.nom||user.email}</span>
             <button onClick={handleLogout} style={{background:"#ffffff15",border:"1px solid #ffffff25",borderRadius:7,padding:"6px 12px",color:"#c6d2e2",fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Quitter</button>
           </div>

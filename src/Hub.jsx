@@ -717,17 +717,21 @@ function Onboarding(p){
         var u=Object.assign({},old);
         if(ex.nom)u.nom=ex.nom;
         if(ex.immat)u.immat=ex.immat;
-        if(ex.adr)u.adr=ex.adr;
-        if(ex.ville)u.ville=ex.ville;
+        // ADRESSE DU SYNDICAT: prise UNIQUEMENT dans le REQ (jamais dans la declaration)
+        if(window._reqFile){
+          if(ex.adr&&!u.adr)u.adr=ex.adr;
+          if(ex.ville&&!u.ville)u.ville=ex.ville;
+          if(ex.codePostal&&!u.codePostal)u.codePostal=ex.codePostal;
+        }
         if(ex.province&&ex.province.length===2)u.province=ex.province;
-        if(ex.codePostal)u.codePostal=ex.codePostal;
         if(ex.nbUnites&&parseInt(ex.nbUnites)>0)u.nbUnites=parseInt(ex.nbUnites);
         if(ex.gestionnaire)u.gestionnaire=ex.gestionnaire;
         if(ex.quorumAGO&&parseInt(ex.quorumAGO)>0)u.quorumAGO=parseInt(ex.quorumAGO);
         var anCst=ex.anneeConstitution||ex.anneeConstruction;if(anCst&&parseInt(anCst)>1900)u.anneeConstruction=parseInt(anCst);
         if(ex.typeCopro&&["horizontale","verticale","mixte"].indexOf(ex.typeCopro)>=0)u.typeCopro=ex.typeCopro;
                       if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}
-        if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
+        var dejaAdminsREQ=(u.admins||[]).filter(function(a){return a.nom||a.prenom;}).length;
+        if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>dejaAdminsREQ){
           u.nbMembresCA=ex.admins.length;
           u.admins=ex.admins.map(function(a){
             return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};
@@ -908,7 +912,9 @@ function Onboarding(p){
                 <input type="file" accept=".pdf,.PDF" id="pdfREQ" style={{display:"none"}} onChange={function(e){
                   var file=e.target.files&&e.target.files[0];
                   if(!file)return;
-                  if(file.size>3000000){setIaError("PDF trop volumineux pour le serveur (max 3 Mo). Compressez-le (ex: ilovepdf.com/compress_pdf) ou collez le texte du REQ.");return;}
+                  if(iaLoading){setIaError("Une analyse est deja en cours - attendez la fin avant de televerser un autre document.");e.target.value="";return;}
+                  if(file.size>3000000){setIaError("PDF trop volumineux pour le serveur (max 3 Mo). Compressez-le (ex: ilovepdf.com/compress_pdf).");return;}
+                  window._reqFile=file;sd("reqNom",file.name);
                   setIaError("");setIaSuccess("");setIaLoading(true);
                   var fr=new FileReader();
                   fr.onload=function(ev){
@@ -941,21 +947,40 @@ function Onboarding(p){
                       var ks=["nom","immat","adr","ville","province","codePostal","nbUnites","gestionnaire","quorumAGO","anneeConstruction","typeCopro"];
                       var n=ks.filter(function(k){return ex[k]&&ex[k]!=="";}).length;
                       if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;
-                      setIaSuccess(n+" champs extraits du PDF - verifiez et completez");
-                      setIaLoading(false);
+                      // Passe DEDIEE: relecture COMPLETE du REQ (toutes les pages) pour les administrateurs
+                      setIaSuccess(n+" champs extraits - lecture complete des administrateurs en cours...");
+                      fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({pdf:b64,mode:"req_admins"})})
+                      .then(lireReponseAPI).then(function(ra){
+                        setIaLoading(false);
+                        if(!ra||!ra.ok||!ra.data||!Array.isArray(ra.data.admins)||ra.data.admins.length===0){
+                          setIaSuccess(n+" champs extraits du REQ - verifiez et completez");
+                          return;
+                        }
+                        var da=ra.data;
+                        setData(function(o2){
+                          var u2=Object.assign({},o2);
+                          u2.nbMembresCA=da.admins.length;
+                          u2.admins=da.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};});
+                          if(da.adrSyndicat)u2.adr=da.adrSyndicat;
+                          if(da.villeSyndicat)u2.ville=da.villeSyndicat;
+                          if(da.codePostalSyndicat)u2.codePostal=fmtCP(da.codePostalSyndicat);
+                          return u2;
+                        });
+                        setIaSuccess("REQ lu au complet: "+da.admins.length+" administrateur(s) avec adresse et date de debut de charge - verifiez a l etape Administrateurs.");
+                      }).catch(function(){setIaLoading(false);setIaSuccess(n+" champs extraits du REQ - verifiez et completez");});
                     }).catch(function(err){setIaError("Erreur: "+err.message);setIaLoading(false);});
                   };
                   fr.readAsDataURL(file);
                 }}/>
-                <button onClick={function(){document.getElementById("pdfREQ").click();}} style={{background:"#fff",border:"1px solid #E8A020",borderRadius:6,padding:"5px 12px",fontSize:10,fontWeight:700,color:"#B86020",cursor:"pointer",marginBottom:6,marginRight:6}}>
+                <button onClick={function(){if(iaLoading)return;document.getElementById("pdfREQ").click();}} disabled={iaLoading} style={{background:iaLoading?"#eee":"#fff",border:"1px solid #E8A020",borderRadius:6,padding:"5px 12px",fontSize:10,fontWeight:700,color:iaLoading?"#aaa":"#B86020",cursor:iaLoading?"not-allowed":"pointer",marginBottom:6,marginRight:6}}>
                   Selectionner le PDF du REQ (scan accepte)
                 </button>
               </div>
               <div style={{background:"#E8F2EC",border:"2px dashed "+(data.acteNom?"#1B5E3B":"#1B5E3B66"),borderRadius:8,padding:12,textAlign:"center",transition:"all 0.2s"}}>
                 <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B",marginBottom:3}}>Declaration de copropriete</div>
                 <div style={{fontSize:10,color:"#7C7568",marginBottom:8}}>Quorum AGO, annee construction, structure legale</div>
-                <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){sd("acteNom",f.name);window._acteFile=f;var fr=new FileReader();fr.onload=function(ev){window._acteB64=ev.target.result.split(",")[1];};fr.readAsDataURL(f);setTimeout(analyserActeAuto,80);}}} style={{display:"none"}}/>
-                <button onClick={function(){document.getElementById("acteUpload").click();}} style={{background:"#1B5E3B",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer"}}>
+                <input type="file" accept=".pdf,.PDF" id="acteUpload" onChange={function(e){var f=e.target.files[0];if(f){if(iaLoading){setIaError("L analyse du REQ est en cours - attendez la fin avant de televerser la declaration.");e.target.value="";return;}sd("acteNom",f.name);window._acteFile=f;var fr=new FileReader();fr.onload=function(ev){window._acteB64=ev.target.result.split(",")[1];};fr.readAsDataURL(f);setTimeout(analyserActeAuto,80);}}} style={{display:"none"}}/>
+                <button onClick={function(){if(iaLoading)return;document.getElementById("acteUpload").click();}} disabled={iaLoading} style={{background:iaLoading?"#9ab5a5":"#1B5E3B",border:"none",borderRadius:6,padding:"6px 12px",color:"#fff",fontSize:11,fontWeight:600,cursor:iaLoading?"not-allowed":"pointer"}}>
                   {data.acteNom?" Changer":" Selectionner PDF"}
                 </button>
                 {data.acteNom&&<div style={{fontSize:10,color:"#1B5E3B",marginTop:5,fontWeight:600}}> {data.acteNom}</div>}
