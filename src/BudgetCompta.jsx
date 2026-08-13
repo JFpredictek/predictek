@@ -620,11 +620,238 @@ function TabJournal(p){
   );
 }
 
+// ===== Onglet ETATS FINANCIERS (budget vs reel + rapport AGA imprimable) =====
+function imprimerHTML(titre, corpsHTML){
+  var w=window.open("","_blank","width=900,height=700");
+  if(!w)return;
+  w.document.write("<html><head><title>"+titre+"</title><style>body{font-family:Georgia,serif;color:#1C1A17;margin:36px;font-size:13px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;border-bottom:2px solid #13233A;padding-bottom:4px;margin-top:22px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #999;padding:5px 8px;font-size:12px;text-align:left}th{background:#EDEBE4}.tot{font-weight:bold;background:#E8F2EC}.muted{color:#666;font-size:11px}.right{text-align:right}</style></head><body>"+corpsHTML+"<script>window.print();</script></body></html>");
+  w.document.close();
+}
+function dansExercice(dateStr,exo){
+  return !!(dateStr&&exo&&String(dateStr).substring(0,10)>=exo.debut&&String(dateStr).substring(0,10)<=exo.fin);
+}
+function TabEtats(p){
+  var syndicat=p.syndicat;var comptes=p.comptes;
+  var s0=useState(null);var exo=s0[0];var setExo=s0[1];
+  var s1=useState({});var budgets=s1[0];var setBudgets=s1[1];
+  var s2=useState([]);var factures=s2[0];var setFactures=s2[1];
+  var s3=useState([]);var paiements=s3[0];var setPaiements=s3[1];
+  var s4=useState([]);var journal=s4[0];var setJournal=s4[1];
+  var s5=useState([]);var banques=s5[0];var setBanques=s5[1];
+  var s6=useState(false);var charge=s6[0];var setCharge=s6[1];
+
+  var opts=optionsExercices(syndicat?syndicat.exercice:"");
+  useEffect(function(){
+    if(!syndicat)return;
+    setExo(exerciceCourant(optionsExercices(syndicat.exercice)));
+  },[syndicat&&syndicat.id]);
+
+  useEffect(function(){
+    if(!syndicat||!exo)return;
+    setCharge(false);
+    Promise.all([
+      sb.select("budgets_gl",{eq:{syndicat_id:syndicat.id,exercice_debut:exo.debut},limit:300}),
+      sb.select("factures",{eq:{syndicat_id:syndicat.id},limit:2000}),
+      sb.select("paiements",{eq:{syndicat_id:syndicat.id},limit:5000}),
+      sb.select("journal",{eq:{syndicat_id:syndicat.id},limit:2000}),
+      sb.select("comptes_bancaires",{eq:{syndicat_id:syndicat.id},limit:10})
+    ]).then(function(rs){
+      var m={};if(rs[0]&&rs[0].data)rs[0].data.forEach(function(x){m[x.no_compte]=parseFloat(x.montant)||0;});
+      setBudgets(m);
+      setFactures((rs[1]&&rs[1].data)||[]);
+      setPaiements((rs[2]&&rs[2].data)||[]);
+      setJournal((rs[3]&&rs[3].data)||[]);
+      setBanques((rs[4]&&rs[4].data)||[]);
+      setCharge(true);
+    }).catch(function(){setCharge(true);});
+  },[syndicat&&syndicat.id,exo&&exo.debut]);
+
+  if(!syndicat||!exo)return null;
+
+  // ----- REEL par compte GL -----
+  var reel={};
+  function addReel(no,mnt){if(!no)no="5990";reel[no]=(reel[no]||0)+(Number(mnt)||0);}
+  // Depenses reelles = factures approuvees ou payees de l exercice, par compte GL
+  var factEx=factures.filter(function(f){return (f.statut==="approuvee"||f.statut==="payee")&&dansExercice(f.date_facture,exo);});
+  factEx.forEach(function(f){addReel(f.no_compte_gl||"5990",parseFloat(f.total)||parseFloat(f.montant)||0);});
+  // Revenus reels = paiements PAYES de l exercice (cotisations -> 4110, speciales -> 4130)
+  var paieEx=paiements.filter(function(pm){return pm.statut==="paye"&&dansExercice(pm.date_paiement,exo);});
+  paieEx.forEach(function(pm){addReel(pm.type==="speciale"?"4130":"4110",pm.montant);});
+  // Journal de l exercice (autres ecritures - presente a part)
+  var jrnEx=journal.filter(function(j){return dansExercice(j.date_transaction,exo);});
+  var jrnDebit=jrnEx.reduce(function(a,j){return a+(Number(j.montant_debit)||0);},0);
+  var jrnCredit=jrnEx.reduce(function(a,j){return a+(Number(j.montant_credit)||0);},0);
+
+  // ----- Budget des cotisations (calcule comme dans l onglet Budget) -----
+  var cMap={};comptes.forEach(function(c){cMap[c.no_compte]=c;});
+  var budDep=0,budFonds=0,budRevAutres=0;
+  Object.keys(budgets).forEach(function(no){
+    var c=cMap[no];if(!c)return;
+    if(c.type_compte==="depense")budDep+=budgets[no];
+    else if(c.type_compte==="fonds")budFonds+=budgets[no];
+    else if(c.type_compte==="revenu"&&no!=="4100"&&no!=="4150")budRevAutres+=budgets[no];
+  });
+  var budCot=Math.max(0,budDep+budFonds-budRevAutres);
+
+  // ----- Lignes du rapport: tout compte avec budget OU reel -----
+  function budgetDe(no){
+    if(no==="4110")return budCot; // cotisations regulieres = budget calcule
+    return budgets[no]||0;
+  }
+  var nos={};
+  Object.keys(budgets).forEach(function(no){nos[no]=true;});
+  Object.keys(reel).forEach(function(no){nos[no]=true;});
+  if(budCot>0||reel["4110"])nos["4110"]=true;
+  var lignes=Object.keys(nos).map(function(no){
+    var c=cMap[no];
+    var type=c?c.type_compte:(no.charAt(0)==="4"?"revenu":no.charAt(0)==="7"?"prevoyance":"depense");
+    return {no:no,nom:c?c.nom_compte:(no==="5990"?"Non classe (compte GL manquant)":"Compte "+no),type:type,groupe:c?(c.groupe||"Autres"):"Autres",budget:budgetDe(no),reel:reel[no]||0};
+  }).filter(function(l){return (l.budget!==0||l.reel!==0)&&["revenu","depense","fonds","prevoyance"].indexOf(l.type)>=0;})
+    .sort(function(a,b){return String(a.no).localeCompare(String(b.no));});
+
+  var SECTIONS=[
+    {titre:"REVENUS",types:["revenu"]},
+    {titre:"DEPENSES D OPERATION",types:["depense"]},
+    {titre:"APPORTS AUX FONDS",types:["fonds"]},
+    {titre:"DEPENSES DU FONDS DE PREVOYANCE",types:["prevoyance"]}
+  ];
+  function totalSection(sec,champ){
+    return lignes.filter(function(l){return sec.types.indexOf(l.type)>=0;}).reduce(function(a,l){return a+l[champ];},0);
+  }
+  var totRevB=totalSection(SECTIONS[0],"budget"),totRevR=totalSection(SECTIONS[0],"reel");
+  var totDepB=totalSection(SECTIONS[1],"budget"),totDepR=totalSection(SECTIONS[1],"reel");
+  var totFdsB=totalSection(SECTIONS[2],"budget"),totFdsR=totalSection(SECTIONS[2],"reel");
+  var resultatR=totRevR-totDepR-totFdsR;
+  var resultatB=totRevB-totDepB-totFdsB;
+
+  function pct(l){if(!l.budget)return "-";return Math.round(l.reel/l.budget*100)+" %";}
+
+  var FONDS_LBL={operation:"Fonds d operation",prevoyance:"Fonds de prevoyance",assurance:"Fonds d auto-assurance"};
+
+  function imprimerRapport(){
+    var h="<h1>Etats financiers - "+syndicat.nom+"</h1>";
+    h+="<div class='muted'>"+exo.label+" - Rapport budget vs reel prepare pour l assemblee generale annuelle. Genere le "+new Date().toLocaleDateString("fr-CA")+" par Predictek.</div>";
+    SECTIONS.forEach(function(sec){
+      var ls=lignes.filter(function(l){return sec.types.indexOf(l.type)>=0;});
+      if(ls.length===0)return;
+      h+="<h2>"+sec.titre+"</h2><table><tr><th>No</th><th>Compte</th><th class='right'>Budget</th><th class='right'>Reel</th><th class='right'>Ecart</th><th class='right'>%</th></tr>";
+      ls.forEach(function(l){
+        h+="<tr><td>"+l.no+"</td><td>"+l.nom+"</td><td class='right'>"+money(l.budget)+"</td><td class='right'>"+money(l.reel)+"</td><td class='right'>"+money(l.budget-l.reel)+"</td><td class='right'>"+pct(l)+"</td></tr>";
+      });
+      h+="<tr class='tot'><td></td><td>TOTAL "+sec.titre+"</td><td class='right'>"+money(totalSection(sec,"budget"))+"</td><td class='right'>"+money(totalSection(sec,"reel"))+"</td><td class='right'>"+money(totalSection(sec,"budget")-totalSection(sec,"reel"))+"</td><td></td></tr></table>";
+    });
+    h+="<h2>RESULTAT DE L EXERCICE</h2><table><tr><th></th><th class='right'>Budget</th><th class='right'>Reel</th></tr>";
+    h+="<tr><td>Revenus</td><td class='right'>"+money(totRevB)+"</td><td class='right'>"+money(totRevR)+"</td></tr>";
+    h+="<tr><td>Depenses d operation</td><td class='right'>("+money(totDepB)+")</td><td class='right'>("+money(totDepR)+")</td></tr>";
+    h+="<tr><td>Apports aux fonds</td><td class='right'>("+money(totFdsB)+")</td><td class='right'>("+money(totFdsR)+")</td></tr>";
+    h+="<tr class='tot'><td>EXCEDENT (INSUFFISANCE)</td><td class='right'>"+money(resultatB)+"</td><td class='right'>"+money(resultatR)+"</td></tr></table>";
+    if(jrnEx.length>0){
+      h+="<h2>AUTRES ECRITURES (JOURNAL)</h2><table><tr><th>Date</th><th>Description</th><th>Categorie</th><th class='right'>Debit</th><th class='right'>Credit</th></tr>";
+      jrnEx.forEach(function(j){h+="<tr><td>"+(j.date_transaction||"")+"</td><td>"+(j.description||"")+"</td><td>"+(j.categorie||"")+"</td><td class='right'>"+(Number(j.montant_debit)>0?money(j.montant_debit):"")+"</td><td class='right'>"+(Number(j.montant_credit)>0?money(j.montant_credit):"")+"</td></tr>";});
+      h+="<tr class='tot'><td></td><td>TOTAL</td><td></td><td class='right'>"+money(jrnDebit)+"</td><td class='right'>"+money(jrnCredit)+"</td></tr></table>";
+    }
+    if(banques.length>0){
+      h+="<h2>COMPTES BANCAIRES PAR FONDS</h2><table><tr><th>Fonds</th><th>Institution</th><th class='right'>Solde d ouverture</th><th>En date du</th></tr>";
+      banques.forEach(function(b){h+="<tr><td>"+(FONDS_LBL[b.fonds]||b.fonds)+"</td><td>"+(b.banque||"")+"</td><td class='right'>"+money(b.solde_ouverture)+"</td><td>"+(b.date_solde||"-")+"</td></tr>";});
+      h+="</table>";
+    }
+    h+="<div class='muted' style='margin-top:20px'>Note: le reel des depenses provient des factures approuvees ou payees de l exercice; le reel des revenus provient des paiements encaisses (module Encaissements). Document de gestion - ne remplace pas des etats financiers verifies par un CPA.</div>";
+    imprimerHTML("Etats financiers - "+syndicat.nom,h);
+  }
+
+  return(
+    <div>
+      <div style={{display:"flex",gap:12,alignItems:"flex-end",flexWrap:"wrap",marginBottom:14}}>
+        <div style={{minWidth:340}}>
+          <Lbl l="Exercice financier"/>
+          <select value={exo.debut} onChange={function(e){var o=opts.find(function(x){return x.debut===e.target.value;});if(o)setExo(o);}} style={INP}>
+            {opts.map(function(o){return <option key={o.debut} value={o.debut}>{o.label}</option>;})}
+          </select>
+        </div>
+        <Btn onClick={imprimerRapport} dis={!charge}>Imprimer le rapport (AGA)</Btn>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+        <div style={{background:T.accentL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Revenus reels</div><div style={{fontSize:18,fontWeight:800,color:T.accent}}>{money(totRevR)}</div><div style={{fontSize:10,color:T.muted}}>Budget: {money(totRevB)}</div></div>
+        <div style={{background:T.redL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Depenses reelles</div><div style={{fontSize:18,fontWeight:800,color:T.red}}>{money(totDepR)}</div><div style={{fontSize:10,color:T.muted}}>Budget: {money(totDepB)}</div></div>
+        <div style={{background:T.purpleL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Apports aux fonds (reel)</div><div style={{fontSize:18,fontWeight:800,color:T.purple}}>{money(totFdsR)}</div><div style={{fontSize:10,color:T.muted}}>Budget: {money(totFdsB)}</div></div>
+        <div style={{background:resultatR>=0?T.accentL:T.redL,border:"2px solid "+(resultatR>=0?T.accent:T.red),borderRadius:10,padding:12}}><div style={{fontSize:10,fontWeight:700,color:resultatR>=0?T.accent:T.red}}>EXCEDENT (INSUFFISANCE)</div><div style={{fontSize:18,fontWeight:800,color:resultatR>=0?T.accent:T.red}}>{money(resultatR)}</div><div style={{fontSize:10,color:T.muted}}>Budget: {money(resultatB)}</div></div>
+      </div>
+
+      {!charge&&<div style={{background:T.blueL,borderRadius:10,padding:14,fontSize:12,color:T.blue,fontWeight:600,marginBottom:12}}>Chargement des donnees de l exercice...</div>}
+      {charge&&lignes.length===0&&<div style={{background:T.amberL,borderRadius:10,padding:14,fontSize:12,color:T.amber,fontWeight:600,marginBottom:12}}>Aucune donnee pour cet exercice: entrez un budget (onglet Budget et cotisations), approuvez des factures et encaissez des cotisations pour voir le reel.</div>}
+
+      {SECTIONS.map(function(sec){
+        var ls=lignes.filter(function(l){return sec.types.indexOf(l.type)>=0;});
+        if(ls.length===0)return null;
+        return(
+          <div key={sec.titre} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14,marginBottom:10}}>
+            <div style={{fontSize:11,fontWeight:800,color:T.navy,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8}}>{sec.titre}</div>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <thead><tr style={{background:T.alt}}>
+                {["No","Compte","Budget","Reel","Ecart","%"].map(function(hh,ix){return <th key={hh} style={{padding:"6px 10px",textAlign:ix>=2?"right":"left",fontSize:10,fontWeight:700,color:T.muted,textTransform:"uppercase"}}>{hh}</th>;})}
+              </tr></thead>
+              <tbody>
+                {ls.map(function(l){
+                  var ecart=l.budget-l.reel;
+                  var mauvais=(l.type==="revenu")?(l.reel<l.budget):(l.reel>l.budget);
+                  return(
+                    <tr key={l.no} style={{borderTop:"1px solid "+T.border}}>
+                      <td style={{padding:"5px 10px",fontWeight:700,color:T.muted}}>{l.no}</td>
+                      <td style={{padding:"5px 10px"}}>{l.nom}{l.no==="4110"?<span style={{fontSize:9,color:T.muted}}> (budget = cotisations calculees)</span>:null}</td>
+                      <td style={{padding:"5px 10px",textAlign:"right"}}>{money(l.budget)}</td>
+                      <td style={{padding:"5px 10px",textAlign:"right",fontWeight:700}}>{money(l.reel)}</td>
+                      <td style={{padding:"5px 10px",textAlign:"right",fontWeight:700,color:mauvais?T.red:T.accent}}>{money(ecart)}</td>
+                      <td style={{padding:"5px 10px",textAlign:"right",color:T.muted}}>{pct(l)}</td>
+                    </tr>
+                  );
+                })}
+                <tr style={{borderTop:"2px solid "+T.navy,background:T.alt}}>
+                  <td style={{padding:"6px 10px"}}></td>
+                  <td style={{padding:"6px 10px",fontWeight:800,color:T.navy}}>TOTAL</td>
+                  <td style={{padding:"6px 10px",textAlign:"right",fontWeight:800}}>{money(totalSection(sec,"budget"))}</td>
+                  <td style={{padding:"6px 10px",textAlign:"right",fontWeight:800}}>{money(totalSection(sec,"reel"))}</td>
+                  <td style={{padding:"6px 10px",textAlign:"right",fontWeight:800}}>{money(totalSection(sec,"budget")-totalSection(sec,"reel"))}</td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
+
+      {jrnEx.length>0&&(
+        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14,marginBottom:10}}>
+          <div style={{fontSize:11,fontWeight:800,color:T.navy,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:4}}>Autres ecritures (journal) - {jrnEx.length} transaction(s)</div>
+          <div style={{fontSize:11,color:T.muted}}>Debits: <b style={{color:T.red}}>{money(jrnDebit)}</b> - Credits: <b style={{color:T.accent}}>{money(jrnCredit)}</b>. Ces ecritures manuelles sont presentees a part du budget vs reel (detail dans l onglet Journal et dans le rapport imprime).</div>
+        </div>
+      )}
+
+      {banques.length>0&&(
+        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14,marginBottom:10}}>
+          <div style={{fontSize:11,fontWeight:800,color:T.navy,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:8}}>Comptes bancaires par fonds</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:10}}>
+            {banques.map(function(b){return(
+              <div key={b.fonds} style={{background:T.alt,borderRadius:8,padding:10}}>
+                <div style={{fontSize:11,fontWeight:700,color:T.navy}}>{FONDS_LBL[b.fonds]||b.fonds}</div>
+                <div style={{fontSize:16,fontWeight:800,color:T.accent}}>{money(b.solde_ouverture)}</div>
+                <div style={{fontSize:10,color:T.muted}}>{b.banque||""}{b.date_solde?" - solde au "+b.date_solde:" - solde d ouverture"}</div>
+              </div>
+            );})}
+          </div>
+        </div>
+      )}
+
+      <div style={{fontSize:10,color:T.muted,marginTop:8}}>Le reel des depenses provient des factures approuvees ou payees; le reel des revenus provient des paiements encaisses (module Encaissements). Document de gestion - ne remplace pas des etats financiers verifies par un CPA.</div>
+    </div>
+  );
+}
+
 // ===== MODULE PRINCIPAL =====
-export default function BudgetCompta(){
+export default function BudgetCompta(props){
   var s0=useState([]);var syndicats=s0[0];var setSyndicats=s0[1];
   var s1=useState(null);var sel=s1[0];var setSel=s1[1];
-  var s2=useState("budget");var ong=s2[0];var setOng=s2[1];
+  var s2=useState((props&&props.onglet)||"budget");var ong=s2[0];var setOng=s2[1];
   var s3=useState([]);var comptes=s3[0];var setComptes=s3[1];
   var s4=useState("");var errInit=s4[0];var setErrInit=s4[1];
 
@@ -652,7 +879,7 @@ export default function BudgetCompta(){
   }
   useEffect(function(){chargerComptes();},[sel&&sel.id]);
 
-  var TABS=[{id:"budget",l:"Budget et cotisations"},{id:"charte",l:"Plan comptable"},{id:"banques",l:"Comptes bancaires"},{id:"journal",l:"Journal"}];
+  var TABS=[{id:"budget",l:"Budget et cotisations"},{id:"etats",l:"Etats financiers"},{id:"charte",l:"Plan comptable"},{id:"banques",l:"Comptes bancaires"},{id:"journal",l:"Journal"}];
 
   if(syndicats.length===0)return <div style={{padding:40,textAlign:"center",fontFamily:"Georgia,serif",color:T.muted}}>Aucun syndicat - creez d abord un syndicat via Configuration.</div>;
 
@@ -670,6 +897,7 @@ export default function BudgetCompta(){
       <div style={{padding:20}}>
         {errInit&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,fontWeight:700,marginBottom:12}}>{errInit}</div>}
         {ong==="budget"&&<TabBudget syndicat={sel} comptes={comptes}/>}
+        {ong==="etats"&&<TabEtats syndicat={sel} comptes={comptes}/>}
         {ong==="charte"&&<TabCharte syndicat={sel} comptes={comptes} recharger={chargerComptes}/>}
         {ong==="banques"&&<TabBanques syndicat={sel}/>}
         {ong==="journal"&&<TabJournal syndicat={sel}/>}

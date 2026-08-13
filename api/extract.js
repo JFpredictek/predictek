@@ -53,6 +53,42 @@ export default async function handler(req, res) {
       return res.status(200).json({ok:true,resume:(dR.content&&dR.content[0]&&dR.content[0].text)||""});
     }
 
+    if(mode === "req_admins") {
+      // Passe DEDIEE aux administrateurs: lit le REQ AU COMPLET (PDF original de preference)
+      // pour ne manquer AUCUN administrateur, avec adresse et date de debut de charge exactes.
+      var promptAd = "Voici l etat de renseignements d un syndicat de copropriete au Registraire des entreprises du Quebec (REQ). "
+        + "TA SEULE TACHE: extraire la liste COMPLETE des administrateurs ACTUELLEMENT EN FONCTION. "
+        + "METHODE OBLIGATOIRE: 1) Trouve la section Liste des administrateurs. 2) Parcours CHAQUE page du document jusqu a la fin - la liste continue souvent sur la page suivante. "
+        + "3) Compte les blocs d administrateur (chaque bloc contient: nom de famille, prenom, adresse du domicile, date du debut de la charge, fonction). "
+        + "4) Pour CHACUN, recopie EXACTEMENT: son adresse du domicile telle qu ecrite dans SON bloc (pas celle d un autre, pas celle du syndicat) et sa date du debut de la charge telle qu ecrite dans SON bloc (format AAAA-MM-JJ). "
+        + "N omets AUCUN administrateur. Exclus uniquement ceux avec une date de fin de charge. "
+        + "Reponds UNIQUEMENT avec un objet JSON valide: "
+        + "{\"nbAdmins\": entier (nombre de blocs d administrateur trouves), "
+        + "\"admins\": [{\"prenom\":\"\",\"nom\":\"\",\"adr\":\"numero et rue\",\"ville\":\"\",\"province\":\"QC\",\"codePostal\":\"\",\"role\":\"president|vice-president|secretaire|tresorier|administrateur (croise avec la section des fonctions/dirigeants; sinon administrateur)\",\"dateDebut\":\"AAAA-MM-JJ\"}], "
+        + "\"adrSyndicat\":\"adresse du domicile ACTUELLE du syndicat\",\"villeSyndicat\":\"\",\"codePostalSyndicat\":\"\"}. "
+        + "VERIFICATION FINALE: le tableau admins doit contenir exactement nbAdmins entrees.";
+      var contenuAd;
+      if(pdfB64){
+        contenuAd = [{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:promptAd}];
+      } else if(texte){
+        contenuAd = [{type:"text",text:promptAd+"\n\nTEXTE COMPLET DU REQ:\n"+texte.substring(0,150000)}];
+      } else {
+        return res.status(400).json({error:"Aucun document REQ fourni"});
+      }
+      var rAd = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:MODEL_FORT,max_tokens:4000,messages:[{role:"user",content:contenuAd}]})});
+      var rawAd = await rAd.text();
+      var dAd; try{dAd=JSON.parse(rawAd);}catch(e){return res.status(500).json({error:"JSON invalide (req_admins)"});}
+      if(dAd.error) return res.status(500).json({error:dAd.error.message});
+      var txAd = (dAd.content&&dAd.content[0]&&dAd.content[0].text)||"";
+      var objAd = null;
+      try{
+        var cAd = txAd.trim();
+        if(cAd.indexOf("{")>=0) cAd = cAd.substring(cAd.indexOf("{"), cAd.lastIndexOf("}")+1);
+        objAd = JSON.parse(cAd);
+      }catch(e){ return res.status(200).json({ok:false,error:"Reponse IA non parsable (admins)"}); }
+      return res.status(200).json({ok:true,data:objAd});
+    }
+
     var prompt = "Voici le texte extrait de documents officiels d un syndicat de copropriete quebecois (etat de renseignements du REQ et/ou declaration). "
       + "IMPORTANT: le REQ presente les informations COURANTES du registre. Utilise l adresse du domicile ACTUELLE du syndicat (section Adresse du domicile), JAMAIS une adresse anterieure ou historique. "
       + "Pour chaque administrateur, utilise sa propre adresse de domicile telle qu inscrite dans SA fiche et la date de debut de charge EXACTE (colonne Date du debut de la charge) - ne les invente pas et ne les melange pas entre administrateurs.\n\n"

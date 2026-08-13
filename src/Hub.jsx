@@ -678,6 +678,7 @@ function Onboarding(p){
       var texteREQ=window._reqFile?(textes[idx++]||""):"";
       var texteActe=window._acteFile?(textes[idx]||""):"";
       window._texteActeComplet=texteActe;
+      window._texteREQComplet=texteREQ;
       var extraitsActe="";
       if(texteActe){
         var phrases=texteActe.split(/\.\s+/);
@@ -738,6 +739,29 @@ function Onboarding(p){
       var n=champs.filter(function(k){return ex[k]&&ex[k]!==""&&ex[k]!==0;}).length;
       if(ex.admins&&ex.admins.length>0)n+=ex.admins.length;
       var dbg=resp.debug?" (texte: "+resp.debug.texteLen+" chars)":"";setIaSuccess(n+" champs extraits avec succes - verifiez et completez"+dbg);
+      // Passe DEDIEE aux administrateurs: relit le REQ AU COMPLET (PDF original, toutes les pages)
+      // pour ne manquer AUCUN administrateur ni melanger les adresses et dates de debut de charge.
+      if(window._reqFile){
+        fichierB64PourIA(window._reqFile).then(function(src){
+          var corpsAd=src.pdf?{pdf:src.pdf,mode:"req_admins"}:{texte:(window._texteREQComplet||""),mode:"req_admins"};
+          return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify(corpsAd)});
+        }).then(lireReponseAPI).then(function(ra){
+          if(!ra||!ra.ok||!ra.data||!Array.isArray(ra.data.admins)||ra.data.admins.length===0)return;
+          var da=ra.data;
+          setData(function(old){
+            var u=Object.assign({},old);
+            u.nbMembresCA=da.admins.length;
+            u.admins=da.admins.map(function(a){
+              return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};
+            });
+            if(da.adrSyndicat)u.adr=da.adrSyndicat;
+            if(da.villeSyndicat)u.ville=da.villeSyndicat;
+            if(da.codePostalSyndicat)u.codePostal=fmtCP(da.codePostalSyndicat);
+            return u;
+          });
+          setIaSuccess("Lecture complete du REQ: "+da.admins.length+" administrateur(s) avec adresses et dates de debut de charge - verifiez a l etape Administrateurs.");
+        }).catch(function(){});
+      }
       // Extraction automatique des reglements: TOUTE la declaration, par segments successifs
       if(window._texteActeComplet&&window._texteActeComplet.length>500){
         var texteRg=window._texteActeComplet;

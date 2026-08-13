@@ -36,6 +36,7 @@ import RegistreIncidents from "./RegistreIncidents";
 import Registre1070 from "./Registre1070";
 import Sinistres from "./Sinistres";
 import RequetesCopros from "./RequetesCopros";
+import Facturation from "./Facturation";
 import Unites from "./Unites";
 
 var SECTIONS=[
@@ -53,6 +54,7 @@ var SECTIONS=[
       {id:"historique",label:"Historique",icon:"HIS"},
       {id:"employes",label:"Employes",icon:"EMP"},
       {id:"paie",label:"Paie / T4 / R1",icon:"PAI"},
+      {id:"facturation",label:"Facturation clients",icon:"FC"},
       {id:"roles",label:"Roles",icon:"ROL"},
       {id:"crm",label:"CRM",icon:"CRM"},
       {id:"ia",label:"IA",icon:"IA"},
@@ -70,6 +72,8 @@ var SECTIONS=[
       {id:"unites",label:"Unites",icon:"UN"},
             {id:"factures",label:"Factures",icon:"FA"},
       {id:"budget",label:"Budget",icon:"BU"},
+      {id:"plancomptable",label:"Plan comptable",icon:"PC"},
+      {id:"etatsfin",label:"Etats financiers",icon:"EF"},
       {id:"encaissements",label:"Encaissements",icon:"EN"},
       {id:"bons",label:"Bons travaux",icon:"BT"},
       {id:"comm",label:"Communications",icon:"CO"},
@@ -103,6 +107,27 @@ var SECTIONS=[
   }
 ];
 
+// Navigation VERTICALE par categories (les sous-titres regroupent sans etre cliquables)
+var NAV={
+  predictek:[
+    {titre:"Tableau de bord",items:[{id:"dashboard"}]},
+    {titre:"Configuration",items:[{id:"onboarding"},{id:"gestion"}]},
+    {titre:"Equipe",items:[{id:"employes"},{id:"paie"},{id:"usagers"},{id:"roles"}]},
+    {titre:"Entreprise",items:[{id:"facturation"},{id:"crm"},{id:"ia"},{id:"loi25"},{id:"historique"}]}
+  ],
+  ca:[
+    {titre:"Tableau de bord",items:[{id:"tableau"}]},
+    {titre:"Finances",items:[{sub:"Payables"},{id:"factures"},{id:"fournisseurs"},{id:"bons"},{sub:"Recevables"},{id:"encaissements"},{sub:"Comptabilite"},{id:"budget"},{id:"plancomptable"},{id:"etatsfin"},{id:"rapports"}]},
+    {titre:"Immeuble",items:[{id:"unites"},{id:"assurances"},{id:"sinistres"},{id:"agenda"}]},
+    {titre:"Instances",items:[{id:"assemblees"},{id:"pv"},{id:"ca"},{id:"registre"}]},
+    {titre:"Communications",items:[{id:"comm"},{id:"requetes"}]}
+  ],
+  portail:[
+    {titre:"Mon espace",items:[{id:"copro"},{id:"releves"},{id:"docs"}]},
+    {titre:"Outils",items:[{id:"reconn"},{id:"notif"},{id:"carnet"}]}
+  ]
+};
+
 var ALL_IDS=[];
 SECTIONS.forEach(function(s){s.modules.forEach(function(m){ALL_IDS.push(m.id);});});
 
@@ -127,6 +152,7 @@ export default function App(){
   var s1=useState(true);var checking=s1[0];var setChecking=s1[1];
   var s2=useState("dashboard");var active=s2[0];var setActive=s2[1];
   var s3=useState("predictek");var activeSec=s3[0];var setActiveSec=s3[1];
+  var s4=useState({});var ouverts=s4[0];var setOuverts=s4[1];
 
   useEffect(function(){
     sb.checkSession().then(function(u){
@@ -185,7 +211,7 @@ export default function App(){
   var activeSectionDef=sectionsVisibles.find(function(s){return s.id===activeSec;})||sectionsVisibles[0]||SECTIONS[0];
 
   return(
-    <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
+    <div style={{height:"100vh",display:"flex",flexDirection:"column"}}>
       <div style={{background:"#0d1b2a",flexShrink:0}}>
         <div style={{display:"flex",alignItems:"center",borderBottom:"1px solid #ffffff10"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,padding:"0 16px",borderRight:"1px solid #ffffff15",height:52,flexShrink:0}}>
@@ -215,19 +241,39 @@ export default function App(){
             );
           })}
         </div>
-        <div style={{display:"flex",height:46,background:activeSectionDef.bg+"55",borderTop:"1px solid #ffffff08",overflowX:"auto"}}>
-          {activeSectionDef.modules.map(function(m){
-            var isActive=active===m.id;
+      </div>
+      <div style={{flex:1,display:"flex",minHeight:0}}>
+        <div style={{width:238,flexShrink:0,background:"#13233A",overflowY:"auto",padding:"10px 0 30px"}}>
+          {(NAV[activeSectionDef.id]||[]).map(function(gr){
+            // Ne garder que les modules permis par le role
+            var items=gr.items.filter(function(it){return it.sub||activeSectionDef.modules.some(function(m){return m.id===it.id;});});
+            var modItems=items.filter(function(it){return it.id;});
+            if(modItems.length===0)return null;
+            var contientActif=modItems.some(function(it){return it.id===active;});
+            var cle=activeSectionDef.id+"_"+gr.titre;
+            var ouvert=ouverts[cle]!==undefined?ouverts[cle]:contientActif||modItems.length===1;
             return(
-              <button key={m.id} onClick={function(){setActive(m.id);}} style={{display:"flex",alignItems:"center",gap:7,padding:"0 14px",background:isActive?"#ffffff18":"transparent",border:"none",borderBottom:isActive?"3px solid "+activeSectionDef.color:"3px solid transparent",cursor:"pointer",fontFamily:"Georgia,serif",color:isActive?"#fff":"#9fb0c6",fontSize:13,fontWeight:isActive?700:500,flexShrink:0,whiteSpace:"nowrap"}}>
-                <div style={{width:22,height:22,borderRadius:5,background:isActive?activeSectionDef.color:"#ffffff18",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,color:isActive?"#fff":"#9fb0c6",flexShrink:0}}>{m.icon}</div>
-                {m.label}
-              </button>
+              <div key={gr.titre} style={{marginBottom:2}}>
+                <button onClick={function(){setOuverts(function(pr){var n=Object.assign({},pr);n[cle]=!ouvert;return n;});}} style={{display:"flex",alignItems:"center",justifyContent:"space-between",width:"100%",background:contientActif?"#ffffff10":"transparent",border:"none",padding:"10px 16px",cursor:"pointer",fontFamily:"Georgia,serif"}}>
+                  <span style={{fontSize:12,fontWeight:800,color:contientActif?activeSectionDef.color:"#c6d2e2",textTransform:"uppercase",letterSpacing:"0.06em"}}>{gr.titre}</span>
+                  <span style={{fontSize:11,color:"#9fb0c6"}}>{ouvert?"\u25BE":"\u25B8"}</span>
+                </button>
+                {ouvert&&items.map(function(it,ix){
+                  if(it.sub)return <div key={"s"+ix} style={{fontSize:9,fontWeight:800,color:"#7d90aa",textTransform:"uppercase",letterSpacing:"0.09em",padding:"8px 16px 3px 26px"}}>{it.sub}</div>;
+                  var m=activeSectionDef.modules.find(function(x){return x.id===it.id;});
+                  var isActive=active===it.id;
+                  return(
+                    <button key={it.id} onClick={function(){setActive(it.id);}} style={{display:"flex",alignItems:"center",gap:9,width:"100%",background:isActive?activeSectionDef.color+"33":"transparent",border:"none",borderLeft:isActive?"3px solid "+activeSectionDef.color:"3px solid transparent",padding:"8px 12px 8px 23px",cursor:"pointer",fontFamily:"Georgia,serif",textAlign:"left"}}>
+                      <div style={{width:22,height:22,borderRadius:5,background:isActive?activeSectionDef.color:"#ffffff14",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:700,color:isActive?"#fff":"#9fb0c6",flexShrink:0}}>{m?m.icon:""}</div>
+                      <span style={{fontSize:13,fontWeight:isActive?700:500,color:isActive?"#fff":"#c6d2e2"}}>{m?m.label:it.id}</span>
+                    </button>
+                  );
+                })}
+              </div>
             );
           })}
         </div>
-      </div>
-      <div style={{flex:1,background:"#F5F3EE",overflow:"auto"}}>
+        <div style={{flex:1,background:"#F5F3EE",overflow:"auto"}}>
         {active==="dashboard"&&<HubDashboard onNavigate={function(id){var sec=sectionsVisibles.find(function(s){return s.modules.some(function(m){return m.id===id;});});if(sec)setMod(sec.id,id);}}/>}
         {active==="onboarding"&&<Hub/>}
         {active==="tableau"&&<TableauBordCA/>}
@@ -235,7 +281,9 @@ export default function App(){
         {active==="unites"&&<Unites/>}
         {active==="gestion"&&<GestionAuto/>}
         {active==="factures"&&<GestionFactures/>}
-        {active==="budget"&&<BudgetCompta/>}
+        {active==="budget"&&<BudgetCompta key="bud"/>}
+        {active==="plancomptable"&&<BudgetCompta key="pc" onglet="charte"/>}
+        {active==="etatsfin"&&<BudgetCompta key="ef" onglet="etats"/>}
         {active==="encaissements"&&<Encaissements/>}
         {active==="assemblees"&&<Assemblees/>}
         {active==="paie"&&<ModuleT4/>}
@@ -250,6 +298,7 @@ export default function App(){
         {active==="registre"&&<Registre1070/>}
         {active==="sinistres"&&<Sinistres/>}
         {active==="requetes"&&<RequetesCopros/>}
+        {active==="facturation"&&<Facturation/>}
         {active==="assurances"&&<ModuleAssurances/>}
         {active==="releves"&&<RelevesCompte/>}
         {active==="crm"&&<CRM/>}
@@ -263,6 +312,7 @@ export default function App(){
         {active==="usagers"&&<GestionUtilisateurs/>}
         {active==="agenda"&&<AgendaCalendrier/>}
         {active==="loi25"&&<RegistreIncidents/>}
+        </div>
       </div>
     </div>
   );
