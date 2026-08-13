@@ -37,6 +37,22 @@ function CarteSyndicat(p){
           <div style={{fontSize:9,color:T.muted,textTransform:"uppercase"}}>Factures</div>
         </div>
       </div>
+      {(stats.membresCA||[]).length>0&&(
+        <div style={{background:"#EFF6FF",border:"1px solid #1A56DB33",borderRadius:8,padding:"10px 12px",marginBottom:10}}>
+          <div style={{fontSize:9,fontWeight:800,color:"#1A56DB",textTransform:"uppercase",letterSpacing:"0.06em",marginBottom:6}}>Conseil d administration</div>
+          {(stats.membresCA||[]).map(function(m){
+            var roleLbl=m.role_ca==="president"?"President(e)":m.role_ca==="vice_president"?"Vice-pres.":m.role_ca==="secretaire"?"Secretaire":m.role_ca==="tresorier"?"Tresorier(e)":"Membre";
+            return(
+              <div key={m.id} style={{display:"flex",gap:8,alignItems:"baseline",flexWrap:"wrap",padding:"3px 0",borderTop:"1px solid #1A56DB18"}}>
+                <span style={{fontSize:11,fontWeight:700,color:T.navy,minWidth:150}}>{((m.prenom||"")+" "+(m.nom||"")).trim()}</span>
+                <span style={{fontSize:9,fontWeight:800,color:"#1A56DB",background:"#1A56DB15",borderRadius:5,padding:"1px 7px"}}>{roleLbl}</span>
+                {m.cellulaire&&<span style={{fontSize:10,color:T.muted}}>{m.cellulaire}</span>}
+                {m.courriel&&<span style={{fontSize:10,color:T.muted}}>{m.courriel}</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
       {alertCount>0&&(
         <div style={{background:T.amberL,borderRadius:8,padding:"8px 12px",fontSize:11,color:T.amber}}>
           {stats.ceExpires>0&&<div>CE à renouveler: {stats.ceExpires}</div>}
@@ -66,11 +82,13 @@ export default function HubDashboard(p){
           sb.select("paiements",{eq:{syndicat_id:s.id},limit:100}),
           sb.select("factures",{eq:{syndicat_id:s.id},limit:50}),
           sb.select("unites",{eq:{syndicat_id:s.id},cols:"id",limit:1000}),
+          sb.select("membres_ca",{eq:{syndicat_id:s.id,actif:true},order:"role_ca.asc",limit:20}),
         ]).then(function(results){
           var copros=results[0]&&results[0].data?results[0].data:[];
           var paies=results[1]&&results[1].data?results[1].data:[];
           var facts=results[2]&&results[2].data?results[2].data:[];
           var unites=results[3]&&results[3].data?results[3].data:[];
+          var membresCA=results[4]&&results[4].data?results[4].data:[];
           var mois=new Date().toISOString().substring(0,7);
           var paiesMois=paies.filter(function(p){return p.date_paiement&&p.date_paiement.substring(0,7)===mois;});
           var totalMois=paiesMois.reduce(function(a,p){return a+Number(p.montant||0);},0);
@@ -83,7 +101,7 @@ export default function HubDashboard(p){
           var totalCot=copros.filter(function(c){return c.statut==="actif";}).reduce(function(a,c){return a+Number(c.cotisation_mensuelle||0);},0);
           var coprosActifs=copros.filter(function(c){return c.statut==="actif";});
           var unitesDistinctes={};coprosActifs.forEach(function(c){if(c.unite)unitesDistinctes[c.unite]=true;});
-          return {id:s.id,totalCot:totalCot,nbUnites:unites.length>0?unites.length:Object.keys(unitesDistinctes).length,nbCopros:coprosActifs.length,tauxPerception:totalMois>0?Math.round(payesMois/totalMois*100):0,ceExpires:ceExpires,assExpires:assExpires,facturesRetard:facturesRetard,facturesEnAttente:facturesEnAttente};
+          return {id:s.id,totalCot:totalCot,nbUnites:unites.length>0?unites.length:Object.keys(unitesDistinctes).length,nbCopros:coprosActifs.length,tauxPerception:totalMois>0?Math.round(payesMois/totalMois*100):0,ceExpires:ceExpires,assExpires:assExpires,facturesRetard:facturesRetard,facturesEnAttente:facturesEnAttente,membresCA:membresCA};
         });
       });
       Promise.all(promises).then(function(allStats){

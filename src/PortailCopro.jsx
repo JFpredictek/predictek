@@ -65,6 +65,10 @@ function Tableau(p){
   var copro=p.copro;
   var s0=useState([]);var paiements=s0[0];var setPaiements=s0[1];
   var s1=useState([]);var tickets=s1[0];var setTickets=s1[1];
+  var sMA=useState("");var msgAss=sMA[0];var setMsgAss=sMA[1];
+  var sCE=useState("");var msgCE=sCE[0];var setMsgCE=sCE[1];
+  var sMI=useState(null);var monInfo=sMI[0];var setMonInfo=sMI[1];
+  var sMI2=useState("");var msgInfo=sMI2[0];var setMsgInfo=sMI2[1];
   var s2=useState([]);var docs=s2[0];var setDocs=s2[1];
   var s3=useState("accueil");var ong=s3[0];var setOng=s3[1];
   var s4s=useState(null);var syndic=s4s[0];var setSyndic=s4s[1];
@@ -125,6 +129,35 @@ function Tableau(p){
       <div style={{padding:20,maxWidth:800,margin:"0 auto"}}>
         {ong==="accueil"&&(
           <div>
+            <div style={{background:T.surface,border:"2px solid #1B5E3B33",borderRadius:12,padding:16,marginBottom:14}}>
+              <div style={{fontSize:12,fontWeight:800,color:T.navy,marginBottom:4}}>Mes informations</div>
+              <div style={{fontSize:11,color:T.muted,marginBottom:10}}>Tenez vos coordonnees a jour - elles servent aux communications officielles du syndicat.</div>
+              {(function(){
+                var mi=monInfo||{courriel:copro.courriel||"",telephone:copro.telephone||""};
+                return(
+                  <div style={{display:"flex",gap:10,alignItems:"flex-end",flexWrap:"wrap"}}>
+                    <div style={{minWidth:220}}><div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>COURRIEL</div><input value={mi.courriel} onChange={function(e){setMonInfo(Object.assign({},mi,{courriel:e.target.value}));}} style={{width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/></div>
+                    <div style={{minWidth:160}}><div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>TELEPHONE</div><input value={mi.telephone} onChange={function(e){setMonInfo(Object.assign({},mi,{telephone:e.target.value}));}} style={{width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/></div>
+                    <Btn onClick={function(){
+                      setMsgInfo("Sauvegarde...");
+                      sb.update("coproprietaires",copro.id,{courriel:(mi.courriel||"").trim(),telephone:(mi.telephone||"").trim()}).then(function(r){
+                        if(r&&r.data&&r.data.id){setMsgInfo("Informations mises a jour.");copro.courriel=mi.courriel;copro.telephone=mi.telephone;return;}
+                        // Acces direct refuse: on transmet la demande au gestionnaire
+                        return sb.insert("tickets",{coproprietaire_id:copro.id,syndicat_id:copro.syndicat_id,unite:copro.unite,
+                          sujet:"Mise a jour de mes coordonnees (unite "+(copro.unite||"")+")",
+                          description:"Nouveau courriel: "+(mi.courriel||"")+" | Nouveau telephone: "+(mi.telephone||""),
+                          statut:"nouveau",priorite:"normale"}).then(function(r2){
+                          if(r2&&r2.data&&r2.data.id){setMsgInfo("Demande de mise a jour transmise au gestionnaire.");setTickets(function(prev){return [r2.data].concat(prev);});}
+                          else setMsgInfo("ECHEC - contactez votre gestionnaire.");
+                        });
+                      }).catch(function(){setMsgInfo("ECHEC - contactez votre gestionnaire.");});
+                    }}>Sauvegarder</Btn>
+                    {msgInfo&&<span style={{fontSize:11,fontWeight:700,color:msgInfo.indexOf("ECHEC")===0?"#B83232":"#1B5E3B"}}>{msgInfo}</span>}
+                  </div>
+                );
+              })()}
+            </div>
+
             <div style={{fontSize:16,fontWeight:800,color:T.navy,marginBottom:4}}>Bonjour, {copro.prenom||copro.nom} !</div>
             <div style={{fontSize:12,color:T.muted,marginBottom:20}}>Bienvenue dans votre espace personnel. Voici un resume de votre compte.</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:20}}>
@@ -186,6 +219,52 @@ function Tableau(p){
         {ong==="docs"&&(
           <div>
             <div style={{fontSize:14,fontWeight:700,color:T.navy,marginBottom:16}}>Mes documents</div>
+
+            <div style={{background:T.surface,border:"2px solid #1B5E3B55",borderRadius:12,padding:16,marginBottom:14}}>
+              <div style={{fontSize:12,fontWeight:800,color:T.navy,marginBottom:4}}>Ma preuve d assurance</div>
+              <div style={{fontSize:11,color:T.muted,marginBottom:10}}>Transmettez ici votre certificat d assurance (PDF ou photo). Le gestionnaire le validera et mettra votre dossier a jour.</div>
+              <input type="file" accept=".pdf,image/*" onChange={function(e){
+                var fA=e.target.files&&e.target.files[0]?e.target.files[0]:null;
+                if(!fA)return;
+                var extA=(fA.name.match(/\.[a-zA-Z0-9]+$/)||[".pdf"])[0];
+                var cheminA=copro.syndicat_id+"/portail/"+copro.id+"-assurance-"+Date.now()+extA;
+                setMsgAss("Televersement en cours...");
+                sb.uploadFichier("preuves",cheminA,fA).then(function(up){
+                  if(!up||!up.chemin){setMsgAss("ECHEC du televersement"+((up&&up.error&&up.error.message)?" ("+up.error.message+")":"")+" - contactez votre gestionnaire.");return;}
+                  return sb.insert("tickets",{coproprietaire_id:copro.id,syndicat_id:copro.syndicat_id,unite:copro.unite,
+                    sujet:"Preuve d assurance transmise (unite "+(copro.unite||"")+")",
+                    description:"Certificat depose par le coproprietaire via le portail. Document: storage:"+cheminA,
+                    statut:"nouveau",priorite:"haute"}).then(function(r){
+                    if(r&&r.data&&r.data.id){setMsgAss("Certificat transmis avec succes - le gestionnaire le validera sous peu.");setTickets(function(prev){return [r.data].concat(prev);});}
+                    else setMsgAss("Document televerse, mais l avis au gestionnaire a echoue - mentionnez-le dans une demande.");
+                  });
+                }).catch(function(eA){setMsgAss("ECHEC: "+(eA&&eA.message?eA.message:"erreur"));});
+              }} style={{fontSize:11,fontFamily:"inherit"}}/>
+              {msgAss&&<div style={{fontSize:11,fontWeight:700,color:msgAss.indexOf("ECHEC")===0?"#B83232":"#1B5E3B",marginTop:8}}>{msgAss}</div>}
+            </div>
+
+            <div style={{background:T.surface,border:"2px solid #B8602055",borderRadius:12,padding:16,marginBottom:14}}>
+              <div style={{fontSize:12,fontWeight:800,color:T.navy,marginBottom:4}}>Mon chauffe-eau</div>
+              <div style={{fontSize:11,color:T.muted,marginBottom:10}}>Transmettez la preuve de remplacement ou la facture de votre chauffe-eau. Le gestionnaire mettra votre dossier a jour.</div>
+              <input type="file" accept=".pdf,image/*" onChange={function(e){
+                var fC=e.target.files&&e.target.files[0]?e.target.files[0]:null;
+                if(!fC)return;
+                var extC=(fC.name.match(/\.[a-zA-Z0-9]+$/)||[".pdf"])[0];
+                var cheminC=copro.syndicat_id+"/portail/"+copro.id+"-chauffe-eau-"+Date.now()+extC;
+                setMsgCE("Televersement en cours...");
+                sb.uploadFichier("preuves",cheminC,fC).then(function(up){
+                  if(!up||!up.chemin){setMsgCE("ECHEC du televersement"+((up&&up.error&&up.error.message)?" ("+up.error.message+")":"")+" - contactez votre gestionnaire.");return;}
+                  return sb.insert("tickets",{coproprietaire_id:copro.id,syndicat_id:copro.syndicat_id,unite:copro.unite,
+                    sujet:"Preuve de chauffe-eau transmise (unite "+(copro.unite||"")+")",
+                    description:"Document depose par le coproprietaire via le portail. Document: storage:"+cheminC,
+                    statut:"nouveau",priorite:"normale"}).then(function(r){
+                    if(r&&r.data&&r.data.id){setMsgCE("Preuve transmise avec succes - le gestionnaire mettra votre dossier a jour.");setTickets(function(prev){return [r.data].concat(prev);});}
+                    else setMsgCE("Document televerse, mais l avis au gestionnaire a echoue - mentionnez-le dans une demande.");
+                  });
+                }).catch(function(eC){setMsgCE("ECHEC: "+(eC&&eC.message?eC.message:"erreur"));});
+              }} style={{fontSize:11,fontFamily:"inherit"}}/>
+              {msgCE&&<div style={{fontSize:11,fontWeight:700,color:msgCE.indexOf("ECHEC")===0?"#B83232":"#1B5E3B",marginTop:8}}>{msgCE}</div>}
+            </div>
 
             <div style={{background:T.surface,border:"2px solid "+T.navy+"33",borderRadius:12,padding:16,marginBottom:14}}>
               <div style={{fontSize:12,fontWeight:800,color:T.navy,marginBottom:8}}>Documents du syndicat</div>

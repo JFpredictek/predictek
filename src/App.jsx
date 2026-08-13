@@ -26,7 +26,6 @@ import Communications from "./Communications";
 import RapportsFinanciers from "./RapportsFinanciers";
 import BonsTravail from "./BonsTravail";
 import PVReunion from "./PVReunion";
-import ModuleAssurances from "./ModuleAssurances";
 import RelevesCompte from "./RelevesCompte";
 import GestionUtilisateurs from "./GestionUtilisateurs";
 import AgendaCalendrier from "./AgendaCalendrier";
@@ -37,6 +36,7 @@ import Registre1070 from "./Registre1070";
 import Sinistres from "./Sinistres";
 import RequetesCopros from "./RequetesCopros";
 import Conformite from "./Conformite";
+import ConfigSyndicat from "./ConfigSyndicat";
 import Facturation from "./Facturation";
 import PredictekCompta from "./PredictekCompta";
 import Unites from "./Unites";
@@ -54,6 +54,7 @@ var SECTIONS=[
       {id:"gestion",label:"Gestion Auto",icon:"GA"},
       {id:"usagers",label:"Utilisateurs",icon:"USR"},
       {id:"historique",label:"Historique",icon:"HIS"},
+      {id:"notif",label:"Centre de notifications",icon:"N"},
       {id:"employes",label:"Employes",icon:"EMP"},
       {id:"paie",label:"Paie / T4 / R1",icon:"PAI"},
       {id:"facturation",label:"Facturation clients",icon:"FC"},
@@ -85,16 +86,19 @@ var SECTIONS=[
       {id:"comm",label:"Communications",icon:"CO"},
       
       {id:"rapports",label:"Rapports",icon:"RF"},
-      {id:"assurances",label:"Assurances",icon:"AS"},
       {id:"assemblees",label:"Assemblees",icon:"AG"},
       {id:"pv",label:"PV Reunion",icon:"PV"},
       {id:"registre",label:"Registre 1070",icon:"RG"},
       {id:"sinistres",label:"Sinistres",icon:"SN"},
       {id:"requetes",label:"Requetes copros",icon:"RQ"},
       {id:"conformite",label:"Avis de non-conformite",icon:"NC"},
+      {id:"configsynd",label:"Configuration du syndicat",icon:"CS"},
       {id:"ca",label:"Membres CA",icon:"MC"},
       {id:"fournisseurs",label:"Fournisseurs",icon:"F"},
       {id:"agenda",label:"Agenda",icon:"AGD"},
+      {id:"carnet",label:"Carnet entretien",icon:"L16"},
+      {id:"docs",label:"Documents",icon:"DO"},
+      {id:"reconn",label:"Lire docs IA",icon:"LD"},
     ]
   },
   {
@@ -106,10 +110,6 @@ var SECTIONS=[
     modules:[
       {id:"copro",label:"Mon portail",icon:"CO"},
       {id:"releves",label:"Releves",icon:"RL"},
-      {id:"reconn",label:"Lire docs IA",icon:"LD"},
-      {id:"notif",label:"Notifications",icon:"N"},
-      {id:"carnet",label:"Carnet entretien",icon:"L16"},
-      {id:"docs",label:"Documents",icon:"DO"},
     ]
   }
 ];
@@ -118,20 +118,20 @@ var SECTIONS=[
 var NAV={
   predictek:[
     {titre:"Tableau de bord",items:[{id:"dashboard"}]},
-    {titre:"Configuration",items:[{id:"onboarding"},{id:"gestion"}]},
+    {titre:"Configuration",items:[{id:"onboarding"},{id:"gestion"},{id:"notif"}]},
     {titre:"Equipe",items:[{id:"employes"},{id:"paie"},{id:"usagers"},{id:"roles"}]},
     {titre:"Entreprise",items:[{id:"facturation"},{id:"comptaentreprise"},{id:"crm"},{id:"ia"},{id:"loi25"},{id:"historique"}]}
   ],
   ca:[
     {titre:"Tableau de bord",items:[{id:"tableau"}]},
     {titre:"Finances",items:[{sub:"Payables"},{id:"factures"},{id:"fournisseurs"},{id:"bons"},{sub:"Recevables"},{id:"encaissements"},{sub:"Comptabilite"},{id:"budget"},{id:"plancomptable"},{id:"etatsfin"},{id:"fondsview"},{id:"banques"},{id:"journalgl"},{id:"rapports"}]},
-    {titre:"Immeuble",items:[{id:"unites"},{id:"assurances"},{id:"sinistres"},{id:"agenda"}]},
+    {titre:"Immeuble",items:[{id:"unites"},{id:"carnet"},{id:"docs"},{id:"sinistres"},{id:"agenda"}]},
     {titre:"Instances",items:[{id:"assemblees"},{id:"pv"},{id:"ca"},{id:"registre"}]},
-    {titre:"Communications",items:[{id:"comm"},{id:"requetes"},{id:"conformite"}]}
+    {titre:"Communications",items:[{id:"comm"},{id:"requetes"},{id:"conformite"}]},
+    {titre:"Configuration",items:[{id:"configsynd"},{id:"reconn"}]}
   ],
   portail:[
-    {titre:"Mon espace",items:[{id:"copro"},{id:"releves"},{id:"docs"}]},
-    {titre:"Outils",items:[{id:"reconn"},{id:"notif"},{id:"carnet"}]}
+    {titre:"Mon espace",items:[{id:"copro"},{id:"releves"}]}
   ]
 };
 
@@ -319,9 +319,9 @@ export default function App(){
         {active==="sinistres"&&<Sinistres/>}
         {active==="requetes"&&<RequetesCopros/>}
         {active==="conformite"&&<Conformite/>}
+        {active==="configsynd"&&<ConfigSyndicat onNavigate={function(id){setMod("ca",id);}}/>}
         {active==="facturation"&&<Facturation/>}
         {active==="comptaentreprise"&&<PredictekCompta/>}
-        {active==="assurances"&&<ModuleAssurances/>}
         {active==="releves"&&<RelevesCompte/>}
         {active==="crm"&&<CRM/>}
         {active==="fournisseurs"&&<FournisseursAdmin/>}

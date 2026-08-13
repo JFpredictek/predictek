@@ -89,7 +89,7 @@ module.exports = async function(req, res){
   var mois = iso.substring(0,7);
   var jourDuMois = parseInt(iso.substring(8,10), 10);
 
-  var syndicats = await sbGet(svc, "syndicats?select=id,nom,code,assurance_syndicat_exp,etude_assurance_date,etude_prevoyance_date");
+  var syndicats = await sbGet(svc, "syndicats?select=id,nom,code,assurance_syndicat_exp,etude_assurance_date,etude_prevoyance_date,ass_avis_avant1,ass_avis_avant2,ass_avis_apres,ass_nc_auto,ass_nc_delai");
   var synMap = {}; syndicats.forEach(function(s){synMap[s.id]=s;});
   var copros = await sbGet(svc, "coproprietaires?select=*&statut=eq.actif&limit=2000");
   var unites = await sbGet(svc, "unites?select=*&limit=2000");
@@ -141,13 +141,26 @@ module.exports = async function(req, res){
     }
   });
 
-  // REGLE 2b - Assurance au niveau de l UNITE (modele par unite):
-  // rappel envoye a chaque proprietaire ACTIF de l unite.
+  // REGLE 2b - Assurance au niveau de l UNITE: delais CONFIGURABLES par syndicat
+  // (Configuration du syndicat). Rappel envoye a chaque proprietaire ACTIF de l unite;
+  // apres l echeance + relance, un avis de non-conformite peut etre cree automatiquement.
+  var avisNCACreer = [];
   unites.forEach(function(u){
     if(!u.assurance_exp) return;
     var syn = synMap[u.syndicat_id] || {nom:"votre syndicat", code:""};
+    var avant1 = parseInt(syn.ass_avis_avant1, 10); if(!(avant1 >= 0)) avant1 = 90;
+    var avant2 = parseInt(syn.ass_avis_avant2, 10); if(!(avant2 >= 0)) avant2 = 30;
+    var apres = parseInt(syn.ass_avis_apres, 10); if(!(apres >= 0)) apres = 15;
     var jours = Math.ceil((new Date(u.assurance_exp) - maintenant) / 86400000);
-    var typeA = jours < 0 ? "assurance_expiree" : jours <= 30 ? "assurance_30" : jours <= 90 ? "assurance_90" : null;
+    // Avis de non-conformite automatique: expiree depuis plus de (apres) jours
+    if(jours <= -apres && syn.ass_nc_auto){
+      var cleNC = "assnc_" + u.id + "_" + u.assurance_exp;
+      if(!deja[cleNC]){
+        avisNCACreer.push({cle: cleNC, u: u, syn: syn,
+          delai: parseInt(syn.ass_nc_delai, 10) > 0 ? parseInt(syn.ass_nc_delai, 10) : 30});
+      }
+    }
+    var typeA = jours < 0 ? "assurance_expiree" : jours <= avant2 ? "assurance_30" : jours <= avant1 ? "assurance_90" : null;
     if(!typeA) return;
     var proprietaires = copros.filter(function(c){return c.unite_id === u.id && c.courriel;});
     proprietaires.forEach(function(c){
@@ -162,6 +175,30 @@ module.exports = async function(req, res){
       });
     });
   });
+
+  // Creation des avis de non-conformite automatiques (assurance non fournie)
+  for(var vNC = 0; vNC < avisNCACreer.length; vNC++){
+    var nc = avisNCACreer[vNC];
+    var prNC = copros.filter(function(c){return c.unite_id === nc.u.id || (!c.unite_id && c.unite === nc.u.no_unite);});
+    var echNC = new Date(maintenant.getTime() + nc.delai * 86400000).toISOString().substring(0,10);
+    var okNC = await sbPost(svc, "avis_conformite", {
+      syndicat_id: nc.syn.id, unite: nc.u.no_unite || "",
+      coproprietaire_id: (prNC[0] && prNC[0].id) || null,
+      destinataire_nom: prNC.map(function(c){return ((c.prenom||"") + " " + (c.nom||"")).trim();}).join(" et "),
+      objet: "Preuve d assurance non fournie",
+      description: "La preuve d assurance de l unite " + (nc.u.no_unite||"") + " est expiree depuis le " + nc.u.assurance_exp + " et n a pas ete renouvelee malgre les avis. Transmettez votre certificat via le portail coproprietaire.",
+      article_reglement: "Reglement de l immeuble - assurance obligatoire",
+      niveau: "avis", date_avis: iso, echeance: echNC, statut: "emis",
+      notes: "Genere automatiquement par le moteur de relances (configuration du syndicat)."
+    });
+    if(okNC){
+      await sbPost(svc, "relances_envoyees", {syndicat_id: nc.syn.id, coproprietaire_id: (prNC[0] && prNC[0].id) || null,
+        type: "assurance_nc_auto", cle: nc.cle, courriel: "", sujet: "Avis NC auto - assurance unite " + (nc.u.no_unite||""),
+        statut: "creee", detail: "avis de non-conformite cree automatiquement, echeance " + echNC});
+      await sbPost(svc, "historique", {utilisateur_nom: "Moteur de relances", categorie: "conformite", action: "creation",
+        description: "Avis de non-conformite AUTOMATIQUE: assurance non fournie - unite " + (nc.u.no_unite||"") + " (echeance " + echNC + ")", details: "", syndicat_code: nc.syn.code || ""});
+    }
+  }
 
   // ============ ALERTES ADMINISTRATIVES (envoyees a l administrateur, jamais aux coproprietaires) ============
   var alertesAdmin = [];
