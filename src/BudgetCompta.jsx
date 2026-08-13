@@ -209,6 +209,16 @@ function TabCharte(p){
     });
   }
 
+  function changerFonds(ligne,f){
+    sb.update("comptes_syndicat",ligne.id,{fonds:f}).then(function(r){
+      if(r&&r.error){setMsg("Echec: "+(r.error.message||"la colonne fonds existe-t-elle? (SQL fourni)"));return;}
+      sb.log("budget","modification","Compte "+ligne.no_compte+" rattache au fonds "+f,"",syndicat.code||"");
+      recharger();
+    });
+  }
+  var fondsDispo=["operation","prevoyance","assurance"];
+  comptes.forEach(function(c){if(c.fonds&&fondsDispo.indexOf(c.fonds)<0)fondsDispo.push(c.fonds);});
+
   function ajouterCompte(groupe){
     if(!nfc.no||!nfc.nom){setMsg("Numero et nom requis.");return;}
     if(comptes.some(function(x){return x.no_compte===nfc.no;})){setMsg("Le compte "+nfc.no+" existe deja.");return;}
@@ -269,7 +279,10 @@ function TabCharte(p){
                       <div style={{width:14,height:14,borderRadius:"50%",background:"#fff",position:"absolute",top:3,left:actif?17:3,transition:"left 0.15s"}}/>
                     </div>
                     <span style={{fontSize:11,fontWeight:700,color:T.navy,flexShrink:0}}>{c.no_compte}</span>
-                    <span style={{fontSize:11,color:T.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:actif?"none":"line-through"}}>{c.nom_compte}</span>
+                    <span style={{fontSize:11,color:T.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:actif?"none":"line-through",flex:1}}>{c.nom_compte}</span>
+                    <select value={c.fonds||"operation"} onClick={function(ev){ev.stopPropagation();}} onChange={function(ev){ev.stopPropagation();changerFonds(c,ev.target.value);}} style={{fontSize:9,fontFamily:"inherit",border:"1px solid "+T.border,borderRadius:5,padding:"2px 3px",background:"#fff",color:T.muted,flexShrink:0,maxWidth:86}}>
+                      {fondsDispo.map(function(f){return <option key={f} value={f}>{f==="operation"?"Operation":f==="prevoyance"?"Prevoyance":f==="assurance"?"Assurance":f}</option>;})}
+                    </select>
                   </div>
                 );
               })}
@@ -498,6 +511,11 @@ function TabBanques(p){
     }).catch(function(e){setEnCours("");setErr("Erreur: "+(e&&e.message?e.message:""));});
   }
 
+  var listeF=FONDS.slice();
+  Object.keys(formes).forEach(function(k){
+    if(!listeF.some(function(f){return f.id===k;}))listeF.push({id:k,l:"Fonds "+k.toUpperCase(),desc:"Fonds personnalise",c:"#1B5E3B",bg:"#E8F2EC"});
+  });
+
   return(
     <div>
       <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:4}}>Comptes bancaires relies aux fonds</div>
@@ -505,7 +523,7 @@ function TabBanques(p){
       {msg&&<div style={{background:T.accentL,border:"2px solid "+T.accent,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.accent,fontWeight:700,marginBottom:12}}>{msg}</div>}
       {err&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,fontWeight:700,marginBottom:12}}>{err}</div>}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:14}}>
-        {FONDS.map(function(fd){
+        {listeF.map(function(fd){
           var f=formes[fd.id]||{};
           return(
             <div key={fd.id} style={{background:fd.bg,border:"2px solid "+fd.c+"44",borderRadius:12,padding:16}}>
@@ -847,11 +865,151 @@ function TabEtats(p){
   );
 }
 
+// ===== Onglet COMPTABILITE PAR FONDS =====
+function TabFonds(p){
+  var syndicat=p.syndicat;var comptes=p.comptes;var recharger=p.recharger;
+  var s0=useState(null);var exo=s0[0];var setExo=s0[1];
+  var s1=useState([]);var factures=s1[0];var setFactures=s1[1];
+  var s2=useState([]);var paiements=s2[0];var setPaiements=s2[1];
+  var s3=useState([]);var journal=s3[0];var setJournal=s3[1];
+  var s4=useState([]);var banques=s4[0];var setBanques=s4[1];
+  var s5=useState({});var budgets=s5[0];var setBudgets=s5[1];
+  var s6=useState(false);var charge=s6[0];var setCharge=s6[1];
+  var s7=useState("");var msg=s7[0];var setMsg=s7[1];
+  var s8=useState("");var err=s8[0];var setErr=s8[1];
+  var s9=useState(false);var showAjout=s9[0];var setShowAjout=s9[1];
+  var s10=useState("");var nomFonds=s10[0];var setNomFonds=s10[1];
+
+  var opts=optionsExercices(syndicat?syndicat.exercice:"");
+  useEffect(function(){
+    if(!syndicat)return;
+    setExo(exerciceCourant(optionsExercices(syndicat.exercice)));
+  },[syndicat&&syndicat.id]);
+  useEffect(function(){
+    if(!syndicat||!exo)return;
+    setCharge(false);
+    Promise.all([
+      sb.select("factures",{eq:{syndicat_id:syndicat.id},limit:2000}),
+      sb.select("paiements",{eq:{syndicat_id:syndicat.id},limit:5000}),
+      sb.select("journal",{eq:{syndicat_id:syndicat.id},limit:2000}),
+      sb.select("comptes_bancaires",{eq:{syndicat_id:syndicat.id},limit:20}),
+      sb.select("budgets_gl",{eq:{syndicat_id:syndicat.id,exercice_debut:exo.debut},limit:300})
+    ]).then(function(rs){
+      setFactures((rs[0]&&rs[0].data)||[]);
+      setPaiements((rs[1]&&rs[1].data)||[]);
+      setJournal((rs[2]&&rs[2].data)||[]);
+      setBanques((rs[3]&&rs[3].data)||[]);
+      var m={};if(rs[4]&&rs[4].data)rs[4].data.forEach(function(x){m[x.no_compte]=parseFloat(x.montant)||0;});
+      setBudgets(m);
+      setCharge(true);
+    }).catch(function(){setCharge(true);});
+  },[syndicat&&syndicat.id,exo&&exo.debut]);
+
+  if(!syndicat||!exo)return null;
+
+  var cMap={};comptes.forEach(function(c){cMap[c.no_compte]=c;});
+  function fondsDe(no){var c=cMap[no];return (c&&c.fonds)||"operation";}
+
+  // Liste des fonds: 3 standards + personnalises (comptes ou comptes bancaires)
+  var FONDS_STD=[{id:"operation",l:"Fonds d OPERATION",c:"#1A56DB"},{id:"prevoyance",l:"Fonds de PREVOYANCE",c:"#6B3FA0"},{id:"assurance",l:"Fonds d AUTO-ASSURANCE",c:"#B86020"}];
+  var listeFonds=FONDS_STD.slice();
+  comptes.forEach(function(c){if(c.fonds&&!listeFonds.some(function(f){return f.id===c.fonds;}))listeFonds.push({id:c.fonds,l:"Fonds "+c.fonds.toUpperCase(),c:"#1B5E3B"});});
+  banques.forEach(function(b){if(b.fonds&&!listeFonds.some(function(f){return f.id===b.fonds;}))listeFonds.push({id:b.fonds,l:"Fonds "+b.fonds.toUpperCase(),c:"#1B5E3B"});});
+
+  var factEx=factures.filter(function(f){return (f.statut==="approuvee"||f.statut==="payee")&&dansExercice(f.date_facture,exo);});
+  var paieEx=paiements.filter(function(pm){return pm.statut==="paye"&&dansExercice(pm.date_paiement,exo);});
+  var jrnEx=journal.filter(function(j){return dansExercice(j.date_transaction,exo);});
+
+  function calculFonds(fid){
+    // Revenus reels: encaissements (cotisations 4110 / speciales 4130) selon le fonds du compte + credits du journal
+    var rev=0;
+    paieEx.forEach(function(pm){var no=pm.type==="speciale"?"4130":"4110";if(fondsDe(no)===fid)rev+=Number(pm.montant)||0;});
+    // Depenses reelles: factures selon le fonds du compte GL
+    var dep=0;
+    factEx.forEach(function(f){if(fondsDe(f.no_compte_gl||"5990")===fid)dep+=parseFloat(f.total)||parseFloat(f.montant)||0;});
+    // Journal: ecritures manuelles (virements entre fonds, interets...) - via le fonds du compte si categorie correspond
+    var jDep=0,jRev=0;
+    jrnEx.forEach(function(j){
+      var cat=(j.categorie||"").toLowerCase();
+      var cible=cat.indexOf("prevoyance")>=0?"prevoyance":cat.indexOf("assurance")>=0?"assurance":"operation";
+      if(cible!==fid)return;
+      jDep+=Number(j.montant_debit)||0;jRev+=Number(j.montant_credit)||0;
+    });
+    // Apports BUDGETES vers ce fonds (comptes type fonds rattaches au fonds cible)
+    var apportsBud=0;
+    comptes.filter(function(c){return c.type_compte==="fonds"&&(c.fonds||"operation")===fid;}).forEach(function(c){apportsBud+=budgets[c.no_compte]||0;});
+    var banque=banques.find(function(b){return b.fonds===fid;});
+    var ouverture=banque?(parseFloat(banque.solde_ouverture)||0):0;
+    return {rev:rev+jRev,dep:dep+jDep,apportsBud:apportsBud,ouverture:ouverture,banque:banque,solde:ouverture+rev+jRev-dep-jDep};
+  }
+
+  function ajouterFonds(){
+    var slug=(nomFonds||"").toLowerCase().normalize("NFD").replace(/[^a-z0-9]/g,"").substring(0,20);
+    if(!slug){setErr("Entrez un nom de fonds valide (lettres/chiffres).");return;}
+    if(listeFonds.some(function(f){return f.id===slug;})){setErr("Ce fonds existe deja.");return;}
+    sb.upsert("comptes_bancaires",[{syndicat_id:syndicat.id,fonds:slug,banque:"",institution:"",transit:"",no_compte:"",solde_ouverture:0,date_solde:null}],"syndicat_id,fonds").then(function(r){
+      if(r&&r.error){setErr("ECHEC de la creation du fonds: "+(r.error.message||""));return;}
+      setMsg("Fonds \""+slug+"\" cree. Rattachez-lui des comptes dans le Plan comptable (selecteur de fonds sur chaque compte) et configurez son compte bancaire.");
+      sb.log("budget","creation","Fonds personnalise cree: "+slug,"",syndicat.code||"");
+      setShowAjout(false);setNomFonds("");
+      sb.select("comptes_bancaires",{eq:{syndicat_id:syndicat.id},limit:20}).then(function(r2){if(r2&&r2.data)setBanques(r2.data);});
+      setTimeout(function(){setMsg("");},7000);
+    });
+  }
+
+  return(
+    <div>
+      <div style={{display:"flex",gap:12,alignItems:"flex-end",flexWrap:"wrap",marginBottom:14}}>
+        <div style={{minWidth:340}}>
+          <Lbl l="Exercice financier"/>
+          <select value={exo.debut} onChange={function(e){var o=opts.find(function(x){return x.debut===e.target.value;});if(o)setExo(o);}} style={INP}>
+            {opts.map(function(o){return <option key={o.debut} value={o.debut}>{o.label}</option>;})}
+          </select>
+        </div>
+        <Btn bg={T.alt} tc={T.navy} bdr={"1px solid "+T.border} onClick={function(){setShowAjout(!showAjout);setErr("");}}>+ Ajouter un fonds</Btn>
+      </div>
+      {msg&&<div style={{background:T.accentL,border:"2px solid "+T.accent,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.accent,fontWeight:700,marginBottom:12}}>{msg}</div>}
+      {err&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,fontWeight:700,marginBottom:12}}>{err}</div>}
+      {showAjout&&(
+        <div style={{display:"flex",gap:8,alignItems:"flex-end",background:T.blueL,borderRadius:10,padding:12,marginBottom:14,flexWrap:"wrap"}}>
+          <div style={{minWidth:220}}><Lbl l="Nom du nouveau fonds"/><input value={nomFonds} onChange={function(e){setNomFonds(e.target.value);}} style={INP} placeholder="ex: travaux, ascenseur..."/></div>
+          <Btn onClick={ajouterFonds}>Creer le fonds</Btn>
+          <div style={{fontSize:10,color:T.muted}}>Un compte bancaire lui sera associe; rattachez ensuite ses comptes GL dans le Plan comptable.</div>
+        </div>
+      )}
+      {!charge&&<div style={{background:T.blueL,borderRadius:10,padding:14,fontSize:12,color:T.blue,fontWeight:600,marginBottom:12}}>Chargement...</div>}
+
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:14}}>
+        {listeFonds.map(function(fd){
+          var k=calculFonds(fd.id);
+          return(
+            <div key={fd.id} style={{background:T.surface,border:"2px solid "+fd.c+"44",borderRadius:12,padding:16}}>
+              <div style={{fontSize:12,fontWeight:800,color:fd.c,marginBottom:10}}>{fd.l}</div>
+              <div style={{display:"grid",gap:6,fontSize:12}}>
+                <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:T.muted}}>Solde d ouverture{k.banque&&k.banque.date_solde?" ("+k.banque.date_solde+")":""}</span><b>{money(k.ouverture)}</b></div>
+                <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:T.muted}}>+ Revenus de l exercice</span><b style={{color:T.accent}}>{money(k.rev)}</b></div>
+                <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:T.muted}}>- Depenses de l exercice</span><b style={{color:T.red}}>{money(k.dep)}</b></div>
+                <div style={{display:"flex",justifyContent:"space-between",borderTop:"2px solid "+fd.c+"44",paddingTop:6,marginTop:2}}><span style={{fontWeight:800,color:T.navy}}>SOLDE COURANT</span><span style={{fontWeight:800,fontSize:15,color:k.solde>=0?T.accent:T.red}}>{money(k.solde)}</span></div>
+                {k.apportsBud>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:11}}><span style={{color:T.muted}}>Apports budgetes vers ce fonds</span><span style={{color:T.purple,fontWeight:700}}>{money(k.apportsBud)}</span></div>}
+                {!k.banque&&<div style={{fontSize:10,color:T.amber,fontWeight:600}}>Aucun compte bancaire configure pour ce fonds (Comptes bancaires).</div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{fontSize:10,color:T.muted,marginTop:12}}>
+        Revenus = encaissements (cotisations et speciales) et credits du journal rattaches au fonds; depenses = factures approuvees/payees selon le fonds du compte GL et debits du journal. Le rattachement compte-fonds se fait dans le Plan comptable. Enregistrez les virements entre fonds au Journal.
+      </div>
+    </div>
+  );
+}
+
 // ===== MODULE PRINCIPAL =====
 export default function BudgetCompta(props){
   var s0=useState([]);var syndicats=s0[0];var setSyndicats=s0[1];
   var s1=useState(null);var sel=s1[0];var setSel=s1[1];
   var s2=useState((props&&props.onglet)||"budget");var ong=s2[0];var setOng=s2[1];
+  useEffect(function(){setOng((props&&props.onglet)||"budget");},[props&&props.onglet]);
   var s3=useState([]);var comptes=s3[0];var setComptes=s3[1];
   var s4=useState("");var errInit=s4[0];var setErrInit=s4[1];
 
@@ -879,8 +1037,6 @@ export default function BudgetCompta(props){
   }
   useEffect(function(){chargerComptes();},[sel&&sel.id]);
 
-  var TABS=[{id:"budget",l:"Budget et cotisations"},{id:"etats",l:"Etats financiers"},{id:"charte",l:"Plan comptable"},{id:"banques",l:"Comptes bancaires"},{id:"journal",l:"Journal"}];
-
   if(syndicats.length===0)return <div style={{padding:40,textAlign:"center",fontFamily:"Georgia,serif",color:T.muted}}>Aucun syndicat - creez d abord un syndicat via Configuration.</div>;
 
   return(
@@ -890,14 +1046,15 @@ export default function BudgetCompta(props){
         <select value={sel?sel.id:""} onChange={function(e){var s=syndicats.find(function(x){return x.id===e.target.value;});if(s)setSel(s);}} style={{background:"#ffffff18",border:"1px solid #ffffff40",borderRadius:6,padding:"5px 10px",color:"#fff",fontSize:12,fontFamily:"inherit"}}>
           {syndicats.map(function(s){return <option key={s.id} value={s.id} style={{color:"#000"}}>{s.nom}</option>;})}
         </select>
-        <div style={{display:"flex",marginLeft:"auto"}}>
-          {TABS.map(function(t){var a=ong===t.id;return <button key={t.id} onClick={function(){setOng(t.id);}} style={{background:a?"#ffffff18":"transparent",border:"none",borderBottom:a?"3px solid #3CAF6E":"3px solid transparent",padding:"8px 16px",color:a?"#fff":"#9fb0c6",fontSize:13,cursor:"pointer",fontFamily:"inherit",fontWeight:a?700:500}}>{t.l}</button>;})}
+        <div style={{marginLeft:"auto",fontSize:12,color:"#9fb0c6",fontWeight:700}}>
+          {ong==="budget"?"Budget et cotisations":ong==="etats"?"Etats financiers":ong==="fonds"?"Comptabilite par fonds":ong==="charte"?"Plan comptable":ong==="banques"?"Comptes bancaires":"Journal"}
         </div>
       </div>
       <div style={{padding:20}}>
         {errInit&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,fontWeight:700,marginBottom:12}}>{errInit}</div>}
         {ong==="budget"&&<TabBudget syndicat={sel} comptes={comptes}/>}
         {ong==="etats"&&<TabEtats syndicat={sel} comptes={comptes}/>}
+        {ong==="fonds"&&<TabFonds syndicat={sel} comptes={comptes} recharger={chargerComptes}/>}
         {ong==="charte"&&<TabCharte syndicat={sel} comptes={comptes} recharger={chargerComptes}/>}
         {ong==="banques"&&<TabBanques syndicat={sel}/>}
         {ong==="journal"&&<TabJournal syndicat={sel}/>}

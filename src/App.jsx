@@ -37,6 +37,7 @@ import Registre1070 from "./Registre1070";
 import Sinistres from "./Sinistres";
 import RequetesCopros from "./RequetesCopros";
 import Facturation from "./Facturation";
+import PredictekCompta from "./PredictekCompta";
 import Unites from "./Unites";
 
 var SECTIONS=[
@@ -55,6 +56,7 @@ var SECTIONS=[
       {id:"employes",label:"Employes",icon:"EMP"},
       {id:"paie",label:"Paie / T4 / R1",icon:"PAI"},
       {id:"facturation",label:"Facturation clients",icon:"FC"},
+      {id:"comptaentreprise",label:"Comptabilite Predictek",icon:"CE"},
       {id:"roles",label:"Roles",icon:"ROL"},
       {id:"crm",label:"CRM",icon:"CRM"},
       {id:"ia",label:"IA",icon:"IA"},
@@ -74,6 +76,9 @@ var SECTIONS=[
       {id:"budget",label:"Budget",icon:"BU"},
       {id:"plancomptable",label:"Plan comptable",icon:"PC"},
       {id:"etatsfin",label:"Etats financiers",icon:"EF"},
+      {id:"fondsview",label:"Comptabilite par fonds",icon:"FD"},
+      {id:"banques",label:"Comptes bancaires",icon:"CB"},
+      {id:"journalgl",label:"Journal",icon:"JL"},
       {id:"encaissements",label:"Encaissements",icon:"EN"},
       {id:"bons",label:"Bons travaux",icon:"BT"},
       {id:"comm",label:"Communications",icon:"CO"},
@@ -113,11 +118,11 @@ var NAV={
     {titre:"Tableau de bord",items:[{id:"dashboard"}]},
     {titre:"Configuration",items:[{id:"onboarding"},{id:"gestion"}]},
     {titre:"Equipe",items:[{id:"employes"},{id:"paie"},{id:"usagers"},{id:"roles"}]},
-    {titre:"Entreprise",items:[{id:"facturation"},{id:"crm"},{id:"ia"},{id:"loi25"},{id:"historique"}]}
+    {titre:"Entreprise",items:[{id:"facturation"},{id:"comptaentreprise"},{id:"crm"},{id:"ia"},{id:"loi25"},{id:"historique"}]}
   ],
   ca:[
     {titre:"Tableau de bord",items:[{id:"tableau"}]},
-    {titre:"Finances",items:[{sub:"Payables"},{id:"factures"},{id:"fournisseurs"},{id:"bons"},{sub:"Recevables"},{id:"encaissements"},{sub:"Comptabilite"},{id:"budget"},{id:"plancomptable"},{id:"etatsfin"},{id:"rapports"}]},
+    {titre:"Finances",items:[{sub:"Payables"},{id:"factures"},{id:"fournisseurs"},{id:"bons"},{sub:"Recevables"},{id:"encaissements"},{sub:"Comptabilite"},{id:"budget"},{id:"plancomptable"},{id:"etatsfin"},{id:"fondsview"},{id:"banques"},{id:"journalgl"},{id:"rapports"}]},
     {titre:"Immeuble",items:[{id:"unites"},{id:"assurances"},{id:"sinistres"},{id:"agenda"}]},
     {titre:"Instances",items:[{id:"assemblees"},{id:"pv"},{id:"ca"},{id:"registre"}]},
     {titre:"Communications",items:[{id:"comm"},{id:"requetes"}]}
@@ -135,7 +140,7 @@ SECTIONS.forEach(function(s){s.modules.forEach(function(m){ALL_IDS.push(m.id);})
 function sectionsPourRole(role){
   if(role==="admin")return SECTIONS;
   if(role==="gestionnaire"){
-    var interdits=["usagers","roles","employes","paie","crm","loi25"];
+    var interdits=["usagers","roles","employes","paie","crm","loi25","facturation","comptaentreprise"];
     return SECTIONS.map(function(s){
       if(s.id!=="predictek")return s;
       return Object.assign({},s,{modules:s.modules.filter(function(m){return interdits.indexOf(m.id)<0;})});
@@ -284,6 +289,9 @@ export default function App(){
         {active==="budget"&&<BudgetCompta key="bud"/>}
         {active==="plancomptable"&&<BudgetCompta key="pc" onglet="charte"/>}
         {active==="etatsfin"&&<BudgetCompta key="ef" onglet="etats"/>}
+        {active==="fondsview"&&<BudgetCompta key="fd" onglet="fonds"/>}
+        {active==="banques"&&<BudgetCompta key="bq" onglet="banques"/>}
+        {active==="journalgl"&&<BudgetCompta key="jl" onglet="journal"/>}
         {active==="encaissements"&&<Encaissements/>}
         {active==="assemblees"&&<Assemblees/>}
         {active==="paie"&&<ModuleT4/>}
@@ -299,6 +307,7 @@ export default function App(){
         {active==="sinistres"&&<Sinistres/>}
         {active==="requetes"&&<RequetesCopros/>}
         {active==="facturation"&&<Facturation/>}
+        {active==="comptaentreprise"&&<PredictekCompta/>}
         {active==="assurances"&&<ModuleAssurances/>}
         {active==="releves"&&<RelevesCompte/>}
         {active==="crm"&&<CRM/>}

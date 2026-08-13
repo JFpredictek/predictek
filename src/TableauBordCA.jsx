@@ -127,7 +127,15 @@ export default function TableauBordCA(){
   var s4=useState([]);var reunions=s4[0];var setReunions=s4[1];
   var s5=useState([]);var tickets=s5[0];var setTickets=s5[1];
   var s6=useState([]);var budget=s6[0];var setBudget=s6[1];
+  var sF=useState([]);var facturesCA=sF[0];var setFacturesCA=sF[1];
   var s7=useState(false);var loading=s7[0];var setLoading=s7[1];
+
+  useEffect(function(){
+    if(!sel)return;
+    sb.select("factures",{eq:{syndicat_id:sel.id},order:"created_at.desc",limit:200}).then(function(r){
+      if(r&&r.data)setFacturesCA(r.data);
+    }).catch(function(){});
+  },[sel&&sel.id]);
 
   useEffect(function(){
     sb.select("syndicats",{order:"nom.asc"}).then(function(res){
@@ -167,6 +175,8 @@ export default function TableauBordCA(){
   var papInscrits=copros.filter(function(c){return c.pap;});
   var ticketsOuverts=tickets.filter(function(t){return t.statut!=="resolu";});
   var prochaine=reunions.filter(function(r){return new Date(r.date_reunion)>=aujourd_hui;})[0];
+  var factAttente=facturesCA.filter(function(f){return f.statut==="en_attente_approbation"||f.statut==="recue";});
+  var totalAttenteApprob=factAttente.reduce(function(a,f){return a+(Number(f.total)||Number(f.montant)||0);},0);
 
   return(
     <div style={{fontFamily:"Georgia,serif",minHeight:"100vh",background:T.bg}}>
@@ -186,6 +196,23 @@ export default function TableauBordCA(){
         <div style={{padding:20}}>
           <div style={{fontSize:16,fontWeight:800,color:T.navy,marginBottom:4}}>{sel.nom}</div>
           <div style={{fontSize:11,color:T.muted,marginBottom:20}}>{sel.adr||""}{sel.ville?", "+sel.ville:""} - {coprosActifs.length} unites actives</div>
+
+          {factAttente.length>0&&(
+            <div style={{background:T.amberL,border:"2px solid "+T.amber,borderRadius:14,padding:16,marginBottom:20}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}}>
+                <div style={{fontSize:13,fontWeight:800,color:T.amber}}>{factAttente.length} facture(s) EN ATTENTE D APPROBATION - {totalAttenteApprob.toFixed(2)} $</div>
+                <div style={{fontSize:11,color:T.muted}}>Approuvez-les dans Finances - Payables - Factures (bouton Approuver sur chaque facture)</div>
+              </div>
+              {factAttente.slice(0,5).map(function(f){return(
+                <div key={f.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fff",borderRadius:8,padding:"8px 12px",marginBottom:6,gap:10,flexWrap:"wrap"}}>
+                  <div style={{fontSize:12,fontWeight:700,color:T.navy}}>{f.fournisseur_nom||f.fournisseur}{f.no_facture?" - "+f.no_facture:""}</div>
+                  <div style={{fontSize:11,color:T.muted}}>{f.date_facture||""}</div>
+                  <div style={{fontSize:13,fontWeight:800,color:T.amber}}>{(Number(f.total)||Number(f.montant)||0).toFixed(2)} $</div>
+                </div>
+              );})}
+              {factAttente.length>5&&<div style={{fontSize:11,color:T.muted}}>+ {factAttente.length-5} autre(s)...</div>}
+            </div>
+          )}
 
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
             <KPI titre="Taux de perception" valeur={tauxPerception+"%"} sous={payes.length+" / "+paiesMois.length+" paiements"} pct={tauxPerception} couleur={tauxPerception>=80?T.accent:tauxPerception>=50?T.amber:T.red} bg={tauxPerception>=80?T.accentL:tauxPerception>=50?T.amberL:T.redL} bc={tauxPerception>=80?T.accent+"44":tauxPerception>=50?T.amber+"44":T.red+"44"}/>

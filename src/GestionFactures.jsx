@@ -310,6 +310,9 @@ var VIDE_F={fournisseur_nom:"",no_facture:"",date_facture:"",date_echeance:"",so
 export default function GestionFactures(){
   var s0=useState([]);var syndicats=s0[0];var setSyndicats=s0[1];
   var s1=useState(null);var sel=s1[0];var setSel=s1[1];
+  var sAp=useState(false);var showRegles=sAp[0];var setShowRegles=sAp[1];
+  var sAp2=useState({seuil:"",requises:""});var regles=sAp2[0];var setRegles=sAp2[1];
+  var sAp3=useState("");var msgRegles=sAp3[0];var setMsgRegles=sAp3[1];
   var s2=useState([]);var factures=s2[0];var setFactures=s2[1];
   var s3=useState(false);var showForm=s3[0];var setShowForm=s3[1];
   var s4=useState(VIDE_F);var nf=s4[0];var setNf=s4[1];
@@ -367,7 +370,7 @@ export default function GestionFactures(){
     setSaving(true);setErrSauve("");
     var glFinal=nf.no_compte_gl||codeGLAuto(nf.fournisseur_nom,nf.description||"");
     var glNom=CODES_GL_DEPENSES.find(function(g){return g.no===glFinal;});
-    var row={syndicat_id:sel.id,fournisseur:nf.fournisseur_nom,montant:parseFloat(nf.total)||0,fournisseur_nom:nf.fournisseur_nom,no_facture:nf.no_facture||"",date_facture:nf.date_facture||null,date_echeance:nf.date_echeance||null,sous_total:parseFloat(nf.sous_total)||0,tps:parseFloat(nf.tps)||0,tvq:parseFloat(nf.tvq)||0,total:parseFloat(nf.total)||0,no_compte_gl:glFinal,categorie_depense:glNom?glNom.nom:"Depenses diverses",description:nf.description||"",no_tps_fournisseur:nf.no_tps_fournisseur||"",no_tvq_fournisseur:nf.no_tvq_fournisseur||"",source:"manuel",statut:parseFloat(nf.total||0)>1000?"en_attente_approbation":"approuvee",nb_approbations_requises:parseFloat(nf.total||0)>5000?2:1};
+    var row={syndicat_id:sel.id,fournisseur:nf.fournisseur_nom,montant:parseFloat(nf.total)||0,fournisseur_nom:nf.fournisseur_nom,no_facture:nf.no_facture||"",date_facture:nf.date_facture||null,date_echeance:nf.date_echeance||null,sous_total:parseFloat(nf.sous_total)||0,tps:parseFloat(nf.tps)||0,tvq:parseFloat(nf.tvq)||0,total:parseFloat(nf.total)||0,no_compte_gl:glFinal,categorie_depense:glNom?glNom.nom:"Depenses diverses",description:nf.description||"",no_tps_fournisseur:nf.no_tps_fournisseur||"",no_tvq_fournisseur:nf.no_tvq_fournisseur||"",source:"manuel",statut:parseFloat(nf.total||0)>=seuilApprob?"en_attente_approbation":"approuvee",nb_approbations_requises:nbApprob};
     var etapes=Promise.resolve();
     if(facFile){
       etapes=etapes.then(function(){
@@ -413,6 +416,20 @@ export default function GestionFactures(){
 
   var FILTRES=[{id:"toutes",l:"Toutes"},{id:"recue",l:"Recues"},{id:"en_attente_approbation",l:"En attente CA"},{id:"approuvee",l:"Approuvees"},{id:"payee",l:"Payees"},{id:"rejetee",l:"Rejetees"}];
 
+  var seuilApprob=sel&&sel.approb_seuil!==null&&sel.approb_seuil!==undefined?parseFloat(sel.approb_seuil):1000;
+  var nbApprob=sel&&sel.approb_requises?parseInt(sel.approb_requises):1;
+  function sauverRegles(){
+    if(!sel)return;
+    var maj={approb_seuil:parseFloat(regles.seuil)||0,approb_requises:Math.max(1,parseInt(regles.requises)||1)};
+    sb.update("syndicats",sel.id,maj).then(function(r){
+      if(r&&r.error){setMsgRegles("ECHEC: "+(r.error.message||"les colonnes approb_seuil/approb_requises existent-elles? (SQL fourni)"));return;}
+      setSel(Object.assign({},sel,maj));
+      setMsgRegles("Regles sauvegardees: approbation du CA requise a partir de "+maj.approb_seuil+" $, "+maj.approb_requises+" approbation(s).");
+      sb.log("factures","modification","Regles d approbation: seuil "+maj.approb_seuil+" $, "+maj.approb_requises+" approbation(s)","",sel.code||"");
+      setTimeout(function(){setMsgRegles("");},5000);
+    });
+  }
+
   return(
     <div style={{fontFamily:"Georgia,serif",minHeight:"100vh",background:T.bg}}>
       <div style={{background:T.navy,padding:"14px 20px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
@@ -423,6 +440,7 @@ export default function GestionFactures(){
           </select>
         )}
         <div style={{marginLeft:"auto",display:"flex",gap:8}}>
+          <Btn sm bg="#ffffff18" bdr="1px solid #ffffff40" onClick={function(){setShowRegles(!showRegles);setRegles({seuil:String(seuilApprob),requises:String(nbApprob)});}}>Regles d approbation</Btn>
           <Btn sm bg="#ffffff18" bdr="1px solid #ffffff40" onClick={function(){setVue(vue==="liste"?"stats":"liste");}}>
             {vue==="liste"?"Stats":"Liste"}
           </Btn>
@@ -431,6 +449,19 @@ export default function GestionFactures(){
       </div>
 
       <div style={{padding:20}}>
+        {showRegles&&(
+          <div style={{background:T.surface,border:"2px solid "+T.navy+"33",borderRadius:12,padding:16,marginBottom:16}}>
+            <div style={{fontSize:13,fontWeight:800,color:T.navy,marginBottom:4}}>Regles d approbation des factures - {sel?sel.nom:""}</div>
+            <div style={{fontSize:11,color:T.muted,marginBottom:12}}>En dessous du seuil: la facture est approuvee automatiquement. A partir du seuil: elle passe EN ATTENTE et le CA doit l approuver (bouton Approuver sur la facture). Les membres du CA sont avises par courriel par le moteur de relances.</div>
+            {msgRegles&&<div style={{background:msgRegles.indexOf("ECHEC")===0?T.redL:T.accentL,borderRadius:8,padding:"8px 12px",fontSize:12,color:msgRegles.indexOf("ECHEC")===0?T.red:T.accent,fontWeight:700,marginBottom:10}}>{msgRegles}</div>}
+            <div style={{display:"flex",gap:12,alignItems:"flex-end",flexWrap:"wrap"}}>
+              <div style={{width:220}}><Lbl l="Seuil d approbation du CA ($)"/><input type="number" step="0.01" value={regles.seuil} onChange={function(e){setRegles(Object.assign({},regles,{seuil:e.target.value}));}} style={INP} placeholder="1000"/></div>
+              <div style={{width:200}}><Lbl l="Nombre d approbations requises"/><input type="number" min="1" max="9" value={regles.requises} onChange={function(e){setRegles(Object.assign({},regles,{requises:e.target.value}));}} style={INP}/></div>
+              <Btn onClick={sauverRegles}>Sauvegarder les regles</Btn>
+              <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setShowRegles(false);}}>Fermer</Btn>
+            </div>
+          </div>
+        )}
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
           <div style={{background:T.amberL,border:"1px solid "+T.amber+"44",borderRadius:12,padding:14}}>
             <div style={{fontSize:11,color:T.muted}}>En attente approbation</div>

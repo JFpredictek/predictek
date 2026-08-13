@@ -96,6 +96,8 @@ module.exports = async function(req, res){
   var paiements = await sbGet(svc, "paiements?select=coproprietaire_id,statut&date_paiement=gte." + mois + "-01&limit=5000");
   var employes = await sbGet(svc, "employes?select=id,prenom,nom,poste,statut,permis_requis,permis_expiration&statut=eq.actif&limit=500");
   var assemblees = await sbGet(svc, "assemblees?select=id,syndicat_id,type,date_assemblee,statut,convocation_envoyee_le&statut=eq.planifiee&limit=200");
+  var factAttente = await sbGet(svc, "factures?select=id,syndicat_id,fournisseur_nom,fournisseur,no_facture,total,montant,date_facture,statut&statut=eq.en_attente_approbation&limit=500");
+  var membresCA = await sbGet(svc, "membres_ca?select=id,syndicat_id,prenom,nom,courriel,actif&actif=eq.true&limit=500");
   var configRaw = await sbGet(svc, "config_publique?select=cle,valeur");
   var cfgPub = {}; configRaw.forEach(function(x){cfgPub[x.cle]=x.valeur;});
   var dejaRaw = await sbGet(svc, "relances_envoyees?select=cle&limit=10000");
@@ -230,6 +232,22 @@ module.exports = async function(req, res){
         + (marge < 0 ? "DELAI DEPASSE de " + Math.abs(marge) + " jour(s): convoquez immediatement ou reportez l assemblee." : "Il reste " + marge + " jour(s) pour envoyer la convocation (module Assemblees).")});
   });
 
+  // REGLE 7 - Factures en attente d approbation: courriel aux membres du CA (une fois par facture)
+  var courrielsCA = [];
+  syndicats.forEach(function(s7){
+    var fs = factAttente.filter(function(f){return f.syndicat_id === s7.id;});
+    if(fs.length === 0) return;
+    var membres = membresCA.filter(function(m){return m.syndicat_id === s7.id && m.courriel;});
+    if(membres.length === 0) return;
+    var nouvelles = fs.filter(function(f){return !deja["approb_" + f.id];});
+    if(nouvelles.length === 0) return;
+    var listeTxt = fs.map(function(f){return "- " + (f.fournisseur_nom||f.fournisseur||"?") + (f.no_facture?" ("+f.no_facture+")":"") + " : " + (Number(f.total)||Number(f.montant)||0).toFixed(2) + " $" + (f.date_facture?" - facture du "+f.date_facture:"");}).join("\n");
+    courrielsCA.push({syn: s7, membres: membres, nouvelles: nouvelles,
+      sujet: "[" + s7.nom + "] " + fs.length + " facture(s) a approuver",
+      corps: "Bonjour,\n\nDes factures attendent l approbation du conseil d administration dans Predictek:\n\n" + listeTxt
+        + "\n\nConnectez-vous a Predictek (Finances - Payables - Factures) pour les approuver ou les rejeter.\n\nLe systeme Predictek (message automatise)"});
+  });
+
   var apiKey = process.env.ANTHROPIC_API_KEY || "";
   var resultats = [];
   var MAX_PAR_JOUR = 50; // garde-fou
@@ -262,6 +280,30 @@ module.exports = async function(req, res){
       description: rl.sujet, details: "", syndicat_code: rl.syn.code || ""
     });
     resultats.push({type: rl.type, courriel: rl.copro.courriel, envoye: ok});
+  }
+
+  // Envoi des courriels d approbation aux membres du CA
+  var approbationsEnvoyees = 0;
+  for(var q = 0; q < courrielsCA.length; q++){
+    var cc = courrielsCA[q];
+    var okCA = false;
+    for(var mIx = 0; mIx < cc.membres.length; mIx++){
+      var okM = resendKey ? await envoyerCourriel(cfg, cc.membres[mIx].courriel, cc.sujet, cc.corps) : false;
+      okCA = okCA || okM;
+    }
+    for(var nIx = 0; nIx < cc.nouvelles.length; nIx++){
+      var fN = cc.nouvelles[nIx];
+      await sbPost(svc, "relances_envoyees", {
+        syndicat_id: cc.syn.id, coproprietaire_id: null, type: "facture_approbation", cle: "approb_" + fN.id,
+        courriel: cc.membres.map(function(m){return m.courriel;}).join(", ").substring(0,200), sujet: cc.sujet,
+        statut: resendKey ? (okCA ? "envoyee" : "echec") : "simulee", detail: "avis aux " + cc.membres.length + " membre(s) du CA"
+      });
+      approbationsEnvoyees++;
+    }
+    await sbPost(svc, "historique", {
+      utilisateur_nom: "Moteur de relances", categorie: "relances", action: "facture_approbation",
+      description: cc.sujet + " - avis a " + cc.membres.length + " membre(s) du CA", details: "", syndicat_code: cc.syn.code || ""
+    });
   }
 
   // Envoi des alertes administratives (un seul courriel groupe a l administrateur)
@@ -303,7 +345,7 @@ module.exports = async function(req, res){
 
   return res.status(200).json({
     ok: true, date: iso, coproprietaires_analyses: copros.length,
-    relances: resultats.length, alertes_admin: alertesEnvoyees,
+    relances: resultats.length, alertes_admin: alertesEnvoyees, avis_approbation: approbationsEnvoyees,
     mode: cfg.production ? "production" : "test",
     envoi_configure: !!resendKey, details: resultats,
     alertes: alertesAdmin.map(function(a){return a.texte;})

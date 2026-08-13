@@ -9,6 +9,7 @@ export default function Historique(){
   var s2=useState("");var q=s2[0];var setQ=s2[1];
   var s3=useState(50);var lim=s3[0];var setLim=s3[1];
   var s4=useState("tous");var usr=s4[0];var setUsr=s4[1];
+  var sSy=useState("tous");var synF=sSy[0];var setSynF=sSy[1];
 
   useEffect(function(){
     sb.select("historique",{order:"created_at.desc",limit:lim}).then(function(res){
@@ -18,11 +19,15 @@ export default function Historique(){
 
   var utilisateurs=[];
   logs.forEach(function(l){var n=l.utilisateur_nom||"";if(n&&utilisateurs.indexOf(n)<0)utilisateurs.push(n);});
+  var codesSyn=[];
+  logs.forEach(function(l){var c=l.syndicat_code||"";if(c&&codesSyn.indexOf(c)<0)codesSyn.push(c);});
   utilisateurs.sort();
 
   var filtres=logs.filter(function(l){
     if(cat!=="tout"&&l.categorie!==cat)return false;
     if(usr!=="tous"&&(l.utilisateur_nom||"")!==usr)return false;
+    if(synF==="(predictek)"){if((l.syndicat_code||"")!=="")return false;}
+    else if(synF!=="tous"&&(l.syndicat_code||"")!==synF)return false;
     if(q&&!((l.action||"")+" "+(l.description||"")).toLowerCase().includes(q.toLowerCase()))return false;
     return true;
   });
@@ -35,6 +40,11 @@ export default function Historique(){
         <select value={usr} onChange={function(e){setUsr(e.target.value);}} style={{background:"#ffffff18",border:"1px solid #ffffff30",borderRadius:6,padding:"5px 10px",color:"#fff",fontSize:12,fontFamily:"inherit"}}>
           <option value="tous" style={{color:"#000"}}>Tous les utilisateurs</option>
           {utilisateurs.map(function(u){return <option key={u} value={u} style={{color:"#000"}}>{u}</option>;})}
+        </select>
+        <select value={synF} onChange={function(e){setSynF(e.target.value);}} style={{background:"#ffffff18",border:"1px solid #ffffff30",borderRadius:6,padding:"5px 10px",color:"#fff",fontSize:12,fontFamily:"inherit"}}>
+          <option value="tous" style={{color:"#000"}}>Tous les syndicats</option>
+          <option value="(predictek)" style={{color:"#000"}}>Predictek (entreprise)</option>
+          {codesSyn.map(function(c){return <option key={c} value={c} style={{color:"#000"}}>{c}</option>;})}
         </select>
         <select value={cat} onChange={function(e){setCat(e.target.value);}} style={{background:"#ffffff18",border:"1px solid #ffffff30",borderRadius:6,padding:"5px 10px",color:"#fff",fontSize:12,fontFamily:"inherit"}}>
           <option value="tout" style={{color:"#000"}}>Toutes</option>
@@ -51,19 +61,21 @@ export default function Historique(){
             <thead><tr style={{background:T.alt}}>
               <th style={{padding:"9px 12px",textAlign:"left",fontWeight:600,color:T.navy}}>Date</th>
               <th style={{padding:"9px 12px",textAlign:"left",fontWeight:600,color:T.navy}}>Utilisateur</th>
+              <th style={{padding:"9px 12px",textAlign:"left",fontWeight:600,color:T.navy}}>Syndicat</th>
               <th style={{padding:"9px 12px",textAlign:"left",fontWeight:600,color:T.navy}}>Categorie</th>
               <th style={{padding:"9px 12px",textAlign:"left",fontWeight:600,color:T.navy}}>Action</th>
               <th style={{padding:"9px 12px",textAlign:"left",fontWeight:600,color:T.navy}}>Description</th>
             </tr></thead>
             <tbody>
               {filtres.length===0&&(
-                <tr><td colSpan={5} style={{padding:24,textAlign:"center",color:T.muted}}>Aucune action</td></tr>
+                <tr><td colSpan={6} style={{padding:24,textAlign:"center",color:T.muted}}>Aucune action</td></tr>
               )}
               {filtres.map(function(l,i){
                 return(
                   <tr key={l.id||i} style={{borderBottom:"1px solid "+T.border}}>
                     <td style={{padding:"8px 12px",color:T.muted,fontSize:11}}>{l.created_at?new Date(l.created_at).toLocaleString("fr-CA",{hour12:false}).replace(",","").substring(0,17):"-"}</td>
                     <td style={{padding:"8px 12px",fontWeight:600,color:T.navy,fontSize:11}}>{l.utilisateur_nom||"-"}</td>
+                    <td style={{padding:"8px 12px",fontSize:11}}>{l.syndicat_code?<span style={{background:"#EFF6FF",color:"#1A56DB",borderRadius:6,padding:"2px 8px",fontWeight:700}}>{l.syndicat_code}</span>:<span style={{color:"#9a9385"}}>Predictek</span>}</td>
                     <td style={{padding:"8px 12px",color:T.muted,fontSize:11}}>{l.categorie||"-"}</td>
                     <td style={{padding:"8px 12px",fontWeight:600,color:T.navy}}>{l.action||"-"}</td>
                     <td style={{padding:"8px 12px",color:T.muted}}>
