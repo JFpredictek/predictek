@@ -136,10 +136,10 @@ var CHARTE_DEFAUT=[
   {no:"5720",nom:"Interets - autres emprunts",type:"depense",groupe:"Depenses - Interets"},
   {no:"5800",nom:"Charges faisant l objet de refacturation",type:"depense",groupe:"Depenses - Refacturation"},
   {no:"5805",nom:"Sinistres assumes par les coproprietaires",type:"depense",groupe:"Depenses - Refacturation"},
-  // ---- APPORTS AUX FONDS (entrent dans le calcul des cotisations) ----
-  {no:"5901",nom:"Apport au FONDS DE PREVOYANCE",type:"fonds",groupe:"Apports aux fonds"},
-  {no:"5902",nom:"Apport au FONDS D AUTO-ASSURANCE",type:"fonds",groupe:"Apports aux fonds"},
-  {no:"5903",nom:"Apport au fonds de travaux speciaux",type:"fonds",groupe:"Apports aux fonds"},
+  // ---- TRANSFERTS INTERFONDS (entrent dans le calcul des cotisations) ----
+  {no:"5901",nom:"Transfert interfonds - FONDS DE PREVOYANCE",type:"fonds",groupe:"Transferts interfonds"},
+  {no:"5902",nom:"Transfert interfonds - FONDS D AUTO-ASSURANCE",type:"fonds",groupe:"Transferts interfonds"},
+  {no:"5903",nom:"Transfert interfonds - fonds de travaux speciaux",type:"fonds",groupe:"Transferts interfonds"},
   // ---- DEPENSES DU FONDS DE PREVOYANCE (hors budget des cotisations) ----
   {no:"7000",nom:"Fonds de prevoyance - general",type:"prevoyance",groupe:"Fonds de prevoyance (depenses)"},
   {no:"7060",nom:"Balcons et terrasses",type:"prevoyance",groupe:"Fonds de prevoyance (depenses)"},
@@ -237,7 +237,7 @@ function TabCharte(p){
   CHARTE_DEFAUT.forEach(function(c){if(groupes.indexOf(c.groupe)<0)groupes.push(c.groupe);});
   comptes.forEach(function(c){if(c.groupe&&groupes.indexOf(c.groupe)<0)groupes.push(c.groupe);});
   var nbActifs=comptes.filter(function(x){return x.actif;}).length;
-  var TYPES_LBL={actif:"Actif",passif:"Passif",capitaux:"Capitaux",revenu:"Revenu",depense:"Depense",fonds:"Apport aux fonds",prevoyance:"Depense du fonds de prevoyance",autre:"Autre"};
+  var TYPES_LBL={actif:"Actif",passif:"Passif",capitaux:"Capitaux",revenu:"Revenu",depense:"Depense",fonds:"Transfert interfonds",prevoyance:"Depense du fonds de prevoyance",autre:"Autre"};
 
   return(
     <div>
@@ -259,7 +259,7 @@ function TabCharte(p){
           <div key={g} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14,marginBottom:10}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
               <div style={{fontSize:11,fontWeight:800,color:T.navy,textTransform:"uppercase",letterSpacing:"0.05em"}}>{g}</div>
-              <button onClick={function(){setAjoutGroupe(ajoutGroupe===g?null:g);setNfc({no:"",nom:"",type:(g.indexOf("Actifs")===0?"actif":g==="Passifs"?"passif":g==="Capitaux"?"capitaux":g==="Revenus"?"revenu":g==="Apports aux fonds"?"fonds":"depense")});}} style={{background:"none",border:"none",color:T.blue,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ Ajouter un compte</button>
+              <button onClick={function(){setAjoutGroupe(ajoutGroupe===g?null:g);setNfc({no:"",nom:"",type:(g.indexOf("Actifs")===0?"actif":g==="Passifs"?"passif":g==="Capitaux"?"capitaux":g==="Revenus"?"revenu":(g==="Apports aux fonds"||g==="Transferts interfonds")?"fonds":"depense")});}} style={{background:"none",border:"none",color:T.blue,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>+ Ajouter un compte</button>
             </div>
             {ajoutGroupe===g&&(
               <div style={{display:"flex",gap:8,alignItems:"flex-end",marginBottom:10,background:T.blueL,borderRadius:8,padding:10,flexWrap:"wrap"}}>
@@ -400,7 +400,7 @@ function TabBudget(p){
 
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
         <div style={{background:T.redL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Depenses budgetees</div><div style={{fontSize:18,fontWeight:800,color:T.red}}>{money(totDep)}</div></div>
-        <div style={{background:T.purpleL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Apports aux fonds</div><div style={{fontSize:18,fontWeight:800,color:T.purple}}>{money(totFonds)}</div></div>
+        <div style={{background:T.purpleL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Transferts interfonds</div><div style={{fontSize:18,fontWeight:800,color:T.purple}}>{money(totFonds)}</div></div>
         <div style={{background:T.blueL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Autres revenus (-)</div><div style={{fontSize:18,fontWeight:800,color:T.blue}}>{money(totRevAutres)}</div></div>
         <div style={{background:T.accentL,border:"2px solid "+T.accent,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.accent,fontWeight:700}}>COTISATIONS ANNUELLES</div><div style={{fontSize:18,fontWeight:800,color:T.accent}}>{money(cotisationsAnnuelles)}</div><div style={{fontSize:10,color:T.muted}}>{money(cotisationsAnnuelles/12)} /mois</div></div>
       </div>
@@ -730,7 +730,7 @@ function TabEtats(p){
   var SECTIONS=[
     {titre:"REVENUS",types:["revenu"]},
     {titre:"DEPENSES D OPERATION",types:["depense"]},
-    {titre:"APPORTS AUX FONDS",types:["fonds"]},
+    {titre:"TRANSFERTS INTERFONDS",types:["fonds"]},
     {titre:"DEPENSES DU FONDS DE PREVOYANCE",types:["prevoyance"]}
   ];
   function totalSection(sec,champ){
@@ -761,7 +761,7 @@ function TabEtats(p){
     h+="<h2>RESULTAT DE L EXERCICE</h2><table><tr><th></th><th class='right'>Budget</th><th class='right'>Reel</th></tr>";
     h+="<tr><td>Revenus</td><td class='right'>"+money(totRevB)+"</td><td class='right'>"+money(totRevR)+"</td></tr>";
     h+="<tr><td>Depenses d operation</td><td class='right'>("+money(totDepB)+")</td><td class='right'>("+money(totDepR)+")</td></tr>";
-    h+="<tr><td>Apports aux fonds</td><td class='right'>("+money(totFdsB)+")</td><td class='right'>("+money(totFdsR)+")</td></tr>";
+    h+="<tr><td>Transferts interfonds</td><td class='right'>("+money(totFdsB)+")</td><td class='right'>("+money(totFdsR)+")</td></tr>";
     h+="<tr class='tot'><td>EXCEDENT (INSUFFISANCE)</td><td class='right'>"+money(resultatB)+"</td><td class='right'>"+money(resultatR)+"</td></tr></table>";
     if(jrnEx.length>0){
       h+="<h2>AUTRES ECRITURES (JOURNAL)</h2><table><tr><th>Date</th><th>Description</th><th>Categorie</th><th class='right'>Debit</th><th class='right'>Credit</th></tr>";
@@ -792,7 +792,7 @@ function TabEtats(p){
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
         <div style={{background:T.accentL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Revenus reels</div><div style={{fontSize:18,fontWeight:800,color:T.accent}}>{money(totRevR)}</div><div style={{fontSize:10,color:T.muted}}>Budget: {money(totRevB)}</div></div>
         <div style={{background:T.redL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Depenses reelles</div><div style={{fontSize:18,fontWeight:800,color:T.red}}>{money(totDepR)}</div><div style={{fontSize:10,color:T.muted}}>Budget: {money(totDepB)}</div></div>
-        <div style={{background:T.purpleL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Apports aux fonds (reel)</div><div style={{fontSize:18,fontWeight:800,color:T.purple}}>{money(totFdsR)}</div><div style={{fontSize:10,color:T.muted}}>Budget: {money(totFdsB)}</div></div>
+        <div style={{background:T.purpleL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Transferts interfonds (reel)</div><div style={{fontSize:18,fontWeight:800,color:T.purple}}>{money(totFdsR)}</div><div style={{fontSize:10,color:T.muted}}>Budget: {money(totFdsB)}</div></div>
         <div style={{background:resultatR>=0?T.accentL:T.redL,border:"2px solid "+(resultatR>=0?T.accent:T.red),borderRadius:10,padding:12}}><div style={{fontSize:10,fontWeight:700,color:resultatR>=0?T.accent:T.red}}>EXCEDENT (INSUFFISANCE)</div><div style={{fontSize:18,fontWeight:800,color:resultatR>=0?T.accent:T.red}}>{money(resultatR)}</div><div style={{fontSize:10,color:T.muted}}>Budget: {money(resultatB)}</div></div>
       </div>
 
@@ -990,7 +990,7 @@ function TabFonds(p){
                 <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:T.muted}}>+ Revenus de l exercice</span><b style={{color:T.accent}}>{money(k.rev)}</b></div>
                 <div style={{display:"flex",justifyContent:"space-between"}}><span style={{color:T.muted}}>- Depenses de l exercice</span><b style={{color:T.red}}>{money(k.dep)}</b></div>
                 <div style={{display:"flex",justifyContent:"space-between",borderTop:"2px solid "+fd.c+"44",paddingTop:6,marginTop:2}}><span style={{fontWeight:800,color:T.navy}}>SOLDE COURANT</span><span style={{fontWeight:800,fontSize:15,color:k.solde>=0?T.accent:T.red}}>{money(k.solde)}</span></div>
-                {k.apportsBud>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:11}}><span style={{color:T.muted}}>Apports budgetes vers ce fonds</span><span style={{color:T.purple,fontWeight:700}}>{money(k.apportsBud)}</span></div>}
+                {k.apportsBud>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:11}}><span style={{color:T.muted}}>Transferts interfonds budgetes vers ce fonds</span><span style={{color:T.purple,fontWeight:700}}>{money(k.apportsBud)}</span></div>}
                 {!k.banque&&<div style={{fontSize:10,color:T.amber,fontWeight:600}}>Aucun compte bancaire configure pour ce fonds (Comptes bancaires).</div>}
               </div>
             </div>
@@ -1042,13 +1042,11 @@ export default function BudgetCompta(props){
   return(
     <div style={{fontFamily:"Georgia,serif",minHeight:"100vh",background:T.bg}}>
       <div style={{background:T.navy,padding:"14px 20px",display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
-        <div style={{fontSize:14,fontWeight:800,color:"#fff"}}>Budget et comptabilite</div>
+        <div style={{fontSize:14,fontWeight:800,color:"#fff"}}>{ong==="budget"?"Budget et cotisations":ong==="etats"?"Etats financiers":ong==="fonds"?"Comptabilite par fonds":ong==="charte"?"Plan comptable":ong==="banques"?"Comptes bancaires":"Journal des transactions"}</div>
         <select value={sel?sel.id:""} onChange={function(e){var s=syndicats.find(function(x){return x.id===e.target.value;});if(s)setSel(s);}} style={{background:"#ffffff18",border:"1px solid #ffffff40",borderRadius:6,padding:"5px 10px",color:"#fff",fontSize:12,fontFamily:"inherit"}}>
           {syndicats.map(function(s){return <option key={s.id} value={s.id} style={{color:"#000"}}>{s.nom}</option>;})}
         </select>
-        <div style={{marginLeft:"auto",fontSize:12,color:"#9fb0c6",fontWeight:700}}>
-          {ong==="budget"?"Budget et cotisations":ong==="etats"?"Etats financiers":ong==="fonds"?"Comptabilite par fonds":ong==="charte"?"Plan comptable":ong==="banques"?"Comptes bancaires":"Journal"}
-        </div>
+
       </div>
       <div style={{padding:20}}>
         {errInit&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,fontWeight:700,marginBottom:12}}>{errInit}</div>}

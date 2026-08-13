@@ -114,7 +114,9 @@ export default function Registre1070(){
   var copros=(d.copros||[]).filter(function(c){return c.statut!=="ancien";});
   var anciens=(d.copros||[]).filter(function(c){return c.statut==="ancien";});
   var unites=d.unites||[];
-  var locatives=unites.filter(function(u){return u.occupation==="locataire"||u.occupation==="court_terme"||u.locataire;});
+  var locatives=unites.filter(function(u){return u.occupation==="locataire"||u.occupation==="court_terme"||u.occupation==="resident"||u.locataire;});
+  function typeOcc(u){return u.occupation==="court_terme"?"Location court terme (identite non tenue)":u.occupation==="resident"?"Resident (non locataire)":"Locataire";}
+  function nomOcc(u){return u.occupation==="court_terme"?"-":(u.nom_locataire||"-");}
   var pvs=(d.docs||[]).filter(function(x){return x.type_doc==="pv";});
   var assuranceDocs=(d.docs||[]).filter(function(x){return x.type_doc==="assurance";});
   var autresDocs=(d.docs||[]).filter(function(x){return x.type_doc!=="pv"&&x.type_doc!=="assurance";});
@@ -147,8 +149,8 @@ export default function Registre1070(){
   }
 
   function exporterLocatairesCSV(){
-    var lignes=[["Unite","Type d occupation","Nom du locataire","Telephone","Courriel"]];
-    locatives.forEach(function(u){lignes.push([u.no_unite||"",u.occupation==="court_terme"?"Location court terme (identite non tenue)":"Locataire",u.occupation==="court_terme"?"":(u.nom_locataire||""),u.tel_locataire||"",u.courriel_locataire||""]);});
+    var lignes=[["Unite","Type d occupation","Nom du locataire ou resident","Telephone","Courriel"]];
+    locatives.forEach(function(u){lignes.push([u.no_unite||"",typeOcc(u),u.occupation==="court_terme"?"":(u.nom_locataire||""),u.tel_locataire||"",u.courriel_locataire||""]);});
     telechargerCSV("registre-locataires-"+(sel.code||"syndicat")+".csv",lignes);
     sb.log("registre","export","Export CSV du registre des locataires ("+locatives.length+")","",sel.code||"");
   }
@@ -161,11 +163,11 @@ export default function Registre1070(){
     copros.forEach(function(c){h+="<tr><td>"+(c.unite||"")+"</td><td class='right'>"+(c.fraction?Number(c.fraction).toFixed(3)+" %":"")+"</td><td>"+((c.prenom||"")+" "+(c.nom||"")).trim()+"</td><td>"+(c.courriel||"")+"</td><td>"+(c.telephone||"")+"</td><td>"+(c.adresse||"")+"</td></tr>";});
     h+="</table>";
 
-    h+="<h2>2. LOCATAIRES ET OCCUPATION ("+locatives.length+" unite(s) louee(s))</h2>";
-    if(locatives.length===0)h+="<div class='muted'>Aucune unite louee declaree.</div>";
+    h+="<h2>2. LOCATAIRES, RESIDENTS ET OCCUPATION ("+locatives.length+" unite(s))</h2>";
+    if(locatives.length===0)h+="<div class='muted'>Aucune unite louee ou occupee par un tiers.</div>";
     else{
-      h+="<table><tr><th>Unite</th><th>Type</th><th>Locataire</th><th>Telephone</th></tr>";
-      locatives.forEach(function(u){h+="<tr><td>"+(u.no_unite||"")+"</td><td>"+(u.occupation==="court_terme"?"Location court terme (identite non tenue)":"Locataire")+"</td><td>"+(u.occupation==="court_terme"?"-":(u.nom_locataire||"-"))+"</td><td>"+(u.tel_locataire||"")+"</td></tr>";});
+      h+="<table><tr><th>Unite</th><th>Type</th><th>Locataire / resident</th><th>Telephone</th></tr>";
+      locatives.forEach(function(u){h+="<tr><td>"+(u.no_unite||"")+"</td><td>"+typeOcc(u)+"</td><td>"+nomOcc(u)+"</td><td>"+(u.tel_locataire||"")+"</td></tr>";});
       h+="</table>";
     }
 
@@ -249,11 +251,11 @@ export default function Registre1070(){
             vide="Aucun coproprietaire"/>
         </Section>
 
-        <Section titre="2. Locataires et occupation" sousTitre={locatives.length+" unite(s) louee(s) sur "+unites.length} ouvert={!!ouverts.loc} onToggle={function(){bascule("loc");}}
+        <Section titre="2. Locataires, residents et occupation" sousTitre={locatives.length+" unite(s) occupee(s) par un tiers sur "+unites.length} ouvert={!!ouverts.loc} onToggle={function(){bascule("loc");}}
           actions={<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(e){e.stopPropagation();exporterLocatairesCSV();}}>Exporter CSV</Btn>}>
           <TableSimple cols={["Unite","Type","Locataire","Telephone","Proprietaire(s)"]}
-            rows={locatives.map(function(u){return [u.no_unite||"",u.occupation==="court_terme"?"Location court terme (identite non tenue)":"Locataire",u.occupation==="court_terme"?"-":(u.nom_locataire||"-"),u.tel_locataire||"",coprosDeUnite(u).map(function(c){return ((c.prenom||"")+" "+(c.nom||"")).trim();}).join(", ")];})}
-            vide="Aucune unite louee declaree"/>
+            rows={locatives.map(function(u){return [u.no_unite||"",typeOcc(u),nomOcc(u),u.tel_locataire||"",coprosDeUnite(u).map(function(c){return ((c.prenom||"")+" "+(c.nom||"")).trim();}).join(", ")];})}
+            vide="Aucune unite louee ou occupee par un tiers"/>
         </Section>
 
         <Section titre="3. Conseil d administration" sousTitre={(d.ca||[]).length+" membre(s) actif(s)"} ouvert={!!ouverts.ca} onToggle={function(){bascule("ca");}}>
