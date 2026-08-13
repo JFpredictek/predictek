@@ -40,7 +40,7 @@ function DocCard(p){
         {d.description&&<div style={{fontSize:11,color:T.muted,marginTop:3}}>{d.description}</div>}
       </div>
       <div style={{display:"flex",gap:6,flexShrink:0}}>
-        {d.url&&<Btn sm bg={T.blue} onClick={function(){window.open(d.url,"_blank");}}>Ouvrir</Btn>}
+        {d.url&&<Btn sm bg={T.blue} onClick={function(){p.onOuvrir?p.onOuvrir(d):(d.url.indexOf("storage:")===0?sb.lienFichier("preuves",d.url.substring(8)).then(function(u){if(u)window.open(u,"_blank");}):window.open(d.url,"_blank"));}}>Ouvrir</Btn>}
         <Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red+"44"} onClick={function(){p.onDelete(d.id);}}>X</Btn>
       </div>
     </div>
@@ -75,23 +75,42 @@ function TabDocuments(p){
   function handleFile(e){
     var file=e.target.files[0];
     if(!file)return;
-    var reader=new FileReader();
-    reader.onload=function(ev){
-      setN("nom",file.name);
-      setNf(function(pr){return Object.assign({},pr,{nom:file.name,taille_kb:Math.round(file.size/1024),url:ev.target.result});});
-    };
-    reader.readAsDataURL(file);
+    setNf(function(pr){return Object.assign({},pr,{nom:file.name,taille_kb:Math.round(file.size/1024),_fichier:file});});
   }
 
   function ajouter(){
     if(!nf.nom)return;
-    var row={niveau:niveau,nom:nf.nom,type_doc:nf.type_doc,description:nf.description,date_doc:nf.date_doc||null,confidentiel:nf.confidentiel,url:nf.url||"",taille_kb:nf.taille_kb||0};
+    var row={niveau:niveau,nom:nf.nom,type_doc:nf.type_doc,description:nf.description,date_doc:nf.date_doc||null,confidentiel:nf.confidentiel,url:"",taille_kb:nf.taille_kb||0};
     if(syndicatId)row.syndicat_id=syndicatId;
-    sb.insert("documents",row).then(function(res){
+    var envoi=Promise.resolve(row);
+    if(nf._fichier){
+      var ext=(nf._fichier.name.split(".").pop()||"pdf").toLowerCase().replace(/[^a-z0-9]/g,"");
+      var chemin=(syndicatId||"predictek")+"/documents/"+Date.now()+"."+ext;
+      envoi=sb.uploadFichier("preuves",chemin,nf._fichier).then(function(up){
+        if(up&&up.chemin){row.url="storage:"+up.chemin;return row;}
+        throw new Error("Televersement echoue: "+((up&&up.error&&up.error.message)||""));
+      });
+    }
+    envoi.then(function(r2){
+      return sb.insert("documents",r2);
+    }).then(function(res){
+      if(res&&res.error){alert("ECHEC de l ajout du document: "+(res.error.message||""));return;}
       if(res&&res.data)setDocs(function(prev){return [res.data].concat(prev);});
       setShowN(false);setNf({nom:"",type_doc:"autre",description:"",date_doc:"",confidentiel:false});
       sb.log("documents","ajout","Document ajoute: "+nf.nom,"",syndicatId?"":nf.nom);
-    }).catch(function(){});
+    }).catch(function(e){alert("ECHEC: "+(e&&e.message?e.message:""));});
+  }
+
+  function ouvrirDoc(d){
+    if(!d.url)return;
+    if(d.url.indexOf("storage:")===0){
+      sb.lienFichier("preuves",d.url.substring(8)).then(function(u){
+        if(u)window.open(u,"_blank");
+        else alert("Impossible de generer le lien du document.");
+      });
+    }else{
+      window.open(d.url,"_blank");
+    }
   }
 
   function supprimer(id){

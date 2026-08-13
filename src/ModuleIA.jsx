@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import sb from "./lib/supabase";
 var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",text:"#1C1A17",muted:"#7C7568",accent:"#1B5E3B",accentL:"#E8F2EC",red:"#B83232",redL:"#FDECEA",amber:"#B86020",amberL:"#FEF3E2",navy:"#13233A",blue:"#1A56DB",blueL:"#EFF6FF",purple:"#6B3FA0",purpleL:"#F3EEFF"};
 var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
 function Bdg(p){return <span style={{fontSize:p.sz||10,fontWeight:600,padding:"2px 8px",borderRadius:20,background:p.bg||T.accentL,color:p.c||T.accent,whiteSpace:"nowrap",display:"inline-block"}}>{p.children}</span>;}
@@ -9,19 +10,16 @@ function Spinner(){return <div style={{display:"inline-block",width:16,height:16
 
 async function callClaude(system, user, maxTokens){
   maxTokens = maxTokens || 1000;
-  var resp = await fetch("https://api.anthropic.com/v1/messages", {
+  var token = null;
+  try{ token = localStorage.getItem("predictek_token"); }catch(e){}
+  var resp = await fetch("/api/ia", {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: maxTokens,
-      system: system,
-      messages: [{role: "user", content: user}]
-    })
+    headers: {"Content-Type": "application/json", "Authorization": "Bearer " + (token || "")},
+    body: JSON.stringify({system: system, max_tokens: maxTokens, fort: true, messages: [{role: "user", content: user}]})
   });
   var data = await resp.json();
-  if(data.content && data.content[0]) return data.content[0].text;
-  throw new Error(data.error ? data.error.message : "Erreur API");
+  if(data && data.texte) return data.texte;
+  throw new Error((data && data.error) || "Erreur API");
 }
 
 // ===== TAB ANALYSE SOUMISSIONS =====
@@ -37,7 +35,7 @@ function TabAnalyseSoumissions(){
 
   async function lancer(){
     setLoading(true);setAnalyse("");
-    var sys="Tu es un expert en gestion de copropriete au Quebec. Tu analyses des soumissions de fournisseurs pour le Syndicat Piedmont, un syndicat de copropriete de 36 unites a Stoneham QC. Reponds en francais, de facon professionnelle et structuree. Utilise des points et sous-points clairs.";
+    var sys="Tu es un expert en gestion de copropriete au Quebec. Tu analyses des soumissions de fournisseurs pour un syndicat de copropriete. Reponds en francais, de facon professionnelle et structuree. Utilise des points et sous-points clairs.";
     var prompt="Analyse et compare ces "+soumissions.length+" soumissions pour des travaux de "+soumissions[0].cat+". Contexte additionnel: "+(ctx||"Aucun contexte specifique.")+"\n\nSOUMISSIONS:\n"+soumissions.map(function(s,i){return (i+1)+". "+s.fournisseur+"\n   Prix: "+s.prix+"$\n   Delai intervention: "+s.delai+"\n   Garantie: "+s.garantie+"\n   Certifie RBQ: "+(s.certifie?"Oui":"Non")+"\n   Experience: "+s.experience+"\n   Notes: "+s.note;}).join("\n\n")+"\n\nFournis:\n1. Tableau comparatif (prix, delai, garantie, certification)\n2. Analyse risques/benefices de chaque option\n3. Recommandation claire avec justification\n4. Points de negociation suggeres\n5. Decision recommandee au CA";
     try{
       var res=await callClaude(sys,prompt,1500);
@@ -145,7 +143,7 @@ function TabRedactionPV(){
   async function generer(){
     setLoading(true);setPV("");
     var sys="Tu es un secretaire professionnel specialise en gestion de copropriete au Quebec. Tu rediges des proces-verbaux de reunions de conseil d administration de syndicats de copropriete selon les exigences de la Loi sur la copropriete divise (CCQ). Tes PV sont formels, complets, et juridiquement valides. Reponds UNIQUEMENT avec le PV formate, sans commentaire.";
-    var prompt="Redige un proces-verbal complet et formel pour la reunion suivante.\n\nINFORMATIONS:\n- Type: Reunion du "+meta.type+"\n- Date: "+meta.date+" a "+meta.heure+"\n- Lieu: "+meta.lieu+"\n- President de seance: "+meta.president+"\n- Secretaire: "+meta.secretaire+"\n- Personnes presentes: "+meta.presences+"\n- Syndicat: Syndicat Piedmont, "+meta.type+" compose de 5 membres\n\nNOTES DE REUNION:\n"+notes+"\n\nRedige un PV complet avec:\n- En-tete officiel\n- Verification du quorum\n- Adoption de l ordre du jour\n- Rapport du president\n- Points discutes avec decisions et votes\n- Resolutions numerotees\n- Levee de la seance\n- Signatures requises";
+    var prompt="Redige un proces-verbal complet et formel pour la reunion suivante.\n\nINFORMATIONS:\n- Type: Reunion du "+meta.type+"\n- Date: "+meta.date+" a "+meta.heure+"\n- Lieu: "+meta.lieu+"\n- President de seance: "+meta.president+"\n- Secretaire: "+meta.secretaire+"\n- Personnes presentes: "+meta.presences+"\n\nNOTES DE REUNION:\n"+notes+"\n\nRedige un PV complet avec:\n- En-tete officiel\n- Verification du quorum\n- Adoption de l ordre du jour\n- Rapport du president\n- Points discutes avec decisions et votes\n- Resolutions numerotees\n- Levee de la seance\n- Signatures requises";
     try{
       var res=await callClaude(sys,prompt,2000);
       setPV(res);
@@ -299,7 +297,11 @@ function TabChatbot(){
   var s2=useState(false);var loading=s2[0];var setLoading=s2[1];
   var s3=useState("531");var unite=s3[0];
 
-  var syndicatParams=(function(){try{var keys=Object.keys(localStorage).filter(function(k){return k.startsWith("predictek_syndicat_");});if(keys.length>0){var s=JSON.parse(localStorage.getItem(keys[0]));return {nom:s.nom||"",tel:s.courrielUrgences||s.telUrgences||"Voir configuration syndicat",president:s.president||""};}return {nom:"",tel:"Voir configuration syndicat",president:""};}catch(e){return {nom:"",tel:"Voir configuration syndicat",president:""};}}());
+  var sSy=useState(null);var synChat=sSy[0];var setSynChat=sSy[1];
+  useEffect(function(){
+    sb.selectOne("syndicats",{order:"nom.asc"}).then(function(r){if(r&&r.data)setSynChat(r.data);}).catch(function(){});
+  },[]);
+  var syndicatParams={nom:(synChat&&synChat.nom)||"de copropriete",tel:(synChat&&(synChat.tel||synChat.courriel))||"Voir configuration syndicat",president:(synChat&&synChat.president)||""};
   var SYSTEM="Tu es l assistant virtuel du syndicat "+syndicatParams.nom+". Tu aides les coproprietaires avec leurs questions sur la copropriete, les regles de l immeuble, les procedures et leurs droits et obligations selon la Loi sur la copropriete divise (CCQ). Tu es professionnel, courtois et precis. Tu reponds en francais. Pour les urgences, diriger vers: "+syndicatParams.tel+". Ne fournis pas de conseils juridiques specifiques. Rappelle-toi que tu ne dois pas divulguer d informations sur les autres unites ou coproprietaires.";
 
   async function envoyer(){
@@ -310,13 +312,14 @@ function TabChatbot(){
     setMsgs(newMsgs);
     setLoading(true);
     try{
-      var resp=await fetch("https://api.anthropic.com/v1/messages",{
+      var tokenIA=null;try{tokenIA=localStorage.getItem("predictek_token");}catch(e){}
+      var resp=await fetch("/api/ia",{
         method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:600,system:SYSTEM,messages:newMsgs})
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+(tokenIA||"")},
+        body:JSON.stringify({max_tokens:600,system:SYSTEM,messages:newMsgs})
       });
       var data=await resp.json();
-      var reply=data.content&&data.content[0]?data.content[0].text:"Desolee, je n ai pas pu traiter votre demande.";
+      var reply=data&&data.texte?data.texte:((data&&data.error)||"Desolee, je n ai pas pu traiter votre demande.");
       setMsgs(newMsgs.concat([{role:"assistant",content:reply}]));
     }catch(e){setMsgs(newMsgs.concat([{role:"assistant",content:"Erreur de connexion. Veuillez reessayer."}]));}
     setLoading(false);

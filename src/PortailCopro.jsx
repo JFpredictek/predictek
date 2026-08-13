@@ -272,9 +272,15 @@ function TabTickets(p){
         <div key={t.id} style={{padding:"14px 16px",background:T.surface,border:"1px solid "+T.border,borderRadius:10,marginBottom:8}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
             <div style={{fontSize:12,fontWeight:700,color:T.navy,flex:1}}>{t.sujet}</div>
-            <Badge s={t.statut} l={t.statut==="nouveau"?"Nouveau":t.statut==="en_cours"?"En cours":"Resolu"}/>
+            <Badge s={t.statut} l={t.statut==="nouveau"?"Nouveau":t.statut==="en_cours"?"En cours":t.statut==="ferme"?"Ferme":"Resolu"}/>
           </div>
           {t.description&&<div style={{fontSize:11,color:T.muted}}>{t.description}</div>}
+          {t.reponse&&(
+            <div style={{background:"#EFF6FF",border:"1px solid #1A56DB33",borderRadius:8,padding:"8px 10px",marginTop:8}}>
+              <div style={{fontSize:9,fontWeight:800,color:"#1A56DB",textTransform:"uppercase",marginBottom:2}}>Reponse du syndicat{t.date_reponse?" - "+new Date(t.date_reponse).toLocaleDateString("fr-CA"):""}</div>
+              <div style={{fontSize:11,color:"#1C1A17",whiteSpace:"pre-wrap"}}>{t.reponse}</div>
+            </div>
+          )}
           <div style={{fontSize:10,color:T.muted,marginTop:6}}>Soumis le {t.created_at?new Date(t.created_at).toLocaleDateString("fr-CA"):"-"} - Priorite: {t.priorite}</div>
         </div>
       );})}

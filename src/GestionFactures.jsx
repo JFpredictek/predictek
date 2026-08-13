@@ -159,7 +159,7 @@ function FormFacture(p){
   return(
     <div style={{display:"flex",gap:14,alignItems:"flex-start",flexWrap:"wrap"}}>
       {apercu&&(
-        <div style={{flex:"1 1 380px",minWidth:320,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden",background:"#525659"}}>
+        <div style={{flex:"2 1 600px",minWidth:420,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden",background:"#525659"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:T.navy,padding:"6px 10px"}}>
             <span style={{fontSize:11,fontWeight:700,color:"#fff"}}>Apercu de la facture</span>
             {!apercu.isPdf&&(
@@ -170,14 +170,14 @@ function FormFacture(p){
               </span>
             )}
           </div>
-          <div style={{height:560,overflow:"auto",display:"flex",alignItems:"flex-start",justifyContent:"center"}}>
+          <div style={{height:"78vh",minHeight:560,overflow:"auto",display:"flex",alignItems:"flex-start",justifyContent:"center"}}>
             {apercu.isPdf
-              ?<iframe title="apercu" src={apercu.url} style={{width:"100%",height:"100%",border:"none"}}/>
+              ?<iframe title="apercu" src={apercu.url+"#view=FitH&navpanes=0"} style={{width:"100%",height:"100%",border:"none"}}/>
               :<img src={apercu.url} alt="Facture" style={{transform:"scale("+zoomF+")",transformOrigin:"top center",maxWidth:"100%"}}/>}
           </div>
         </div>
       )}
-      <div style={{flex:"1 1 420px",minWidth:320,display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+      <div style={{flex:"1 1 340px",minWidth:300,maxWidth:460,display:"grid",gridTemplateColumns:"1fr",gap:10}}>
       <div style={{gridColumn:"1/-1",background:T.blueL,border:"2px dashed "+T.blue+"66",borderRadius:10,padding:12}}>
         <div style={{fontSize:11,fontWeight:700,color:T.blue,marginBottom:4}}>Televersez la facture (PDF ou photo) - les champs se remplissent automatiquement</div>
         <input type="file" accept=".pdf,image/*" onChange={function(e){var f=e.target.files&&e.target.files[0];if(f){onFile(f);extraire(f);try{setApercu({url:URL.createObjectURL(f),isPdf:/pdf$/i.test(f.type)||/\.pdf$/i.test(f.name)});setZoomF(1);}catch(ex){}}}} style={{fontSize:11,fontFamily:"inherit"}}/>
@@ -513,7 +513,7 @@ export default function GestionFactures(){
               <div style={{flex:1,display:"flex",minHeight:0}}>
                 <div style={{flex:1,overflow:"auto",background:"#525659",display:"flex",alignItems:"flex-start",justifyContent:"center"}}>
                   {viewer.isPdf
-                    ?<iframe title="facture" src={viewer.url} style={{width:"100%",height:"100%",border:"none"}}/>
+                    ?<iframe title="facture" src={viewer.url+"#view=FitH&navpanes=0"} style={{width:"100%",height:"100%",border:"none"}}/>
                     :<img src={viewer.url} alt="Facture" style={{transform:"scale("+zoomV+")",transformOrigin:"top center",maxWidth:"100%"}}/>}
                 </div>
                 <div style={{width:280,flexShrink:0,borderLeft:"1px solid "+T.border,padding:16,overflowY:"auto"}}>

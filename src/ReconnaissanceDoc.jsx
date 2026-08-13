@@ -205,15 +205,14 @@ export default function ReconnaissanceDoc(){
       }]
     };
 
-    fetch("https://api.anthropic.com/v1/messages",{
+    var tokenIA=null;try{tokenIA=localStorage.getItem("predictek_token");}catch(e){}
+    fetch("/api/ia",{
       method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify(body)
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+(tokenIA||"")},
+      body:JSON.stringify({fort:true,max_tokens:body.max_tokens,messages:body.messages})
     }).then(function(res){return res.json();}).then(function(data){
-      var texte="";
-      if(data.content&&data.content.length>0){
-        texte=data.content.filter(function(c){return c.type==="text";}).map(function(c){return c.text;}).join("");
-      }
+      if(data&&data.error){setErreur("Erreur IA: "+data.error);setAnalyse(false);return;}
+      var texte=(data&&data.texte)||"";
       setJsonBrut(texte);
       try{
         var clean=texte.trim();if(clean.indexOf("{")>=0){clean=clean.substring(clean.indexOf("{"),clean.lastIndexOf("}")+1);}clean=clean.trim();

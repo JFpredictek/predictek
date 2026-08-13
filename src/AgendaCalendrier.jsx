@@ -58,7 +58,7 @@ export default function AgendaCalendrier(){
     setEvenements([]);
     sb.select("reunions",{eq:{syndicat_id:selSyndicat.id},order:"date_reunion.asc"}).then(function(res){
       if(res&&res.data){
-        var evs=res.data.filter(function(r){return r.date_reunion>=debut&&r.date_reunion<=fin;}).map(function(r){return {id:r.id,titre:(r.type||"CA")+" CA",type:"reunion",date:r.date_reunion,heure:r.heure||"19:00",description:r.lieu||"",source:"reunions"};});
+        var evs=res.data.filter(function(r){return r.date_reunion>=debut&&r.date_reunion<=fin;}).map(function(r){return {id:r.id,titre:r.titre||((r.type||"CA")+" CA"),type:r.type==="reunion"||!r.type?"reunion":r.type,date:r.date_reunion,heure:r.heure||"19:00",description:r.lieu||"",source:"reunions"};});
         setEvenements(function(prev){return prev.concat(evs);});
       }
     }).catch(function(){});
@@ -91,8 +91,9 @@ export default function AgendaCalendrier(){
   function sauvegarder(){
     if(!nf.titre||!nf.date||!selSyndicat)return;
     setSaving(true);
-    var row={syndicat_id:selSyndicat.id,type:nf.type||"reunion",date_reunion:nf.date,heure:nf.heure||"",lieu:nf.description||"",notes:"",ordre_du_jour:""};
+    var row={syndicat_id:selSyndicat.id,type:nf.type||"reunion",titre:nf.titre||"",date_reunion:nf.date,heure:nf.heure||"",lieu:nf.description||"",notes:"",ordre_du_jour:""};
     sb.insert("reunions",row).then(function(res){
+      if(res&&res.error){setSaving(false);alert("ECHEC de la creation de l evenement: "+(res.error.message||""));return;}
       if(res&&res.data){
         setEvenements(function(prev){return prev.concat([{id:res.data.id,titre:nf.titre,type:nf.type,date:nf.date,heure:nf.heure,description:nf.description,source:"reunions"}]);});
       }

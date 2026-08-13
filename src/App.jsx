@@ -15,6 +15,7 @@ import MembresCA from "./MembresCA";
 import GestionDocuments from "./GestionDocuments";
 import BudgetCompta from "./BudgetCompta";
 import Encaissements from "./Encaissements";
+import Assemblees from "./Assemblees";
 import CarnetEntretien from "./CarnetEntretien";
 import TableauBordCA from "./TableauBordCA";
 import GestionCopros from "./GestionCopros";
@@ -32,6 +33,9 @@ import AgendaCalendrier from "./AgendaCalendrier";
 import GestionEmployes from "./GestionEmployes";
 import GestionRoles from "./GestionRoles";
 import RegistreIncidents from "./RegistreIncidents";
+import Registre1070 from "./Registre1070";
+import Sinistres from "./Sinistres";
+import RequetesCopros from "./RequetesCopros";
 import Unites from "./Unites";
 
 var SECTIONS=[
@@ -71,9 +75,12 @@ var SECTIONS=[
       {id:"comm",label:"Communications",icon:"CO"},
       
       {id:"rapports",label:"Rapports",icon:"RF"},
-      {id:"attestation",label:"Attestation copropriete",icon:"AT"},
       {id:"assurances",label:"Assurances",icon:"AS"},
+      {id:"assemblees",label:"Assemblees",icon:"AG"},
       {id:"pv",label:"PV Reunion",icon:"PV"},
+      {id:"registre",label:"Registre 1070",icon:"RG"},
+      {id:"sinistres",label:"Sinistres",icon:"SN"},
+      {id:"requetes",label:"Requetes copros",icon:"RQ"},
       {id:"ca",label:"Membres CA",icon:"MC"},
       {id:"fournisseurs",label:"Fournisseurs",icon:"F"},
       {id:"agenda",label:"Agenda",icon:"AGD"},
@@ -230,6 +237,7 @@ export default function App(){
         {active==="factures"&&<GestionFactures/>}
         {active==="budget"&&<BudgetCompta/>}
         {active==="encaissements"&&<Encaissements/>}
+        {active==="assemblees"&&<Assemblees/>}
         {active==="paie"&&<ModuleT4/>}
         {active==="carnet"&&<CarnetEntretien/>}
         {active==="ca"&&<MembresCA/>}
@@ -237,9 +245,11 @@ export default function App(){
         {active==="reconn"&&<ReconnaissanceDoc/>}
         {active==="comm"&&<Communications/>}
         {active==="rapports"&&<RapportsFinanciers/>}
-        {active==="attestation"&&<RapportsFinanciers/>}
         {active==="bons"&&<BonsTravail/>}
         {active==="pv"&&<PVReunion/>}
+        {active==="registre"&&<Registre1070/>}
+        {active==="sinistres"&&<Sinistres/>}
+        {active==="requetes"&&<RequetesCopros/>}
         {active==="assurances"&&<ModuleAssurances/>}
         {active==="releves"&&<RelevesCompte/>}
         {active==="crm"&&<CRM/>}

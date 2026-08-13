@@ -26,6 +26,7 @@ var EMP_VIDE={prenom:"",nom:"",courriel:"",tel:"",cellulaire:"",no_civique:"",ru
 
 export default function GestionEmployes(){
   var s0=useState([]);var emps=s0[0];var setEmps=s0[1];
+  var sMS=useState(false);var voirMasse=sMS[0];var setVoirMasse=sMS[1];
   var s1=useState(null);var sel=s1[0];var setSel=s1[1];
   var s2=useState(false);var showForm=s2[0];var setShowForm=s2[1];
   var s3=useState(EMP_VIDE);var form=s3[0];var setForm=s3[1];
@@ -138,6 +139,36 @@ export default function GestionEmployes(){
 
   var selE=sel?emps.find(function(x){return x.id===sel;}):null;
 
+  // ----- Masse salariale par poste (comptabilite Predictek) -----
+  function masseParPoste(){
+    var actifs=emps.filter(function(e){return e.statut==="actif";});
+    var m={};
+    actifs.forEach(function(e){
+      var poste=e.poste||"(poste non defini)";
+      if(!m[poste])m[poste]={poste:poste,nb:0,salaires:0,vacances:0};
+      var sal=parseFloat(e.salaire)||0;
+      m[poste].nb++;
+      m[poste].salaires+=sal;
+      m[poste].vacances+=sal*((parseFloat(e.reserve_vacances_pct)||0)/100);
+    });
+    return Object.keys(m).map(function(k){return m[k];}).sort(function(a,b){return b.salaires-a.salaires;});
+  }
+
+  function imprimerMasse(){
+    var lignes=masseParPoste();
+    var totS=lignes.reduce(function(a,l){return a+l.salaires;},0);
+    var totV=lignes.reduce(function(a,l){return a+l.vacances;},0);
+    var w=window.open("","_blank","width=900,height=700");
+    if(!w)return;
+    var h="<h1>Masse salariale par poste - Predictek</h1><div class='muted'>Employes actifs seulement - genere le "+new Date().toLocaleDateString("fr-CA")+"</div>";
+    h+="<table><tr><th>Poste</th><th class='right'>Employes</th><th class='right'>Salaires annuels</th><th class='right'>Reserve vacances</th><th class='right'>Cout annuel estime</th><th class='right'>Mensuel</th></tr>";
+    lignes.forEach(function(l){h+="<tr><td>"+l.poste+"</td><td class='right'>"+l.nb+"</td><td class='right'>"+money(l.salaires)+"</td><td class='right'>"+money(l.vacances)+"</td><td class='right'>"+money(l.salaires+l.vacances)+"</td><td class='right'>"+money((l.salaires+l.vacances)/12)+"</td></tr>";});
+    h+="<tr class='tot'><td>TOTAL</td><td class='right'>"+lignes.reduce(function(a,l){return a+l.nb;},0)+"</td><td class='right'>"+money(totS)+"</td><td class='right'>"+money(totV)+"</td><td class='right'>"+money(totS+totV)+"</td><td class='right'>"+money((totS+totV)/12)+"</td></tr></table>";
+    h+="<div class='muted' style='margin-top:14px'>Cout annuel estime = salaires + reserve de vacances. Les charges patronales (RRQ, RQAP, AE, FSS, CNESST) s ajoutent selon les taux en vigueur.</div>";
+    w.document.write("<html><head><title>Masse salariale par poste</title><style>body{font-family:Georgia,serif;color:#1C1A17;margin:36px;font-size:13px}h1{font-size:19px;margin:0 0 2px}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #999;padding:5px 8px;font-size:12px;text-align:left}th{background:#EDEBE4}.tot{font-weight:bold;background:#E8F2EC}.muted{color:#666;font-size:11px}.right{text-align:right}</style></head><body>"+h+"<script>window.print();</script></body></html>");
+    w.document.close();
+  }
+
   return(
     <div style={{padding:20,fontFamily:"Georgia,serif",maxWidth:1100,margin:"0 auto"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
@@ -147,11 +178,56 @@ export default function GestionEmployes(){
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           <input value={search} onChange={function(e){setSearch(e.target.value);}} placeholder="Rechercher..." style={Object.assign({},INP,{width:200})}/>
+          <Btn bg={voirMasse?T.navy:T.alt} tc={voirMasse?"#fff":T.navy} bdr={"1px solid "+T.border} onClick={function(){setVoirMasse(!voirMasse);}}>Masse salariale par poste</Btn>
           <Btn onClick={function(){setShowForm(true);setForm(EMP_VIDE);setSel(null);setErr("");}}>+ Nouvel employe</Btn>
         </div>
       </div>
 
       {err&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",marginBottom:12,fontSize:12,color:T.red,fontWeight:700}}>{err}</div>}
+      {voirMasse&&(function(){
+        var lignes=masseParPoste();
+        var totS=lignes.reduce(function(a,l){return a+l.salaires;},0);
+        var totV=lignes.reduce(function(a,l){return a+l.vacances;},0);
+        return(
+          <div style={{background:T.surface,border:"2px solid "+T.navy+"33",borderRadius:12,padding:16,marginBottom:14}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}}>
+              <div>
+                <div style={{fontSize:13,fontWeight:800,color:T.navy}}>Masse salariale par poste (employes actifs)</div>
+                <div style={{fontSize:11,color:T.muted}}>Salaires + reserve de vacances = cout annuel estime. Ventile par poste pour les depenses Predictek.</div>
+              </div>
+              <Btn sm onClick={imprimerMasse} dis={lignes.length===0}>Imprimer</Btn>
+            </div>
+            {lignes.length===0?(
+              <div style={{fontSize:12,color:T.muted,padding:10}}>Aucun employe actif avec salaire.</div>
+            ):(
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead><tr style={{background:T.alt}}>{["Poste","Employes","Salaires annuels","Reserve vacances","Cout annuel estime","Mensuel"].map(function(h,ix){return <th key={h} style={{padding:"6px 10px",textAlign:ix===0?"left":"right",fontSize:10,fontWeight:700,color:T.muted,textTransform:"uppercase"}}>{h}</th>;})}</tr></thead>
+                <tbody>
+                  {lignes.map(function(l){return(
+                    <tr key={l.poste} style={{borderTop:"1px solid "+T.border}}>
+                      <td style={{padding:"6px 10px",fontWeight:700,color:T.navy}}>{l.poste}</td>
+                      <td style={{padding:"6px 10px",textAlign:"right"}}>{l.nb}</td>
+                      <td style={{padding:"6px 10px",textAlign:"right"}}>{money(l.salaires)}</td>
+                      <td style={{padding:"6px 10px",textAlign:"right"}}>{money(l.vacances)}</td>
+                      <td style={{padding:"6px 10px",textAlign:"right",fontWeight:700}}>{money(l.salaires+l.vacances)}</td>
+                      <td style={{padding:"6px 10px",textAlign:"right",color:T.accent,fontWeight:700}}>{money((l.salaires+l.vacances)/12)}</td>
+                    </tr>
+                  );})}
+                  <tr style={{borderTop:"2px solid "+T.navy,background:T.alt}}>
+                    <td style={{padding:"6px 10px",fontWeight:800,color:T.navy}}>TOTAL</td>
+                    <td style={{padding:"6px 10px",textAlign:"right",fontWeight:800}}>{lignes.reduce(function(a,l){return a+l.nb;},0)}</td>
+                    <td style={{padding:"6px 10px",textAlign:"right",fontWeight:800}}>{money(totS)}</td>
+                    <td style={{padding:"6px 10px",textAlign:"right",fontWeight:800}}>{money(totV)}</td>
+                    <td style={{padding:"6px 10px",textAlign:"right",fontWeight:800}}>{money(totS+totV)}</td>
+                    <td style={{padding:"6px 10px",textAlign:"right",fontWeight:800,color:T.accent}}>{money((totS+totV)/12)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            )}
+            <div style={{fontSize:10,color:T.muted,marginTop:8}}>Les charges patronales (RRQ, RQAP, AE, FSS, CNESST) s ajoutent selon les taux en vigueur.</div>
+          </div>
+        );
+      })()}
       {ok&&<div style={{background:T.accentL,border:"2px solid "+T.accent,borderRadius:8,padding:"10px 14px",marginBottom:12,fontSize:12,color:T.accent,fontWeight:700}}>{ok}</div>}
 
       <div style={{display:"grid",gridTemplateColumns:selE?"1fr 340px":"1fr",gap:16}}>

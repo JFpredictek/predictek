@@ -406,6 +406,29 @@ export default function Notifications(){
   var s1=useState(ALERTES_INIT);var alertes=s1[0];var setAlertes=s1[1];
   var s2=useState(MODELES_INIT);var modeles=s2[0];var setModeles=s2[1];
   var s3=useState(PARAMETRES_INIT);var params=s3[0];var setParams=s3[1];
+  var s4=useState("");var msgSauve=s4[0];var setMsgSauve=s4[1];
+
+  // Charge les preferences sauvegardees (config_publique cle notif_parametres)
+  useEffect(function(){
+    sb.selectOne("config_publique",{eq:{cle:"notif_parametres"}}).then(function(r){
+      if(r&&r.data&&r.data.valeur){
+        try{ setParams(Object.assign({},PARAMETRES_INIT,JSON.parse(r.data.valeur))); }catch(e){}
+      }
+    }).catch(function(){});
+  },[]);
+
+  // Sauvegarde a chaque changement (persistant pour toutes les sessions)
+  function majParams(fn){
+    setParams(function(o){
+      var n=typeof fn==="function"?fn(o):fn;
+      sb.upsert("config_publique",[{cle:"notif_parametres",valeur:JSON.stringify(n)}],"cle").then(function(r){
+        if(r&&r.error){setMsgSauve("ECHEC de la sauvegarde des preferences: "+(r.error.message||""));return;}
+        setMsgSauve("Preferences sauvegardees.");
+        setTimeout(function(){setMsgSauve("");},2500);
+      }).catch(function(){setMsgSauve("ECHEC de la sauvegarde des preferences.");});
+      return n;
+    });
+  }
 
   var nonLues=alertes.filter(function(a){return !a.lu;}).length;
   var critiques=alertes.filter(function(a){return a.prio==="critique"&&!a.lu;}).length;
@@ -441,7 +464,12 @@ export default function Notifications(){
       {ong==="alertes"&&<PanelAlertes alertes={alertes} setAlertes={setAlertes}/>}
       {ong==="modeles"&&<PanelModeles modeles={modeles} setModeles={setModeles}/>}
       {ong==="historique"&&<PanelHistorique/>}
-      {ong==="parametres"&&<PanelParametres params={params} setParams={setParams}/>}
+      {ong==="parametres"&&(
+        <div>
+          {msgSauve&&<div style={{background:msgSauve.indexOf("ECHEC")===0?T.redL:T.accentL,borderRadius:8,padding:"8px 12px",fontSize:12,color:msgSauve.indexOf("ECHEC")===0?T.red:T.accent,fontWeight:700,marginBottom:10}}>{msgSauve}</div>}
+          <PanelParametres params={params} setParams={majParams}/>
+        </div>
+      )}
     </div>
   );
 }
