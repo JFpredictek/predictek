@@ -367,9 +367,95 @@ function TabTickets(p){
   );
 }
 
-export default function PortailCopro(){
+// ===== MODE APERCU GESTION (depannage) =====
+// Les employes Predictek (admin / gestionnaire) peuvent ouvrir le portail
+// comme n importe quel coproprietaire, SANS code d acces, pour voir
+// exactement ce qu il voit et faire du depannage. Un bandeau visible
+// indique le mode apercu en tout temps.
+function SelecteurApercu(p){
+  var s0=useState([]);var syndicats=s0[0];var setSyndicats=s0[1];
+  var s1=useState("");var synId=s1[0];var setSynId=s1[1];
+  var s2=useState([]);var copros=s2[0];var setCopros=s2[1];
+  var s3=useState("");var coproId=s3[0];var setCoproId=s3[1];
+  var s4=useState(false);var voirLogin=s4[0];var setVoirLogin=s4[1];
+  var s5=useState("");var err=s5[0];var setErr=s5[1];
+
+  useEffect(function(){
+    sb.select("syndicats",{order:"nom.asc"}).then(function(r){
+      if(r&&r.data){setSyndicats(r.data);if(r.data.length>0)setSynId(r.data[0].id);}
+    }).catch(function(){setErr("Impossible de charger les syndicats.");});
+  },[]);
+  useEffect(function(){
+    if(!synId)return;
+    setCopros([]);setCoproId("");
+    sb.select("coproprietaires",{eq:{syndicat_id:synId},order:"unite.asc",limit:1000}).then(function(r){
+      if(r&&r.data){setCopros(r.data);if(r.data.length>0)setCoproId(r.data[0].id);}
+    }).catch(function(){setErr("Impossible de charger les coproprietaires.");});
+  },[synId]);
+
+  if(voirLogin)return(
+    <div>
+      <div style={{background:"#B86020",color:"#fff",padding:"8px 16px",fontSize:12,fontWeight:700,fontFamily:"Georgia,serif",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span>MODE APERCU - Voici l ecran de connexion que voient les coproprietaires.</span>
+        <button onClick={function(){setVoirLogin(false);}} style={{background:"#ffffff25",border:"1px solid #ffffff50",borderRadius:6,padding:"4px 12px",color:"#fff",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Retour</button>
+      </div>
+      <EcranLogin onLogin={p.onChoisir}/>
+    </div>
+  );
+
+  return(
+    <div style={{minHeight:"100vh",background:T.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Georgia,serif",padding:20}}>
+      <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:16,padding:32,width:"100%",maxWidth:520}}>
+        <div style={{fontSize:16,fontWeight:800,color:T.navy,marginBottom:4}}>Apercu du portail coproprietaire</div>
+        <div style={{fontSize:12,color:T.muted,marginBottom:18,lineHeight:1.6}}>
+          Mode reserve a l equipe Predictek (depannage). Choisissez un coproprietaire pour voir son portail
+          exactement comme lui, sans code d acces. Attention: les actions posees dans l apercu sont REELLES
+          (une requete soumise sera enregistree a son nom).
+        </div>
+        {err&&<div style={{background:T.redL,borderRadius:8,padding:"9px 13px",fontSize:12,color:T.red,fontWeight:700,marginBottom:12}}>{err}</div>}
+        <div style={{marginBottom:12}}>
+          <div style={{fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:5}}>Syndicat</div>
+          <select value={synId} onChange={function(e){setSynId(e.target.value);}} style={INP}>
+            {syndicats.map(function(s){return <option key={s.id} value={s.id}>{s.nom}</option>;})}
+          </select>
+        </div>
+        <div style={{marginBottom:18}}>
+          <div style={{fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:5}}>Coproprietaire ({copros.length})</div>
+          <select value={coproId} onChange={function(e){setCoproId(e.target.value);}} style={INP}>
+            {copros.map(function(c){return <option key={c.id} value={c.id}>{"Unite "+(c.unite||"?")+" - "+((c.prenom||"")+" "+(c.nom||"")).trim()}</option>;})}
+          </select>
+        </div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <Btn onClick={function(){
+            var c=copros.find(function(x){return x.id===coproId;});
+            if(!c){setErr("Choisissez un coproprietaire.");return;}
+            p.onChoisir(Object.assign({},c,{_apercu:true}));
+          }} dis={!coproId}>Ouvrir son portail</Btn>
+          <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setVoirLogin(true);}}>Voir l ecran de connexion</Btn>
+        </div>
+        {copros.length===0&&synId&&<div style={{fontSize:11,color:T.muted,marginTop:12}}>Aucun coproprietaire dans ce syndicat.</div>}
+      </div>
+    </div>
+  );
+}
+
+export default function PortailCopro(p){
   var s0=useState(null);var copro=s0[0];var setCopro=s0[1];
+  var estGestion=p&&(p.role==="admin"||p.role==="gestionnaire");
   function handleLogout(){setCopro(null);}
-  if(!copro)return <EcranLogin onLogin={setCopro}/>;
-  return <Tableau copro={copro} onLogout={handleLogout}/>;
+  if(!copro){
+    if(estGestion)return <SelecteurApercu onChoisir={setCopro}/>;
+    return <EcranLogin onLogin={setCopro}/>;
+  }
+  return(
+    <div>
+      {copro._apercu&&(
+        <div style={{background:"#B86020",color:"#fff",padding:"8px 16px",fontSize:12,fontWeight:700,fontFamily:"Georgia,serif",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+          <span>MODE APERCU (depannage) - Vous voyez le portail de {((copro.prenom||"")+" "+(copro.nom||"")).trim()} (unite {copro.unite||"?"}). Les actions posees ici sont reelles.</span>
+          <button onClick={function(){setCopro(null);}} style={{background:"#ffffff25",border:"1px solid #ffffff50",borderRadius:6,padding:"4px 12px",color:"#fff",fontSize:11,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>Changer de coproprietaire</button>
+        </div>
+      )}
+      <Tableau copro={copro} onLogout={handleLogout}/>
+    </div>
+  );
 }

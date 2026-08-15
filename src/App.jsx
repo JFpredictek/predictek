@@ -325,7 +325,7 @@ export default function App(){
         {active==="releves"&&<RelevesCompte/>}
         {active==="crm"&&<CRM/>}
         {active==="fournisseurs"&&<FournisseursAdmin/>}
-        {active==="copro"&&<PortailCopro/>}
+        {active==="copro"&&<PortailCopro role={user.role||""}/>}
         {active==="notif"&&<Notifications onNavigate={function(id){setMod("ca",id);}}/>}
         {active==="ia"&&<ModuleIA/>}
         {active==="historique"&&<Historique/>}
