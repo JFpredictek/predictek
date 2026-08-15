@@ -89,10 +89,14 @@ module.exports = async function(req, res){
   var mois = iso.substring(0,7);
   var jourDuMois = parseInt(iso.substring(8,10), 10);
 
-  var syndicats = await sbGet(svc, "syndicats?select=id,nom,code,assurance_syndicat_exp,etude_assurance_date,etude_prevoyance_date,ass_avis_avant1,ass_avis_avant2,ass_avis_apres,ass_nc_auto,ass_nc_delai");
+  var syndicats = await sbGet(svc, "syndicats?select=id,nom,code,assurance_syndicat_exp,etude_assurance_date,etude_prevoyance_date,ass_avis_avant1,ass_avis_avant2,ass_avis_apres,ass_nc_auto,ass_nc_delai,relances_actives");
   var synMap = {}; syndicats.forEach(function(s){synMap[s.id]=s;});
+  // Relances gerees PAR SYNDICAT (Centre de notifications): un syndicat desactive est ignore
+  function relancesActives(sid){ var s = synMap[sid]; return !s || s.relances_actives !== false; }
   var copros = await sbGet(svc, "coproprietaires?select=*&statut=eq.actif&limit=2000");
   var unites = await sbGet(svc, "unites?select=*&limit=2000");
+  copros = copros.filter(function(c){ return relancesActives(c.syndicat_id); });
+  unites = unites.filter(function(u){ return relancesActives(u.syndicat_id); });
   var paiements = await sbGet(svc, "paiements?select=coproprietaire_id,statut&date_paiement=gte." + mois + "-01&limit=5000");
   var employes = await sbGet(svc, "employes?select=id,prenom,nom,poste,statut,permis_requis,permis_expiration&statut=eq.actif&limit=500");
   var assemblees = await sbGet(svc, "assemblees?select=id,syndicat_id,type,date_assemblee,statut,convocation_envoyee_le&statut=eq.planifiee&limit=200");
@@ -101,6 +105,9 @@ module.exports = async function(req, res){
   var membresCA = await sbGet(svc, "membres_ca?select=id,syndicat_id,prenom,nom,courriel,actif&actif=eq.true&limit=500");
   var configRaw = await sbGet(svc, "config_publique?select=cle,valeur");
   var cfgPub = {}; configRaw.forEach(function(x){cfgPub[x.cle]=x.valeur;});
+  assemblees = assemblees.filter(function(a){ return relancesActives(a.syndicat_id); });
+  factAttente = factAttente.filter(function(f){ return relancesActives(f.syndicat_id); });
+  avisConf = avisConf.filter(function(a){ return relancesActives(a.syndicat_id); });
   var dejaRaw = await sbGet(svc, "relances_envoyees?select=cle&limit=10000");
   var deja = {}; dejaRaw.forEach(function(x){deja[x.cle]=true;});
 
@@ -206,6 +213,7 @@ module.exports = async function(req, res){
 
   // REGLE 3 - Assurance du SYNDICAT: alerte a 90 jours, 30 jours, et expiree
   syndicats.forEach(function(s){
+    if(s.relances_actives === false) return;
     if(!s.assurance_syndicat_exp) return;
     var j3 = Math.ceil((new Date(s.assurance_syndicat_exp) - maintenant) / 86400000);
     var niv3 = j3 < 0 ? "expiree" : j3 <= 30 ? "30j" : j3 <= 90 ? "90j" : null;
@@ -220,6 +228,7 @@ module.exports = async function(req, res){
   var ansAss = parseInt(cfgPub.etude_assurance_ans, 10) || 5;
   var ansPrev = parseInt(cfgPub.etude_prevoyance_ans, 10) || 5;
   syndicats.forEach(function(s){
+    if(s.relances_actives === false) return;
     [{d: s.etude_assurance_date, ans: ansAss, nom: "etude aux fins d assurance", t: "etude_assurance"},
      {d: s.etude_prevoyance_date, ans: ansPrev, nom: "etude du fonds de prevoyance (Loi 16)", t: "etude_prevoyance"}].forEach(function(e){
       if(!e.d || !/^\d{4}-\d{2}-\d{2}$/.test(e.d)) return;

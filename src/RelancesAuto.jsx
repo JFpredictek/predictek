@@ -13,18 +13,20 @@ var LIBELLES={
   assurance_90:"Assurance - 90 jours",assurance_30:"Assurance - 30 jours",assurance_expiree:"Assurance EXPIREE"
 };
 
-export default function RelancesAuto(){
+export default function RelancesAuto(p){
   var s0=useState([]);var relances=s0[0];var setRelances=s0[1];
   var s1=useState(false);var running=s1[0];var setRunning=s1[1];
   var s2=useState(null);var rapport=s2[0];var setRapport=s2[1];
   var s3=useState("");var err=s3[0];var setErr=s3[1];
 
   function charger(){
-    sb.select("relances_envoyees",{order:"created_at.desc",limit:100}).then(function(res){
+    var opts={order:"created_at.desc",limit:100};
+    if(p&&p.syndicatId)opts.eq={syndicat_id:p.syndicatId};
+    sb.select("relances_envoyees",opts).then(function(res){
       if(res&&res.data)setRelances(res.data);
     }).catch(function(){});
   }
-  useEffect(charger,[]);
+  useEffect(charger,[p&&p.syndicatId]);
 
   function executer(){
     setRunning(true);setErr("");setRapport(null);
@@ -43,10 +45,11 @@ export default function RelancesAuto(){
       <div style={{background:T.blueL,border:"1px solid "+T.blue+"33",borderRadius:10,padding:"12px 16px",marginBottom:14,fontSize:12,color:T.navy,lineHeight:1.6}}>
         <b>Moteur reel.</b> Chaque jour a 8 h, le systeme verifie automatiquement: cotisations du mois non recues (rappels J+5, J+15, J+30) et assurances qui expirent (90 jours, 30 jours, expirees). Les courriels sont rediges par l IA, envoyes par courriel, consignes ici et dans l Historique. Un rapport quotidien est envoye a l administrateur.
         <b> Tant que le mode production n est pas active dans Vercel, tous les courriels sont rediriges vers l administrateur (aucun coproprietaire ne recoit rien).</b>
+        {p&&p.syndicatId?" Le bouton execute le moteur pour TOUS les syndicats actifs; le registre ci-dessous montre uniquement les relances de ce syndicat.":""}
       </div>
       <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:14}}>
         <Btn onClick={executer} dis={running}>{running?"Analyse en cours...":"Executer le moteur maintenant"}</Btn>
-        <span style={{fontSize:11,color:T.muted}}>{relances.length} relance(s) au registre</span>
+        <span style={{fontSize:11,color:T.muted}}>{relances.length} relance(s) au registre{p&&p.syndicatNom?" pour "+p.syndicatNom:""}</span>
       </div>
       {err&&<div style={{background:T.redL,border:"1px solid "+T.red+"44",borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,marginBottom:12}}>{err}</div>}
       {rapport&&(

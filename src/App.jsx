@@ -54,7 +54,6 @@ var SECTIONS=[
       {id:"gestion",label:"Gestion Auto",icon:"GA"},
       {id:"usagers",label:"Utilisateurs",icon:"USR"},
       {id:"historique",label:"Historique",icon:"HIS"},
-      {id:"notif",label:"Centre de notifications",icon:"N"},
       {id:"employes",label:"Employes",icon:"EMP"},
       {id:"paie",label:"Paie / T4 / R1",icon:"PAI"},
       {id:"facturation",label:"Facturation clients",icon:"FC"},
@@ -92,6 +91,7 @@ var SECTIONS=[
       {id:"sinistres",label:"Sinistres",icon:"SN"},
       {id:"requetes",label:"Requetes copros",icon:"RQ"},
       {id:"conformite",label:"Avis de non-conformite",icon:"NC"},
+      {id:"notif",label:"Centre de notifications",icon:"N"},
       {id:"configsynd",label:"Configuration du syndicat",icon:"CS"},
       {id:"ca",label:"Membres CA",icon:"MC"},
       {id:"fournisseurs",label:"Fournisseurs",icon:"F"},
@@ -118,7 +118,7 @@ var SECTIONS=[
 var NAV={
   predictek:[
     {titre:"Tableau de bord",items:[{id:"dashboard"}]},
-    {titre:"Configuration",items:[{id:"onboarding"},{id:"gestion"},{id:"notif"}]},
+    {titre:"Configuration",items:[{id:"onboarding"},{id:"gestion"}]},
     {titre:"Equipe",items:[{id:"employes"},{id:"paie"},{id:"usagers"},{id:"roles"}]},
     {titre:"Entreprise",items:[{id:"facturation"},{id:"comptaentreprise"},{id:"crm"},{id:"ia"},{id:"loi25"},{id:"historique"}]}
   ],
@@ -127,7 +127,7 @@ var NAV={
     {titre:"Finances",items:[{sub:"Payables"},{id:"factures"},{id:"fournisseurs"},{id:"bons"},{sub:"Recevables"},{id:"encaissements"},{sub:"Comptabilite"},{id:"budget"},{id:"plancomptable"},{id:"etatsfin"},{id:"fondsview"},{id:"banques"},{id:"journalgl"},{id:"rapports"}]},
     {titre:"Immeuble",items:[{id:"unites"},{id:"carnet"},{id:"docs"},{id:"sinistres"},{id:"agenda"}]},
     {titre:"Instances",items:[{id:"assemblees"},{id:"pv"},{id:"ca"},{id:"registre"}]},
-    {titre:"Communications",items:[{id:"comm"},{id:"requetes"},{id:"conformite"}]},
+    {titre:"Communications",items:[{id:"comm"},{id:"requetes"},{id:"conformite"},{id:"notif"}]},
     {titre:"Configuration",items:[{id:"configsynd"},{id:"reconn"}]}
   ],
   portail:[
@@ -326,7 +326,7 @@ export default function App(){
         {active==="crm"&&<CRM/>}
         {active==="fournisseurs"&&<FournisseursAdmin/>}
         {active==="copro"&&<PortailCopro/>}
-        {active==="notif"&&<Notifications/>}
+        {active==="notif"&&<Notifications onNavigate={function(id){setMod("ca",id);}}/>}
         {active==="ia"&&<ModuleIA/>}
         {active==="historique"&&<Historique/>}
         {active==="employes"&&<GestionEmployes/>}

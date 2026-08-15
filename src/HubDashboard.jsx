@@ -19,7 +19,7 @@ function CarteSyndicat(p){
         </div>
         {alertCount>0&&<span style={{background:T.amberL,color:T.amber,borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,flexShrink:0}}>{alertCount} alerte(s)</span>}
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
         <div style={{textAlign:"center",background:T.accentL,borderRadius:8,padding:10}}>
           <div style={{fontSize:20,fontWeight:800,color:T.accent}}>{stats.nbUnites||0}</div>
           <div style={{fontSize:9,color:T.muted,textTransform:"uppercase"}}>Unités</div>
@@ -28,13 +28,9 @@ function CarteSyndicat(p){
           <div style={{fontSize:20,fontWeight:800,color:T.blue}}>{stats.nbCopros||0}</div>
           <div style={{fontSize:9,color:T.muted,textTransform:"uppercase"}}>Copros</div>
         </div>
-        <div style={{textAlign:"center",background:stats.tauxPerception<80?T.amberL:T.accentL,borderRadius:8,padding:10}}>
-          <div style={{fontSize:20,fontWeight:800,color:stats.tauxPerception<80?T.amber:T.accent}}>{stats.tauxPerception||0}%</div>
-          <div style={{fontSize:9,color:T.muted,textTransform:"uppercase"}}>Perception</div>
-        </div>
-        <div style={{textAlign:"center",background:stats.facturesEnAttente>0?T.amberL:T.alt,borderRadius:8,padding:10}}>
-          <div style={{fontSize:20,fontWeight:800,color:stats.facturesEnAttente>0?T.amber:T.muted}}>{stats.facturesEnAttente||0}</div>
-          <div style={{fontSize:9,color:T.muted,textTransform:"uppercase"}}>Factures</div>
+        <div style={{textAlign:"center",background:stats.ticketsOuverts>0?T.amberL:T.alt,borderRadius:8,padding:10}}>
+          <div style={{fontSize:20,fontWeight:800,color:stats.ticketsOuverts>0?T.amber:T.muted}}>{stats.ticketsOuverts||0}</div>
+          <div style={{fontSize:9,color:T.muted,textTransform:"uppercase"}}>Tickets ouverts</div>
         </div>
       </div>
       {(stats.membresCA||[]).length>0&&(
@@ -83,12 +79,15 @@ export default function HubDashboard(p){
           sb.select("factures",{eq:{syndicat_id:s.id},limit:50}),
           sb.select("unites",{eq:{syndicat_id:s.id},cols:"id",limit:1000}),
           sb.select("membres_ca",{eq:{syndicat_id:s.id,actif:true},order:"role_ca.asc",limit:20}),
+          sb.select("tickets",{eq:{syndicat_id:s.id},cols:"id,statut",limit:500}),
         ]).then(function(results){
           var copros=results[0]&&results[0].data?results[0].data:[];
           var paies=results[1]&&results[1].data?results[1].data:[];
           var facts=results[2]&&results[2].data?results[2].data:[];
           var unites=results[3]&&results[3].data?results[3].data:[];
           var membresCA=results[4]&&results[4].data?results[4].data:[];
+          var tickets=results[5]&&results[5].data?results[5].data:[];
+          var ticketsOuverts=tickets.filter(function(t){var st=t.statut||"nouveau";return st==="nouveau"||st==="en_cours";}).length;
           var mois=new Date().toISOString().substring(0,7);
           var paiesMois=paies.filter(function(p){return p.date_paiement&&p.date_paiement.substring(0,7)===mois;});
           var totalMois=paiesMois.reduce(function(a,p){return a+Number(p.montant||0);},0);
@@ -101,7 +100,7 @@ export default function HubDashboard(p){
           var totalCot=copros.filter(function(c){return c.statut==="actif";}).reduce(function(a,c){return a+Number(c.cotisation_mensuelle||0);},0);
           var coprosActifs=copros.filter(function(c){return c.statut==="actif";});
           var unitesDistinctes={};coprosActifs.forEach(function(c){if(c.unite)unitesDistinctes[c.unite]=true;});
-          return {id:s.id,totalCot:totalCot,nbUnites:unites.length>0?unites.length:Object.keys(unitesDistinctes).length,nbCopros:coprosActifs.length,tauxPerception:totalMois>0?Math.round(payesMois/totalMois*100):0,ceExpires:ceExpires,assExpires:assExpires,facturesRetard:facturesRetard,facturesEnAttente:facturesEnAttente,membresCA:membresCA};
+          return {id:s.id,totalCot:totalCot,nbUnites:unites.length>0?unites.length:Object.keys(unitesDistinctes).length,nbCopros:coprosActifs.length,tauxPerception:totalMois>0?Math.round(payesMois/totalMois*100):0,ceExpires:ceExpires,assExpires:assExpires,facturesRetard:facturesRetard,facturesEnAttente:facturesEnAttente,membresCA:membresCA,ticketsOuverts:ticketsOuverts};
         });
       });
       Promise.all(promises).then(function(allStats){
