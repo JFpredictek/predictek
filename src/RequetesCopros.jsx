@@ -109,10 +109,15 @@ export default function RequetesCopros(){
   var s7=useState("");var msg=s7[0];var setMsg=s7[1];
   var s8=useState("");var err=s8[0];var setErr=s8[1];
   var s9=useState(false);var saving=s9[0];var setSaving=s9[1];
+  var s10=useState([]);var gestionnaires=s10[0];var setGestionnaires=s10[1];
+  var s11=useState([]);var membresCA=s11[0];var setMembresCA=s11[1];
 
   useEffect(function(){
     sb.select("syndicats",{order:"nom.asc"}).then(function(r){
       if(r&&r.data&&r.data.length>0){setSyndicats(r.data);setSel(r.data[0]);}
+    }).catch(function(){});
+    sb.select("usagers",{limit:200}).then(function(r){
+      if(r&&r.data)setGestionnaires(r.data.filter(function(u){return u.actif!==false&&(u.role==="gestionnaire"||u.role==="admin");}));
     }).catch(function(){});
   },[]);
 
@@ -124,6 +129,9 @@ export default function RequetesCopros(){
     }).catch(function(){});
     sb.select("coproprietaires",{eq:{syndicat_id:sel.id},limit:2000}).then(function(r){
       if(r&&r.data)setCopros(r.data);
+    }).catch(function(){});
+    sb.select("membres_ca",{eq:{syndicat_id:sel.id,actif:true},limit:20}).then(function(r){
+      if(r&&r.data)setMembresCA(r.data);
     }).catch(function(){});
   }
   useEffect(function(){setDetail(null);charger();},[sel&&sel.id]);
@@ -153,6 +161,21 @@ export default function RequetesCopros(){
   function changerPriorite(t,pr){
     majTicket(t,{priorite:pr},"Requete \""+(t.sujet||"").substring(0,60)+"\": priorite -> "+pr);
   }
+  function assigner(t,val){
+    // val = "g:<index>" (gestionnaire), "ca_tous", "ca:<index>" (membre CA), "" (retirer)
+    var ch={assigne_nom:"",assigne_courriel:"",assigne_type:""};
+    if(val.indexOf("g:")===0){
+      var g=gestionnaires[parseInt(val.slice(2))];
+      if(g){ch.assigne_nom=((g.prenom||"")+" "+(g.nom||"")).trim();ch.assigne_courriel=g.courriel||"";ch.assigne_type="gestionnaire";}
+    }else if(val==="ca_tous"){
+      ch.assigne_nom="Tous les membres du CA";ch.assigne_courriel=membresCA.map(function(m){return m.courriel;}).filter(Boolean).join(", ").substring(0,300);ch.assigne_type="ca_tous";
+    }else if(val.indexOf("ca:")===0){
+      var m=membresCA[parseInt(val.slice(3))];
+      if(m){ch.assigne_nom=((m.prenom||"")+" "+(m.nom||"")).trim();ch.assigne_courriel=m.courriel||"";ch.assigne_type="membre_ca";}
+    }
+    majTicket(t,ch,"Requete \""+(t.sujet||"").substring(0,60)+"\": assignee a "+(ch.assigne_nom||"personne (retiree)"));
+  }
+
   function envoyerReponse(t){
     if(!reponse.trim()){setErr("Ecrivez une reponse avant d envoyer.");return;}
     var ch={reponse:reponse.trim(),date_reponse:new Date().toISOString()};
@@ -256,10 +279,21 @@ export default function RequetesCopros(){
                 <div style={{marginTop:8}}><Btn onClick={function(){envoyerReponse(t);}} dis={saving||!reponse.trim()}>{saving?"Envoi...":"Enregistrer la reponse"}</Btn></div>
               </div>
 
-              <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginBottom:8}}>
+              <div style={{marginBottom:12,background:"#F8F7F3",border:"1px solid "+T.border,borderRadius:8,padding:"10px 12px"}}>
+                <span style={{fontSize:10,color:T.muted,fontWeight:700,textTransform:"uppercase",marginRight:8}}>Assigner a:</span>
+                <select value={t.assigne_type==="gestionnaire"?"g:"+gestionnaires.findIndex(function(g){return ((g.prenom||"")+" "+(g.nom||"")).trim()===t.assigne_nom;}):t.assigne_type==="ca_tous"?"ca_tous":t.assigne_type==="membre_ca"?"ca:"+membresCA.findIndex(function(m){return ((m.prenom||"")+" "+(m.nom||"")).trim()===t.assigne_nom;}):""} onChange={function(e){assigner(t,e.target.value);}} disabled={saving} style={Object.assign({},INP,{width:300,display:"inline-block"})}>
+                  <option value="">Personne (non assigne)</option>
+                  {gestionnaires.length>0&&<optgroup label="Gestionnaires Predictek">{gestionnaires.map(function(g,i){return <option key={"g"+i} value={"g:"+i}>{((g.prenom||"")+" "+(g.nom||"")).trim()+(g.courriel?" - "+g.courriel:"")}</option>;})}</optgroup>}
+                  {membresCA.length>0&&<optgroup label="Conseil d administration"><option value="ca_tous">Tous les membres du CA</option>{membresCA.map(function(m,i){return <option key={"m"+i} value={"ca:"+i}>{((m.prenom||"")+" "+(m.nom||"")).trim()+(m.role_ca?" ("+m.role_ca+")":"")}</option>;})}</optgroup>}
+                </select>
+                {t.assigne_nom&&<span style={{marginLeft:10,background:"#6B3FA015",color:"#6B3FA0",borderRadius:20,padding:"3px 12px",fontSize:10,fontWeight:800}}>ASSIGNE: {t.assigne_nom}</span>}
+              </div>
+
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginBottom:4}}>
                 <span style={{fontSize:10,color:T.muted,fontWeight:700,textTransform:"uppercase"}}>Statut:</span>
                 {STATUTS.filter(function(s){return s.id!==(t.statut||"nouveau");}).map(function(s){return <Btn key={s.id} sm bg={s.bg} tc={s.c} bdr={"1px solid "+s.c+"44"} onClick={function(){changerStatut(t,s.id);}} dis={saving}>{s.l}</Btn>;})}
               </div>
+              <div style={{fontSize:10,color:T.muted,marginBottom:8}}>RESOLU = le probleme du coproprietaire est regle (avec la reponse envoyee). FERME = dossier classe sans intervention (doublon, non fonde, abandonne). Les deux arretent les rappels; seul le libelle change pour le coproprietaire.</div>
               <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
                 <span style={{fontSize:10,color:T.muted,fontWeight:700,textTransform:"uppercase"}}>Priorite:</span>
                 {Object.keys(PRIORITES).filter(function(k){return k!==(t.priorite||"normale");}).map(function(k){return <Btn key={k} sm bg={PRIORITES[k].bg} tc={PRIORITES[k].c} bdr={"1px solid "+PRIORITES[k].c+"44"} onClick={function(){changerPriorite(t,k);}} dis={saving}>{PRIORITES[k].l}</Btn>;})}
@@ -282,6 +316,7 @@ export default function RequetesCopros(){
               <span style={{background:st.bg,color:st.c,borderRadius:6,padding:"3px 10px",fontSize:10,fontWeight:800,flexShrink:0}}>{st.l}</span>
               <span style={{background:pr.bg,color:pr.c,borderRadius:6,padding:"3px 10px",fontSize:10,fontWeight:800,flexShrink:0}}>{pr.l}</span>
               {t.categorie==="travaux"&&<span style={{background:T.navy,color:"#fff",borderRadius:6,padding:"3px 10px",fontSize:10,fontWeight:800,flexShrink:0}}>TRAVAUX</span>}
+              {t.assigne_nom&&<span style={{background:"#6B3FA015",color:"#6B3FA0",borderRadius:6,padding:"3px 10px",fontSize:10,fontWeight:800,flexShrink:0}}>{t.assigne_nom}</span>}
               <div style={{flex:1,minWidth:220}}>
                 <div style={{fontSize:13,fontWeight:700,color:T.navy}}>{t.sujet}</div>
                 <div style={{fontSize:11,color:T.muted}}>Unite {t.unite||"-"}{c?" - "+((c.prenom||"")+" "+(c.nom||"")).trim():""} - {fmtDate(t.created_at)}</div>

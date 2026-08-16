@@ -65,14 +65,18 @@ function Tableau(p){
   var copro=p.copro;
   var s0=useState([]);var paiements=s0[0];var setPaiements=s0[1];
   var s1=useState([]);var tickets=s1[0];var setTickets=s1[1];
-  var sMA=useState("");var msgAss=sMA[0];var setMsgAss=sMA[1];
-  var sCE=useState("");var msgCE=sCE[0];var setMsgCE=sCE[1];
   var sMI=useState(null);var monInfo=sMI[0];var setMonInfo=sMI[1];
   var sMI2=useState("");var msgInfo=sMI2[0];var setMsgInfo=sMI2[1];
   var s2=useState([]);var docs=s2[0];var setDocs=s2[1];
   var s3=useState("accueil");var ong=s3[0];var setOng=s3[1];
   var s4s=useState(null);var syndic=s4s[0];var setSyndic=s4s[1];
   var s5r=useState(false);var voirReglements=s5r[0];var setVoirReglements=s5r[1];
+  var sU=useState(null);var uni=sU[0];var setUni=sU[1];
+  var sUF=useState(null);var fUni=sUF[0];var setFUni=sUF[1];
+  var sUM=useState("");var msgUni=sUM[0];var setMsgUni=sUM[1];
+  var sUA=useState(null);var fichAss=sUA[0];var setFichAss=sUA[1];
+  var sUC=useState(null);var fichCE=sUC[0];var setFichCE=sUC[1];
+  var sFC=useState([]);var facturesCop=sFC[0];var setFacturesCop=sFC[1];
 
   useEffect(function(){
     if(!copro)return;
@@ -89,8 +93,69 @@ function Tableau(p){
       sb.selectOne("syndicats",{eq:{id:copro.syndicat_id}}).then(function(res){
         if(res&&res.data)setSyndic(res.data);
       }).catch(function(){});
+      // Fiche de l UNITE du coproprietaire (occupation, urgence, assurance)
+      var chargerUni=function(r){
+        if(r&&r.data){
+          var u=Array.isArray(r.data)?r.data[0]:r.data;
+          if(u){setUni(u);setFUni({occupation:u.occupation||"proprietaire",nom_locataire:u.nom_locataire||"",tel_locataire:u.tel_locataire||"",courriel_locataire:u.courriel_locataire||"",urg_nom:u.urg_nom||"",urg_lien:u.urg_lien||"",urg_tel:u.urg_tel||"",urg_courriel:u.urg_courriel||"",assurance_exp:u.assurance_exp||"",chauffe_eau:u.chauffe_eau||"",ce_date_install:u.ce_date_install||""});}
+        }
+      };
+      if(copro.unite_id){
+        sb.selectOne("unites",{eq:{id:copro.unite_id}}).then(chargerUni).catch(function(){});
+      }else if(copro.unite){
+        sb.select("unites",{eq:{syndicat_id:copro.syndicat_id,no_unite:copro.unite},limit:1}).then(chargerUni).catch(function(){});
+      }
+      // Factures emises au coproprietaire (frais, infractions, refacturation)
+      sb.select("factures_copros",{eq:{syndicat_id:copro.syndicat_id},order:"date_facture.desc",limit:50}).then(function(r){
+        if(r&&r.data)setFacturesCop(r.data.filter(function(f){return f.coproprietaire_id===copro.id||(f.unite&&f.unite===copro.unite);}));
+      }).catch(function(){});
     }
   },[copro]);
+
+  function sauverUnite(){
+    if(!uni||!fUni)return;
+    setMsgUni("Sauvegarde...");
+    var maj={occupation:fUni.occupation||"proprietaire",
+      locataire:(fUni.occupation==="locataire"||fUni.occupation==="court_terme"),
+      nom_locataire:fUni.nom_locataire||"",tel_locataire:fUni.tel_locataire||"",courriel_locataire:fUni.courriel_locataire||"",
+      urg_nom:fUni.urg_nom||"",urg_lien:fUni.urg_lien||"",urg_tel:fUni.urg_tel||"",urg_courriel:fUni.urg_courriel||"",
+      assurance_exp:fUni.assurance_exp||null,
+      chauffe_eau:fUni.chauffe_eau||"",ce_date_install:fUni.ce_date_install||null};
+    var etapes=Promise.resolve();
+    if(fichAss){
+      var ext=(fichAss.name.match(/\.[a-zA-Z0-9]+$/)||[".pdf"])[0];
+      var ch=copro.syndicat_id+"/portail/"+copro.id+"-assurance-unite-"+Date.now()+ext;
+      etapes=etapes.then(function(){return sb.uploadFichier("preuves",ch,fichAss).then(function(up){if(up&&up.chemin)maj.assurance_doc=ch;});});
+    }
+    if(fichCE){
+      var extC=(fichCE.name.match(/\.[a-zA-Z0-9]+$/)||[".jpg"])[0];
+      var chC=copro.syndicat_id+"/portail/"+copro.id+"-chauffe-eau-"+Date.now()+extC;
+      etapes=etapes.then(function(){return sb.uploadFichier("preuves",chC,fichCE).then(function(up){if(up&&up.chemin)maj.ce_photo=chC;});});
+    }
+    etapes.then(function(){
+      return sb.update("unites",uni.id,maj);
+    }).then(function(r){
+      if(r&&r.data&&r.data.id){
+        setUni(Object.assign({},uni,maj));setFichAss(null);setFichCE(null);
+        setMsgUni("Fiche de l unite mise a jour.");
+        return;
+      }
+      // Acces direct refuse par la securite: la demande part au gestionnaire avec TOUS les details
+      var desc="Le coproprietaire demande la mise a jour de la fiche de l unite "+(copro.unite||"")+": "
+        +"occupation="+maj.occupation
+        +(maj.nom_locataire?", occupant="+maj.nom_locataire+" ("+(maj.tel_locataire||"")+" "+(maj.courriel_locataire||"")+")":"")
+        +", urgence="+(maj.urg_nom||"-")+(maj.urg_lien?" ("+maj.urg_lien+")":"")+" "+(maj.urg_tel||"")+" "+(maj.urg_courriel||"")
+        +(maj.assurance_exp?", assurance expire le "+maj.assurance_exp:"")
+        +(maj.assurance_doc?", preuve d assurance deposee: storage:"+maj.assurance_doc:"")
+        +(maj.chauffe_eau?", chauffe-eau: "+maj.chauffe_eau+(maj.ce_date_install?" installe "+maj.ce_date_install:""):"")
+        +(maj.ce_photo?", photo chauffe-eau deposee: storage:"+maj.ce_photo:"");
+      return sb.insert("tickets",{coproprietaire_id:copro.id,syndicat_id:copro.syndicat_id,unite:copro.unite,
+        sujet:"Mise a jour de la fiche de l unite "+(copro.unite||""),description:desc,statut:"nouveau",priorite:"normale"}).then(function(r2){
+        if(r2&&r2.data&&r2.data.id){setMsgUni("Demande transmise au gestionnaire (mise a jour en attente de validation).");setTickets(function(prev){return [r2.data].concat(prev);});}
+        else setMsgUni("ECHEC de la sauvegarde - contactez votre gestionnaire.");
+      });
+    }).catch(function(e){setMsgUni("ECHEC: "+(e&&e.message?e.message:"erreur"));});
+  }
 
   var payes=paiements.filter(function(p){return p.statut==="paye";});
   var enAttente=paiements.filter(function(p){return p.statut==="en_attente";});
@@ -182,6 +247,88 @@ function Tableau(p){
                 {copro.adresse&&<div style={{gridColumn:"1/-1"}}><span style={{color:T.muted}}>Adresse: </span><span>{copro.adresse}</span></div>}
               </div>
             </div>
+
+            {fUni&&(
+              <div style={{background:T.surface,border:"2px solid #13233A33",borderRadius:12,padding:16,marginBottom:14}}>
+                <div style={{fontSize:12,fontWeight:800,color:T.navy,marginBottom:4}}>Mon unite</div>
+                <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Tenez votre fiche a jour: statut d occupation, personne a contacter en cas d urgence, assurance et chauffe-eau.</div>
+
+                <div style={{fontSize:10,fontWeight:800,color:T.navy,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:6}}>Statut d occupation</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                  <div>
+                    <div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>OCCUPATION</div>
+                    <select value={fUni.occupation} onChange={function(e){setFUni(Object.assign({},fUni,{occupation:e.target.value}));}} style={INP}>
+                      <option value="proprietaire">Proprietaire occupant</option>
+                      <option value="locataire">Louee (locataire)</option>
+                      <option value="court_terme">Location court terme</option>
+                      <option value="resident">Resident (non locataire)</option>
+                    </select>
+                  </div>
+                  {fUni.occupation!=="proprietaire"&&fUni.occupation!=="court_terme"&&(
+                    <div><div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>{fUni.occupation==="resident"?"NOM DU RESIDENT":"NOM DU LOCATAIRE"}</div><input value={fUni.nom_locataire} onChange={function(e){setFUni(Object.assign({},fUni,{nom_locataire:e.target.value}));}} style={INP}/></div>
+                  )}
+                  {fUni.occupation!=="proprietaire"&&fUni.occupation!=="court_terme"&&(
+                    <div><div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>TELEPHONE DE L OCCUPANT</div><input value={fUni.tel_locataire} onChange={function(e){setFUni(Object.assign({},fUni,{tel_locataire:e.target.value}));}} style={INP}/></div>
+                  )}
+                  {fUni.occupation!=="proprietaire"&&fUni.occupation!=="court_terme"&&(
+                    <div><div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>COURRIEL DE L OCCUPANT</div><input value={fUni.courriel_locataire} onChange={function(e){setFUni(Object.assign({},fUni,{courriel_locataire:e.target.value}));}} style={INP}/></div>
+                  )}
+                </div>
+
+                <div style={{fontSize:10,fontWeight:800,color:T.navy,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:6}}>Contact en cas d urgence</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                  <div><div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>NOM</div><input value={fUni.urg_nom} onChange={function(e){setFUni(Object.assign({},fUni,{urg_nom:e.target.value}));}} style={INP}/></div>
+                  <div><div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>LIEN (fils, soeur...)</div><input value={fUni.urg_lien} onChange={function(e){setFUni(Object.assign({},fUni,{urg_lien:e.target.value}));}} style={INP}/></div>
+                  <div><div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>TELEPHONE</div><input value={fUni.urg_tel} onChange={function(e){setFUni(Object.assign({},fUni,{urg_tel:e.target.value}));}} style={INP}/></div>
+                  <div><div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>COURRIEL</div><input value={fUni.urg_courriel} onChange={function(e){setFUni(Object.assign({},fUni,{urg_courriel:e.target.value}));}} style={INP}/></div>
+                </div>
+
+                <div style={{fontSize:10,fontWeight:800,color:T.navy,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:6}}>Mon assurance responsabilite</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                  <div><div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>EXPIRE LE</div><input type="date" value={fUni.assurance_exp||""} onChange={function(e){setFUni(Object.assign({},fUni,{assurance_exp:e.target.value}));}} style={INP}/></div>
+                  <div>
+                    <div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>PREUVE D ASSURANCE (PDF/photo)</div>
+                    <input type="file" accept=".pdf,image/*" onChange={function(e){setFichAss(e.target.files&&e.target.files[0]?e.target.files[0]:null);}} style={{fontSize:11,fontFamily:"inherit"}}/>
+                    {fichAss&&<div style={{fontSize:10,color:T.accent,marginTop:3}}>{fichAss.name}</div>}
+                  </div>
+                </div>
+
+                <div style={{fontSize:10,fontWeight:800,color:T.navy,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:6}}>Mon chauffe-eau</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:12}}>
+                  <div><div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>MARQUE / MODELE</div><input value={fUni.chauffe_eau} onChange={function(e){setFUni(Object.assign({},fUni,{chauffe_eau:e.target.value}));}} style={INP} placeholder="Giant 60 gal"/></div>
+                  <div><div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>INSTALLE (mois-annee)</div><input type="month" value={fUni.ce_date_install?String(fUni.ce_date_install).substring(0,7):""} onChange={function(e){setFUni(Object.assign({},fUni,{ce_date_install:e.target.value}));}} style={INP}/></div>
+                  <div>
+                    <div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>PREUVE / FACTURE (PDF/photo)</div>
+                    <input type="file" accept=".pdf,image/*" onChange={function(e){setFichCE(e.target.files&&e.target.files[0]?e.target.files[0]:null);}} style={{fontSize:11,fontFamily:"inherit"}}/>
+                    {fichCE&&<div style={{fontSize:10,color:T.accent,marginTop:3}}>{fichCE.name}</div>}
+                  </div>
+                </div>
+
+                <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+                  <Btn onClick={sauverUnite}>Sauvegarder ma fiche d unite</Btn>
+                  {msgUni&&<span style={{fontSize:11,fontWeight:700,color:msgUni.indexOf("ECHEC")===0?"#B83232":"#1B5E3B"}}>{msgUni}</span>}
+                </div>
+              </div>
+            )}
+
+            {facturesCop.length>0&&(
+              <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:16,marginBottom:14}}>
+                <div style={{fontSize:12,fontWeight:700,color:T.navy,marginBottom:10}}>Mes factures</div>
+                {facturesCop.map(function(fc){
+                  var payee=fc.statut==="payee";
+                  return(
+                    <div key={fc.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,padding:"8px 0",borderBottom:"1px solid "+T.border,flexWrap:"wrap"}}>
+                      <div style={{flex:1,minWidth:180}}>
+                        <div style={{fontSize:12,fontWeight:600,color:T.navy}}>{fc.no_facture||""} - {fc.type_frais==="infraction"?"Penalite d infraction":fc.type_frais==="refacturation"?"Refacturation":"Frais"}</div>
+                        <div style={{fontSize:10,color:T.muted}}>{fc.description||""}{fc.date_echeance?" - echeance "+fc.date_echeance:""}</div>
+                      </div>
+                      <span style={{fontSize:13,fontWeight:700,color:T.navy}}>{Number(fc.montant||0).toFixed(2)} $</span>
+                      <Badge s={payee?"paye":"en_attente"} l={payee?"Payee"+(fc.date_paiement?" le "+fc.date_paiement:""):fc.statut==="annulee"?"Annulee":"A payer"}/>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             {tickets.filter(function(t){return t.statut!=="resolu";}).length>0&&(
               <div style={{background:T.amberL,border:"1px solid "+T.amber+"44",borderRadius:12,padding:14}}>
                 <div style={{fontSize:12,fontWeight:700,color:T.amber,marginBottom:8}}>Demandes en cours</div>
@@ -220,51 +367,7 @@ function Tableau(p){
           <div>
             <div style={{fontSize:14,fontWeight:700,color:T.navy,marginBottom:16}}>Mes documents</div>
 
-            <div style={{background:T.surface,border:"2px solid #1B5E3B55",borderRadius:12,padding:16,marginBottom:14}}>
-              <div style={{fontSize:12,fontWeight:800,color:T.navy,marginBottom:4}}>Ma preuve d assurance</div>
-              <div style={{fontSize:11,color:T.muted,marginBottom:10}}>Transmettez ici votre certificat d assurance (PDF ou photo). Le gestionnaire le validera et mettra votre dossier a jour.</div>
-              <input type="file" accept=".pdf,image/*" onChange={function(e){
-                var fA=e.target.files&&e.target.files[0]?e.target.files[0]:null;
-                if(!fA)return;
-                var extA=(fA.name.match(/\.[a-zA-Z0-9]+$/)||[".pdf"])[0];
-                var cheminA=copro.syndicat_id+"/portail/"+copro.id+"-assurance-"+Date.now()+extA;
-                setMsgAss("Televersement en cours...");
-                sb.uploadFichier("preuves",cheminA,fA).then(function(up){
-                  if(!up||!up.chemin){setMsgAss("ECHEC du televersement"+((up&&up.error&&up.error.message)?" ("+up.error.message+")":"")+" - contactez votre gestionnaire.");return;}
-                  return sb.insert("tickets",{coproprietaire_id:copro.id,syndicat_id:copro.syndicat_id,unite:copro.unite,
-                    sujet:"Preuve d assurance transmise (unite "+(copro.unite||"")+")",
-                    description:"Certificat depose par le coproprietaire via le portail. Document: storage:"+cheminA,
-                    statut:"nouveau",priorite:"haute"}).then(function(r){
-                    if(r&&r.data&&r.data.id){setMsgAss("Certificat transmis avec succes - le gestionnaire le validera sous peu.");setTickets(function(prev){return [r.data].concat(prev);});}
-                    else setMsgAss("Document televerse, mais l avis au gestionnaire a echoue - mentionnez-le dans une demande.");
-                  });
-                }).catch(function(eA){setMsgAss("ECHEC: "+(eA&&eA.message?eA.message:"erreur"));});
-              }} style={{fontSize:11,fontFamily:"inherit"}}/>
-              {msgAss&&<div style={{fontSize:11,fontWeight:700,color:msgAss.indexOf("ECHEC")===0?"#B83232":"#1B5E3B",marginTop:8}}>{msgAss}</div>}
-            </div>
-
-            <div style={{background:T.surface,border:"2px solid #B8602055",borderRadius:12,padding:16,marginBottom:14}}>
-              <div style={{fontSize:12,fontWeight:800,color:T.navy,marginBottom:4}}>Mon chauffe-eau</div>
-              <div style={{fontSize:11,color:T.muted,marginBottom:10}}>Transmettez la preuve de remplacement ou la facture de votre chauffe-eau. Le gestionnaire mettra votre dossier a jour.</div>
-              <input type="file" accept=".pdf,image/*" onChange={function(e){
-                var fC=e.target.files&&e.target.files[0]?e.target.files[0]:null;
-                if(!fC)return;
-                var extC=(fC.name.match(/\.[a-zA-Z0-9]+$/)||[".pdf"])[0];
-                var cheminC=copro.syndicat_id+"/portail/"+copro.id+"-chauffe-eau-"+Date.now()+extC;
-                setMsgCE("Televersement en cours...");
-                sb.uploadFichier("preuves",cheminC,fC).then(function(up){
-                  if(!up||!up.chemin){setMsgCE("ECHEC du televersement"+((up&&up.error&&up.error.message)?" ("+up.error.message+")":"")+" - contactez votre gestionnaire.");return;}
-                  return sb.insert("tickets",{coproprietaire_id:copro.id,syndicat_id:copro.syndicat_id,unite:copro.unite,
-                    sujet:"Preuve de chauffe-eau transmise (unite "+(copro.unite||"")+")",
-                    description:"Document depose par le coproprietaire via le portail. Document: storage:"+cheminC,
-                    statut:"nouveau",priorite:"normale"}).then(function(r){
-                    if(r&&r.data&&r.data.id){setMsgCE("Preuve transmise avec succes - le gestionnaire mettra votre dossier a jour.");setTickets(function(prev){return [r.data].concat(prev);});}
-                    else setMsgCE("Document televerse, mais l avis au gestionnaire a echoue - mentionnez-le dans une demande.");
-                  });
-                }).catch(function(eC){setMsgCE("ECHEC: "+(eC&&eC.message?eC.message:"erreur"));});
-              }} style={{fontSize:11,fontFamily:"inherit"}}/>
-              {msgCE&&<div style={{fontSize:11,fontWeight:700,color:msgCE.indexOf("ECHEC")===0?"#B83232":"#1B5E3B",marginTop:8}}>{msgCE}</div>}
-            </div>
+            {/* La preuve d assurance et le chauffe-eau se gerent dans MON COMPTE > Mon unite */}
 
             <div style={{background:T.surface,border:"2px solid "+T.navy+"33",borderRadius:12,padding:16,marginBottom:14}}>
               <div style={{fontSize:12,fontWeight:800,color:T.navy,marginBottom:8}}>Documents du syndicat</div>
