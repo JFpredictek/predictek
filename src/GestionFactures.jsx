@@ -188,6 +188,10 @@ function FormFacture(p){
       if(d.fournisseurTelephone)sf("f_telephone",d.fournisseurTelephone);
       if(d.fournisseurAdresse)sf("f_adresse",d.fournisseurAdresse);
       if(d.fournisseurSiteWeb)sf("f_site_web",d.fournisseurSiteWeb);
+      if(d.noTPSFournisseur)sf("no_tps_fournisseur",d.noTPSFournisseur);
+      if(d.noTVQFournisseur)sf("no_tvq_fournisseur",d.noTVQFournisseur);
+      if(d.fournisseurRBQ){sf("f_rbq",d.fournisseurRBQ);pris.push("RBQ "+d.fournisseurRBQ);}
+      if(d.noTPSFournisseur||d.noTVQFournisseur)pris.push("nos TPS/TVQ du fournisseur");
       if(d.fournisseurCourriel||d.fournisseurTelephone||d.fournisseurAdresse||d.fournisseurSiteWeb)pris.push("coordonnees du fournisseur");
       setExtraitMsg(pris.length>0?"Extrait automatiquement: "+pris.join(", ")+" - verifiez avant de sauvegarder.":"Aucune information lisible - saisissez manuellement.");
     }).catch(function(e){setExtraitMsg("Extraction impossible ("+e.message+") - saisissez manuellement.");});
@@ -245,6 +249,43 @@ function FormFacture(p){
           {(comptesGL.length>0?comptesGL:CODES_GL_DEPENSES.map(function(g){return {no:g.no,nom:g.nom};})).map(function(g){return <option key={g.no} value={g.no}>{g.no} - {g.nom}</option>;})}
         </select>
       </div>
+      {(function(){
+        // FACTURATION AU COPROPRIETAIRE: si le compte GL choisi est une refacturation,
+        // on choisit la ou les unites - la facture au coproprietaire est creee automatiquement.
+        var glCourant=(comptesGL.length>0?comptesGL:CODES_GL_DEPENSES).find(function(g){return g.no===(nf.no_compte_gl||glSuggere);});
+        var estRefact=glCourant&&/refactur|copropri|facturation/i.test(glCourant.nom||"");
+        var listeU=p.unites||[];
+        if(!estRefact)return null;
+        var choisies=nf.refact_unites||[];
+        var totalF=parseFloat(nf.total)||0;
+        var part=choisies.length>0?Math.round(totalF/choisies.length*100)/100:0;
+        return(
+          <div style={{gridColumn:"1/-1",background:"#FEF3E2",border:"2px solid #B86020",borderRadius:10,padding:12}}>
+            <div style={{fontSize:11,fontWeight:800,color:"#B86020",marginBottom:6}}>FACTURATION AU COPROPRIETAIRE - choisissez la ou les unites concernees</div>
+            {listeU.length===0&&<div style={{fontSize:11,color:"#7C7568"}}>Aucune unite dans ce syndicat.</div>}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(90px,1fr))",gap:4,maxHeight:160,overflowY:"auto",marginBottom:8}}>
+              {listeU.map(function(u){
+                var coche=choisies.indexOf(u.id)>=0;
+                return(
+                  <label key={u.id} style={{display:"flex",alignItems:"center",gap:5,fontSize:11,cursor:"pointer",background:coche?"#B8602022":"transparent",borderRadius:5,padding:"2px 6px"}}>
+                    <input type="checkbox" checked={coche} onChange={function(){
+                      sf("refact_unites",coche?choisies.filter(function(x){return x!==u.id;}):choisies.concat([u.id]));
+                    }}/>
+                    {u.no_unite}
+                  </label>
+                );
+              })}
+            </div>
+            {choisies.length>0&&totalF>0&&(
+              <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B"}}>
+                {choisies.length} unite(s) - repartition egale: {part.toFixed(2)} $ chacune (total {totalF.toFixed(2)} $).
+                Les factures aux coproprietaires seront creees AUTOMATIQUEMENT a la sauvegarde (visibles dans Encaissements et dans leur portail).
+              </div>
+            )}
+            {choisies.length===0&&<div style={{fontSize:10,color:"#7C7568"}}>Cochez au moins une unite pour refacturer, ou changez de compte GL si ce n est pas une refacturation.</div>}
+          </div>
+        );
+      })()}
       <div style={{gridColumn:"1/-1"}}><Lbl l="Description / notes"/><textarea value={nf.description||""} onChange={function(e){sf("description",e.target.value);}} style={Object.assign({},INP,{minHeight:60,resize:"vertical"})} placeholder="Description des travaux ou services..."/></div>
       <div><Lbl l="No TPS fournisseur"/><input value={nf.no_tps_fournisseur||""} onChange={function(e){sf("no_tps_fournisseur",e.target.value);}} style={INP} placeholder="123456789 RT0001"/></div>
       <div><Lbl l="No TVQ fournisseur"/><input value={nf.no_tvq_fournisseur||""} onChange={function(e){sf("no_tvq_fournisseur",e.target.value);}} style={INP} placeholder="1234567890 TQ0001"/></div>
@@ -255,6 +296,8 @@ function FormFacture(p){
           <div><Lbl l="Telephone"/><input value={nf.f_telephone||""} onChange={function(e){sf("f_telephone",e.target.value);}} style={INP}/></div>
           <div><Lbl l="Adresse"/><input value={nf.f_adresse||""} onChange={function(e){sf("f_adresse",e.target.value);}} style={INP}/></div>
           <div><Lbl l="Site web"/><input value={nf.f_site_web||""} onChange={function(e){sf("f_site_web",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Licence RBQ (entrepreneurs)"/><input value={nf.f_rbq||""} onChange={function(e){sf("f_rbq",e.target.value);}} style={INP} placeholder="5678-1234-01"/></div>
+          <div><Lbl l="Personne contact"/><input value={nf.f_contact||""} onChange={function(e){sf("f_contact",e.target.value);}} style={INP}/></div>
         </div>
       </div>
       </div>
@@ -362,7 +405,7 @@ function ModalApprobation(p){
   );
 }
 
-var VIDE_F={fournisseur_nom:"",no_facture:"",date_facture:"",date_echeance:"",sous_total:"",tps:"",tvq:"",total:"",no_compte_gl:"5190",description:"",no_tps_fournisseur:"",no_tvq_fournisseur:"",nb_approbations_requises:1,terme_paiement:"net30",escompte_pct:"",escompte_jours:"",f_courriel:"",f_telephone:"",f_adresse:"",f_site_web:""};
+var VIDE_F={fournisseur_nom:"",no_facture:"",date_facture:"",date_echeance:"",sous_total:"",tps:"",tvq:"",total:"",no_compte_gl:"5190",description:"",no_tps_fournisseur:"",no_tvq_fournisseur:"",nb_approbations_requises:1,terme_paiement:"net30",escompte_pct:"",escompte_jours:"",f_courriel:"",f_telephone:"",f_adresse:"",f_site_web:"",f_rbq:"",f_contact:"",refact_unites:[]};
 
 export default function GestionFactures(){
   var s0=useState([]);var syndicats=s0[0];var setSyndicats=s0[1];
@@ -380,6 +423,8 @@ export default function GestionFactures(){
   var s12=useState(1);var zoomV=s12[0];var setZoomV=s12[1];
   var s13=useState(CODES_GL_DEPENSES.map(function(g){return {no:g.no,nom:g.nom};}));var comptesGL=s13[0];var setComptesGL=s13[1];
   var s14=useState(null);var editId=s14[0];var setEditId=s14[1];
+  var s15=useState([]);var unitesSyn=s15[0];var setUnitesSyn=s15[1];
+  var s16=useState([]);var coprosSyn=s16[0];var setCoprosSyn=s16[1];
 
   function ouvrirViewer(f){
     if(!f.fichier)return;
@@ -400,6 +445,13 @@ export default function GestionFactures(){
     if(!sel)return;
     sb.select("factures",{eq:{syndicat_id:sel.id},order:"date_reception.desc",limit:100}).then(function(res){
       if(res&&res.data)setFactures(res.data);
+    }).catch(function(){});
+    // Unites et coproprietaires (pour la refacturation aux coproprietaires)
+    sb.select("unites",{eq:{syndicat_id:sel.id},order:"no_unite.asc",limit:1000}).then(function(res){
+      if(res&&res.data)setUnitesSyn(res.data);
+    }).catch(function(){});
+    sb.select("coproprietaires",{eq:{syndicat_id:sel.id},limit:2000}).then(function(res){
+      if(res&&res.data)setCoprosSyn(res.data);
     }).catch(function(){});
     // Plan comptable du syndicat (comptes de depenses actifs) - pour la suggestion GL par l IA
     sb.select("comptes_syndicat",{eq:{syndicat_id:sel.id,actif:true},limit:300}).then(function(res){
@@ -424,10 +476,14 @@ export default function GestionFactures(){
         if(!fx.telephone&&contact.telephone)maj.telephone=contact.telephone;
         if(!fx.adresse&&contact.adresse)maj.adresse=contact.adresse;
         if(!fx.site_web&&contact.site_web)maj.site_web=contact.site_web;
+        if(!fx.rbq&&contact.rbq)maj.rbq=contact.rbq;
+        if(!fx.contact&&contact.contact)maj.contact=contact.contact;
+        if(!fx.no_tps&&contact.no_tps)maj.no_tps=contact.no_tps;
+        if(!fx.no_tvq&&contact.no_tvq)maj.no_tvq=contact.no_tvq;
         if(Object.keys(maj).length>0)return sb.update("fournisseurs",fx.id,maj);
         return;
       }
-      return sb.insert("fournisseurs",{nom:nom,categorie:(glNom&&glNom.nom)||"Autre",telephone:contact.telephone||"",courriel:contact.courriel||"",adresse:contact.adresse||"",site_web:contact.site_web||"",notes:"Cree automatiquement a partir d une facture",actif:true});
+      return sb.insert("fournisseurs",{nom:nom,categorie:(glNom&&glNom.nom)||"Autre",telephone:contact.telephone||"",courriel:contact.courriel||"",adresse:contact.adresse||"",site_web:contact.site_web||"",rbq:contact.rbq||"",contact:contact.contact||"",no_tps:contact.no_tps||"",no_tvq:contact.no_tvq||"",notes:"Cree automatiquement a partir d une facture",actif:true});
     }).catch(function(){});
   }
 
@@ -437,7 +493,7 @@ export default function GestionFactures(){
     var glFinal=nf.no_compte_gl||codeGLAuto(nf.fournisseur_nom,nf.description||"");
     var glNom=CODES_GL_DEPENSES.find(function(g){return g.no===glFinal;});
     var row={syndicat_id:sel.id,fournisseur:nf.fournisseur_nom,montant:parseFloat(nf.total)||0,fournisseur_nom:nf.fournisseur_nom,no_facture:nf.no_facture||"",date_facture:nf.date_facture||null,date_echeance:nf.date_echeance||null,sous_total:parseFloat(nf.sous_total)||0,tps:parseFloat(nf.tps)||0,tvq:parseFloat(nf.tvq)||0,total:parseFloat(nf.total)||0,no_compte_gl:glFinal,categorie_depense:glNom?glNom.nom:"Depenses diverses",description:nf.description||"",no_tps_fournisseur:nf.no_tps_fournisseur||"",no_tvq_fournisseur:nf.no_tvq_fournisseur||"",terme_paiement:nf.terme_paiement||"net30",escompte_pct:parseFloat(nf.escompte_pct)||0,escompte_jours:parseInt(nf.escompte_jours)||0};
-    var contact={courriel:nf.f_courriel||"",telephone:nf.f_telephone||"",adresse:nf.f_adresse||"",site_web:nf.f_site_web||""};
+    var contact={courriel:nf.f_courriel||"",telephone:nf.f_telephone||"",adresse:nf.f_adresse||"",site_web:nf.f_site_web||"",rbq:nf.f_rbq||"",contact:nf.f_contact||"",no_tps:nf.no_tps_fournisseur||"",no_tvq:nf.no_tvq_fournisseur||""};
     if(!editId){
       row.source="manuel";
       row.statut=parseFloat(nf.total||0)>=seuilApprob&&seuilApprob>=0&&parseFloat(nf.total||0)>0?(parseFloat(nf.total||0)>=seuilApprob?"en_attente_approbation":"approuvee"):"approuvee";
@@ -471,6 +527,36 @@ export default function GestionFactures(){
       }else{
         setFactures(function(prev){return [res.data].concat(prev);});
         sb.log("factures","ajout","Facture ajoutee: "+nf.fournisseur_nom+" - "+nf.total+" $","GL: "+glFinal,sel.code||"");
+        // FACTURATION AU COPROPRIETAIRE: cree immediatement les factures des unites choisies
+        if((nf.refact_unites||[]).length>0){
+          var uIds=nf.refact_unites;
+          var totalRef=parseFloat(nf.total)||0;
+          var part=Math.round(totalRef/uIds.length*100)/100;
+          var an=new Date().getFullYear();
+          var echRef=new Date();echRef.setDate(echRef.getDate()+30);
+          var desc="Refacturation - "+nf.fournisseur_nom+(nf.no_facture?" #"+nf.no_facture:"")+(nf.description?" - "+nf.description.substring(0,120):"");
+          sb.select("factures_copros",{eq:{syndicat_id:sel.id},limit:1000}).then(function(rfc){
+            var nbExist=(rfc&&rfc.data)?rfc.data.length:0;
+            var creations=uIds.map(function(uid,ix){
+              var u=unitesSyn.find(function(x){return x.id===uid;})||{};
+              var cp=coprosSyn.find(function(c){return (c.unite_id&&c.unite_id===uid)||(c.unite&&c.unite===u.no_unite);})||{};
+              var montantU=ix===uIds.length-1?Math.round((totalRef-part*(uIds.length-1))*100)/100:part;
+              return sb.insert("factures_copros",{
+                syndicat_id:sel.id,unite_id:uid,unite:u.no_unite||"",
+                coproprietaire_id:cp.id||null,destinataire_nom:((cp.prenom||"")+" "+(cp.nom||"")).trim(),
+                no_facture:"FC-"+an+"-"+String(nbExist+ix+1).padStart(3,"0"),
+                type_frais:"refacturation",description:desc,montant:montantU,
+                date_facture:new Date().toISOString().substring(0,10),
+                date_echeance:echRef.toISOString().substring(0,10),statut:"emise"
+              });
+            });
+            Promise.all(creations).then(function(rs){
+              var ok=rs.filter(function(x){return x&&x.data&&x.data.id;}).length;
+              if(ok<uIds.length)setErrSauve("ATTENTION: facture fournisseur sauvegardee, mais seulement "+ok+"/"+uIds.length+" facture(s) aux coproprietaires creee(s).");
+              sb.log("factures","refacturation",ok+" facture(s) aux coproprietaires creee(s) ("+part.toFixed(2)+" $ chacune) - "+nf.fournisseur_nom,"",sel.code||"");
+            });
+          }).catch(function(){setErrSauve("ATTENTION: facture sauvegardee mais la refacturation aux coproprietaires a echoue - creez-les dans Encaissements.");});
+        }
       }
       assurerFournisseur(nf.fournisseur_nom, glNom, contact);
       setShowForm(false);setNf(VIDE_F);setFacFile(null);setSaving(false);setEditId(null);
@@ -480,7 +566,7 @@ export default function GestionFactures(){
   function editerFacture(f){
     if(f.statut==="payee")return;
     setEditId(f.id);
-    setNf({fournisseur_nom:f.fournisseur_nom||"",no_facture:f.no_facture||"",date_facture:f.date_facture||"",date_echeance:f.date_echeance||"",sous_total:f.sous_total||"",tps:f.tps||"",tvq:f.tvq||"",total:f.total||"",no_compte_gl:f.no_compte_gl||"5190",description:f.description||"",no_tps_fournisseur:f.no_tps_fournisseur||"",no_tvq_fournisseur:f.no_tvq_fournisseur||"",nb_approbations_requises:f.nb_approbations_requises||1,terme_paiement:f.terme_paiement||"net30",escompte_pct:f.escompte_pct||"",escompte_jours:f.escompte_jours||"",f_courriel:"",f_telephone:"",f_adresse:"",f_site_web:""});
+    setNf({fournisseur_nom:f.fournisseur_nom||"",no_facture:f.no_facture||"",date_facture:f.date_facture||"",date_echeance:f.date_echeance||"",sous_total:f.sous_total||"",tps:f.tps||"",tvq:f.tvq||"",total:f.total||"",no_compte_gl:f.no_compte_gl||"5190",description:f.description||"",no_tps_fournisseur:f.no_tps_fournisseur||"",no_tvq_fournisseur:f.no_tvq_fournisseur||"",nb_approbations_requises:f.nb_approbations_requises||1,terme_paiement:f.terme_paiement||"net30",escompte_pct:f.escompte_pct||"",escompte_jours:f.escompte_jours||"",f_courriel:"",f_telephone:"",f_adresse:"",f_site_web:"",f_rbq:"",f_contact:"",refact_unites:[]});
     setFacFile(null);setShowForm(true);setErrSauve("");
     window.scrollTo(0,0);
   }
@@ -568,7 +654,7 @@ export default function GestionFactures(){
         {showForm&&(
           <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:14,padding:20,marginBottom:20}}>
             <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:16}}>{editId?"Modifier la facture (possible tant qu elle n est pas payee)":"Nouvelle facture"}</div>
-            <FormFacture nf={nf} setField={setField} onFile={setFacFile} comptesGL={comptesGL}/>
+            <FormFacture nf={nf} setField={setField} onFile={setFacFile} comptesGL={comptesGL} unites={unitesSyn}/>
             {errSauve&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",marginTop:12,fontSize:12,color:T.red,fontWeight:700}}>{errSauve}</div>}
             {!editId&&(
               <div style={{background:T.amberL,border:"1px solid "+T.amber+"44",borderRadius:8,padding:10,margin:"12px 0",fontSize:11,color:T.amber}}>

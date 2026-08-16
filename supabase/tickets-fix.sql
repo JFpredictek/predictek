@@ -26,3 +26,10 @@ alter table public.factures add column if not exists terme_paiement text default
 alter table public.factures add column if not exists escompte_pct numeric default 0;
 alter table public.factures add column if not exists escompte_jours int default 0;
 notify pgrst, 'reload schema';
+
+-- Repertoire fournisseurs: personne contact, licence RBQ, nos TPS/TVQ
+alter table public.fournisseurs add column if not exists contact text default '';
+alter table public.fournisseurs add column if not exists rbq text default '';
+alter table public.fournisseurs add column if not exists no_tps text default '';
+alter table public.fournisseurs add column if not exists no_tvq text default '';
+notify pgrst, 'reload schema';

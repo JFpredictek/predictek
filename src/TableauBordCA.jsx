@@ -129,6 +129,7 @@ export default function TableauBordCA(props){
   var s6=useState([]);var budget=s6[0];var setBudget=s6[1];
   var sF=useState([]);var facturesCA=sF[0];var setFacturesCA=sF[1];
   var sAv=useState([]);var avisCA=sAv[0];var setAvisCA=sAv[1];
+  var sUn=useState([]);var unites=sUn[0];var setUnites=sUn[1];
   var s7=useState(false);var loading=s7[0];var setLoading=s7[1];
 
   useEffect(function(){
@@ -156,6 +157,7 @@ export default function TableauBordCA(props){
       sb.select("reunions",{eq:{syndicat_id:sel.id},order:"date_reunion.asc",limit:10}),
       sb.select("tickets",{eq:{syndicat_id:sel.id},order:"created_at.desc",limit:20}),
       sb.select("budgets",{eq:{syndicat_id:sel.id},order:"annee_debut.desc",limit:1}),
+      sb.select("unites",{eq:{syndicat_id:sel.id},limit:1000}),
     ];
     Promise.all(promises).then(function(results){
       if(results[0]&&results[0].data)setCopros(results[0].data);
@@ -163,6 +165,7 @@ export default function TableauBordCA(props){
       if(results[2]&&results[2].data)setReunions(results[2].data);
       if(results[3]&&results[3].data)setTickets(results[3].data);
       if(results[4]&&results[4].data)setBudget(results[4].data);
+      if(results[5]&&results[5].data)setUnites(results[5].data);
       setLoading(false);
     }).catch(function(){setLoading(false);});
   },[sel]);
@@ -176,7 +179,8 @@ export default function TableauBordCA(props){
   var totalPaye=payes.reduce(function(a,p){return a+Number(p.montant);},0);
   var tauxPerception=totalMois>0?Math.round(totalPaye/totalMois*100):0;
   var coprosActifs=copros.filter(function(c){return c.statut==="actif";});
-  var papInscrits=copros.filter(function(c){return c.pap;});
+  // PAP: base sur les UNITES (le prelevement est attache a l unite, pas au coproprietaire)
+  var papUnites=unites.filter(function(u){return u.pap_actif;});
   var ticketsOuverts=tickets.filter(function(t){return t.statut!=="resolu";});
   var prochaine=reunions.filter(function(r){return new Date(r.date_reunion)>=aujourd_hui;})[0];
   var factAttente=facturesCA.filter(function(f){return f.statut==="en_attente_approbation"||f.statut==="recue";});
@@ -251,8 +255,10 @@ export default function TableauBordCA(props){
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:20}}>
             <KPI titre="Taux de perception" valeur={tauxPerception+"%"} sous={payes.length+" / "+paiesMois.length+" paiements"} pct={tauxPerception} couleur={tauxPerception>=80?T.accent:tauxPerception>=50?T.amber:T.red} bg={tauxPerception>=80?T.accentL:tauxPerception>=50?T.amberL:T.redL} bc={tauxPerception>=80?T.accent+"44":tauxPerception>=50?T.amber+"44":T.red+"44"}/>
             <KPI titre="Recus ce mois" valeur={totalPaye.toFixed(0)+" $"} sous={"En attente: "+enAttente.reduce(function(a,p){return a+Number(p.montant);},0).toFixed(0)+" $"} couleur={T.accent}/>
-            <KPI titre="Inscrits PAP" valeur={papInscrits.length+" / "+coprosActifs.length} sous="Prelevement automatique" couleur={T.blue} pct={coprosActifs.length>0?Math.round(papInscrits.length/coprosActifs.length*100):0}/>
-            <KPI titre="Tickets ouverts" valeur={ticketsOuverts.length} sous={ticketsOuverts.filter(function(t){return t.priorite==="haute";}).length+" urgent(s)"} couleur={ticketsOuverts.length>0?T.amber:T.accent} bg={ticketsOuverts.length>3?T.amberL:T.surface}/>
+            <KPI titre="Unites en PAP" valeur={papUnites.length+" / "+unites.length} sous="Prelevement automatique (par unite)" couleur={T.blue} pct={unites.length>0?Math.round(papUnites.length/unites.length*100):0}/>
+            <div onClick={function(){if(props&&props.onNavigate)props.onNavigate("requetes");}} style={{cursor:"pointer"}} title="Voir les requetes / tickets">
+              <KPI titre="Tickets ouverts" valeur={ticketsOuverts.length} sous={ticketsOuverts.filter(function(t){return t.priorite==="haute";}).length+" urgent(s)"} couleur={ticketsOuverts.length>0?T.amber:T.accent} bg={ticketsOuverts.length>3?T.amberL:T.surface}/>
+            </div>
           </div>
 
           {prochaine&&(
@@ -284,8 +290,8 @@ export default function TableauBordCA(props){
                   <div style={{fontSize:10,color:T.muted}}>Unites actives</div>
                 </div>
                 <div style={{background:T.blueL,borderRadius:10,padding:12,textAlign:"center"}}>
-                  <div style={{fontSize:22,fontWeight:800,color:T.blue}}>{papInscrits.length}</div>
-                  <div style={{fontSize:10,color:T.muted}}>PAP actifs</div>
+                  <div style={{fontSize:22,fontWeight:800,color:T.blue}}>{papUnites.length}</div>
+                  <div style={{fontSize:10,color:T.muted}}>Unites en PAP</div>
                 </div>
                 <div style={{background:T.amberL,borderRadius:10,padding:12,textAlign:"center"}}>
                   <div style={{fontSize:22,fontWeight:800,color:T.amber}}>{enAttente.length}</div>

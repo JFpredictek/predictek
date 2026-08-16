@@ -484,7 +484,8 @@ function imprimerDemandeTravaux(t,syndic){
 // Formulaire complet de demande d autorisation de travaux (portail coproprietaire)
 function FormTravaux(p){
   var copro=p.copro;
-  var s0=useState({nom:((copro.prenom||"")+" "+(copro.nom||"")).trim(),unite:copro.unite||"",telephone:copro.telephone||copro.cellulaire||"",dateDemande:new Date().toISOString().substring(0,10),urgence:false,entNom:"",entRBQ:"",entContact:"",entTel:"",entCourriel:"",natures:[],description:"",impact:"",dateDebut:"",dateFin:"",signature:"",engage:false});
+  var dEx=(p.ticket&&p.ticket.donnees&&typeof p.ticket.donnees==="object")?p.ticket.donnees:null;
+  var s0=useState(dEx?Object.assign({engage:true},dEx):{nom:((copro.prenom||"")+" "+(copro.nom||"")).trim(),unite:copro.unite||"",telephone:copro.telephone||copro.cellulaire||"",dateDemande:new Date().toISOString().substring(0,10),urgence:false,entNom:"",entRBQ:"",entContact:"",entTel:"",entCourriel:"",natures:[],description:"",impact:"",dateDebut:"",dateFin:"",signature:"",engage:false});
   var f=s0[0];var setF=s0[1];
   var s1=useState(null);var fAss=s1[0];var setFAss=s1[1];
   var s2=useState(null);var fDevis=s2[0];var setFDevis=s2[1];
@@ -511,17 +512,20 @@ function FormTravaux(p){
       etapes=etapes.then(function(){return sb.uploadFichier("preuves",chD,fDevis).then(function(up){if(up&&up.chemin)donnees.pieceDevis=chD;});});
     }
     etapes.then(function(){
-      return sb.insert("tickets",{
+      var corps={
         coproprietaire_id:copro.id,syndicat_id:copro.syndicat_id,unite:copro.unite,
         sujet:"Demande d autorisation de travaux - unite "+(copro.unite||""),
         description:"Formulaire officiel soumis via le portail. "+f.description.substring(0,300),
-        statut:"nouveau",priorite:f.urgence?"urgente":"normale",
+        priorite:f.urgence?"urgente":"normale",
         categorie:"travaux",donnees:donnees
-      });
+      };
+      if(p.ticket)return sb.update("tickets",p.ticket.id,corps); // modification de la demande existante
+      corps.statut="nouveau";
+      return sb.insert("tickets",corps);
     }).then(function(r){
       setEnvoi(false);
       if(r&&r.data&&r.data.id){p.onCree(r.data);}
-      else setMsg("ECHEC de l envoi de la demande"+((r&&r.error&&r.error.message)?" ("+r.error.message+")":"")+". Rien n a ete enregistre.");
+      else setMsg("ECHEC de l "+(p.ticket?"enregistrement des modifications":"envoi de la demande")+((r&&r.error&&r.error.message)?" ("+r.error.message+")":"")+". Rien n a ete enregistre.");
     }).catch(function(e){setEnvoi(false);setMsg("ECHEC: "+(e&&e.message?e.message:"erreur reseau"));});
   }
 
@@ -621,7 +625,7 @@ function FormTravaux(p){
 
       {msg&&<div style={{background:msg.indexOf("ECHEC")===0?T.redL:T.blueL,borderRadius:8,padding:"9px 13px",fontSize:12,fontWeight:700,color:msg.indexOf("ECHEC")===0?T.red:T.blue,marginBottom:10}}>{msg}</div>}
       <div style={{display:"flex",gap:8}}>
-        <Btn onClick={soumettre} dis={envoi}>{envoi?"Envoi en cours...":"Soumettre ma demande d autorisation"}</Btn>
+        <Btn onClick={soumettre} dis={envoi}>{envoi?"Envoi en cours...":(p.ticket?"Enregistrer les modifications":"Soumettre ma demande d autorisation")}</Btn>
         <Btn onClick={p.onAnnuler} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} dis={envoi}>Annuler</Btn>
       </div>
     </div>
@@ -636,16 +640,23 @@ function TabTickets(p){
   var s3=useState("normale");var prio=s3[0];var setPrio=s3[1];
   var s4=useState(false);var showT=s4[0];var setShowT=s4[1];
   var s5=useState("");var msgT=s5[0];var setMsgT=s5[1];
+  var s6=useState(null);var ticketEdit=s6[0];var setTicketEdit=s6[1];
+  var s7=useState(null);var editSimpleId=s7[0];var setEditSimpleId=s7[1];
 
   function soumettre(){
     if(!sujet.trim())return;
     setMsgT("");
-    sb.insert("tickets",{coproprietaire_id:copro.id,syndicat_id:copro.syndicat_id,unite:copro.unite,sujet:sujet,description:desc,statut:"nouveau",priorite:prio}).then(function(res){
+    var corps={coproprietaire_id:copro.id,syndicat_id:copro.syndicat_id,unite:copro.unite,sujet:sujet,description:desc,priorite:prio};
+    var op;
+    if(editSimpleId){op=sb.update("tickets",editSimpleId,corps);}
+    else{corps.statut="nouveau";op=sb.insert("tickets",corps);}
+    op.then(function(res){
       if(res&&res.error){setMsgT("ECHEC de l envoi de la demande ("+(res.error.message||"erreur")+"). Rien n a ete enregistre.");return;}
       if(res&&res.data&&res.data.id){
-        setTickets(function(prev){return [res.data].concat(prev);});
-        setShowN(false);setSujet("");setDesc("");setPrio("normale");
-        setMsgT("Demande envoyee au syndicat - suivez son statut ici.");
+        if(editSimpleId)setTickets(function(prev){return prev.map(function(t){return t.id===editSimpleId?Object.assign({},t,res.data):t;});});
+        else setTickets(function(prev){return [res.data].concat(prev);});
+        setShowN(false);setSujet("");setDesc("");setPrio("normale");setEditSimpleId(null);
+        setMsgT(editSimpleId?"Demande modifiee.":"Demande envoyee au syndicat - suivez son statut ici.");
       }else{
         setMsgT("ECHEC de l envoi de la demande - rien n a ete enregistre. Reessayez ou contactez votre gestionnaire.");
       }
@@ -662,14 +673,15 @@ function TabTickets(p){
         </div>
       </div>
       {msgT&&<div style={{background:msgT.indexOf("ECHEC")===0?T.redL:T.accentL,border:"1px solid "+(msgT.indexOf("ECHEC")===0?T.red:T.accent)+"44",borderRadius:8,padding:"9px 13px",fontSize:12,fontWeight:700,color:msgT.indexOf("ECHEC")===0?T.red:T.accent,marginBottom:12}}>{msgT}</div>}
-      {showT&&<FormTravaux copro={copro} onAnnuler={function(){setShowT(false);}} onCree={function(tk){
-        setTickets(function(prev){return [tk].concat(prev);});
-        setShowT(false);
-        setMsgT("Demande d autorisation de travaux soumise. Le conseil d administration l etudiera; suivez son statut ici.");
+      {(showT||ticketEdit)&&<FormTravaux copro={copro} ticket={ticketEdit} onAnnuler={function(){setShowT(false);setTicketEdit(null);}} onCree={function(tk){
+        if(ticketEdit)setTickets(function(prev){return prev.map(function(t){return t.id===tk.id?Object.assign({},t,tk):t;});});
+        else setTickets(function(prev){return [tk].concat(prev);});
+        setShowT(false);setTicketEdit(null);
+        setMsgT(ticketEdit?"Demande d autorisation de travaux modifiee.":"Demande d autorisation de travaux soumise. Le conseil d administration l etudiera; suivez son statut ici.");
       }}/>}
       {showN&&(
         <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:16,marginBottom:16}}>
-          <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:12}}>Nouvelle demande</div>
+          <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:12}}>{editSimpleId?"Modifier ma demande":"Nouvelle demande"}</div>
           <div style={{marginBottom:10}}>
             <div style={{fontSize:11,color:T.muted,fontWeight:600,marginBottom:5,textTransform:"uppercase"}}>Sujet</div>
             <input value={sujet} onChange={function(e){setSujet(e.target.value);}} style={INP} placeholder="Decrivez brievement votre demande..."/>
@@ -687,8 +699,8 @@ function TabTickets(p){
             </select>
           </div>
           <div style={{display:"flex",gap:8}}>
-            <Btn onClick={soumettre} dis={!sujet.trim()}>Soumettre</Btn>
-            <Btn onClick={function(){setShowN(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
+            <Btn onClick={soumettre} dis={!sujet.trim()}>{editSimpleId?"Enregistrer les modifications":"Soumettre"}</Btn>
+            <Btn onClick={function(){setShowN(false);setEditSimpleId(null);setSujet("");setDesc("");setPrio("normale");}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
           </div>
         </div>
       )}
@@ -708,6 +720,11 @@ function TabTickets(p){
               <span style={{background:complete?"#D4EDDA":T.amberL,color:complete?"#155724":"#B86020",borderRadius:20,padding:"2px 12px",fontSize:10,fontWeight:800}}>
                 {complete?"COMPLETEE"+(dateFin?" le "+String(dateFin).substring(0,10):""):"EN COURS"}
               </span>
+              {!complete&&<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){
+                if(travaux){setTicketEdit(t);setShowT(false);setShowN(false);}
+                else{setSujet(t.sujet||"");setDesc(t.description||"");setPrio(t.priorite||"normale");setEditSimpleId(t.id);setShowN(true);setShowT(false);setTicketEdit(null);}
+                setMsgT("");window.scrollTo(0,0);
+              }}>Modifier</Btn>}
               {travaux&&<Btn sm bg={T.alt} tc={T.navy} bdr={"1px solid "+T.border} onClick={function(){imprimerDemandeTravaux(t,p.syndic);}}>Imprimer</Btn>}
             </div>
           </div>

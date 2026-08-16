@@ -10,7 +10,7 @@ function Btn(p){return <button onClick={p.onClick} disabled={p.dis} style={{back
 
 var CATEGORIES=["Entretien","Plomberie","Electricite","Chauffage","Nettoyage","Paysagement","Deneigement","Securite","Ascenseur","Assurance","Services professionnels","Informatique","Autre"];
 
-var VIDE={nom:"",categorie:"Entretien",telephone:"",courriel:"",adresse:"",site_web:"",notes:""};
+var VIDE={nom:"",categorie:"Entretien",telephone:"",courriel:"",adresse:"",site_web:"",notes:"",contact:"",rbq:"",no_tps:"",no_tvq:""};
 
 function CarteFournisseur(p){
   var f=p.fournisseur;
@@ -28,8 +28,12 @@ function CarteFournisseur(p){
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,fontSize:11,color:T.muted,paddingLeft:46}}>
+            {f.contact&&<div>Contact: <span style={{color:T.navy,fontWeight:600}}>{f.contact}</span></div>}
+            {f.rbq&&<div>RBQ: <span style={{color:T.accent,fontWeight:700}}>{f.rbq}</span></div>}
             {f.telephone&&<div>Tel: <span style={{color:T.navy}}>{f.telephone}</span></div>}
             {f.courriel&&<div>Courriel: <span style={{color:T.navy}}>{f.courriel}</span></div>}
+            {f.no_tps&&<div>TPS: <span style={{color:T.navy}}>{f.no_tps}</span></div>}
+            {f.no_tvq&&<div>TVQ: <span style={{color:T.navy}}>{f.no_tvq}</span></div>}
             {f.adresse&&<div style={{gridColumn:"1/-1"}}>Adresse: <span style={{color:T.navy}}>{f.adresse}</span></div>}
             {f.site_web&&<div style={{gridColumn:"1/-1"}}>Web: <a href={f.site_web} target="_blank" rel="noreferrer" style={{color:T.blue}}>{f.site_web}</a></div>}
             {f.notes&&<div style={{gridColumn:"1/-1",color:T.muted,fontStyle:"italic"}}>{f.notes}</div>}
@@ -70,13 +74,17 @@ export default function FournisseursAdmin(){
     if(k==="adresse")return Object.assign({},pr,{adresse:v});
     if(k==="site_web")return Object.assign({},pr,{site_web:v});
     if(k==="notes")return Object.assign({},pr,{notes:v});
+    if(k==="contact")return Object.assign({},pr,{contact:v});
+    if(k==="rbq")return Object.assign({},pr,{rbq:v});
+    if(k==="no_tps")return Object.assign({},pr,{no_tps:v});
+    if(k==="no_tvq")return Object.assign({},pr,{no_tvq:v});
     return pr;
   });}
 
   function sauvegarder(){
     if(!nf.nom)return;
     setSaving(true);
-    var row={nom:nf.nom,categorie:nf.categorie||"Autre",telephone:nf.telephone||"",courriel:nf.courriel||"",adresse:nf.adresse||"",site_web:nf.site_web||"",notes:nf.notes||"",actif:true};
+    var row={nom:nf.nom,categorie:nf.categorie||"Autre",telephone:nf.telephone||"",courriel:nf.courriel||"",adresse:nf.adresse||"",site_web:nf.site_web||"",notes:nf.notes||"",contact:nf.contact||"",rbq:nf.rbq||"",no_tps:nf.no_tps||"",no_tvq:nf.no_tvq||"",actif:true};
     var op=editId?sb.update("fournisseurs",editId,row):sb.insert("fournisseurs",row);
     op.then(function(res){
       if(editId){
@@ -89,7 +97,7 @@ export default function FournisseursAdmin(){
   }
 
   function editer(f){
-    setNf({nom:f.nom||"",categorie:f.categorie||"Entretien",telephone:f.telephone||"",courriel:f.courriel||"",adresse:f.adresse||"",site_web:f.site_web||"",notes:f.notes||""});
+    setNf({nom:f.nom||"",categorie:f.categorie||"Entretien",telephone:f.telephone||"",courriel:f.courriel||"",adresse:f.adresse||"",site_web:f.site_web||"",notes:f.notes||"",contact:f.contact||"",rbq:f.rbq||"",no_tps:f.no_tps||"",no_tvq:f.no_tvq||""});
     setEditId(f.id);setShowForm(true);
   }
 
@@ -132,6 +140,10 @@ export default function FournisseursAdmin(){
               <div><Lbl l="Categorie"/><select value={nf.categorie} onChange={function(e){setN("categorie",e.target.value);}} style={INP}>{CATEGORIES.map(function(c){return <option key={c}>{c}</option>;})}</select></div>
               <div><Lbl l="Telephone"/><input value={nf.telephone} onChange={function(e){setN("telephone",e.target.value);}} style={INP} placeholder="418-555-0000"/></div>
               <div><Lbl l="Courriel"/><input type="email" value={nf.courriel} onChange={function(e){setN("courriel",e.target.value);}} style={INP} placeholder="info@fournisseur.ca"/></div>
+              <div><Lbl l="Personne contact"/><input value={nf.contact} onChange={function(e){setN("contact",e.target.value);}} style={INP} placeholder="Jean Fortin"/></div>
+              <div><Lbl l="Licence RBQ (entrepreneurs)"/><input value={nf.rbq} onChange={function(e){setN("rbq",e.target.value);}} style={INP} placeholder="5678-1234-01"/></div>
+              <div><Lbl l="No TPS"/><input value={nf.no_tps} onChange={function(e){setN("no_tps",e.target.value);}} style={INP} placeholder="123456789 RT0001"/></div>
+              <div><Lbl l="No TVQ"/><input value={nf.no_tvq} onChange={function(e){setN("no_tvq",e.target.value);}} style={INP} placeholder="1234567890 TQ0001"/></div>
               <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse"/><input value={nf.adresse} onChange={function(e){setN("adresse",e.target.value);}} style={INP} placeholder="123 rue Principale, Quebec QC"/></div>
               <div style={{gridColumn:"1/-1"}}><Lbl l="Site web"/><input value={nf.site_web} onChange={function(e){setN("site_web",e.target.value);}} style={INP} placeholder="https://www.fournisseur.ca"/></div>
               <div style={{gridColumn:"1/-1"}}><Lbl l="Notes internes"/><textarea value={nf.notes} onChange={function(e){setN("notes",e.target.value);}} style={Object.assign({},INP,{minHeight:60,resize:"vertical"})} placeholder="Specialites, tarifs, contacts preferes..."/></div>
