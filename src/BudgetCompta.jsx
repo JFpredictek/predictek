@@ -22,9 +22,9 @@ var money=function(n){return (Number(n)||0).toLocaleString("fr-CA",{minimumFract
 function fondsDefautCompte(no,type){
   no=String(no||"");
   if(type==="prevoyance"||no.charAt(0)==="7")return "prevoyance";
-  if(["4120","4520","5901","1112","1530","3200"].indexOf(no)>=0)return "prevoyance";
-  if(["4160","4550","5902","1114","1550","3110","3500","5290","4660"].indexOf(no)>=0)return "assurance";
-  if(["5903","1115","3400"].indexOf(no)>=0)return "special";
+  if(["4120","4135","4520","5901","1112","1530","3200"].indexOf(no)>=0)return "prevoyance";
+  if(["4140","4160","4550","5902","1114","1550","3110","3500","5290","4660"].indexOf(no)>=0)return "assurance";
+  if(["4145","5903","1115","3400"].indexOf(no)>=0)return "special";
   return "operation";
 }
 
@@ -85,6 +85,9 @@ var CHARTE_DEFAUT=[
   {no:"4110",nom:"Contributions regulieres",type:"revenu",groupe:"Revenus - Contributions"},
   {no:"4120",nom:"Contributions au fonds de prevoyance",type:"revenu",groupe:"Revenus - Contributions"},
   {no:"4130",nom:"Contributions speciales",type:"revenu",groupe:"Revenus - Contributions"},
+  {no:"4135",nom:"Contributions speciales - fonds de prevoyance",type:"revenu",groupe:"Revenus - Contributions"},
+  {no:"4140",nom:"Contributions speciales - fonds d auto-assurance",type:"revenu",groupe:"Revenus - Contributions"},
+  {no:"4145",nom:"Contributions speciales - fonds de travaux speciaux",type:"revenu",groupe:"Revenus - Contributions"},
   {no:"4160",nom:"Contribution au fonds d assurances",type:"revenu",groupe:"Revenus - Contributions"},
   {no:"4190",nom:"Contributions du promoteur",type:"revenu",groupe:"Revenus - Contributions"},
   {no:"4300",nom:"Revenus de location",type:"revenu",groupe:"Revenus - Location"},
@@ -322,6 +325,7 @@ function TabBudget(p){
   var s11=useState({no:"",nom:"",type:"depense"});var nCompte=s11[0];var setNCompte=s11[1];
   var s12=useState({});var budPrec=s12[0];var setBudPrec=s12[1];
   var s13=useState({});var reelPrec=s13[0];var setReelPrec=s13[1];
+  var s14=useState(false);var masquerInactifs=s14[0];var setMasquerInactifs=s14[1];
 
   // Gestion des comptes GL directement du budget: ajouter, ou rendre inactif
   function ajouterCompteGL(){
@@ -436,7 +440,7 @@ function TabBudget(p){
     sb.upsert("budgets_gl",rows,"syndicat_id,exercice_debut,no_compte").then(function(r){
       if(r&&r.error){setEnCours(false);setErr("ECHEC de la sauvegarde du budget: "+(r.error.message||r.error.hint||"erreur"));return;}
       // Statut: toute sauvegarde (re)passe le budget en BROUILLON - il devra etre (re)approuve par le CA
-      var majB={syndicat_id:syndicat.id,annee_debut:exo.debut,statut:"brouillon",approuve_par:"",date_approbation:null};
+      var majB={syndicat_id:syndicat.id,annee_debut:exo.debut,statut:"brouillon",approuve_par:"",date_approbation:null,approbations:[]};
       var opB=budRow&&budRow.id?sb.update("budgets",budRow.id,majB):sb.insert("budgets",majB);
       opB.then(function(rb){
         setEnCours(false);
@@ -448,18 +452,32 @@ function TabBudget(p){
     }).catch(function(e){setEnCours(false);setErr("Erreur: "+(e&&e.message?e.message:""));});
   }
 
+  // Le budget doit etre approuve par TOUS les membres actifs du CA avant de confirmer
+  // les cotisations. Chaque membre approuve a son tour; le statut passe a APPROUVE
+  // seulement quand tout le monde a approuve.
   function approuverBudget(){
     if(!syndicat||!exo)return;
-    if(!approuvant){setErr("Choisissez qui approuve le budget (membre du CA).");return;}
+    if(!approuvant){setErr("Choisissez quel membre du CA approuve.");return;}
     setErr("");
-    var majB={syndicat_id:syndicat.id,annee_debut:exo.debut,statut:"approuve",approuve_par:approuvant,date_approbation:new Date().toISOString()};
+    var liste=Array.isArray(budRow&&budRow.approbations)?budRow.approbations.slice():[];
+    if(liste.some(function(a){return a.nom===approuvant;})){setErr(approuvant+" a deja approuve ce budget.");return;}
+    liste.push({nom:approuvant,q:new Date().toISOString()});
+    var nomsCA=membresCA.map(function(m){return ((m.prenom||"")+" "+(m.nom||"")).trim();}).filter(Boolean);
+    var complet=nomsCA.length>0&&nomsCA.every(function(n){return liste.some(function(a){return a.nom===n;});});
+    var majB={syndicat_id:syndicat.id,annee_debut:exo.debut,approbations:liste,
+      statut:complet?"approuve":"brouillon",
+      approuve_par:liste.map(function(a){return a.nom;}).join(", "),
+      date_approbation:complet?new Date().toISOString():null};
     var opB=budRow&&budRow.id?sb.update("budgets",budRow.id,majB):sb.insert("budgets",majB);
     opB.then(function(rb){
       if(rb&&rb.error){setErr("ECHEC de l approbation: "+(rb.error.message||""));return;}
       if(rb&&rb.data)setBudRow(rb.data);
-      setMsg("Budget "+exo.label+" APPROUVE par "+approuvant+" - vous pouvez maintenant appliquer les cotisations aux unites.");
-      sb.log("budget","approbation","Budget "+exo.debut+" approuve par "+approuvant,"",syndicat.code||"");
-      setTimeout(function(){setMsg("");},6000);
+      setApprouvant("");
+      setMsg(complet
+        ?"Budget "+exo.label+" APPROUVE par TOUS les membres du CA ("+liste.length+"/"+nomsCA.length+") - vous pouvez appliquer les cotisations."
+        :"Approbation de "+approuvant+" enregistree ("+liste.length+"/"+nomsCA.length+" membres) - il manque: "+nomsCA.filter(function(n){return !liste.some(function(a){return a.nom===n;});}).join(", ")+".");
+      sb.log("budget","approbation","Budget "+exo.debut+": approbation de "+approuvant+" ("+liste.length+"/"+nomsCA.length+")","",syndicat.code||"");
+      setTimeout(function(){setMsg("");},8000);
     }).catch(function(e){setErr("Erreur: "+(e&&e.message?e.message:""));});
   }
 
@@ -505,22 +523,39 @@ function TabBudget(p){
         <Btn onClick={sauvegarderBudget} dis={enCours}>{enCours?"Sauvegarde...":"Sauvegarder en BROUILLON"}</Btn>
       </div>
 
-      <div style={{background:budRow&&budRow.statut==="approuve"?T.accentL:T.amberL,border:"2px solid "+(budRow&&budRow.statut==="approuve"?T.accent:T.amber),borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-        {budRow&&budRow.statut==="approuve"?(
-          <span style={{fontSize:12,fontWeight:800,color:T.accent}}>BUDGET APPROUVE par {budRow.approuve_par||"le CA"}{budRow.date_approbation?" le "+String(budRow.date_approbation).substring(0,10):""} - les cotisations peuvent etre appliquees. Toute modification le repassera en brouillon.</span>
-        ):(
-          <span style={{fontSize:12,fontWeight:800,color:T.amber}}>{budRow?"BUDGET EN BROUILLON":"Aucun budget sauvegarde pour cet exercice"} - il doit etre APPROUVE par les administrateurs avant de confirmer les cotisations.</span>
-        )}
-        {(!budRow||budRow.statut!=="approuve")&&(
-          <span style={{display:"flex",gap:8,alignItems:"center",marginLeft:"auto"}}>
-            <select value={approuvant} onChange={function(e){setApprouvant(e.target.value);}} style={Object.assign({},INP,{width:230})}>
-              <option value="">Approuve par (membre du CA)...</option>
-              {membresCA.map(function(m){var n=((m.prenom||"")+" "+(m.nom||"")).trim();return <option key={m.id} value={n}>{n}{m.role_ca?" ("+m.role_ca+")":""}</option>;})}
-            </select>
-            <Btn sm onClick={approuverBudget} dis={!budRow}>Approuver le budget</Btn>
-          </span>
-        )}
-      </div>
+      {(function(){
+        var approbations=Array.isArray(budRow&&budRow.approbations)?budRow.approbations:[];
+        var nomsCA=membresCA.map(function(m){return ((m.prenom||"")+" "+(m.nom||"")).trim();}).filter(Boolean);
+        var approuveTotal=budRow&&budRow.statut==="approuve";
+        return(
+          <div style={{background:approuveTotal?T.accentL:T.amberL,border:"2px solid "+(approuveTotal?T.accent:T.amber),borderRadius:10,padding:"10px 14px",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+              {approuveTotal?(
+                <span style={{fontSize:12,fontWeight:800,color:T.accent}}>BUDGET APPROUVE PAR TOUS LES MEMBRES DU CA{budRow.date_approbation?" le "+String(budRow.date_approbation).substring(0,10):""} - les cotisations peuvent etre appliquees. Toute modification le repassera en brouillon.</span>
+              ):(
+                <span style={{fontSize:12,fontWeight:800,color:T.amber}}>{budRow?"BUDGET EN BROUILLON - approbation de TOUS les membres du CA requise ("+approbations.length+"/"+nomsCA.length+")":"Aucun budget sauvegarde pour cet exercice"}</span>
+              )}
+              {budRow&&!approuveTotal&&(
+                <span style={{display:"flex",gap:8,alignItems:"center",marginLeft:"auto"}}>
+                  <select value={approuvant} onChange={function(e){setApprouvant(e.target.value);}} style={Object.assign({},INP,{width:230})}>
+                    <option value="">Membre du CA qui approuve...</option>
+                    {membresCA.map(function(m){var n=((m.prenom||"")+" "+(m.nom||"")).trim();return approbations.some(function(a){return a.nom===n;})?null:<option key={m.id} value={n}>{n}{m.role_ca?" ("+m.role_ca+")":""}</option>;})}
+                  </select>
+                  <Btn sm onClick={approuverBudget} dis={!approuvant}>Approuver</Btn>
+                </span>
+              )}
+            </div>
+            {nomsCA.length>0&&budRow&&(
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
+                {nomsCA.map(function(n){
+                  var ap=approbations.find(function(a){return a.nom===n;});
+                  return <span key={n} style={{fontSize:10,fontWeight:800,padding:"2px 10px",borderRadius:12,background:ap?T.accentL:"#fff",border:"1px solid "+(ap?T.accent:T.border),color:ap?T.accent:T.muted}}>{ap?"OK ":""}{n}{ap&&ap.q?" ("+String(ap.q).substring(0,10)+")":""}</span>;
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
       {msg&&<div style={{background:T.accentL,border:"2px solid "+T.accent,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.accent,fontWeight:700,marginBottom:12}}>{msg}</div>}
       {err&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,fontWeight:700,marginBottom:12}}>{err}</div>}
 
@@ -533,11 +568,13 @@ function TabBudget(p){
 
       {lignesBudget.length===0&&<div style={{background:T.amberL,borderRadius:10,padding:14,fontSize:12,color:T.amber,fontWeight:600,marginBottom:12}}>Aucun compte actif - activez des comptes dans l onglet Plan comptable.</div>}
 
-      {aPrecedent&&(
-        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
-          <Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={reporterBudgetPrecedent}>Reporter le budget de l annee precedente (champs vides)</Btn>
-        </div>
-      )}
+      <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginBottom:8,flexWrap:"wrap"}}>
+        <label style={{display:"flex",alignItems:"center",gap:6,fontSize:11,fontWeight:700,color:T.muted,cursor:"pointer"}}>
+          <input type="checkbox" checked={masquerInactifs} onChange={function(e){setMasquerInactifs(e.target.checked);}}/>
+          Masquer les comptes inactifs
+        </label>
+        {aPrecedent&&<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={reporterBudgetPrecedent}>Reporter le budget de l annee precedente (champs vides)</Btn>}
+      </div>
       {(function(){
         // SAISIE DU BUDGET ORGANISEE PAR FONDS: pour chaque fonds -> revenus, depenses, SOLDE.
         var fondsIds=["operation","prevoyance","assurance"];
@@ -545,6 +582,7 @@ function TabBudget(p){
         var LBL_F={operation:"FONDS D OPERATION",prevoyance:"FONDS DE PREVOYANCE",assurance:"FONDS D AUTO-ASSURANCE",special:"FONDS DE TRAVAUX SPECIAUX"};
         var CLR_F={operation:T.accent,prevoyance:T.blue,assurance:T.purple,special:T.amber};
         var m=function(no){return parseFloat(montants[no])||0;};
+        var visibles=function(arr){return masquerInactifs?arr.filter(function(c){return c.actif;}):arr;};
         var ligneRow=function(c){
           return(
             <div key={c.no} style={{display:"flex",alignItems:"center",gap:10,padding:"4px 0",opacity:c.actif?1:0.45}}>
@@ -596,8 +634,8 @@ function TabBudget(p){
 
               <div style={{fontSize:10,fontWeight:800,color:T.accent,textTransform:"uppercase",marginBottom:2}}>Revenus{fid==="operation"?" (les cotisations s ajoutent automatiquement)":fid!=="operation"?" et transferts recus":""}</div>
               {enTete}
-              {revLignes.length===0&&<div style={{fontSize:11,color:T.muted,padding:"2px 0 6px"}}>Aucun compte de revenu dans ce fonds.</div>}
-              {revLignes.map(ligneRow)}
+              {visibles(revLignes).length===0&&<div style={{fontSize:11,color:T.muted,padding:"2px 0 6px"}}>Aucun compte de revenu dans ce fonds.</div>}
+              {visibles(revLignes).map(ligneRow)}
               {fid==="operation"&&(
                 <div style={{display:"flex",justifyContent:"space-between",background:T.accentL,borderRadius:7,padding:"5px 10px",margin:"4px 0",fontSize:11,fontWeight:700,color:T.accent}}>
                   <span>Cotisations annuelles (calculees du budget)</span><span>{money(cotisationsAnnuelles)}</span>
@@ -605,13 +643,13 @@ function TabBudget(p){
               )}
 
               <div style={{fontSize:10,fontWeight:800,color:T.red,textTransform:"uppercase",margin:"10px 0 2px"}}>Depenses</div>
-              {depLignes.length===0&&<div style={{fontSize:11,color:T.muted,padding:"2px 0 6px"}}>Aucun compte de depense dans ce fonds.</div>}
-              {depLignes.map(ligneRow)}
+              {visibles(depLignes).length===0&&<div style={{fontSize:11,color:T.muted,padding:"2px 0 6px"}}>Aucun compte de depense dans ce fonds.</div>}
+              {visibles(depLignes).map(ligneRow)}
 
-              {fid==="operation"&&transLignes.length>0&&(
+              {fid==="operation"&&visibles(transLignes).length>0&&(
                 <div>
                   <div style={{fontSize:10,fontWeight:800,color:T.purple,textTransform:"uppercase",margin:"10px 0 2px"}}>Transferts interfonds (sorties vers les autres fonds)</div>
-                  {transLignes.map(ligneRow)}
+                  {visibles(transLignes).map(ligneRow)}
                 </div>
               )}
 
@@ -1167,6 +1205,7 @@ function TabFonds(p){
       var nomP=(nomFonds||slug).trim();
       sb.upsert("comptes_syndicat",[
         {syndicat_id:syndicat.id,no_compte:libre(4810),nom_compte:"Contributions - fonds "+nomP,type_compte:"revenu",groupe:"Revenus - Contributions",actif:true,fonds:slug},
+        {syndicat_id:syndicat.id,no_compte:libre(4830),nom_compte:"Contributions speciales - fonds "+nomP,type_compte:"revenu",groupe:"Revenus - Contributions",actif:true,fonds:slug},
         {syndicat_id:syndicat.id,no_compte:libre(5910),nom_compte:"Transfert interfonds - fonds "+nomP,type_compte:"fonds",groupe:"Transferts interfonds",actif:true,fonds:slug},
         {syndicat_id:syndicat.id,no_compte:libre(7910),nom_compte:"Depenses - fonds "+nomP,type_compte:"depense",groupe:"Depenses - Fonds "+nomP,actif:true,fonds:slug}
       ],"syndicat_id,no_compte").then(function(){if(recharger)recharger();}).catch(function(){});

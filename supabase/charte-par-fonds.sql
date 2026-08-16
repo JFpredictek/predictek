@@ -18,3 +18,19 @@ update public.comptes_syndicat set fonds='operation'
 notify pgrst, 'reload schema';
 
 select fonds, count(*) from comptes_syndicat group by fonds order by fonds;
+
+-- Contributions speciales disponibles dans CHAQUE fonds (4130 operation, 4135 prevoyance,
+-- 4140 auto-assurance, 4145 travaux speciaux; les fonds personnalises recoivent le leur a la creation)
+insert into public.comptes_syndicat (syndicat_id, no_compte, nom_compte, type_compte, groupe, actif, fonds)
+select s.id, v.no, v.nom, 'revenu', 'Revenus - Contributions', true, v.fonds
+from public.syndicats s
+cross join (values
+  ('4135','Contributions speciales - fonds de prevoyance','prevoyance'),
+  ('4140','Contributions speciales - fonds d auto-assurance','assurance'),
+  ('4145','Contributions speciales - fonds de travaux speciaux','special')
+) as v(no,nom,fonds)
+where not exists (select 1 from public.comptes_syndicat c where c.syndicat_id = s.id and c.no_compte = v.no);
+
+-- Approbation du budget par TOUS les membres du CA (liste des approbations)
+alter table public.budgets add column if not exists approbations jsonb;
+notify pgrst, 'reload schema';
