@@ -34,7 +34,8 @@ var NATURES_TRAVAUX=[
 
 function imprimerDemandeTravaux(t,syndic){
   var d=(t.donnees&&typeof t.donnees==="object")?t.donnees:{};
-  var logo="";try{logo=localStorage.getItem("predictek_logo")||"";}catch(e){}
+  var logo=(syndic&&syndic.logo_data)||"";
+  if(!logo){try{logo=localStorage.getItem("predictek_logo")||"";}catch(e){}}
   var natures=(d.natures||[]).map(function(k){var n=NATURES_TRAVAUX.find(function(x){return x.k===k;});return n?n.l:k;});
   var lg=function(v){return (v||"").replace(/</g,"&lt;");};
   var ligne=function(lbl,val){return "<tr><td class='l'>"+lbl+"</td><td class='v'>"+lg(val)+"</td></tr>";};

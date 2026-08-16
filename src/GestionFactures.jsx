@@ -133,6 +133,11 @@ function CarteFacture(p){
             {f.statut!=="payee"&&f.statut!=="annulee"&&<Btn sm bg={T.alt} tc={T.navy} bdr={"1px solid "+T.border} onClick={function(){p.onEdit(f);}}>Modifier</Btn>}
             {(f.statut==="recue"||f.statut==="en_attente_approbation")&&<Btn sm bg={T.amberL} tc={T.amber} bdr={"1px solid "+T.amber+"44"} onClick={function(){p.onApprouver(f);}}>Approuver</Btn>}
             {f.statut==="approuvee"&&<Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){p.onPayer(f);}}>Enregistrer le paiement</Btn>}
+            {f.statut==="approuvee"&&p.onEftToggle&&(
+              <label style={{display:"flex",alignItems:"center",gap:5,fontSize:10,fontWeight:800,color:T.blue,cursor:"pointer",border:"1px solid "+T.blue+"44",background:p.eftSel?T.blueL:"#fff",borderRadius:7,padding:"4px 9px"}}>
+                <input type="checkbox" checked={!!p.eftSel} onChange={function(e){p.onEftToggle(f,e.target.checked);}}/>Payer par EFT
+              </label>
+            )}
           </div>
         </div>
       </div>
@@ -455,6 +460,11 @@ export default function GestionFactures(){
   var s18=useState(null);var payerF=s18[0];var setPayerF=s18[1];
   var s19=useState(new Date().toISOString().substring(0,10));var datePaie=s19[0];var setDatePaie=s19[1];
   var s20=useState(false);var payeEnCours=s20[0];var setPayeEnCours=s20[1];
+  var s21=useState({});var selEFT=s21[0];var setSelEFT=s21[1];
+  var s22=useState([]);var fournTous=s22[0];var setFournTous=s22[1];
+  var s23=useState([]);var banquesF=s23[0];var setBanquesF=s23[1];
+  var s24=useState(new Date().toISOString().substring(0,10));var dateEft=s24[0];var setDateEft=s24[1];
+  var s25=useState(false);var eftEnCours=s25[0];var setEftEnCours=s25[1];
 
   function ouvrirViewer(f){
     if(!f.fichier)return;
@@ -476,6 +486,9 @@ export default function GestionFactures(){
     sb.select("factures",{eq:{syndicat_id:sel.id},order:"date_reception.desc",limit:100}).then(function(res){
       if(res&&res.data)setFactures(res.data);
     }).catch(function(){});
+    sb.select("fournisseurs",{limit:1000}).then(function(res){if(res&&res.data)setFournTous(res.data);}).catch(function(){});
+    sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},limit:20}).then(function(res){if(res&&res.data)setBanquesF(res.data);else setBanquesF([]);}).catch(function(){setBanquesF([]);});
+    setSelEFT({});
     // Approbations du CA (pour afficher qui a approuve et le compte "X de N")
     sb.select("approbations_ca",{limit:2000}).then(function(res){
       if(res&&res.data)setApprosToutes(res.data);
@@ -635,6 +648,94 @@ export default function GestionFactures(){
     }).catch(function(e){setErrSauve("ECHEC: "+(e&&e.message?e.message:"erreur"));setPayeEnCours(false);});
   }
 
+  // ===== PAIEMENTS AUX FOURNISSEURS PAR EFT (fichier Desjardins / CPA-005, credits) =====
+  function padE(v,n,dir,ch){v=String(v==null?"":v);ch=ch||" ";if(v.length>n)return v.substring(0,n);var f2="";for(var i=v.length;i<n;i++)f2+=ch;return dir==="g"?f2+v:v+f2;}
+  function dateJulE(d){
+    var dt=d?new Date(d+"T12:00:00"):new Date();
+    var debut=new Date(dt.getFullYear(),0,0);
+    var jour=Math.floor((dt-debut)/86400000);
+    return "0"+String(dt.getFullYear()).substring(2)+padE(jour,3,"g","0");
+  }
+  function telechargerE(nomFichier,contenu){
+    var blob=new Blob([contenu],{type:"text/plain;charset=ascii"});
+    var a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);a.download=nomFichier;
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+  }
+  function fournDe(nom){
+    var n=String(nom||"").trim().toLowerCase();
+    return fournTous.find(function(x){return String(x.nom||"").trim().toLowerCase()===n;});
+  }
+  async function genererEftFournisseurs(){
+    if(eftEnCours)return;
+    var ids=Object.keys(selEFT).filter(function(id){return selEFT[id];});
+    var cibles=factures.filter(function(f){return ids.indexOf(String(f.id))>=0&&f.statut==="approuvee";});
+    if(cibles.length===0){setErrSauve("Cochez au moins une facture APPROUVEE (case Payer par EFT).");return;}
+    var origId=(sel.pap_f_orig_id||"").trim();
+    var nomCourt=(sel.pap_f_nom_court||"").trim();
+    var nomLong=(sel.pap_f_nom_long||sel.nom||"").trim();
+    var centre=((sel.pap_centre||"81510").replace(/\D/g,"")||"81510");
+    var cptSyn=banquesF.find(function(b){return b.id===sel.pap_f_compte_id;});
+    if(!origId||!nomCourt){setErrSauve("Configurez d abord les paiements automatises AUX FOURNISSEURS (nom d utilisateur, noms) dans Configuration - Configuration du syndicat.");return;}
+    if(!cptSyn||!cptSyn.institution||!cptSyn.transit||!cptSyn.no_compte){setErrSauve("Choisissez le compte de banque DEBITE (institution, transit, no remplis) dans Configuration du syndicat - Paiements automatises aux fournisseurs.");return;}
+    var sansCoord=[];
+    cibles.forEach(function(f){
+      var fo=fournDe(f.fournisseur_nom);
+      if(!fo||!fo.banque_institution||!fo.banque_transit||!fo.banque_compte)sansCoord.push(f.fournisseur_nom||"?");
+    });
+    if(sansCoord.length>0){setErrSauve("Coordonnees bancaires MANQUANTES pour: "+sansCoord.join(", ")+". Ajoutez-les dans la fiche du fournisseur (module Fournisseurs).");return;}
+    setEftEnCours(true);setErrSauve("");
+    var noF=padE(parseInt(sel.pap_f_no_fichier)||1,4,"g","0");
+    var dateJ=dateJulE(dateEft);
+    var L=1464;var recs=[];var cnt=1;
+    recs.push(padE("A"+padE(cnt,9,"g","0")+padE(origId,10)+noF+dateJ+padE(centre,5,"g","0")+padE("",20)+"CAD",L));
+    var totalCents=0;
+    cibles.forEach(function(f){
+      cnt++;
+      var fo=fournDe(f.fournisseur_nom);
+      var cents=Math.round((Number(f.total)||0)*100);totalCents+=cents;
+      var seg="450"+padE(cents,10,"g","0")+dateJ
+        +"0"+padE(String(fo.banque_institution).replace(/\D/g,""),3,"g","0")+padE(String(fo.banque_transit).replace(/\D/g,""),5,"g","0")+padE(fo.banque_compte,12)
+        +padE("0",22,"g","0")+padE("0",3,"g","0")
+        +padE(nomCourt,15)
+        +padE(String(f.fournisseur_nom||"Fournisseur"),30)
+        +padE(nomLong,30)
+        +padE(origId,10)
+        +padE(String(f.no_facture||"").replace(/\D/g,"")||String(cnt),19,"g","0")
+        +"0"+padE(String(cptSyn.institution).replace(/\D/g,""),3,"g","0")+padE(String(cptSyn.transit).replace(/\D/g,""),5,"g","0")+padE(cptSyn.no_compte,12);
+      recs.push(padE("C"+padE(cnt,9,"g","0")+padE(origId,10)+noF+padE(seg,240),L));
+    });
+    cnt++;
+    recs.push(padE("Z"+padE(cnt,9,"g","0")+padE(origId,10)+noF+padE("0",14,"g","0")+padE("0",8,"g","0")+padE(totalCents,14,"g","0")+padE(cibles.length,8,"g","0")+padE("0",14,"g","0")+padE("0",8,"g","0"),L));
+    var contenu=recs.join("\n");
+    var nomFichier=dateEft.replace(/-/g,"_")+"-"+noF+"-fournisseurs.txt";
+    telechargerE(nomFichier,contenu);
+    var rE=await sb.insert("fichiers_eft",{syndicat_id:sel.id,type_dc:"C",no_fichier:noF,date_fichier:dateEft,nom_fichier:nomFichier,nb_transferts:cibles.length,montant_total:totalCents/100,contenu:contenu,statut:"genere"});
+    if(!rE||!rE.data||!rE.data.id)setErrSauve("Fichier telecharge, mais ECHEC de l enregistrement au registre EFT: "+((rE&&rE.error&&rE.error.message)||"table fichiers_eft manquante (SQL fourni)"));
+    var nSuiv=String((parseInt(sel.pap_f_no_fichier)||1)+1);
+    await sb.update("syndicats",sel.id,{pap_f_no_fichier:nSuiv});
+    setSel(Object.assign({},sel,{pap_f_no_fichier:nSuiv}));
+    // Chaque facture payee + ecriture au journal
+    var echecs=[];
+    for(var i=0;i<cibles.length;i++){
+      var f=cibles[i];
+      var r1=await sb.update("factures",f.id,{statut:"payee",date_paiement:dateEft});
+      if(r1&&r1.error){echecs.push((f.fournisseur_nom||"")+": "+(r1.error.message||""));continue;}
+      var rj=await sb.insert("journal",{
+        syndicat_id:sel.id,date_transaction:dateEft,
+        description:"Paiement fournisseur (EFT "+nomFichier+") - "+(f.fournisseur_nom||"")+(f.no_facture?" #"+f.no_facture:"")+(f.no_compte_gl?" (GL "+f.no_compte_gl+")":""),
+        categorie:"Paiement fournisseur",
+        montant_debit:Number(f.total)||0,montant_credit:0,
+        reference:"EFT-"+(f.no_facture||String(f.id).substring(0,8))
+      });
+      if(rj&&rj.error)echecs.push((f.fournisseur_nom||"")+" (journal): "+(rj.error.message||""));
+    }
+    setFactures(function(prev){return prev.map(function(x){return ids.indexOf(String(x.id))>=0&&x.statut==="approuvee"?Object.assign({},x,{statut:"payee",date_paiement:dateEft}):x;});});
+    setSelEFT({});setEftEnCours(false);
+    if(echecs.length>0)setErrSauve("Fichier genere, mais ECHEC sur: "+echecs.join(" | "));
+    sb.log("factures","paiement","Fichier EFT fournisseurs "+nomFichier+": "+cibles.length+" paiement(s), "+(totalCents/100).toFixed(2)+" $","",sel.code||"");
+  }
+
   function updateStatut(id, statut){
     setFactures(function(prev){return prev.map(function(f){return f.id===id?Object.assign({},f,{statut:statut}):f;});});
     setFactureAppro(null);
@@ -740,6 +841,25 @@ export default function GestionFactures(){
           );})}
         </div>
 
+        {(function(){
+          var idsE=Object.keys(selEFT).filter(function(id){return selEFT[id];});
+          var totE=factures.filter(function(f){return idsE.indexOf(String(f.id))>=0;}).reduce(function(a,f){return a+(Number(f.total)||0);},0);
+          if(idsE.length===0)return null;
+          return(
+            <div style={{background:T.navy,borderRadius:10,padding:"10px 16px",marginBottom:12,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+              <div style={{fontSize:12,fontWeight:800,color:"#fff"}}>{idsE.length} facture(s) a payer par EFT - total {totE.toFixed(2)} $</div>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontSize:10,color:"#9fb0c6",textTransform:"uppercase",fontWeight:700}}>Date du paiement</span>
+                <input type="date" value={dateEft} onChange={function(e){setDateEft(e.target.value);}} style={{border:"none",borderRadius:6,padding:"5px 8px",fontSize:12,fontFamily:"inherit"}}/>
+              </div>
+              <div style={{marginLeft:"auto",display:"flex",gap:8}}>
+                <Btn sm onClick={genererEftFournisseurs} dis={eftEnCours}>{eftEnCours?"Generation...":"Generer le fichier EFT (Desjardins)"}</Btn>
+                <Btn sm bg="#ffffff22" tc="#fff" bdr="1px solid #ffffff44" onClick={function(){setSelEFT({});}}>Tout decocher</Btn>
+              </div>
+            </div>
+          );
+        })()}
+
         {filtrees.map(function(f){return(
           <CarteFacture key={f.id} facture={f}
             appros={approsToutes.filter(function(a){return a.facture_id===f.id&&(a.decision==="approuve"||a.decision==="approuvee");})}
@@ -747,6 +867,8 @@ export default function GestionFactures(){
             onApprouver={function(fac){setFactureAppro(fac);}}
             onPayer={function(){setPayerF(f);setDatePaie(new Date().toISOString().substring(0,10));}}
             onEdit={editerFacture}
+            eftSel={!!selEFT[String(f.id)]}
+            onEftToggle={function(fac,coche){setSelEFT(function(pr){var n=Object.assign({},pr);if(coche)n[String(fac.id)]=true;else delete n[String(fac.id)];return n;});}}
           />
         );})}
         {filtrees.length===0&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucune facture dans cette categorie</div>}

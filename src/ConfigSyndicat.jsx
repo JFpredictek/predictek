@@ -29,6 +29,7 @@ export default function ConfigSyndicat(p){
   var s5=useState({delaiConv:"15",taux:"0"});var glob=s5[0];var setGlob=s5[1];
   var s6=useState(false);var saving=s6[0];var setSaving=s6[1];
   var s7=useState([{max:"1000",nb:"1"},{max:"5000",nb:"2"},{max:"10000",nb:"3"}]);var paliers=s7[0];var setPaliers=s7[1];
+  var s8=useState([]);var banques=s8[0];var setBanques=s8[1];
 
   useEffect(function(){
     sb.select("syndicats",{order:"nom.asc"}).then(function(r){
@@ -64,8 +65,26 @@ export default function ConfigSyndicat(p){
       ass_syn_compagnie:sel.ass_syn_compagnie||"",
       ass_syn_police:sel.ass_syn_police||"",
       ass_syn_montant:sel.ass_syn_montant||"",
-      assurance_syndicat_exp:sel.assurance_syndicat_exp||""
+      assurance_syndicat_exp:sel.assurance_syndicat_exp||"",
+      pap_methode:sel.pap_methode||"desjardins",
+      pap_orig_id:sel.pap_orig_id||"",
+      pap_nom_long:sel.pap_nom_long||sel.nom||"",
+      pap_nom_court:sel.pap_nom_court||"",
+      pap_no_fichier:sel.pap_no_fichier||"1",
+      pap_centre:sel.pap_centre||"81510",
+      pap_compte_id:sel.pap_compte_id||"",
+      pap_f_methode:sel.pap_f_methode||"desjardins",
+      pap_f_orig_id:sel.pap_f_orig_id||"",
+      pap_f_nom_long:sel.pap_f_nom_long||sel.nom||"",
+      pap_f_nom_court:sel.pap_f_nom_court||"",
+      pap_f_no_fichier:sel.pap_f_no_fichier||"1",
+      pap_f_compte_id:sel.pap_f_compte_id||"",
+      frais_nsf:sel.frais_nsf!==null&&sel.frais_nsf!==undefined?String(sel.frais_nsf):"0",
+      logo_data:sel.logo_data||""
     });
+    sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},limit:20}).then(function(r){
+      if(r&&r.data)setBanques(r.data);else setBanques([]);
+    }).catch(function(){setBanques([]);});
     try{
       var pl=JSON.parse(sel.approb_paliers||"");
       if(Array.isArray(pl)&&pl.length>0)setPaliers(pl.slice(0,3).map(function(x){return {max:String(x.max),nb:String(x.nb)};}));
@@ -77,6 +96,42 @@ export default function ConfigSyndicat(p){
   }
 
   function sf(k,v){setF(function(pr){var n=Object.assign({},pr);n[k]=v;return n;});}
+
+  var FONDS_NOMS={operation:"Fonds d operation",prevoyance:"Fonds de prevoyance",assurance:"Fonds d auto-assurance",special:"Fonds de travaux speciaux"};
+  function libBanque(b){
+    var nomF=FONDS_NOMS[b.fonds]||("Fonds "+(b.fonds||""));
+    var cpt=b.no_compte?" (***"+String(b.no_compte).slice(-4)+")":"";
+    return nomF+(b.banque?" - "+b.banque:"")+cpt;
+  }
+
+  // Logo du syndicat: lecture du fichier image, reduction a 420px max, stockage en data URL
+  function chargerLogo(ev){
+    var file=ev.target.files&&ev.target.files[0];
+    if(!file)return;
+    if(file.size>4000000){setErr("Image trop lourde (max 4 Mo). Choisissez une image plus petite.");return;}
+    setErr("");
+    var rd=new FileReader();
+    rd.onload=function(e2){
+      var img=new Image();
+      img.onload=function(){
+        var maxW=420;
+        var ratio=img.width>maxW?maxW/img.width:1;
+        var cv=document.createElement("canvas");
+        cv.width=Math.round(img.width*ratio);cv.height=Math.round(img.height*ratio);
+        var cx=cv.getContext("2d");
+        cx.drawImage(img,0,0,cv.width,cv.height);
+        var data=cv.toDataURL("image/png");
+        if(data.length>900000){data=cv.toDataURL("image/jpeg",0.85);}
+        sf("logo_data",data);
+        setMsg("Logo charge - cliquez Sauvegarder la configuration pour l enregistrer.");
+        setTimeout(function(){setMsg("");},6000);
+      };
+      img.onerror=function(){setErr("ECHEC: ce fichier n est pas une image lisible (utilisez PNG ou JPG).");};
+      img.src=e2.target.result;
+    };
+    rd.readAsDataURL(file);
+    ev.target.value="";
+  }
 
   function sauvegarder(){
     if(!sel||saving)return;
@@ -99,7 +154,22 @@ export default function ConfigSyndicat(p){
       ass_syn_compagnie:f.ass_syn_compagnie||"",
       ass_syn_police:f.ass_syn_police||"",
       ass_syn_montant:f.ass_syn_montant||"",
-      assurance_syndicat_exp:f.assurance_syndicat_exp||null
+      assurance_syndicat_exp:f.assurance_syndicat_exp||null,
+      pap_methode:f.pap_methode||"desjardins",
+      pap_orig_id:(f.pap_orig_id||"").toUpperCase().slice(0,10),
+      pap_nom_long:(f.pap_nom_long||"").slice(0,30),
+      pap_nom_court:(f.pap_nom_court||"").slice(0,15),
+      pap_no_fichier:String(parseInt(f.pap_no_fichier)||1),
+      pap_centre:(f.pap_centre||"").replace(/\D/g,"").slice(0,5),
+      pap_compte_id:f.pap_compte_id||null,
+      pap_f_methode:f.pap_f_methode||"desjardins",
+      pap_f_orig_id:(f.pap_f_orig_id||"").toUpperCase().slice(0,10),
+      pap_f_nom_long:(f.pap_f_nom_long||"").slice(0,30),
+      pap_f_nom_court:(f.pap_f_nom_court||"").slice(0,15),
+      pap_f_no_fichier:String(parseInt(f.pap_f_no_fichier)||1),
+      pap_f_compte_id:f.pap_f_compte_id||null,
+      frais_nsf:parseFloat(f.frais_nsf)||0,
+      logo_data:f.logo_data||""
     };
     sb.update("syndicats",sel.id,maj).then(function(r){
       if(r&&r.error){setSaving(false);setErr("ECHEC de la sauvegarde: "+(r.error.message||"les colonnes ass_avis_* existent-elles? (SQL fourni)"));return;}
@@ -215,6 +285,73 @@ export default function ConfigSyndicat(p){
               <div><Lbl l="Intervalle de renouvellement (annees)"/><input type="number" min="1" max="10" value={f.etude_prevoyance_ans||""} onChange={function(e){sf("etude_prevoyance_ans",e.target.value);}} style={INP}/></div>
               {f.etude_prevoyance_date&&parseInt(f.etude_prevoyance_ans)>0&&(function(){var d=new Date(f.etude_prevoyance_date+"T12:00:00");d.setFullYear(d.getFullYear()+parseInt(f.etude_prevoyance_ans));return <div style={{fontSize:10,color:T.amber,fontWeight:700,marginTop:8}}>Prochaine echeance: {d.toISOString().substring(0,10)}</div>;})()}
             </div>
+          </div>
+        </Carte>
+
+        <Carte titre="Logo du syndicat" desc="Ce logo apparait sur les avis de non-conformite, attestations, factures aux copros et tous les rapports de CE syndicat. Si aucun logo n est fourni, le logo Predictek (Configuration Predictek) est utilise.">
+          <div style={{display:"flex",gap:16,alignItems:"center",flexWrap:"wrap"}}>
+            <div style={{width:180,height:90,border:"1px dashed "+T.border,borderRadius:10,background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+              {f.logo_data?<img src={f.logo_data} alt="Logo" style={{maxWidth:"100%",maxHeight:"100%"}}/>:<span style={{fontSize:10,color:T.muted}}>Aucun logo - logo Predictek utilise</span>}
+            </div>
+            <div>
+              <label style={{display:"inline-block",background:T.blueL,color:T.blue,border:"1px solid "+T.blue+"44",borderRadius:7,padding:"7px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+                Choisir une image (PNG/JPG)
+                <input type="file" accept="image/*" onChange={chargerLogo} style={{display:"none"}}/>
+              </label>
+              {f.logo_data&&<div style={{marginTop:8}}><Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red+"44"} onClick={function(){sf("logo_data","");}}>Retirer le logo</Btn></div>}
+              <div style={{fontSize:10,color:T.muted,marginTop:8}}>L image est reduite automatiquement. N oubliez pas de cliquer Sauvegarder la configuration.</div>
+            </div>
+          </div>
+        </Carte>
+
+        <Carte titre="Prelevements automatises des coproprietaires (PAP / fichier EFT)" desc="Parametres du service de debits preautorises de votre institution. Le fichier EFT genere dans Encaissements - Prelevements utilise ces informations.">
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:10}}>
+            <div><Lbl l="Methode utilisee"/>
+              <select value={f.pap_methode||"desjardins"} onChange={function(e){sf("pap_methode",e.target.value);}} style={INP}>
+                <option value="desjardins">Debit pre-autorise Desjardins</option>
+                <option value="cpa005">Autre institution (CPA-005)</option>
+              </select>
+            </div>
+            <div><Lbl l="Nom d utilisateur / no d emetteur (10 car.)"/><input value={f.pap_orig_id||""} onChange={function(e){sf("pap_orig_id",e.target.value.toUpperCase().slice(0,10));}} style={INP} placeholder="2003000279"/></div>
+            <div><Lbl l="Centre de donnees (Desjardins: 81510)"/><input value={f.pap_centre||""} onChange={function(e){sf("pap_centre",e.target.value.replace(/\D/g,"").slice(0,5));}} style={INP}/></div>
+            <div><Lbl l="Nom LONG de la copropriete (releve bancaire)"/><input value={f.pap_nom_long||""} onChange={function(e){sf("pap_nom_long",e.target.value.slice(0,30));}} style={INP} placeholder="Copropriete Piedmont"/></div>
+            <div><Lbl l="Nom COURT du syndicat (transaction)"/><input value={f.pap_nom_court||""} onChange={function(e){sf("pap_nom_court",e.target.value.slice(0,15));}} style={INP} placeholder="Piedmont"/></div>
+            <div><Lbl l="No du prochain fichier a la banque"/><input value={f.pap_no_fichier||""} onChange={function(e){sf("pap_no_fichier",e.target.value.replace(/\D/g,"").slice(0,4));}} style={INP}/></div>
+            <div style={{gridColumn:"span 2"}}><Lbl l="Compte de banque du syndicat (depot et retours)"/>
+              <select value={f.pap_compte_id||""} onChange={function(e){sf("pap_compte_id",e.target.value);}} style={INP}>
+                <option value="">Choisir un compte...</option>
+                {banques.map(function(b){return <option key={b.id} value={b.id}>{libBanque(b)}</option>;})}
+              </select>
+            </div>
+          </div>
+          <div style={{fontSize:10,color:T.muted}}>Les comptes proviennent de Finances - Comptabilite - Comptes bancaires par fonds. Les fichiers generes sont conserves dans Encaissements - Prelevements (Voir les fichiers).</div>
+        </Carte>
+
+        <Carte titre="Paiements automatises AUX FOURNISSEURS (fichier EFT)" desc="Memes parametres, pour PAYER les factures fournisseurs par transfert electronique de fonds (credits). Le fichier se genere dans Finances - Factures a payer.">
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:10}}>
+            <div><Lbl l="Methode utilisee"/>
+              <select value={f.pap_f_methode||"desjardins"} onChange={function(e){sf("pap_f_methode",e.target.value);}} style={INP}>
+                <option value="desjardins">Debit pre-autorise Desjardins</option>
+                <option value="cpa005">Autre institution (CPA-005)</option>
+              </select>
+            </div>
+            <div><Lbl l="Nom d utilisateur / no d emetteur (10 car.)"/><input value={f.pap_f_orig_id||""} onChange={function(e){sf("pap_f_orig_id",e.target.value.toUpperCase().slice(0,10));}} style={INP} placeholder="Souvent le meme numero"/></div>
+            <div><Lbl l="No du prochain fichier a la banque"/><input value={f.pap_f_no_fichier||""} onChange={function(e){sf("pap_f_no_fichier",e.target.value.replace(/\D/g,"").slice(0,4));}} style={INP}/></div>
+            <div><Lbl l="Nom LONG de la copropriete"/><input value={f.pap_f_nom_long||""} onChange={function(e){sf("pap_f_nom_long",e.target.value.slice(0,30));}} style={INP}/></div>
+            <div><Lbl l="Nom COURT du syndicat"/><input value={f.pap_f_nom_court||""} onChange={function(e){sf("pap_f_nom_court",e.target.value.slice(0,15));}} style={INP}/></div>
+            <div><Lbl l="Compte de banque debite (paiements)"/>
+              <select value={f.pap_f_compte_id||""} onChange={function(e){sf("pap_f_compte_id",e.target.value);}} style={INP}>
+                <option value="">Choisir un compte...</option>
+                {banques.map(function(b){return <option key={b.id} value={b.id}>{libBanque(b)}</option>;})}
+              </select>
+            </div>
+          </div>
+          <div style={{fontSize:10,color:T.muted}}>Chaque fournisseur paye par EFT doit avoir ses coordonnees bancaires dans sa fiche (module Fournisseurs).</div>
+        </Carte>
+
+        <Carte titre="Frais pour fonds insuffisants (NSF)" desc="Lorsqu un prelevement rebondit (provision insuffisante), ce montant est refacture automatiquement au coproprietaire en plus de la cotisation (bouton Rebond NSF dans Encaissements).">
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+            <div><Lbl l="Frais factures par votre banque ($)"/><input type="number" step="0.01" min="0" value={f.frais_nsf||""} onChange={function(e){sf("frais_nsf",e.target.value);}} style={INP} placeholder="52.00"/></div>
           </div>
         </Carte>
 

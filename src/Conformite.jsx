@@ -11,10 +11,14 @@ function Lbl(p){return <div style={{fontSize:10,color:T.muted,textTransform:"upp
 function Btn(p){return <button onClick={p.onClick} disabled={p.dis} style={{background:p.dis?"#ccc":p.bg||T.accent,border:p.bdr||"none",borderRadius:7,padding:p.sm?"5px 12px":"8px 18px",color:p.tc||"#fff",fontSize:p.sm?11:12,fontWeight:600,cursor:p.dis?"not-allowed":"pointer",fontFamily:"inherit"}}>{p.children}</button>;}
 var money=function(n){return (Number(n)||0).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";};
 
-function imprimerHTML(titre, corpsHTML){
+function imprimerHTML(titre, corpsHTML, logoSyn){
   var w=window.open("","_blank","width=900,height=700");
   if(!w)return;
-  w.document.write("<html><head><title>"+titre+"</title><style>body{font-family:Georgia,serif;color:#1C1A17;margin:42px;font-size:13px;line-height:1.55}h1{font-size:18px;margin:0 0 2px}h2{font-size:14px;border-bottom:2px solid #13233A;padding-bottom:4px;margin-top:22px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #999;padding:6px 9px;font-size:12px;text-align:left}th{background:#EDEBE4;width:200px}.muted{color:#666;font-size:11px}.enc{border:2px solid #B83232;border-radius:8px;padding:12px;margin:14px 0;font-weight:bold}</style></head><body>"+corpsHTML+"<script>window.print();</script></body></html>");
+  // Logo du SYNDICAT s il est configure (Configuration du syndicat); sinon logo Predictek
+  var logo=logoSyn||"";
+  if(!logo){try{logo=localStorage.getItem("predictek_logo")||"";}catch(e){}}
+  var entete=logo?"<div style='border-bottom:3px solid #1B5E3B;padding-bottom:10px;margin-bottom:12px'><img src='"+logo+"' style='height:52px'/></div>":"";
+  w.document.write("<html><head><title>"+titre+"</title><style>body{font-family:Georgia,serif;color:#1C1A17;margin:42px;font-size:13px;line-height:1.55}h1{font-size:18px;margin:0 0 2px}h2{font-size:14px;border-bottom:2px solid #13233A;padding-bottom:4px;margin-top:22px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #999;padding:6px 9px;font-size:12px;text-align:left}th{background:#EDEBE4;width:200px}.muted{color:#666;font-size:11px}.enc{border:2px solid #B83232;border-radius:8px;padding:12px;margin:14px 0;font-weight:bold}</style></head><body>"+entete+corpsHTML+"<script>window.print();</script></body></html>");
   w.document.close();
 }
 
@@ -144,7 +148,7 @@ export default function Conformite(){
     h+="<p>Veuillez agir en consequence.</p>";
     h+="<br/><p>Le Conseil d administration<br/>"+(sel.nom||"")+"</p>";
     h+="<div class='muted' style='margin-top:26px'>Genere par Predictek le "+new Date().toLocaleDateString("fr-CA")+".</div>";
-    imprimerHTML(titre+" - unite "+a.unite,h);
+    imprimerHTML(titre+" - unite "+a.unite,h,sel.logo_data||"");
   }
 
   if(syndicats.length===0)return <div style={{padding:40,textAlign:"center",fontFamily:"Georgia,serif",color:T.muted}}>Aucun syndicat - creez d abord un syndicat via Configuration.</div>;

@@ -72,10 +72,12 @@ function moisEntreA(debut,moisFin){
   return out;
 }
 function moneyA(v){return (Number(v)||0).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";}
-function imprimerAtt(titre,corps){
+function imprimerAtt(titre,corps,logoSyn){
   var w=window.open("","_blank","width=900,height=700");
   if(!w)return;
-  var logo="";try{logo=localStorage.getItem("predictek_logo")||"";}catch(e){}
+  // Logo du SYNDICAT si configure (Configuration du syndicat), sinon logo Predictek
+  var logo=logoSyn||"";
+  if(!logo){try{logo=localStorage.getItem("predictek_logo")||"";}catch(e){}}
   w.document.write("<html><head><title>"+titre+"</title><style>"
     +"body{font-family:Georgia,serif;color:#1C1A17;margin:36px;font-size:12px}"
     +".ent{display:flex;align-items:center;gap:14px;border-bottom:3px solid #1B5E3B;padding-bottom:10px;margin-bottom:10px}"
@@ -87,7 +89,7 @@ function imprimerAtt(titre,corps){
     +"th{background:#EDEBE4}.right{text-align:right}.tot{font-weight:bold;background:#E8F2EC}"
     +".muted{color:#666;font-size:10px}.alerte{color:#B83232;font-weight:bold}"
     +"</style></head><body>"
-    +"<div class='ent'>"+(logo?"<img src='"+logo+"'/>":"")+"<div><div style='font-size:17px;font-weight:bold;color:#13233A'>Predictek</div><div class='muted'>Gestion de copropriete</div></div></div>"
+    +"<div class='ent'>"+(logo?"<img src='"+logo+"'/>":"")+"<div><div style='font-size:17px;font-weight:bold;color:#13233A'>"+(logoSyn?"":"Predictek")+"</div><div class='muted'>Gestion de copropriete</div></div></div>"
     +corps+"<script>window.print();</script></body></html>");
   w.document.close();
 }
@@ -452,7 +454,7 @@ export default function Unites(){
         +"<div class='muted' style='margin-top:8px'>Les soldes courants des fonds = solde d ouverture du compte bancaire + encaissements - deboursements enregistres; le detail figure dans la comptabilite par fonds du syndicat.</div>"
         +"<br/><br/><div>_____________________________<br/>Signature d un administrateur ou du gestionnaire<br/><span class='muted'>Atteste en vertu des articles 1068.1 et 1069 C.c.Q., d apres les registres du syndicat en date de ce jour.</span></div>";
       setMsgVente("");
-      imprimerAtt("Attestation - unite "+u.no_unite,html);
+      imprimerAtt("Attestation - unite "+u.no_unite,html,sel.logo_data||"");
     }).catch(function(e){setMsgVente("ECHEC de la preparation de l attestation: "+(e&&e.message?e.message:"erreur"));});
   }
 

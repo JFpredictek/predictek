@@ -10,7 +10,7 @@ function Btn(p){return <button onClick={p.onClick} disabled={p.dis} style={{back
 
 var CATEGORIES=["Entretien","Plomberie","Electricite","Chauffage","Nettoyage","Paysagement","Deneigement","Securite","Ascenseur","Assurance","Services professionnels","Informatique","Autre"];
 
-var VIDE={nom:"",categorie:"Entretien",telephone:"",courriel:"",adresse:"",site_web:"",notes:"",contact:"",rbq:"",no_tps:"",no_tvq:""};
+var VIDE={nom:"",categorie:"Entretien",telephone:"",courriel:"",adresse:"",site_web:"",notes:"",contact:"",rbq:"",no_tps:"",no_tvq:"",banque_institution:"",banque_transit:"",banque_compte:""};
 
 function CarteFournisseur(p){
   var f=p.fournisseur;
@@ -34,6 +34,7 @@ function CarteFournisseur(p){
             {f.courriel&&<div>Courriel: <span style={{color:T.navy}}>{f.courriel}</span></div>}
             {f.no_tps&&<div>TPS: <span style={{color:T.navy}}>{f.no_tps}</span></div>}
             {f.no_tvq&&<div>TVQ: <span style={{color:T.navy}}>{f.no_tvq}</span></div>}
+            {f.banque_compte&&<div>EFT: <span style={{color:T.blue,fontWeight:700}}>{f.banque_institution||"?"}-{f.banque_transit||"?"}-***{String(f.banque_compte).slice(-3)}</span></div>}
             {f.adresse&&<div style={{gridColumn:"1/-1"}}>Adresse: <span style={{color:T.navy}}>{f.adresse}</span></div>}
             {f.site_web&&<div style={{gridColumn:"1/-1"}}>Web: <a href={f.site_web} target="_blank" rel="noreferrer" style={{color:T.blue}}>{f.site_web}</a></div>}
             {f.notes&&<div style={{gridColumn:"1/-1",color:T.muted,fontStyle:"italic"}}>{f.notes}</div>}
@@ -78,13 +79,16 @@ export default function FournisseursAdmin(){
     if(k==="rbq")return Object.assign({},pr,{rbq:v});
     if(k==="no_tps")return Object.assign({},pr,{no_tps:v});
     if(k==="no_tvq")return Object.assign({},pr,{no_tvq:v});
+    if(k==="banque_institution")return Object.assign({},pr,{banque_institution:v.replace(/\D/g,"").slice(0,3)});
+    if(k==="banque_transit")return Object.assign({},pr,{banque_transit:v.replace(/\D/g,"").slice(0,5)});
+    if(k==="banque_compte")return Object.assign({},pr,{banque_compte:v.replace(/[^\d-]/g,"").slice(0,12)});
     return pr;
   });}
 
   function sauvegarder(){
     if(!nf.nom)return;
     setSaving(true);
-    var row={nom:nf.nom,categorie:nf.categorie||"Autre",telephone:nf.telephone||"",courriel:nf.courriel||"",adresse:nf.adresse||"",site_web:nf.site_web||"",notes:nf.notes||"",contact:nf.contact||"",rbq:nf.rbq||"",no_tps:nf.no_tps||"",no_tvq:nf.no_tvq||"",actif:true};
+    var row={nom:nf.nom,categorie:nf.categorie||"Autre",telephone:nf.telephone||"",courriel:nf.courriel||"",adresse:nf.adresse||"",site_web:nf.site_web||"",notes:nf.notes||"",contact:nf.contact||"",rbq:nf.rbq||"",no_tps:nf.no_tps||"",no_tvq:nf.no_tvq||"",banque_institution:nf.banque_institution||"",banque_transit:nf.banque_transit||"",banque_compte:nf.banque_compte||"",actif:true};
     var op=editId?sb.update("fournisseurs",editId,row):sb.insert("fournisseurs",row);
     op.then(function(res){
       if(editId){
@@ -97,7 +101,7 @@ export default function FournisseursAdmin(){
   }
 
   function editer(f){
-    setNf({nom:f.nom||"",categorie:f.categorie||"Entretien",telephone:f.telephone||"",courriel:f.courriel||"",adresse:f.adresse||"",site_web:f.site_web||"",notes:f.notes||"",contact:f.contact||"",rbq:f.rbq||"",no_tps:f.no_tps||"",no_tvq:f.no_tvq||""});
+    setNf({nom:f.nom||"",categorie:f.categorie||"Entretien",telephone:f.telephone||"",courriel:f.courriel||"",adresse:f.adresse||"",site_web:f.site_web||"",notes:f.notes||"",contact:f.contact||"",rbq:f.rbq||"",no_tps:f.no_tps||"",no_tvq:f.no_tvq||"",banque_institution:f.banque_institution||"",banque_transit:f.banque_transit||"",banque_compte:f.banque_compte||""});
     setEditId(f.id);setShowForm(true);
   }
 
@@ -144,6 +148,15 @@ export default function FournisseursAdmin(){
               <div><Lbl l="Licence RBQ (entrepreneurs)"/><input value={nf.rbq} onChange={function(e){setN("rbq",e.target.value);}} style={INP} placeholder="5678-1234-01"/></div>
               <div><Lbl l="No TPS"/><input value={nf.no_tps} onChange={function(e){setN("no_tps",e.target.value);}} style={INP} placeholder="123456789 RT0001"/></div>
               <div><Lbl l="No TVQ"/><input value={nf.no_tvq} onChange={function(e){setN("no_tvq",e.target.value);}} style={INP} placeholder="1234567890 TQ0001"/></div>
+              <div style={{gridColumn:"1/-1",background:"#EFF6FF",borderRadius:10,padding:12}}>
+                <div style={{fontSize:11,fontWeight:800,color:T.blue,marginBottom:8,textTransform:"uppercase"}}>Coordonnees bancaires (paiement par EFT)</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 2fr",gap:10}}>
+                  <div><Lbl l="Institution (3 chiffres)"/><input value={nf.banque_institution} onChange={function(e){setN("banque_institution",e.target.value);}} style={INP} placeholder="815"/></div>
+                  <div><Lbl l="Transit (5 chiffres)"/><input value={nf.banque_transit} onChange={function(e){setN("banque_transit",e.target.value);}} style={INP} placeholder="20030"/></div>
+                  <div><Lbl l="No de compte"/><input value={nf.banque_compte} onChange={function(e){setN("banque_compte",e.target.value);}} style={INP} placeholder="1234567"/></div>
+                </div>
+                <div style={{fontSize:10,color:T.muted,marginTop:6}}>Requis seulement pour payer ce fournisseur par fichier EFT (Finances - Factures, case Payer par EFT).</div>
+              </div>
               <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse"/><input value={nf.adresse} onChange={function(e){setN("adresse",e.target.value);}} style={INP} placeholder="123 rue Principale, Quebec QC"/></div>
               <div style={{gridColumn:"1/-1"}}><Lbl l="Site web"/><input value={nf.site_web} onChange={function(e){setN("site_web",e.target.value);}} style={INP} placeholder="https://www.fournisseur.ca"/></div>
               <div style={{gridColumn:"1/-1"}}><Lbl l="Notes internes"/><textarea value={nf.notes} onChange={function(e){setN("notes",e.target.value);}} style={Object.assign({},INP,{minHeight:60,resize:"vertical"})} placeholder="Specialites, tarifs, contacts preferes..."/></div>

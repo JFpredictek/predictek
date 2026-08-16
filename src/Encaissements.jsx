@@ -43,10 +43,14 @@ function debutExerciceCourant(exerciceTxt){
 }
 
 // Impression d un document HTML dans une fenetre dediee
-function imprimerHTML(titre, corpsHTML){
+// (logo du SYNDICAT si configure dans Configuration du syndicat, sinon logo Predictek)
+function imprimerHTML(titre, corpsHTML, logoSyn){
   var w=window.open("","_blank","width=900,height=700");
   if(!w)return;
-  w.document.write("<html><head><title>"+titre+"</title><style>body{font-family:Georgia,serif;color:#1C1A17;margin:36px;font-size:13px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;border-bottom:2px solid #13233A;padding-bottom:4px;margin-top:22px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #999;padding:5px 8px;font-size:12px;text-align:left}th{background:#EDEBE4}.tot{font-weight:bold;background:#E8F2EC}.muted{color:#666;font-size:11px}.right{text-align:right}</style></head><body>"+corpsHTML+"<script>window.print();</script></body></html>");
+  var logo=logoSyn||"";
+  if(!logo){try{logo=localStorage.getItem("predictek_logo")||"";}catch(e){}}
+  var entete=logo?"<div style='border-bottom:3px solid #1B5E3B;padding-bottom:10px;margin-bottom:12px'><img src='"+logo+"' style='height:52px'/></div>":"";
+  w.document.write("<html><head><title>"+titre+"</title><style>body{font-family:Georgia,serif;color:#1C1A17;margin:36px;font-size:13px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;border-bottom:2px solid #13233A;padding-bottom:4px;margin-top:22px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #999;padding:5px 8px;font-size:12px;text-align:left}th{background:#EDEBE4}.tot{font-weight:bold;background:#E8F2EC}.muted{color:#666;font-size:11px}.right{text-align:right}</style></head><body>"+entete+corpsHTML+"<script>window.print();</script></body></html>");
   w.document.close();
 }
 
@@ -69,10 +73,22 @@ export default function Encaissements(){
   var s14=useState([]);var factCopros=s14[0];var setFactCopros=s14[1];
   var s15=useState(false);var showFC=s15[0];var setShowFC=s15[1];
   var s16=useState({unite:"",type_frais:"frais",description:"",montant:"",date_facture:new Date().toISOString().substring(0,10),date_echeance:""});var nfFC=s16[0];var setNfFC=s16[1];
-  var s17=useState({origId:"",origNom:"",centre:"",noFichier:"1"});var dpa=s17[0];var setDpa=s17[1];
-  var s18=useState(false);var showDpaCfg=s18[0];var setShowDpaCfg=s18[1];
+  // (la configuration DPA est maintenant PAR SYNDICAT dans Configuration du syndicat)
   var s19=useState(null);var encU=s19[0];var setEncU=s19[1];
-  var s20=useState({type:"interets",montant:"",date:new Date().toISOString().substring(0,10),moyen:"prelevement",note:""});var encF=s20[0];var setEncF=s20[1];
+  var s20=useState({type:"interets",montant:"",date:new Date().toISOString().substring(0,10),moyen:"prelevement",note:"",compte:""});var encF=s20[0];var setEncF=s20[1];
+  var s21=useState([]);var banques=s21[0];var setBanques=s21[1];
+  var s22=useState([]);var avances=s22[0];var setAvances=s22[1];
+  var s23=useState([]);var fichiersEft=s23[0];var setFichiersEft=s23[1];
+  var s24=useState({});var selFC=s24[0];var setSelFC=s24[1];
+  var s25=useState("");var fUnite=s25[0];var setFUnite=s25[1];
+  var s26=useState("toutes");var fStatut=s26[0];var setFStatut=s26[1];
+  var s27=useState("");var fMoisFC=s27[0];var setFMoisFC=s27[1];
+  var s28=useState(null);var encModal=s28[0];var setEncModal=s28[1];
+  var s29=useState({date:new Date().toISOString().substring(0,10),compte:"",credit:true});var encOpt=s29[0];var setEncOpt=s29[1];
+  var s30=useState(null);var editFCId=s30[0];var setEditFCId=s30[1];
+  var s31=useState(false);var showAv=s31[0];var setShowAv=s31[1];
+  var s32=useState({unite:"",montant:"",date:new Date().toISOString().substring(0,10),compte:"",note:""});var avF=s32[0];var setAvF=s32[1];
+  var s33=useState(new Date().toISOString().substring(0,10));var datePrel=s33[0];var setDatePrel=s33[1];
 
   useEffect(function(){
     sb.select("syndicats",{order:"nom.asc"}).then(function(res){
@@ -89,10 +105,10 @@ export default function Encaissements(){
     sb.select("coproprietaires",{eq:{syndicat_id:sel.id},limit:2000}).then(function(r){if(r&&r.data)setCopros(r.data);}).catch(function(){});
     sb.select("paiements",{eq:{syndicat_id:sel.id},order:"date_paiement.desc",limit:5000}).then(function(r){if(r&&r.data)setPaiements(r.data);}).catch(function(){});
     sb.select("cotisations_speciales",{eq:{syndicat_id:sel.id},order:"date_vote.desc",limit:100}).then(function(r){if(r&&r.data)setSpeciales(r.data);}).catch(function(){});
-    sb.select("factures_copros",{eq:{syndicat_id:sel.id},order:"created_at.desc",limit:500}).then(function(r){if(r&&r.data)setFactCopros(r.data);}).catch(function(){});
-    sb.selectOne("config_publique",{eq:{cle:"dpa_config"}}).then(function(r){
-      if(r&&r.data&&r.data.valeur){try{setDpa(Object.assign({origId:"",origNom:"",centre:"",noFichier:"1"},JSON.parse(r.data.valeur)));}catch(e){}}
-    }).catch(function(){});
+    sb.select("factures_copros",{eq:{syndicat_id:sel.id},order:"created_at.desc",limit:1000}).then(function(r){if(r&&r.data)setFactCopros(r.data);}).catch(function(){});
+    sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},limit:20}).then(function(r){if(r&&r.data)setBanques(r.data);else setBanques([]);}).catch(function(){setBanques([]);});
+    sb.select("avances_copros",{eq:{syndicat_id:sel.id},order:"created_at.desc",limit:500}).then(function(r){if(r&&r.data)setAvances(r.data);else setAvances([]);}).catch(function(){setAvances([]);});
+    sb.select("fichiers_eft",{eq:{syndicat_id:sel.id},order:"created_at.desc",limit:200}).then(function(r){if(r&&r.data)setFichiersEft(r.data);else setFichiersEft([]);}).catch(function(){setFichiersEft([]);});
   }
   useEffect(function(){chargerTout();},[sel&&sel.id]);
 
@@ -166,9 +182,9 @@ export default function Encaissements(){
       var due=Number(u.cotisation_mensuelle)||0;
       if(existant){
         if(existant.statut==="paye")return Promise.resolve({data:existant});
-        return sb.update("paiements",existant.id,{statut:"paye",moyen:"pap",date_paiement:auj});
+        return sb.update("paiements",existant.id,{statut:"paye",moyen:"pap",date_paiement:auj,compte_bancaire_id:sel.pap_compte_id||null});
       }
-      return sb.insert("paiements",{syndicat_id:sel.id,unite_id:u.id,coproprietaire_id:pr?pr.id:null,type:"cotisation",mois:mois,date_paiement:auj,montant:due,description:"Cotisation "+MNOMS[parseInt(mois.substring(5,7))]+" "+mois.substring(0,4)+" - unite "+u.no_unite+" (PAP)",statut:"paye",moyen:"pap"});
+      return sb.insert("paiements",{syndicat_id:sel.id,unite_id:u.id,coproprietaire_id:pr?pr.id:null,type:"cotisation",mois:mois,date_paiement:auj,montant:due,description:"Cotisation "+MNOMS[parseInt(mois.substring(5,7))]+" "+mois.substring(0,4)+" - unite "+u.no_unite+" (PAP)",statut:"paye",moyen:"pap",compte_bancaire_id:sel.pap_compte_id||null});
     })).then(function(rs){
       var ok=rs.filter(function(r){return r&&(r.data&&(r.data.id||r.data.statut))||(!r.error);}).length;
       setMsg("Lot PAP encaisse: "+ok+" unite(s) marquee(s) payee(s) pour "+mois+".");
@@ -181,9 +197,10 @@ export default function Encaissements(){
     var existant=paiementDuMois(u,"cotisation");
     var pr=propsDe(u)[0];
     var auj=new Date().toISOString().substring(0,10);
+    var cpt=moyen==="pap"?(sel.pap_compte_id||null):null;
     var op=existant
-      ?sb.update("paiements",existant.id,{statut:"paye",moyen:moyen,date_paiement:auj})
-      :sb.insert("paiements",{syndicat_id:sel.id,unite_id:u.id,coproprietaire_id:pr?pr.id:null,type:"cotisation",mois:mois,date_paiement:auj,montant:Number(u.cotisation_mensuelle)||0,description:"Cotisation "+MNOMS[parseInt(mois.substring(5,7))]+" "+mois.substring(0,4)+" - unite "+u.no_unite,statut:"paye",moyen:moyen});
+      ?sb.update("paiements",existant.id,{statut:"paye",moyen:moyen,date_paiement:auj,compte_bancaire_id:cpt})
+      :sb.insert("paiements",{syndicat_id:sel.id,unite_id:u.id,coproprietaire_id:pr?pr.id:null,type:"cotisation",mois:mois,date_paiement:auj,montant:Number(u.cotisation_mensuelle)||0,description:"Cotisation "+MNOMS[parseInt(mois.substring(5,7))]+" "+mois.substring(0,4)+" - unite "+u.no_unite,statut:"paye",moyen:moyen,compte_bancaire_id:cpt});
     op.then(function(r){
       if(r&&r.error){setErr("Echec: "+(r.error.message||""));return;}
       sb.log("encaissements","paiement","Unite "+u.no_unite+" - cotisation "+mois+" payee ("+moyen+")","",sel.code||"");
@@ -209,13 +226,14 @@ export default function Encaissements(){
     if(!encU||!sel)return;
     var mnt=parseFloat(encF.montant)||0;
     if(mnt<=0){setErr("Entrez un montant positif.");return;}
+    if(!encF.compte&&banques.length>0){setErr("Choisissez le compte de banque qui recoit les fonds.");return;}
     setErr("");
     var pr=propsDe(encU)[0];
     var TYPES_LBL={cotisation:"Cotisation",speciale:"Cotisation speciale",interets:"Interets de retard",frais:"Frais",infraction:"Infraction / penalite",refacturation:"Refacturation",autre:"Autre encaissement"};
     sb.insert("paiements",{
       syndicat_id:sel.id,unite_id:encU.id,coproprietaire_id:pr?pr.id:null,
       type:encF.type,mois:(encF.date||"").substring(0,7),date_paiement:encF.date,
-      montant:mnt,moyen:encF.moyen,statut:"paye",
+      montant:mnt,moyen:encF.moyen,statut:"paye",compte_bancaire_id:encF.compte||null,
       description:(TYPES_LBL[encF.type]||encF.type)+" - unite "+encU.no_unite+(encF.note?" - "+encF.note.substring(0,120):"")
     }).then(function(r){
       if(r&&r.error){setErr("ECHEC de l encaissement: "+(r.error.message||"")+". Rien n a ete enregistre.");return;}
@@ -260,7 +278,7 @@ export default function Encaissements(){
       +"<h2>Historique des paiements</h2><table><tr><th>Mois</th><th>Description</th><th>Statut</th><th>Moyen</th><th class='right'>Montant</th></tr>"
       +lignes.map(function(p){return "<tr><td>"+(p.mois||String(p.date_paiement||"").substring(0,7))+"</td><td>"+(p.description||"")+"</td><td>"+(p.statut||"")+"</td><td>"+(p.moyen||"")+"</td><td class='right'>"+money(p.montant)+"</td></tr>";}).join("")
       +"</table>";
-    imprimerHTML("Etat de compte unite "+u.no_unite,html);
+    imprimerHTML("Etat de compte unite "+u.no_unite,html,sel.logo_data||"");
   }
 
   // L attestation (art. 1069 C.c.Q.) a ete deplacee dans le module Unites, enrichie
@@ -282,6 +300,21 @@ export default function Encaissements(){
     setEnCours(true);setErr("");
     var u=unites.find(function(x){return x.no_unite===nfFC.unite;});
     var pr=u?propsDe(u)[0]:null;
+    if(editFCId){
+      // MODIFICATION d une facture non payee
+      sb.update("factures_copros",editFCId,{unite_id:u?u.id:null,unite:nfFC.unite,coproprietaire_id:pr?pr.id:null,
+        destinataire_nom:u?propsDe(u).map(function(c){return ((c.prenom||"")+" "+(c.nom||"")).trim();}).join(" et "):"",
+        type_frais:nfFC.type_frais,description:nfFC.description,
+        montant:parseFloat(nfFC.montant)||0,date_facture:nfFC.date_facture,date_echeance:nfFC.date_echeance||null}).then(function(r){
+        setEnCours(false);
+        if(r&&r.error){setErr("ECHEC de la modification: "+(r.error.message||""));return;}
+        setMsg("Facture modifiee.");
+        sb.log("encaissements","modification","Facture copro modifiee: unite "+nfFC.unite+" - "+(parseFloat(nfFC.montant)||0)+" $","",sel.code||"");
+        setShowFC(false);setEditFCId(null);setNfFC({unite:"",type_frais:"frais",description:"",montant:"",date_facture:new Date().toISOString().substring(0,10),date_echeance:""});
+        chargerTout();setTimeout(function(){setMsg("");},6000);
+      }).catch(function(e){setEnCours(false);setErr("Erreur: "+(e&&e.message?e.message:""));});
+      return;
+    }
     var annee=nfFC.date_facture.substring(0,4);
     var no="FC-"+annee+"-"+String(factCopros.filter(function(f){return (f.no_facture||"").indexOf("FC-"+annee)===0;}).length+1).padStart(3,"0");
     var row={syndicat_id:sel.id,unite_id:u?u.id:null,unite:nfFC.unite,coproprietaire_id:pr?pr.id:null,
@@ -291,24 +324,156 @@ export default function Encaissements(){
     sb.insert("factures_copros",row).then(function(r){
       setEnCours(false);
       if(!r||!r.data||!r.data.id){setErr("ECHEC: "+((r&&r.error&&r.error.message)||"la table factures_copros existe-t-elle? (SQL fourni)"));return;}
-      setMsg("Facture "+no+" emise a l unite "+nfFC.unite+" ("+money(row.montant)+"). Imprimez-la et transmettez-la.");
+      setMsg("Facture "+no+" emise a l unite "+nfFC.unite+" ("+money(row.montant)+"). Utilisez Envoyer pour la rendre visible au portail du copro.");
       sb.log("encaissements","creation","Facture copro "+no+": unite "+nfFC.unite+" - "+TYPES_FRAIS[nfFC.type_frais]+" "+row.montant+" $","",sel.code||"");
       setShowFC(false);setNfFC({unite:"",type_frais:"frais",description:"",montant:"",date_facture:new Date().toISOString().substring(0,10),date_echeance:""});
       chargerTout();setTimeout(function(){setMsg("");},6000);
     }).catch(function(e){setEnCours(false);setErr("Erreur: "+(e&&e.message?e.message:""));});
   }
-  function payerFactureCopro(f){
-    var auj=new Date().toISOString().substring(0,10);
-    sb.update("factures_copros",f.id,{statut:"payee",date_paiement:auj}).then(function(r){
-      if(r&&r.error){setErr("Echec: "+(r.error.message||""));return;}
-      return sb.insert("paiements",{syndicat_id:sel.id,unite_id:f.unite_id,coproprietaire_id:f.coproprietaire_id,
-        type:f.type_frais==="infraction"?"infraction":"frais",mois:auj.substring(0,7),date_paiement:auj,
-        montant:Number(f.montant)||0,description:"Facture "+f.no_facture+" - "+(f.description||"").substring(0,80),statut:"paye",moyen:"facture_copro"});
-    }).then(function(){
-      sb.log("encaissements","paiement","Facture copro "+f.no_facture+" payee ("+f.montant+" $)","",sel.code||"");
-      chargerTout();
+  // ----- Comptes de banque / avances / encaissement groupe -----
+  var FONDS_NOMS={operation:"Fonds d operation",prevoyance:"Fonds de prevoyance",assurance:"Fonds d auto-assurance",special:"Fonds de travaux speciaux"};
+  function libBanque(b){
+    if(!b)return "?";
+    var nomF=FONDS_NOMS[b.fonds]||("Fonds "+(b.fonds||""));
+    return nomF+(b.banque?" - "+b.banque:"")+(b.no_compte?" (***"+String(b.no_compte).slice(-4)+")":"");
+  }
+  function creditDispo(uniteId){
+    return Math.round(avances.filter(function(a){return a.unite_id===uniteId&&a.statut!=="annule";}).reduce(function(t,a){return t+(Number(a.solde)||0);},0)*100)/100;
+  }
+  // Estimation de l application des credits d avance sur une selection de factures
+  function estimerCredits(ids){
+    var pool={};
+    avances.forEach(function(a){if(a.statut!=="annule")pool[a.unite_id]=(pool[a.unite_id]||0)+(Number(a.solde)||0);});
+    var total=0;var credit=0;
+    ids.forEach(function(id){
+      var fx=factCopros.find(function(z){return z.id===id;});
+      if(!fx||fx.statut==="payee"||fx.statut==="annulee")return;
+      var mnt=Number(fx.montant)||0;total+=mnt;
+      var d=Math.min(pool[fx.unite_id]||0,mnt);
+      credit+=d;pool[fx.unite_id]=(pool[fx.unite_id]||0)-d;
+    });
+    return {total:Math.round(total*100)/100,credit:Math.round(credit*100)/100,banque:Math.round((total-credit)*100)/100};
+  }
+
+  // Envoi de la facture au coproprietaire (visible dans son portail, Mes factures)
+  function envoyerFC(f){
+    sb.update("factures_copros",f.id,{statut:"envoyee",date_envoi:new Date().toISOString()}).then(function(r){
+      if(r&&r.error){setErr("ECHEC de l envoi: "+(r.error.message||""));return;}
+      setMsg("Facture "+f.no_facture+" marquee ENVOYEE - visible dans le portail du coproprietaire (Mes factures). Utilisez Imprimer pour la version papier/courriel.");
+      sb.log("encaissements","modification","Facture copro "+f.no_facture+" envoyee au coproprietaire","",sel.code||"");
+      chargerTout();setTimeout(function(){setMsg("");},7000);
     });
   }
+
+  // Modification d une facture non payee
+  function editerFC(f){
+    setEditFCId(f.id);
+    setNfFC({unite:f.unite||"",type_frais:f.type_frais||"frais",description:f.description||"",montant:String(f.montant||""),date_facture:String(f.date_facture||"").substring(0,10),date_echeance:String(f.date_echeance||"").substring(0,10)});
+    setShowFC(true);setErr("");
+    window.scrollTo(0,0);
+  }
+
+  // ENCAISSEMENT (une facture ou un regroupement) : date + compte de banque choisis,
+  // application optionnelle des credits d avance de chaque unite
+  async function confirmerEncaissement(){
+    if(!encModal||!sel||enCours)return;
+    if(!encOpt.date){setErr("Choisissez la date de l encaissement.");return;}
+    if(!encOpt.compte){setErr("Choisissez le compte de banque qui recoit les fonds.");return;}
+    setEnCours(true);setErr("");
+    var lot="LOT-"+encOpt.date.replace(/-/g,"")+"-"+String(encModal.ids.length)+"F";
+    var avc=avances.filter(function(a){return a.statut!=="annule"&&Number(a.solde)>0;}).map(function(a){return Object.assign({},a);});
+    var oks=0;var echecs=[];var totCredit=0;var totBanque=0;
+    for(var i=0;i<encModal.ids.length;i++){
+      var fid=encModal.ids[i];
+      var fx=factCopros.find(function(z){return z.id===fid;});
+      if(!fx||fx.statut==="payee"||fx.statut==="annulee")continue;
+      var mnt=Number(fx.montant)||0;
+      var creditUse=0;var appliques=[];
+      if(encOpt.credit){
+        for(var j=0;j<avc.length&&creditUse<mnt;j++){
+          var a=avc[j];
+          if(a.unite_id!==fx.unite_id)continue;
+          var prendre=Math.min(Number(a.solde)||0,mnt-creditUse);
+          if(prendre<=0)continue;
+          prendre=Math.round(prendre*100)/100;
+          creditUse+=prendre;a.solde=Math.round((Number(a.solde)-prendre)*100)/100;
+          appliques.push({av:a,prendre:prendre});
+        }
+      }
+      creditUse=Math.round(creditUse*100)/100;
+      var banquePart=Math.round((mnt-creditUse)*100)/100;
+      var r1=await sb.update("factures_copros",fx.id,{statut:"payee",date_paiement:encOpt.date,compte_bancaire_id:encOpt.compte||null});
+      if(r1&&r1.error){echecs.push(fx.no_facture+": "+(r1.error.message||""));continue;}
+      var typ=fx.type_frais==="infraction"?"infraction":fx.type_frais==="refacturation"?"refacturation":"frais";
+      var r2=await sb.insert("paiements",{syndicat_id:sel.id,unite_id:fx.unite_id,coproprietaire_id:fx.coproprietaire_id,type:typ,mois:encOpt.date.substring(0,7),date_paiement:encOpt.date,montant:mnt,statut:"paye",moyen:creditUse>=mnt?"credit_avance":(creditUse>0?"banque_et_credit":"encaissement"),compte_bancaire_id:encOpt.compte||null,lot:lot,description:"Facture "+fx.no_facture+" - "+(fx.description||"").substring(0,80)+(creditUse>0?" (credit d avance applique: "+creditUse.toFixed(2)+" $)":"")});
+      if(r2&&r2.error)echecs.push(fx.no_facture+" (paiement): "+(r2.error.message||""));
+      for(var k=0;k<appliques.length;k++){
+        var ap=appliques[k];
+        var apps=[];
+        try{apps=Array.isArray(ap.av.applications)?ap.av.applications.slice():JSON.parse(ap.av.applications||"[]");}catch(e){apps=[];}
+        apps.push({q:encOpt.date,facture:fx.no_facture,montant:ap.prendre});
+        ap.av.applications=apps;
+        var r3=await sb.update("avances_copros",ap.av.id,{solde:ap.av.solde,applications:apps,statut:ap.av.solde<=0.004?"epuise":"actif"});
+        if(r3&&r3.error)echecs.push("avance ("+fx.no_facture+"): "+(r3.error.message||""));
+        await sb.insert("journal",{syndicat_id:sel.id,date_transaction:encOpt.date,description:"Application d avance - facture "+fx.no_facture+" (unite "+(fx.unite||"")+")",categorie:"Contributions percues d avance",montant_debit:ap.prendre,montant_credit:0,reference:"AV-APP-"+fx.no_facture}).catch(function(){});
+      }
+      totCredit+=creditUse;totBanque+=banquePart;oks++;
+    }
+    setEnCours(false);
+    if(echecs.length>0)setErr("ECHEC sur "+echecs.length+" element(s): "+echecs.join(" | "));
+    if(oks>0){
+      var cpt=banques.find(function(b){return b.id===encOpt.compte;});
+      setMsg(oks+" facture(s) encaissee(s) le "+encOpt.date+" - compte: "+libBanque(cpt)+" - depot bancaire "+money(totBanque)+(totCredit>0?" + credits d avance appliques "+money(totCredit):"")+".");
+      sb.log("encaissements","paiement",oks+" facture(s) copros encaissees ("+lot+"): banque "+totBanque.toFixed(2)+" $, credits "+totCredit.toFixed(2)+" $","",sel.code||"");
+    }
+    setEncModal(null);setSelFC({});
+    chargerTout();setTimeout(function(){setMsg("");},10000);
+  }
+
+  // AVANCE : encaisser un solde d avance (passif 2400/2410 - Contributions percues d avance)
+  function encaisserAvanceCopro(){
+    if(!sel)return;
+    var u=unites.find(function(x){return x.no_unite===avF.unite;});
+    var mnt=parseFloat(avF.montant)||0;
+    if(!u){setErr("Choisissez l unite.");return;}
+    if(mnt<=0){setErr("Entrez un montant positif.");return;}
+    if(!avF.compte){setErr("Choisissez le compte de banque qui recoit l avance.");return;}
+    setErr("");
+    var pr=propsDe(u)[0];
+    sb.insert("avances_copros",{syndicat_id:sel.id,unite_id:u.id,coproprietaire_id:pr?pr.id:null,montant:mnt,solde:mnt,date_encaissement:avF.date,compte_bancaire_id:avF.compte,note:avF.note||"",statut:"actif"}).then(function(r){
+      if(!r||!r.data||!r.data.id){setErr("ECHEC de l avance: "+((r&&r.error&&r.error.message)||"la table avances_copros existe-t-elle? (SQL fourni)"));return null;}
+      return sb.insert("journal",{syndicat_id:sel.id,date_transaction:avF.date,description:"Avance recue - unite "+u.no_unite+(avF.note?" - "+avF.note.substring(0,80):""),categorie:"Contributions percues d avance",montant_debit:0,montant_credit:mnt,reference:"AV-"+u.no_unite+"-"+avF.date});
+    }).then(function(r2){
+      if(r2===null)return;
+      setMsg("Avance de "+money(mnt)+" encaissee pour l unite "+u.no_unite+" (Sommes dues aux coproprietaires - Contributions percues d avance). Elle sera appliquee sur les prochaines factures encaissees de cette unite.");
+      sb.log("encaissements","paiement","Avance unite "+u.no_unite+": "+mnt.toFixed(2)+" $","",sel.code||"");
+      setShowAv(false);setAvF({unite:"",montant:"",date:new Date().toISOString().substring(0,10),compte:"",note:""});
+      chargerTout();setTimeout(function(){setMsg("");},10000);
+    }).catch(function(e){setErr("ECHEC: "+(e&&e.message?e.message:""));});
+  }
+
+  // REBOND NSF : le prelevement a rebondi - paiement rejete + facture des frais NSF
+  function rebondNSF(u,p){
+    var frais=Number(sel.frais_nsf)||0;
+    sb.update("paiements",p.id,{statut:"rejete"}).then(function(r){
+      if(r&&r.error){setErr("ECHEC: "+(r.error.message||""));return null;}
+      if(frais<=0)return {data:{skip:true}};
+      var pr=propsDe(u)[0];
+      var annee=new Date().toISOString().substring(0,4);
+      var no="FC-"+annee+"-"+String(factCopros.filter(function(fz){return (fz.no_facture||"").indexOf("FC-"+annee)===0;}).length+1).padStart(3,"0");
+      return sb.insert("factures_copros",{syndicat_id:sel.id,unite_id:u.id,unite:u.no_unite,coproprietaire_id:pr?pr.id:null,
+        destinataire_nom:propsDe(u).map(function(c){return ((c.prenom||"")+" "+(c.nom||"")).trim();}).join(" et "),
+        no_facture:no,type_frais:"frais",description:"Frais pour fonds insuffisants (NSF) - prelevement rejete du "+String(p.date_paiement||"").substring(0,10),
+        montant:frais,date_facture:new Date().toISOString().substring(0,10),statut:"emise"});
+    }).then(function(r2){
+      if(r2===null)return;
+      if(r2&&r2.error){setErr("Paiement marque rejete, mais ECHEC de la facture NSF: "+(r2.error.message||""));return;}
+      setMsg("Prelevement de l unite "+u.no_unite+" marque REJETE (NSF)."+(frais>0?" Facture de frais NSF de "+money(frais)+" emise au coproprietaire.":" Aucun frais NSF configure (Configuration du syndicat)."));
+      sb.log("encaissements","modification","Rebond NSF unite "+u.no_unite+(frais>0?" - frais "+frais.toFixed(2)+" $ refactures":""),"",sel.code||"");
+      chargerTout();setTimeout(function(){setMsg("");},9000);
+    });
+  }
+
   function annulerFactureCopro(f){
     sb.update("factures_copros",f.id,{statut:"annulee"}).then(function(){
       sb.log("encaissements","modification","Facture copro "+f.no_facture+" annulee","",sel.code||"");
@@ -327,7 +492,7 @@ export default function Encaissements(){
     h+="<tr class='tot'><th>MONTANT DU</th><td><b>"+money(f.montant)+"</b></td></tr></table>";
     h+="<p style='margin-top:18px'>Priere d acquitter ce montant au plus tard a l echeance. Les montants impayes portent les interets et frais prevus a la declaration de copropriete.</p>";
     h+="<br/><p>Le Conseil d administration<br/>"+(sel.nom||"")+"</p>";
-    imprimerHTML("Facture "+f.no_facture,h);
+    imprimerHTML("Facture "+f.no_facture,h,sel.logo_data||"");
   }
 
   // ----- FICHIER DE PRELEVEMENTS BANCAIRES (DPA - standard Paiements Canada CPA-005) -----
@@ -337,12 +502,6 @@ export default function Encaissements(){
     var debut=new Date(dt.getFullYear(),0,0);
     var jour=Math.floor((dt-debut)/86400000);
     return "0"+String(dt.getFullYear()).substring(2)+pad(jour,3,"g","0");
-  }
-  function sauverDpaConfig(){
-    sb.upsert("config_publique",[{cle:"dpa_config",valeur:JSON.stringify(dpa)}],"cle").then(function(r){
-      if(r&&r.error){setErr("ECHEC sauvegarde config DPA: "+(r.error.message||""));return;}
-      setMsg("Configuration DPA sauvegardee.");setShowDpaCfg(false);setTimeout(function(){setMsg("");},4000);
-    });
   }
   function lignesPrelevement(){
     return unites.filter(function(u){return u.pap_actif&&u.banque_institution&&u.banque_transit&&u.banque_compte;})
@@ -358,39 +517,100 @@ export default function Encaissements(){
     a.href=URL.createObjectURL(blob);a.download=nomFichier;
     document.body.appendChild(a);a.click();document.body.removeChild(a);
   }
-  function genererDPA(){
+  // Generation du fichier EFT de prelevements - format Desjardins / CPA-005 valide
+  // sur un vrai fichier accepte par Desjardins (enregistrements de 1464 caracteres,
+  // code d operation 450, fins de ligne LF, sans saut de ligne final).
+  function genererEFT(){
     setErr("");
-    if(!dpa.origId||!dpa.origNom){setErr("Configurez d abord le numero d emetteur (fourni par votre institution) - bouton Configuration DPA.");setShowDpaCfg(true);return;}
+    var origId=(sel.pap_orig_id||"").trim();
+    var nomCourt=(sel.pap_nom_court||"").trim();
+    var nomLong=(sel.pap_nom_long||sel.nom||"").trim();
+    var centre=((sel.pap_centre||"81510").replace(/\D/g,"")||"81510");
+    var cptSyn=banques.find(function(b){return b.id===sel.pap_compte_id;});
+    if(!origId||!nomCourt){setErr("Configurez d abord les prelevements (nom d utilisateur, noms COURT et LONG) dans Configuration - Configuration du syndicat, carte Prelevements automatises.");return;}
+    if(!cptSyn||!cptSyn.institution||!cptSyn.transit||!cptSyn.no_compte){setErr("Choisissez le compte de banque du syndicat (institution, transit et no de compte remplis dans Comptes bancaires par fonds) dans Configuration du syndicat, carte Prelevements automatises.");return;}
     var lignes=lignesPrelevement();
     if(lignes.length===0){setErr("Aucune unite avec PAP actif, coordonnees bancaires completes et montant du pour "+mois+".");return;}
-    var noF=pad(parseInt(dpa.noFichier)||1,4,"g","0");
-    var dateCrea=dateJulienne(null);
-    var dateEch=dateJulienne(mois+"-01");
-    var L=1464;
-    var recs=[];var cnt=1;
-    // Enregistrement A (entete)
-    recs.push(pad("A"+pad(cnt,9,"g","0")+pad(dpa.origId,10)+noF+dateCrea+pad(dpa.centre||"",5,"g","0")+pad("",20)+"CAD",L));
-    // Enregistrements D (debits) - code d operation CPA 316 = frais de copropriete
+    var noF=pad(parseInt(sel.pap_no_fichier)||1,4,"g","0");
+    var dateJ=dateJulienne(datePrel);
+    var L=1464;var recs=[];var cnt=1;
+    recs.push(pad("A"+pad(cnt,9,"g","0")+pad(origId,10)+noF+dateJ+pad(centre,5,"g","0")+pad("",20)+"CAD",L));
     var totalCents=0;
     lignes.forEach(function(l){
       cnt++;
       var cents=Math.round(l.montant*100);totalCents+=cents;
-      var seg="316"+pad(cents,10,"g","0")+dateEch+"0"+pad(l.u.banque_institution,3,"g","0")+pad(l.u.banque_transit,5,"g","0")+pad(l.u.banque_compte,12)
-        +pad("0",22,"g","0")+pad("0",3,"g","0")+pad(dpa.origNom,15)+pad(l.nom,30)+pad(dpa.origNom,30)
-        +pad(dpa.origId,10)+pad("COTIS "+mois+" U"+l.u.no_unite,19)+pad("0",9,"g","0")+pad("",12)+pad("",15)+pad("0",22,"g","0")+pad("",2)+pad("0",11,"g","0");
-      recs.push(pad("D"+pad(cnt,9,"g","0")+pad(dpa.origId,10)+noF+seg,L));
+      var seg="450"+pad(cents,10,"g","0")+dateJ
+        +"0"+pad(String(l.u.banque_institution).replace(/\D/g,""),3,"g","0")+pad(String(l.u.banque_transit).replace(/\D/g,""),5,"g","0")+pad(l.u.banque_compte,12)
+        +pad("0",22,"g","0")+pad("0",3,"g","0")
+        +pad(nomCourt,15)
+        +pad("Compte de paiement - Unite "+l.u.no_unite,30)
+        +pad(nomLong,30)
+        +pad(origId,10)
+        +pad(String(l.u.no_unite).replace(/\D/g,"")||String(cnt),19,"g","0")
+        +"0"+pad(String(cptSyn.institution).replace(/\D/g,""),3,"g","0")+pad(String(cptSyn.transit).replace(/\D/g,""),5,"g","0")+pad(cptSyn.no_compte,12);
+      recs.push(pad("D"+pad(cnt,9,"g","0")+pad(origId,10)+noF+pad(seg,240),L));
     });
-    // Enregistrement Z (total)
     cnt++;
-    recs.push(pad("Z"+pad(cnt,9,"g","0")+pad(dpa.origId,10)+noF+pad(totalCents,14,"g","0")+pad(lignes.length,8,"g","0")+pad("0",14,"g","0")+pad("0",8,"g","0"),L));
-    telecharger("DPA_"+(sel.code||"syndicat")+"_"+mois+"_"+noF+".txt",recs.join("\r\n")+"\r\n");
-    // Incremente le numero de fichier pour la prochaine generation
-    var nSuiv=String((parseInt(dpa.noFichier)||1)+1);
-    setDpa(Object.assign({},dpa,{noFichier:nSuiv}));
-    sb.upsert("config_publique",[{cle:"dpa_config",valeur:JSON.stringify(Object.assign({},dpa,{noFichier:nSuiv}))}],"cle").catch(function(){});
-    setMsg("Fichier DPA (CPA-005) genere: "+lignes.length+" prelevement(s), total "+money(totalCents/100)+". Transmettez-le a votre institution financiere.");
-    sb.log("encaissements","creation","Fichier DPA "+mois+" genere: "+lignes.length+" prelevements, "+(totalCents/100).toFixed(2)+" $","",sel.code||"");
-    setTimeout(function(){setMsg("");},8000);
+    recs.push(pad("Z"+pad(cnt,9,"g","0")+pad(origId,10)+noF+pad(totalCents,14,"g","0")+pad(lignes.length,8,"g","0")+pad("0",14,"g","0")+pad("0",8,"g","0")+pad("0",14,"g","0")+pad("0",8,"g","0")+pad("0",14,"g","0")+pad("0",8,"g","0"),L));
+    var contenu=recs.join("\n");
+    var nomFichier=datePrel.replace(/-/g,"_")+"-"+noF+".txt";
+    telecharger(nomFichier,contenu);
+    // Registre des fichiers EFT + incrementation du numero de fichier
+    sb.insert("fichiers_eft",{syndicat_id:sel.id,type_dc:"D",no_fichier:noF,date_fichier:datePrel,nom_fichier:nomFichier,nb_transferts:lignes.length,montant_total:totalCents/100,contenu:contenu,statut:"genere"}).then(function(r){
+      if(!r||!r.data||!r.data.id){setErr("Fichier telecharge, mais ECHEC de l enregistrement au registre: "+((r&&r.error&&r.error.message)||"la table fichiers_eft existe-t-elle? (SQL fourni)"));return;}
+      var nSuiv=String((parseInt(sel.pap_no_fichier)||1)+1);
+      sb.update("syndicats",sel.id,{pap_no_fichier:nSuiv}).then(function(){setSel(Object.assign({},sel,{pap_no_fichier:nSuiv}));});
+      chargerTout();
+    });
+    setMsg("Fichier EFT "+nomFichier+" genere: "+lignes.length+" prelevement(s), total "+money(totalCents/100)+". Transmettez-le a votre institution, puis confirmez les etapes dans le registre ci-dessous.");
+    sb.log("encaissements","creation","Fichier EFT "+nomFichier+": "+lignes.length+" prelevements, "+(totalCents/100).toFixed(2)+" $","",sel.code||"");
+    setTimeout(function(){setMsg("");},10000);
+  }
+
+  function retelechargerEft(fx){
+    if(!fx.contenu){setErr("Ce fichier n a pas de contenu enregistre.");return;}
+    telecharger(fx.nom_fichier||("EFT_"+fx.no_fichier+".txt"),fx.contenu);
+  }
+
+  // Confirmations du registre EFT. La confirmation de COMPLETION d un fichier D
+  // encaisse automatiquement le lot PAP du mois au compte configure.
+  function confirmerEft(fx,champ){
+    var maj={};maj[champ]=new Date().toISOString();
+    sb.update("fichiers_eft",fx.id,maj).then(function(r){
+      if(r&&r.error){setErr("ECHEC: "+(r.error.message||""));return;}
+      sb.log("encaissements","modification","Fichier EFT "+(fx.nom_fichier||fx.no_fichier)+": "+champ.replace("confirme_","confirmation ")+"","",sel.code||"");
+      if(champ==="confirme_completion"&&fx.type_dc==="D"){
+        encaisserLotPapDepuisEft(fx);
+      }else{
+        chargerTout();
+      }
+    });
+  }
+  function encaisserLotPapDepuisEft(fx){
+    var cibles=unites.filter(function(u){return u.pap_actif&&Number(u.cotisation_mensuelle)>0;});
+    var dateEnc=String(fx.date_fichier||"").substring(0,10)||new Date().toISOString().substring(0,10);
+    Promise.all(cibles.map(function(u){
+      var existant=paiementDuMois(u,"cotisation");
+      var pr=propsDe(u)[0];
+      var due=Number(u.cotisation_mensuelle)||0;
+      if(existant){
+        if(existant.statut==="paye")return Promise.resolve({data:existant});
+        return sb.update("paiements",existant.id,{statut:"paye",moyen:"pap",date_paiement:dateEnc,compte_bancaire_id:sel.pap_compte_id||null,lot:fx.nom_fichier||""});
+      }
+      return sb.insert("paiements",{syndicat_id:sel.id,unite_id:u.id,coproprietaire_id:pr?pr.id:null,type:"cotisation",mois:mois,date_paiement:dateEnc,montant:due,description:"Cotisation "+MNOMS[parseInt(mois.substring(5,7))]+" "+mois.substring(0,4)+" - unite "+u.no_unite+" (PAP - "+(fx.nom_fichier||"")+")",statut:"paye",moyen:"pap",compte_bancaire_id:sel.pap_compte_id||null,lot:fx.nom_fichier||""});
+    })).then(function(rs){
+      var ok=rs.filter(function(r){return r&&!r.error;}).length;
+      setMsg("Completion confirmee: lot PAP "+mois+" encaisse ("+ok+" unite(s)) au compte configure.");
+      sb.log("encaissements","paiement","Completion EFT "+(fx.nom_fichier||"")+": "+ok+" cotisations encaissees","",sel.code||"");
+      chargerTout();setTimeout(function(){setMsg("");},9000);
+    });
+  }
+  function supprimerEft(fx){
+    sb.update("fichiers_eft",fx.id,{statut:"annule"}).then(function(r){
+      if(r&&r.error){setErr("ECHEC: "+(r.error.message||""));return;}
+      sb.log("encaissements","modification","Fichier EFT "+(fx.nom_fichier||fx.no_fichier)+" retire du registre","",sel.code||"");
+      chargerTout();
+    });
   }
   function genererCSVBanque(){
     var lignes=lignesPrelevement();
@@ -468,6 +688,12 @@ export default function Encaissements(){
                       <option value="autre">Autre</option>
                     </select>
                   </div>
+                  <div><Lbl l="Compte de banque recu"/>
+                    <select value={encF.compte} onChange={function(e){setEncF(Object.assign({},encF,{compte:e.target.value}));}} style={INP}>
+                      <option value="">Choisir...</option>
+                      {banques.map(function(b){return <option key={b.id} value={b.id}>{libBanque(b)}</option>;})}
+                    </select>
+                  </div>
                   <div style={{gridColumn:"span 2"}}><Lbl l="Note / reference (optionnel)"/><input value={encF.note} onChange={function(e){setEncF(Object.assign({},encF,{note:e.target.value}));}} style={INP} placeholder="No de cheque, periode visee..."/></div>
                 </div>
                 {(function(){var c2=calculArrerages(encU);return c2.interets>0?<div style={{fontSize:11,fontWeight:700,color:T.amber,marginBottom:10}}>Interets de retard calcules pour cette unite: {money(c2.interets)} (arrerages {money(c2.arrerages)} x {tauxInteret}%/an / 12)</div>:null;})()}
@@ -503,13 +729,17 @@ export default function Encaissements(){
                         <td style={{padding:"7px 10px"}}>
                           <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
                             {(!p||p.statut!=="paye")&&u.pap_actif&&<Btn sm bg={T.navy} onClick={function(){encaisser(u,"pap");}}>Prelevement (PAP)</Btn>}
-                            {(!p||p.statut!=="paye")&&<Btn sm onClick={function(){encaisser(u,"cheque");}}>Payer (cheque)</Btn>}
-                            {(!p||p.statut!=="paye")&&<Btn sm bg={T.blue} onClick={function(){encaisser(u,"virement");}}>Virement</Btn>}
+                            {(!p||p.statut!=="paye")&&<Btn sm onClick={function(){
+                              setEncU(u);
+                              setEncF({type:"cotisation",montant:String(Number(u.cotisation_mensuelle)||""),date:new Date().toISOString().substring(0,10),moyen:u.pap_actif?"prelevement":"cheque",note:"",compte:banques.length===1?banques[0].id:(sel.pap_compte_id||"")});
+                              window.scrollTo(0,0);
+                            }}>Encaisser la cotisation</Btn>}
                             <Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){
                               setEncU(u);
-                              setEncF({type:calc.interets>0?"interets":"autre",montant:calc.interets>0?String(calc.interets):"",date:new Date().toISOString().substring(0,10),moyen:u.pap_actif?"prelevement":"cheque",note:""});
+                              setEncF({type:calc.interets>0?"interets":"autre",montant:calc.interets>0?String(calc.interets):"",date:new Date().toISOString().substring(0,10),moyen:u.pap_actif?"prelevement":"cheque",note:"",compte:banques.length===1?banques[0].id:(sel.pap_compte_id||"")});
                               window.scrollTo(0,0);
                             }}>+ Encaisser</Btn>
+                            {p&&p.statut==="paye"&&(p.moyen==="pap"||p.moyen==="prelevement")&&<Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red+"44"} onClick={function(){rebondNSF(u,p);}}>Rebond NSF</Btn>}
                             {p&&p.statut==="paye"&&<Btn sm bg={T.amberL} tc={T.amber} bdr={"1px solid "+T.amber+"44"} onClick={function(){annulerPaiement(u);}}>Annuler</Btn>}
                             <Btn sm bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){etatDeCompte(u);}}>Etat de compte</Btn>
                             {/* L attestation pour le notaire est maintenant dans le module Unites (dossier de l unite) */}
@@ -573,18 +803,90 @@ export default function Encaissements(){
           </div>
         )}
 
-        {ong==="factcopros"&&(
+        {ong==="factcopros"&&(function(){
+          var factFiltrees=factCopros.filter(function(f){
+            if(fUnite&&f.unite!==fUnite)return false;
+            if(fStatut==="impayees"){if(f.statut==="payee"||f.statut==="annulee")return false;}
+            else if(fStatut!=="toutes"&&f.statut!==fStatut)return false;
+            if(fMoisFC&&String(f.date_facture||"").substring(0,7)!==fMoisFC)return false;
+            return true;
+          });
+          var idsSel=Object.keys(selFC).filter(function(id){return selFC[id];});
+          var encaissables=factFiltrees.filter(function(f){return f.statut!=="payee"&&f.statut!=="annulee";});
+          var est=idsSel.length>0?estimerCredits(idsSel):null;
+          var avActives=avances.filter(function(a){return a.statut!=="annule"&&Number(a.solde)>0;});
+          return(
           <div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
-              <div style={{fontSize:12,color:T.muted}}>
-                {factCopros.length} facture(s) - impayees: <b style={{color:T.red}}>{money(factCopros.filter(function(f){return f.statut==="emise";}).reduce(function(a,f){return a+(Number(f.montant)||0);},0))}</b>
+            <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap",marginBottom:12}}>
+              <div style={{width:130}}><Lbl l="Unite"/>
+                <select value={fUnite} onChange={function(e){setFUnite(e.target.value);}} style={INP}>
+                  <option value="">Toutes</option>
+                  {unites.map(function(u){return <option key={u.id} value={u.no_unite}>{u.no_unite}</option>;})}
+                </select>
               </div>
-              <Btn onClick={function(){setShowFC(true);setErr("");}}>+ Emettre une facture a un copro</Btn>
+              <div style={{width:170}}><Lbl l="Statut"/>
+                <select value={fStatut} onChange={function(e){setFStatut(e.target.value);}} style={INP}>
+                  <option value="toutes">Tous les statuts</option>
+                  <option value="impayees">Impayees (emises + envoyees)</option>
+                  <option value="emise">Emises (a envoyer)</option>
+                  <option value="envoyee">Envoyees</option>
+                  <option value="payee">Payees</option>
+                  <option value="annulee">Annulees</option>
+                </select>
+              </div>
+              <div style={{width:150}}><Lbl l="Mois de facturation"/><input type="month" value={fMoisFC} onChange={function(e){setFMoisFC(e.target.value);}} style={INP}/></div>
+              {(fUnite||fStatut!=="toutes"||fMoisFC)&&<Btn sm bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setFUnite("");setFStatut("toutes");setFMoisFC("");}}>Effacer les filtres</Btn>}
+              <div style={{marginLeft:"auto",display:"flex",gap:8}}>
+                <Btn bg={T.purple} onClick={function(){setShowAv(true);setErr("");}}>+ Encaisser une avance</Btn>
+                <Btn onClick={function(){setShowFC(true);setEditFCId(null);setNfFC({unite:"",type_frais:"frais",description:"",montant:"",date_facture:new Date().toISOString().substring(0,10),date_echeance:""});setErr("");}}>+ Emettre une facture</Btn>
+              </div>
             </div>
+
+            <div style={{fontSize:12,color:T.muted,marginBottom:10}}>
+              {factFiltrees.length} facture(s) affichee(s) - impayees (affichees): <b style={{color:T.red}}>{money(factFiltrees.filter(function(f){return f.statut!=="payee"&&f.statut!=="annulee";}).reduce(function(a,f){return a+(Number(f.montant)||0);},0))}</b>
+              {avActives.length>0&&<span> - credits d avance disponibles: <b style={{color:T.purple}}>{money(avActives.reduce(function(a,x){return a+Number(x.solde||0);},0))}</b></span>}
+            </div>
+
+            {avActives.length>0&&(
+              <div style={{background:T.purpleL,border:"1px solid "+T.purple+"33",borderRadius:10,padding:"10px 14px",marginBottom:12}}>
+                <div style={{fontSize:11,fontWeight:800,color:T.purple,marginBottom:6}}>CREDITS D AVANCE (Sommes dues aux coproprietaires - Contributions percues d avance)</div>
+                <div style={{display:"flex",gap:14,flexWrap:"wrap"}}>
+                  {avActives.map(function(a){
+                    var u=unites.find(function(x){return x.id===a.unite_id;});
+                    return <div key={a.id} style={{fontSize:11,color:T.navy}}><b>Unite {u?u.no_unite:"?"}</b>: {money(a.solde)} <span style={{color:T.muted}}>(recu le {String(a.date_encaissement||"").substring(0,10)}{a.note?" - "+a.note:""})</span></div>;
+                  })}
+                </div>
+                <div style={{fontSize:10,color:T.muted,marginTop:6}}>Ces soldes sont appliques automatiquement lors de l encaissement des factures de l unite (case a cocher dans la fenetre d encaissement).</div>
+              </div>
+            )}
+
+            {showAv&&(
+              <div style={{background:T.surface,border:"2px solid "+T.purple,borderRadius:12,padding:16,marginBottom:14}}>
+                <div style={{fontSize:13,fontWeight:800,color:T.purple,marginBottom:2}}>Encaisser une avance (paiement anticipe)</div>
+                <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Le montant est comptabilise au passif (Sommes dues aux coproprietaires - Contributions percues d avance) puis applique sur des factures plus tard.</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:10,marginBottom:10}}>
+                  <div><Lbl l="Unite"/><select value={avF.unite} onChange={function(e){setAvF(Object.assign({},avF,{unite:e.target.value}));}} style={INP}>
+                    <option value="">Choisir...</option>
+                    {unites.map(function(u){return <option key={u.id} value={u.no_unite}>{u.no_unite}</option>;})}
+                  </select></div>
+                  <div><Lbl l="Montant ($)"/><input type="number" step="0.01" min="0" value={avF.montant} onChange={function(e){setAvF(Object.assign({},avF,{montant:e.target.value}));}} style={INP}/></div>
+                  <div><Lbl l="Date de reception"/><input type="date" value={avF.date} onChange={function(e){setAvF(Object.assign({},avF,{date:e.target.value}));}} style={INP}/></div>
+                  <div><Lbl l="Compte de banque recu"/><select value={avF.compte} onChange={function(e){setAvF(Object.assign({},avF,{compte:e.target.value}));}} style={INP}>
+                    <option value="">Choisir...</option>
+                    {banques.map(function(b){return <option key={b.id} value={b.id}>{libBanque(b)}</option>;})}
+                  </select></div>
+                  <div><Lbl l="Note (optionnel)"/><input value={avF.note} onChange={function(e){setAvF(Object.assign({},avF,{note:e.target.value}));}} style={INP} placeholder="Cheque post-date, depot..."/></div>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <Btn bg={T.purple} onClick={encaisserAvanceCopro}>Encaisser l avance</Btn>
+                  <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setShowAv(false);}}>Annuler</Btn>
+                </div>
+              </div>
+            )}
 
             {showFC&&(
               <div style={{background:T.surface,border:"2px solid "+T.navy+"33",borderRadius:12,padding:16,marginBottom:14}}>
-                <div style={{fontSize:13,fontWeight:800,color:T.navy,marginBottom:10}}>Nouvelle facture a un coproprietaire</div>
+                <div style={{fontSize:13,fontWeight:800,color:T.navy,marginBottom:10}}>{editFCId?"Modifier la facture":"Nouvelle facture a un coproprietaire"}</div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:10}}>
                   <div><Lbl l="Unite"/><select value={nfFC.unite} onChange={function(e){setFC("unite",e.target.value);}} style={INP}>
                     <option value="">Choisir...</option>
@@ -598,62 +900,159 @@ export default function Encaissements(){
                   <div style={{gridColumn:"1/-1"}}><Lbl l="Description"/><input value={nfFC.description} onChange={function(e){setFC("description",e.target.value);}} style={INP} placeholder="ex: Penalite - avis d infraction du ... / Remplacement de cle / Reparation de dommages..."/></div>
                 </div>
                 <div style={{display:"flex",gap:8}}>
-                  <Btn onClick={creerFactureCopro} dis={enCours}>{enCours?"Emission...":"Emettre la facture"}</Btn>
-                  <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setShowFC(false);}}>Annuler</Btn>
+                  <Btn onClick={creerFactureCopro} dis={enCours}>{enCours?"Traitement...":(editFCId?"Sauvegarder la modification":"Emettre la facture")}</Btn>
+                  <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setShowFC(false);setEditFCId(null);}}>Annuler</Btn>
                 </div>
               </div>
             )}
 
-            {factCopros.length===0&&!showFC&&(
-              <div style={{background:T.surface,border:"1px dashed "+T.border,borderRadius:12,padding:30,textAlign:"center",color:T.muted,fontSize:13}}>
-                Aucune facture emise a un coproprietaire.<br/><span style={{fontSize:11}}>Frais divers, penalites d infraction, refacturation de dommages ou de cles.</span>
+            {idsSel.length>0&&est&&(
+              <div style={{background:T.navy,borderRadius:10,padding:"10px 16px",marginBottom:12,display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
+                <div style={{fontSize:12,fontWeight:800,color:"#fff"}}>{idsSel.length} facture(s) selectionnee(s) - total {money(est.total)}</div>
+                {est.credit>0&&<div style={{fontSize:11,color:"#c9b8e8"}}>credits d avance applicables: {money(est.credit)}</div>}
+                <div style={{marginLeft:"auto",display:"flex",gap:8}}>
+                  <Btn sm onClick={function(){setEncModal({ids:idsSel});setEncOpt({date:new Date().toISOString().substring(0,10),compte:banques.length===1?banques[0].id:(sel.pap_compte_id||""),credit:true});setErr("");}}>Encaisser la selection</Btn>
+                  <Btn sm bg={"#ffffff22"} tc={"#fff"} bdr={"1px solid #ffffff44"} onClick={function(){setSelFC({});}}>Tout decocher</Btn>
+                </div>
               </div>
             )}
-            {factCopros.map(function(f){
-              var st=f.statut==="payee"?{l:"PAYEE",c:T.accent,bg:T.accentL}:f.statut==="annulee"?{l:"ANNULEE",c:T.muted,bg:T.alt}:{l:"IMPAYEE",c:T.red,bg:T.redL};
+
+            {encModal&&(function(){
+              var est2=estimerCredits(encModal.ids);
               return(
-                <div key={f.id} style={{background:T.surface,border:"1px solid "+T.border,borderLeft:"4px solid "+st.c,borderRadius:10,padding:"12px 16px",marginBottom:8,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-                  <span style={{background:st.bg,color:st.c,borderRadius:6,padding:"3px 10px",fontSize:10,fontWeight:800,flexShrink:0}}>{st.l}</span>
-                  <div style={{flex:1,minWidth:220}}>
-                    <div style={{fontSize:13,fontWeight:700,color:T.navy}}>{f.no_facture} - Unite {f.unite} - {TYPES_FRAIS[f.type_frais]||f.type_frais}</div>
-                    <div style={{fontSize:11,color:T.muted}}>{f.destinataire_nom||""} - {f.description}</div>
-                    <div style={{fontSize:10,color:T.muted}}>Emise le {f.date_facture}{f.date_echeance?" - echeance "+f.date_echeance:""}{f.date_paiement?" - payee le "+f.date_paiement:""}</div>
-                  </div>
-                  <div style={{fontSize:15,fontWeight:800,color:T.navy,flexShrink:0}}>{money(f.montant)}</div>
-                  <div style={{display:"flex",gap:6,flexWrap:"wrap",flexShrink:0}}>
-                    <Btn sm bg={T.alt} tc={T.navy} bdr={"1px solid "+T.border} onClick={function(){imprimerFactureCopro(f);}}>Imprimer</Btn>
-                    {f.statut==="emise"&&<Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){payerFactureCopro(f);}}>Marquer payee</Btn>}
-                    {f.statut==="emise"&&<Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red+"44"} onClick={function(){annulerFactureCopro(f);}}>Annuler</Btn>}
+              <div style={{background:T.surface,border:"2px solid "+T.accent,borderRadius:12,padding:16,marginBottom:14}}>
+                <div style={{fontSize:13,fontWeight:800,color:T.navy,marginBottom:2}}>Encaissement de {encModal.ids.length} facture(s) - {money(est2.total)}</div>
+                <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Peu importe le moyen de paiement: choisissez la DATE de l encaissement et le COMPTE DE BANQUE qui recoit les fonds.</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:10}}>
+                  <div><Lbl l="Date de l encaissement"/><input type="date" value={encOpt.date} onChange={function(e){setEncOpt(Object.assign({},encOpt,{date:e.target.value}));}} style={INP}/></div>
+                  <div><Lbl l="Compte de banque recu"/><select value={encOpt.compte} onChange={function(e){setEncOpt(Object.assign({},encOpt,{compte:e.target.value}));}} style={INP}>
+                    <option value="">Choisir...</option>
+                    {banques.map(function(b){return <option key={b.id} value={b.id}>{libBanque(b)}</option>;})}
+                  </select></div>
+                  <div style={{alignSelf:"end"}}>
+                    <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:T.navy,cursor:"pointer"}}>
+                      <input type="checkbox" checked={!!encOpt.credit} onChange={function(e){setEncOpt(Object.assign({},encOpt,{credit:e.target.checked}));}}/>
+                      Appliquer les credits d avance ({money(est2.credit)})
+                    </label>
                   </div>
                 </div>
+                <div style={{background:T.accentL,borderRadius:8,padding:"8px 12px",fontSize:12,color:T.accent,fontWeight:700,marginBottom:10}}>
+                  Depot bancaire: {money(encOpt.credit?est2.banque:est2.total)}{encOpt.credit&&est2.credit>0?" + application de credits d avance: "+money(est2.credit):""}
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <Btn onClick={confirmerEncaissement} dis={enCours}>{enCours?"Encaissement...":"Confirmer l encaissement"}</Btn>
+                  <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setEncModal(null);}}>Annuler</Btn>
+                </div>
+              </div>
               );
-            })}
+            })()}
+
+            {factFiltrees.length===0&&!showFC&&(
+              <div style={{background:T.surface,border:"1px dashed "+T.border,borderRadius:12,padding:30,textAlign:"center",color:T.muted,fontSize:13}}>
+                Aucune facture pour ces filtres.<br/><span style={{fontSize:11}}>Frais divers, penalites d infraction, refacturation de dommages ou de cles.</span>
+              </div>
+            )}
+
+            {factFiltrees.length>0&&(
+              <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                  <thead><tr style={{background:T.alt}}>
+                    <th style={{padding:"8px 10px",width:30}}>
+                      <input type="checkbox" checked={encaissables.length>0&&encaissables.every(function(f){return selFC[f.id];})} onChange={function(e){
+                        var n={};if(e.target.checked)encaissables.forEach(function(f){n[f.id]=true;});setSelFC(n);
+                      }}/>
+                    </th>
+                    {["No","Date","Unite","Description","Statut"].map(function(h){return <th key={h} style={{padding:"8px 10px",textAlign:"left",fontSize:10,fontWeight:700,color:T.muted,textTransform:"uppercase"}}>{h}</th>;})}
+                    <th style={{padding:"8px 10px",textAlign:"right",fontSize:10,fontWeight:700,color:T.muted,textTransform:"uppercase"}}>Montant</th>
+                    <th style={{padding:"8px 10px"}}></th>
+                  </tr></thead>
+                  <tbody>
+                    {factFiltrees.map(function(f){
+                      var st=f.statut==="payee"?{l:"PAYEE le "+String(f.date_paiement||"").substring(0,10),c:T.accent,bg:T.accentL}
+                        :f.statut==="annulee"?{l:"ANNULEE",c:T.muted,bg:T.alt}
+                        :f.statut==="envoyee"?{l:"ENVOYEE le "+String(f.date_envoi||"").substring(0,10),c:T.blue,bg:T.blueL}
+                        :{l:"EMISE (a envoyer)",c:T.amber,bg:T.amberL};
+                      var modifiable=f.statut!=="payee"&&f.statut!=="annulee";
+                      return(
+                        <tr key={f.id} style={{borderTop:"1px solid "+T.border,background:selFC[f.id]?T.blueL:"#fff"}}>
+                          <td style={{padding:"6px 10px"}}>
+                            {modifiable&&<input type="checkbox" checked={!!selFC[f.id]} onChange={function(e){var n=Object.assign({},selFC);if(e.target.checked)n[f.id]=true;else delete n[f.id];setSelFC(n);}}/>}
+                          </td>
+                          <td style={{padding:"6px 10px",fontWeight:700}}>{f.no_facture}</td>
+                          <td style={{padding:"6px 10px"}}>{String(f.date_facture||"").substring(0,10)}</td>
+                          <td style={{padding:"6px 10px",fontWeight:700}}>{f.unite}</td>
+                          <td style={{padding:"6px 10px"}}>
+                            <div style={{fontSize:11,fontWeight:600,color:T.navy}}>{TYPES_FRAIS[f.type_frais]||f.type_frais}</div>
+                            <div style={{fontSize:10,color:T.muted}}>{(f.description||"").substring(0,70)}{f.date_echeance?" - echeance "+String(f.date_echeance).substring(0,10):""}</div>
+                          </td>
+                          <td style={{padding:"6px 10px"}}><Bdg bg={st.bg} c={st.c}>{st.l}</Bdg></td>
+                          <td style={{padding:"6px 10px",textAlign:"right",fontWeight:800,color:T.navy}}>{money(f.montant)}</td>
+                          <td style={{padding:"6px 10px"}}>
+                            <div style={{display:"flex",gap:4,flexWrap:"wrap",justifyContent:"flex-end"}}>
+                              {modifiable&&<Btn sm bg={T.alt} tc={T.navy} bdr={"1px solid "+T.border} onClick={function(){editerFC(f);}}>Modifier</Btn>}
+                              {f.statut==="emise"&&<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){envoyerFC(f);}}>Envoyer au copro</Btn>}
+                              {modifiable&&<Btn sm onClick={function(){setEncModal({ids:[f.id]});setEncOpt({date:new Date().toISOString().substring(0,10),compte:banques.length===1?banques[0].id:(sel.pap_compte_id||""),credit:true});setErr("");window.scrollTo(0,0);}}>Encaisser</Btn>}
+                              <Btn sm bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){imprimerFactureCopro(f);}}>Imprimer</Btn>
+                              {modifiable&&<Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red+"44"} onClick={function(){annulerFactureCopro(f);}}>Annuler</Btn>}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        )}
+          );
+        })()}
 
         {ong==="dpa"&&(
           <div>
             <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:16,marginBottom:14}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8,marginBottom:8}}>
                 <div>
-                  <div style={{fontSize:13,fontWeight:800,color:T.navy}}>Retraits directs (debits preautorises) - {mois}</div>
-                  <div style={{fontSize:11,color:T.muted}}>Fichier au standard Paiements Canada CPA-005 (code d operation 316 - frais de copropriete), a transmettre a votre institution financiere.</div>
+                  <div style={{fontSize:13,fontWeight:800,color:T.navy}}>Prelevements automatises des coproprietaires - {mois}</div>
+                  <div style={{fontSize:11,color:T.muted}}>Fichier EFT au format Desjardins / CPA-005 (code 450), a transmettre a votre institution. Emetteur: {sel.pap_orig_id||"NON CONFIGURE"} - prochain fichier #{pad(parseInt(sel.pap_no_fichier)||1,4,"g","0")}.</div>
                 </div>
-                <Btn sm bg={T.alt} tc={T.navy} bdr={"1px solid "+T.border} onClick={function(){setShowDpaCfg(!showDpaCfg);}}>Configuration DPA</Btn>
+                <div style={{fontSize:10,color:T.muted}}>La configuration (no d utilisateur, noms, compte) se fait dans Configuration - Configuration du syndicat.</div>
               </div>
-              {showDpaCfg&&(
-                <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,background:T.blueL,borderRadius:10,padding:12,marginBottom:10}}>
-                  <div><Lbl l="No d emetteur (10 car., fourni par la banque)"/><input value={dpa.origId} onChange={function(e){setDpa(Object.assign({},dpa,{origId:e.target.value.toUpperCase().slice(0,10)}));}} style={INP}/></div>
-                  <div><Lbl l="Nom d emetteur (syndicat)"/><input value={dpa.origNom} onChange={function(e){setDpa(Object.assign({},dpa,{origNom:e.target.value.slice(0,30)}));}} style={INP} placeholder={sel.nom}/></div>
-                  <div><Lbl l="Centre de donnees (5 chiffres, optionnel)"/><input value={dpa.centre} onChange={function(e){setDpa(Object.assign({},dpa,{centre:e.target.value.replace(/\D/g,"").slice(0,5)}));}} style={INP}/></div>
-                  <div><Lbl l="No du prochain fichier"/><input value={dpa.noFichier} onChange={function(e){setDpa(Object.assign({},dpa,{noFichier:e.target.value.replace(/\D/g,"").slice(0,4)}));}} style={INP}/></div>
-                  <div style={{gridColumn:"1/-1"}}><Btn sm onClick={sauverDpaConfig}>Sauvegarder la configuration</Btn></div>
-                </div>
-              )}
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                <Btn onClick={genererDPA}>Generer le fichier DPA (CPA-005)</Btn>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"flex-end"}}>
+                <div style={{width:160}}><Lbl l="Date du prelevement"/><input type="date" value={datePrel} onChange={function(e){setDatePrel(e.target.value);}} style={INP}/></div>
+                <Btn onClick={genererEFT}>+ Creer le fichier EFT</Btn>
                 <Btn bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={genererCSVBanque}>Exporter en CSV (verification)</Btn>
               </div>
+            </div>
+
+            <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,overflow:"hidden",marginBottom:14}}>
+              <div style={{padding:"10px 14px",fontSize:12,fontWeight:800,color:T.navy,borderBottom:"1px solid "+T.border}}>Registre des fichiers EFT</div>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+                <thead><tr style={{background:T.alt}}>
+                  {["D/C","# Fichier","Date","Nom de fichier","# Transferts","Montant","Telecharger","Confirmer trx","Confirmer l acceptation","Confirmer la completion",""].map(function(h,ix){return <th key={h+ix} style={{padding:"6px 8px",textAlign:ix===4||ix===5?"right":"left",fontSize:9,fontWeight:700,color:T.muted,textTransform:"uppercase"}}>{h}</th>;})}
+                </tr></thead>
+                <tbody>
+                  {fichiersEft.filter(function(fx){return fx.statut!=="annule";}).map(function(fx){
+                    function fmtTs(ts){return ts?String(ts).substring(0,16).replace("T"," "):"";}
+                    return(
+                      <tr key={fx.id} style={{borderTop:"1px solid "+T.border}}>
+                        <td style={{padding:"6px 8px",fontWeight:800,color:fx.type_dc==="C"?T.blue:T.navy}}>{fx.type_dc||"D"}</td>
+                        <td style={{padding:"6px 8px",fontWeight:700}}>{fx.no_fichier}</td>
+                        <td style={{padding:"6px 8px"}}>{String(fx.date_fichier||"").substring(0,10)}</td>
+                        <td style={{padding:"6px 8px"}}>{fx.nom_fichier}</td>
+                        <td style={{padding:"6px 8px",textAlign:"right"}}>{fx.nb_transferts}</td>
+                        <td style={{padding:"6px 8px",textAlign:"right",fontWeight:800,color:T.accent}}>{money(fx.montant_total)}</td>
+                        <td style={{padding:"6px 8px"}}><Btn sm bg={T.alt} tc={T.navy} bdr={"1px solid "+T.border} onClick={function(){retelechargerEft(fx);}}>Telecharger</Btn></td>
+                        <td style={{padding:"6px 8px"}}>{fx.confirme_trx?<span style={{color:T.accent,fontWeight:700}}>{fmtTs(fx.confirme_trx)}</span>:<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){confirmerEft(fx,"confirme_trx");}}>Confirmer</Btn>}</td>
+                        <td style={{padding:"6px 8px"}}>{fx.confirme_acceptation?<span style={{color:T.accent,fontWeight:700}}>{fmtTs(fx.confirme_acceptation)}</span>:<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){confirmerEft(fx,"confirme_acceptation");}}>Confirmer</Btn>}</td>
+                        <td style={{padding:"6px 8px"}}>{fx.confirme_completion?<span style={{color:T.accent,fontWeight:700}}>{fmtTs(fx.confirme_completion)}</span>:<Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){confirmerEft(fx,"confirme_completion");}}>Confirmer</Btn>}</td>
+                        <td style={{padding:"6px 8px"}}><Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red+"44"} onClick={function(){supprimerEft(fx);}}>Retirer</Btn></td>
+                      </tr>
+                    );
+                  })}
+                  {fichiersEft.filter(function(fx){return fx.statut!=="annule";}).length===0&&<tr><td colSpan={11} style={{padding:16,textAlign:"center",color:T.muted}}>Aucun fichier EFT genere pour ce syndicat.</td></tr>}
+                </tbody>
+              </table>
+              <div style={{padding:"8px 14px",fontSize:10,color:T.muted}}>Pour un fichier D (prelevements copros), confirmer la COMPLETION encaisse automatiquement le lot PAP du mois au compte configure. Un prelevement qui rebondit se traite avec le bouton Rebond NSF de l unite (onglet Encaissements du mois).</div>
             </div>
             <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,overflow:"hidden"}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
