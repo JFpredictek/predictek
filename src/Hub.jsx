@@ -771,9 +771,9 @@ function Onboarding(p){
       // (90 s) pour qu un appel bloque ne gele jamais l analyse.
       if(window._texteActeComplet&&window._texteActeComplet.length>500){
         var texteRg=window._texteActeComplet;
-        var TAILLE_SEG=55000;
+        var TAILLE_SEG=40000; // sections plus courtes: chaque appel IA finit sous la limite Vercel (60 s)
         var segments=[];
-        for(var sg=0;sg<texteRg.length&&segments.length<6;sg+=TAILLE_SEG)segments.push(texteRg.substring(sg,sg+TAILLE_SEG));
+        for(var sg=0;sg<texteRg.length&&segments.length<8;sg+=TAILLE_SEG)segments.push(texteRg.substring(sg,sg+TAILLE_SEG));
         var faits=0;
         setIaSuccess("Extraction des reglements: "+segments.length+" section(s) en parallele...");
         Promise.all(segments.map(function(seg,iSeg){

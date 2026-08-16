@@ -46,7 +46,8 @@ export default async function handler(req, res) {
 
     if(mode === "reglements") {
       var promptR = "Voici le texte d une declaration de copropriete quebecoise.\n\n" + texte.substring(0,60000) + "\n\nGenere un resume structure des reglements importants EN CITANT LES NUMEROS D ARTICLES (ex: Art. 12.3 - Animaux: ...). Format: liste par categorie avec numero d article au debut de chaque regle, francais, max 900 mots.";
-      var rR = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:MODEL_FORT,max_tokens:2000,messages:[{role:"user",content:[{type:"text",text:promptR}]}]})});
+      // MODEL_RAPIDE: chaque section doit finir bien avant la limite Vercel (60 s) - Sonnet depassait 30-60 s et se faisait couper
+      var rR = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:MODEL_RAPIDE,max_tokens:2000,messages:[{role:"user",content:[{type:"text",text:promptR}]}]})});
       var rawR = await rR.text();
       var dR; try{dR=JSON.parse(rawR);}catch(e){return res.status(500).json({error:"JSON invalide"});}
       if(dR.error) return res.status(500).json({error:dR.error.message});

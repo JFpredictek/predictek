@@ -1,6 +1,7 @@
 {
   "functions": {
-    "api/extract.js": { "maxDuration": 30 },
+    "api/extract.js": { "maxDuration": 60 },
+    "api/ia.js": { "maxDuration": 60 },
     "api/relances.js": { "maxDuration": 60 }
   },
   "crons": [
