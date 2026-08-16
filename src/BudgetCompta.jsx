@@ -17,6 +17,17 @@ var money=function(n){return (Number(n)||0).toLocaleString("fr-CA",{minimumFract
 
 // ===== CHARTE DE COMPTES PAR DEFAUT (modele riche - copropriete quebecoise) =====
 // type: revenu | depense | fonds. Les comptes inactifs n apparaissent pas au budget.
+// Fonds par defaut de chaque compte de la charte (source de verite = colonne "fonds"
+// de comptes_syndicat; les fonds PERSONNALISES crees par un syndicat gardent leur etiquette).
+function fondsDefautCompte(no,type){
+  no=String(no||"");
+  if(type==="prevoyance"||no.charAt(0)==="7")return "prevoyance";
+  if(["4120","4520","5901","1112","1530","3200"].indexOf(no)>=0)return "prevoyance";
+  if(["4160","4550","5902","1114","1550","3110","3500","5290","4660"].indexOf(no)>=0)return "assurance";
+  if(["5903","1115","3400"].indexOf(no)>=0)return "special";
+  return "operation";
+}
+
 var CHARTE_DEFAUT=[
   // ---- ACTIFS ----
   {no:"1100",nom:"Encaisse - compte d operation",type:"actif",groupe:"Actifs - Encaisse"},
@@ -401,8 +412,8 @@ function TabBudget(p){
 
   // TOUS les comptes (actifs ET inactifs) - les inactifs restent visibles avec une coche
   // pour les reactiver, comme dans le Plan comptable. Seuls les ACTIFS comptent dans les totaux.
-  var lignesBudget=comptes.filter(function(c){return ["revenu","depense","fonds"].indexOf(c.type_compte)>=0;})
-    .map(function(c){return {no:c.no_compte,nom:c.nom_compte,type:c.type_compte,groupe:c.groupe||"Autres",fonds:c.fonds||"operation",actif:!!c.actif};})
+  var lignesBudget=comptes.filter(function(c){return ["revenu","depense","fonds","prevoyance"].indexOf(c.type_compte)>=0;})
+    .map(function(c){return {no:c.no_compte,nom:c.nom_compte,type:c.type_compte==="prevoyance"?"depense":c.type_compte,typeOrig:c.type_compte,groupe:c.groupe||"Autres",fonds:c.fonds||fondsDefautCompte(c.no_compte,c.type_compte),actif:!!c.actif};})
     .sort(function(a,b){return String(a.no).localeCompare(String(b.no));});
   var lignesActives=lignesBudget.filter(function(c){return c.actif;});
 
@@ -419,7 +430,7 @@ function TabBudget(p){
     if(!syndicat||!exo||enCours)return;
     setEnCours(true);setMsg("");setErr("");
     var rows=lignesBudget.filter(function(c){return montants[c.no]!==undefined&&montants[c.no]!=="";}).map(function(c){
-      return {syndicat_id:syndicat.id,exercice_debut:exo.debut,exercice_fin:exo.fin,no_compte:c.no,nom_compte:c.nom,type_compte:c.type,montant:parseFloat(montants[c.no])||0};
+      return {syndicat_id:syndicat.id,exercice_debut:exo.debut,exercice_fin:exo.fin,no_compte:c.no,nom_compte:c.nom,type_compte:c.typeOrig||c.type,montant:parseFloat(montants[c.no])||0};
     });
     if(rows.length===0){setErr("Entrez au moins un montant.");setEnCours(false);return;}
     sb.upsert("budgets_gl",rows,"syndicat_id,exercice_debut,no_compte").then(function(r){
@@ -531,8 +542,8 @@ function TabBudget(p){
         // SAISIE DU BUDGET ORGANISEE PAR FONDS: pour chaque fonds -> revenus, depenses, SOLDE.
         var fondsIds=["operation","prevoyance","assurance"];
         lignesBudget.forEach(function(c){if(fondsIds.indexOf(c.fonds)<0)fondsIds.push(c.fonds);});
-        var LBL_F={operation:"FONDS D OPERATION",prevoyance:"FONDS DE PREVOYANCE",assurance:"FONDS D AUTO-ASSURANCE"};
-        var CLR_F={operation:T.accent,prevoyance:T.blue,assurance:T.purple};
+        var LBL_F={operation:"FONDS D OPERATION",prevoyance:"FONDS DE PREVOYANCE",assurance:"FONDS D AUTO-ASSURANCE",special:"FONDS DE TRAVAUX SPECIAUX"};
+        var CLR_F={operation:T.accent,prevoyance:T.blue,assurance:T.purple,special:T.amber};
         var m=function(no){return parseFloat(montants[no])||0;};
         var ligneRow=function(c){
           return(
@@ -1149,7 +1160,17 @@ function TabFonds(p){
     if(listeFonds.some(function(f){return f.id===slug;})){setErr("Ce fonds existe deja.");return;}
     sb.upsert("comptes_bancaires",[{syndicat_id:syndicat.id,fonds:slug,banque:"",institution:"",transit:"",no_compte:"",solde_ouverture:0,date_solde:null}],"syndicat_id,fonds").then(function(r){
       if(r&&r.error){setErr("ECHEC de la creation du fonds: "+(r.error.message||""));return;}
-      setMsg("Fonds \""+slug+"\" cree. Rattachez-lui des comptes dans le Plan comptable (selecteur de fonds sur chaque compte) et configurez son compte bancaire.");
+      // Cree automatiquement les comptes GL de base du nouveau fonds (contributions,
+      // transfert interfonds et depenses) - modifiables ensuite au Plan comptable.
+      var nosExistants=comptes.map(function(c){return String(c.no_compte);});
+      var libre=function(base){var n=base;while(nosExistants.indexOf(String(n))>=0)n++;nosExistants.push(String(n));return String(n);};
+      var nomP=(nomFonds||slug).trim();
+      sb.upsert("comptes_syndicat",[
+        {syndicat_id:syndicat.id,no_compte:libre(4810),nom_compte:"Contributions - fonds "+nomP,type_compte:"revenu",groupe:"Revenus - Contributions",actif:true,fonds:slug},
+        {syndicat_id:syndicat.id,no_compte:libre(5910),nom_compte:"Transfert interfonds - fonds "+nomP,type_compte:"fonds",groupe:"Transferts interfonds",actif:true,fonds:slug},
+        {syndicat_id:syndicat.id,no_compte:libre(7910),nom_compte:"Depenses - fonds "+nomP,type_compte:"depense",groupe:"Depenses - Fonds "+nomP,actif:true,fonds:slug}
+      ],"syndicat_id,no_compte").then(function(){if(recharger)recharger();}).catch(function(){});
+      setMsg("Fonds \""+slug+"\" cree avec ses comptes GL de base (contributions, transfert interfonds, depenses) - il apparait maintenant dans le budget et la comptabilite par fonds.");
       sb.log("budget","creation","Fonds personnalise cree: "+slug,"",syndicat.code||"");
       setShowAjout(false);setNomFonds("");
       sb.select("comptes_bancaires",{eq:{syndicat_id:syndicat.id},limit:20}).then(function(r2){if(r2&&r2.data)setBanques(r2.data);});
@@ -1225,7 +1246,7 @@ export default function BudgetCompta(props){
     sb.select("comptes_syndicat",{eq:{syndicat_id:sel.id},limit:200}).then(function(r){
       var rows=(r&&r.data)||[];
       if(rows.length===0){
-        var seed=CHARTE_DEFAUT.map(function(c){return {syndicat_id:sel.id,no_compte:c.no,nom_compte:c.nom,type_compte:c.type,groupe:c.groupe,actif:true};});
+        var seed=CHARTE_DEFAUT.map(function(c){return {syndicat_id:sel.id,no_compte:c.no,nom_compte:c.nom,type_compte:c.type,groupe:c.groupe,actif:true,fonds:fondsDefautCompte(c.no,c.type)};});
         sb.upsert("comptes_syndicat",seed,"syndicat_id,no_compte").then(function(r2){
           if(r2&&r2.error){setErrInit("Impossible d initialiser la charte de comptes: "+(r2.error.message||""));return;}
           setComptes(r2&&r2.data?r2.data:seed);
