@@ -89,7 +89,7 @@ module.exports = async function(req, res){
   var mois = iso.substring(0,7);
   var jourDuMois = parseInt(iso.substring(8,10), 10);
 
-  var syndicats = await sbGet(svc, "syndicats?select=id,nom,code,assurance_syndicat_exp,etude_assurance_date,etude_prevoyance_date,ass_avis_avant1,ass_avis_avant2,ass_avis_apres,ass_nc_auto,ass_nc_delai,relances_actives");
+  var syndicats = await sbGet(svc, "syndicats?select=id,nom,code,assurance_syndicat_exp,etude_assurance_date,etude_prevoyance_date,etude_assurance_ans,etude_prevoyance_ans,ass_avis_avant1,ass_avis_avant2,ass_avis_apres,ass_nc_auto,ass_nc_delai,relances_actives");
   var synMap = {}; syndicats.forEach(function(s){synMap[s.id]=s;});
   // Relances gerees PAR SYNDICAT (Centre de notifications): un syndicat desactive est ignore
   function relancesActives(sid){ var s = synMap[sid]; return !s || s.relances_actives !== false; }
@@ -224,11 +224,14 @@ module.exports = async function(req, res){
       texte: "[" + s.nom + "] La police d assurance du SYNDICAT " + (j3 < 0 ? "est EXPIREE depuis le " + s.assurance_syndicat_exp : "expire dans " + j3 + " jours (le " + s.assurance_syndicat_exp + ")") + " - renouvellement a prevoir."});
   });
 
-  // REGLE 4 - Etudes (assurance / prevoyance): appel d offres 6 mois avant l echeance de l intervalle
-  var ansAss = parseInt(cfgPub.etude_assurance_ans, 10) || 5;
-  var ansPrev = parseInt(cfgPub.etude_prevoyance_ans, 10) || 5;
+  // REGLE 4 - Etudes (assurance / prevoyance): appel d offres 6 mois avant l echeance.
+  // Intervalle PAR SYNDICAT (Configuration du syndicat), repli sur la config globale puis 5 ans.
+  var ansAssG = parseInt(cfgPub.etude_assurance_ans, 10) || 5;
+  var ansPrevG = parseInt(cfgPub.etude_prevoyance_ans, 10) || 5;
   syndicats.forEach(function(s){
     if(s.relances_actives === false) return;
+    var ansAss = parseInt(s.etude_assurance_ans, 10) || ansAssG;
+    var ansPrev = parseInt(s.etude_prevoyance_ans, 10) || ansPrevG;
     [{d: s.etude_assurance_date, ans: ansAss, nom: "etude aux fins d assurance", t: "etude_assurance"},
      {d: s.etude_prevoyance_date, ans: ansPrev, nom: "etude du fonds de prevoyance (Loi 16)", t: "etude_prevoyance"}].forEach(function(e){
       if(!e.d || !/^\d{4}-\d{2}-\d{2}$/.test(e.d)) return;

@@ -71,6 +71,7 @@ export default function Unites(){
   var sCh=useState(null);var chequeFile=sCh[0];var setChequeFile=sCh[1];
   var sCh2=useState("");var chExtrait=sCh2[0];var setChExtrait=sCh2[1];
   var sDpa=useState(null);var dpaFile=sDpa[0];var setDpaFile=sDpa[1];
+  var sLoc=useState(null);var locationFile=sLoc[0];var setLocationFile=sLoc[1];
   var s13=useState("");var msgEdit=s13[0];var setMsgEdit=s13[1];
   var s14=useState(false);var editEnCours=s14[0];var setEditEnCours=s14[1];
   var s15=useState("");var assExtrait=s15[0];var setAssExtrait=s15[1];
@@ -148,7 +149,7 @@ export default function Unites(){
 
   function editer(u){
     setEditId(u.id);
-    setCeFile(null);setAssFile(null);setChequeFile(null);setDpaFile(null);setChExtrait("");setMsgEdit("");setAssExtrait("");
+    setCeFile(null);setAssFile(null);setChequeFile(null);setDpaFile(null);setLocationFile(null);setChExtrait("");setMsgEdit("");setAssExtrait("");
     setNf({fraction:u.fraction!=null?String(u.fraction):"",
       chauffe_eau:u.chauffe_eau||"",ce_date_install:u.ce_date_install?String(u.ce_date_install).substring(0,7):"",
       assurance_police:u.assurance_police||"",assurance_debut:u.assurance_debut||"",assurance_exp:u.assurance_exp||"",ass_cie:u.ass_cie||"",
@@ -170,8 +171,19 @@ export default function Unites(){
       var d=resp.data||{};var pris=[];
       if(d.institution&&/^\d{3}$/.test(String(d.institution))){setN("banque_institution",String(d.institution));pris.push("institution "+d.institution);}
       if(d.transit&&/^\d{5}$/.test(String(d.transit))){setN("banque_transit",String(d.transit));pris.push("transit "+d.transit);}
-      if(d.compte){var cpt=String(d.compte).replace(/\D/g,"").slice(0,12);if(cpt.length>=5){setN("banque_compte",cpt);pris.push("compte ****"+cpt.slice(-4));}}
-      setChExtrait(pris.length>0?"Extrait du specimen: "+pris.join(", ")+(d.banque?" ("+d.banque+")":"")+" - verifiez avant de sauvegarder.":"Aucune information lisible sur ce specimen - saisissez manuellement.");
+      if(d.compte){
+        var cpt=String(d.compte).replace(/\D/g,"");
+        // Nettoyage: retire le numero de cheque ou le transit si l IA les a colles au compte
+        var noCh=String(d.no_cheque||"").replace(/\D/g,"");
+        var trs=String(d.transit||"").replace(/\D/g,"");
+        var inst=String(d.institution||"").replace(/\D/g,"");
+        if(noCh&&cpt.length>7&&cpt.indexOf(noCh)===0)cpt=cpt.slice(noCh.length);
+        if(trs&&cpt.length>7&&cpt.indexOf(trs)===0)cpt=cpt.slice(trs.length);
+        if(inst&&cpt.length>7&&cpt.indexOf(inst)===0)cpt=cpt.slice(inst.length);
+        cpt=cpt.slice(0,12);
+        if(cpt.length>=5){setN("banque_compte",cpt);pris.push("compte "+cpt);}
+      }
+      setChExtrait(pris.length>0?"Extrait du specimen: "+pris.join(", ")+(d.banque?" ("+d.banque+")":"")+" - VERIFIEZ chaque numero (surtout le compte) avant de sauvegarder.":"Aucune information lisible sur ce specimen - saisissez manuellement.");
     }).catch(function(e){setChExtrait("Extraction impossible ("+e.message+") - saisissez manuellement.");});
   }
 
@@ -247,6 +259,16 @@ export default function Unites(){
         });
       });
     }
+    if(locationFile){
+      etapes=etapes.then(function(){
+        var ext=(locationFile.name.match(/\.[a-zA-Z0-9]+$/)||[".pdf"])[0];
+        var nomDoc=nf.occupation==="court_terme"?"autorisation-court-terme":"bail";
+        return sb.uploadFichier("preuves",(sel?sel.id:"x")+"/"+uid+"/"+nomDoc+ext,locationFile).then(function(r){
+          if(r.error)throw new Error((nf.occupation==="court_terme"?"Autorisation court terme":"Bail")+": "+r.error.message);
+          row.location_doc=r.chemin;
+        });
+      });
+    }
     etapes.then(function(){
       return sb.update("unites",uid,row);
     }).then(function(res){
@@ -260,7 +282,7 @@ export default function Unites(){
       });
       setUnites(function(prev){return prev.map(function(u){return u.id===uid?Object.assign({},u,row):u;});});
       sb.log("unites","modification","Unite "+(orig.no_unite||"")+" modifiee ("+diffs.length+" champ(s))",diffs.join(" | ").substring(0,1800),sel?sel.code||"":"");
-      setCeFile(null);setAssFile(null);setEditEnCours(false);setEditId(null);
+      setCeFile(null);setAssFile(null);setChequeFile(null);setDpaFile(null);setLocationFile(null);setEditEnCours(false);setEditId(null);
     }).catch(function(e){setMsgEdit("ECHEC: "+(e.message||"erreur inconnue"));setEditEnCours(false);});
   }
 
@@ -305,7 +327,7 @@ export default function Unites(){
                     ?<Bdg bg={T.redL} c={T.red}>Assurance EXPIREE</Bdg>
                     :jrs<=90?<Bdg bg={T.amberL} c={T.amber}>Assurance expire dans {jrs} j</Bdg>
                     :<Bdg>Assurance OK</Bdg>)}
-                  {u.pap_actif?<Bdg bg={T.accentL} c={T.accent}>PAP ACTIF</Bdg>:<Bdg bg={T.alt} c={T.muted}>PAP inactif</Bdg>}
+                  {u.pap_actif?<Bdg bg={T.navy} c="#fff">PAP ACTIF</Bdg>:<Bdg bg={T.alt} c={T.muted}>PAP inactif</Bdg>}
                 </div>
                 <div style={{display:"flex",gap:6,flexShrink:0}}>
                   <Btn sm onClick={function(){enEdition?setEditId(null):editer(u);}}>{enEdition?"Fermer":"Modifier"}</Btn>
@@ -325,6 +347,7 @@ export default function Unites(){
                 <InfoBloc titre="Occupation" bg={T.blueL} c={T.blue}>
                   {occLbl}
                   {u.nom_locataire?<div>{u.nom_locataire}<div style={{fontSize:10,color:T.muted}}>{u.courriel_locataire||"-"}{u.tel_locataire?" | "+u.tel_locataire:""}</div></div>:null}
+                  {u.location_doc&&<button onClick={function(){voirFichier(u.location_doc);}} style={{background:"none",border:"none",padding:0,fontSize:10,fontWeight:700,color:T.blue,cursor:"pointer",fontFamily:"inherit",textDecoration:"underline"}}>{u.occupation==="court_terme"?"Voir l autorisation court terme":"Voir le bail"}</button>}
                 </InfoBloc>
                 <InfoBloc titre="Chauffe-eau" bg={T.purpleL} c={T.purple}>
                   {u.chauffe_eau||u.ce_date_install?(
@@ -397,6 +420,17 @@ export default function Unites(){
                     {nf.occupation!=="court_terme"?<div><Lbl l={nf.occupation==="resident"?"Nom du resident":"Nom du locataire"}/><input value={nf.nom_locataire} onChange={function(e){setN("nom_locataire",e.target.value);}} style={INP}/></div>:<div style={{alignSelf:"end",fontSize:10,color:T.muted}}>Location court terme: aucun nom de locataire conserve.</div>}
                     <div><Lbl l="Telephone"/><input value={nf.tel_locataire} onChange={function(e){setN("tel_locataire",fmtTel(e.target.value));}} style={INP} maxLength={12}/></div>
                     <div><Lbl l="Courriel"/><input value={nf.courriel_locataire} onChange={function(e){setN("courriel_locataire",e.target.value.trim());}} style={INP}/></div>
+                    {(nf.occupation==="locataire"||nf.occupation==="court_terme")&&(
+                      <div style={{gridColumn:"span 2",background:T.amberL,border:"1px solid #B8602055",borderRadius:8,padding:10}}>
+                        <Lbl l={nf.occupation==="court_terme"?"Formulaire d autorisation de location COURT TERME (piece jointe)":"Bail (piece jointe)"}/>
+                        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                          <input type="file" accept=".pdf,image/*" onChange={function(e){setLocationFile(e.target.files&&e.target.files[0]?e.target.files[0]:null);}} style={{fontSize:11,fontFamily:"inherit"}}/>
+                          {locationFile&&<span style={{fontSize:10,color:T.accent}}>{locationFile.name}</span>}
+                          {u.location_doc&&<Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){voirFichier(u.location_doc);}}>Voir le document actuel</Btn>}
+                        </div>
+                        <div style={{fontSize:10,color:T.muted,marginTop:5}}>{nf.occupation==="court_terme"?"Le formulaire d autorisation du CA pour la location court terme doit etre conserve au dossier de l unite.":"Le bail (ou l avis de location) est conserve au dossier de l unite et consultable en tout temps."}</div>
+                      </div>
+                    )}
 
                     <SecTitre l="Chauffe-eau" c={T.purple}/>
                     <div><Lbl l="Marque / modele"/><input value={nf.chauffe_eau} onChange={function(e){setN("chauffe_eau",e.target.value);}} style={INP} placeholder="Giant 60 gal"/></div>

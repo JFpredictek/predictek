@@ -5,6 +5,26 @@ import GestionUtilisateurs from "./GestionUtilisateurs";
 import GestionEmployes from "./GestionEmployes";
 
 // Normalise un role de CA (texte libre du REQ/IA) vers les valeurs standard de l app
+// Fusionne les administrateurs extraits du REQ avec ceux deja saisis:
+// les champs entres a la main (courriel, cellulaire, NAS...) ne sont JAMAIS ecrases.
+function fusionnerAdmins(existants,extraits){
+  return (extraits||[]).map(function(a){
+    var cle=((a.prenom||"")+" "+(a.nom||"")).trim().toLowerCase();
+    var ancien=(existants||[]).find(function(x){return cle!==""&&((x.prenom||"")+" "+(x.nom||"")).trim().toLowerCase()===cle;});
+    return {
+      nom:a.nom||"",prenom:a.prenom||"",
+      adr:a.adr||(ancien&&ancien.adr)||"",
+      ville:a.ville||(ancien&&ancien.ville)||"",
+      province:a.province||(ancien&&ancien.province)||"QC",
+      codePostal:a.codePostal||(ancien&&ancien.codePostal)||"",
+      courriel:(ancien&&ancien.courriel)||"",
+      mobile:(ancien&&ancien.mobile)||"",
+      dateDebut:a.dateDebut||(ancien&&ancien.dateDebut)||"",
+      nas:(ancien&&ancien.nas)||"",
+      role:normRole(a.role)
+    };
+  });
+}
 function normRole(r){
   var s=(r||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
   if(s.indexOf("vice")>=0)return "vice";
@@ -946,7 +966,7 @@ function Onboarding(p){
                       if(!u.code&&(ex.nom||ex.adr)){var stopw=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","sdc","l","d","et"];var mts=(ex.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stopw.indexOf(m.toLowerCase())<0;});var bs=mts.length>0?mts[0].charAt(0).toUpperCase()+mts[0].slice(1).toLowerCase():"";var nm=((ex.adr||"").match(/\d+/)||[""])[0];if(bs||nm)u.code=(bs+nm).slice(0,20);}
                         if(ex.admins&&Array.isArray(ex.admins)&&ex.admins.length>0){
                           u.nbMembresCA=ex.admins.length;
-                          u.admins=ex.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};});
+                          u.admins=fusionnerAdmins(o.admins,ex.admins);
                         }
                         return u;
                       });
@@ -966,7 +986,7 @@ function Onboarding(p){
                         setData(function(o2){
                           var u2=Object.assign({},o2);
                           u2.nbMembresCA=da.admins.length;
-                          u2.admins=da.admins.map(function(a){return {nom:a.nom||"",prenom:a.prenom||"",adr:a.adr||"",ville:a.ville||"",province:a.province||"QC",codePostal:a.codePostal||"",courriel:"",mobile:"",dateDebut:a.dateDebut||"",nas:"",role:normRole(a.role)};});
+                          u2.admins=fusionnerAdmins(o2.admins,da.admins);
                           if(da.adrSyndicat)u2.adr=da.adrSyndicat;
                           if(da.villeSyndicat)u2.ville=da.villeSyndicat;
                           if(da.codePostalSyndicat)u2.codePostal=fmtCP(da.codePostalSyndicat);
@@ -1400,19 +1420,8 @@ function ParamsPredictek(){
   var logo=s3[0];var setLogo=s3[1];
   var s4=useState("entreprise");var ong=s4[0];var setOng=s4[1];
   var s5=useState("");var ok=s5[0];var setOk=s5[1];
-  var s6i=useState({etudeAssurance:"5",etudePrevoyance:"5"});var interv=s6i[0];var setInterv=s6i[1];
-  useEffect(function(){
-    sb.select("config_publique",{}).then(function(r){
-      if(r&&r.data){
-        var n={};
-        r.data.forEach(function(x){
-          if(x.cle==="etude_assurance_ans")n.etudeAssurance=x.valeur;
-          if(x.cle==="etude_prevoyance_ans")n.etudePrevoyance=x.valeur;
-        });
-        if(Object.keys(n).length>0)setInterv(function(pr){return Object.assign({},pr,n);});
-      }
-    }).catch(function(){});
-  },[]);
+  // Les intervalles des etudes (assurance, prevoyance) sont PAR SYNDICAT:
+  // voir Conseil d administration > Configuration > Configuration du syndicat.
 
   var setI=function(k,v){setInfos(function(p){return Object.assign({},p,{[k]:v});});};
   var setF=function(k,v){setFisc(function(p){return Object.assign({},p,{[k]:v});});};
@@ -1420,7 +1429,6 @@ function ParamsPredictek(){
 
   function sauver(){
     save("entreprise",infos);save("fiscalite",fisc);save("banque",banque);save("logo",logo);
-    sb.upsert("config_publique",[{cle:"etude_assurance_ans",valeur:String(parseInt(interv.etudeAssurance)||5)},{cle:"etude_prevoyance_ans",valeur:String(parseInt(interv.etudePrevoyance)||5)}],"cle").catch(function(){});
     try{if(logo.url)localStorage.setItem("predictek_logo",logo.url);}catch(e){}
     // Le logo est publie en base pour apparaitre dans l entete et au login de TOUS les usagers
     if(logo.url){
@@ -1459,14 +1467,6 @@ function ParamsPredictek(){
 
       {ong==="entreprise"&&(
         <div>
-        <div style={{background:NC.surface,border:"1px solid "+NC.border,borderRadius:12,padding:20,marginBottom:14}}>
-          <div style={{fontSize:13,fontWeight:700,color:NC.navy,marginBottom:4}}>Intervalles reglementaires (tous les syndicats)</div>
-          <div style={{fontSize:11,color:NC.muted,marginBottom:12}}>Frequence de renouvellement des etudes - utilisee pour planifier les appels d offres automatiquement.</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <div><div style={NL}>Etude aux fins d assurance (ans)</div><select value={interv.etudeAssurance} onChange={function(e){setInterv(function(pr){return Object.assign({},pr,{etudeAssurance:e.target.value});});}} style={NI}>{["1","2","3","4","5","6","7","8","9","10"].map(function(x){return <option key={x} value={x}>{x} an(s)</option>;})}</select></div>
-            <div><div style={NL}>Etude du fonds de prevoyance (ans)</div><select value={interv.etudePrevoyance} onChange={function(e){setInterv(function(pr){return Object.assign({},pr,{etudePrevoyance:e.target.value});});}} style={NI}>{["1","2","3","4","5","6","7","8","9","10"].map(function(x){return <option key={x} value={x}>{x} an(s)</option>;})}</select></div>
-          </div>
-        </div>
         <div style={{background:NC.surface,border:"1px solid "+NC.border,borderRadius:12,padding:20}}>
           <div style={{fontSize:13,fontWeight:700,color:NC.navy,marginBottom:14}}>Informations legales et coordonnees</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>

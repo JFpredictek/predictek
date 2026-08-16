@@ -122,10 +122,14 @@ export default async function handler(req, res) {
       }
     } else if(mode==="cheque"){
       var promptCh = "Voici un SPECIMEN DE CHEQUE canadien (ou un formulaire bancaire equivalent). "
-        + "Lis la ligne MICR au bas du cheque. Format canadien: numero de cheque, puis TRANSIT (5 chiffres), puis INSTITUTION (3 chiffres), puis NUMERO DE COMPTE (7 a 12 chiffres). "
-        + "ATTENTION: sur la ligne MICR le transit (5 chiffres) apparait AVANT le numero d institution (3 chiffres). "
+        + "Lis la ligne MICR au bas du cheque, de GAUCHE a DROITE elle contient EXACTEMENT 3 groupes: "
+        + "(1) le NUMERO DE CHEQUE (3 ou 4 chiffres, ex: 001) - IGNORE-LE COMPLETEMENT, ce n est PAS le compte; "
+        + "(2) le TRANSIT (5 chiffres) suivi du NUMERO D INSTITUTION (3 chiffres), souvent separes par un tiret ou un symbole; "
+        + "(3) le NUMERO DE COMPTE: c est le DERNIER groupe de chiffres, tout a droite de la ligne (souvent 7 chiffres chez Desjardins, jusqu a 12 ailleurs). "
+        + "Recopie le numero de compte CHIFFRE PAR CHIFFRE tel qu il apparait, sans espaces ni tirets, sans y coller le numero de cheque ni le transit. "
+        + "Si la ligne MICR est illisible, prends les numeros indiques ailleurs sur le document (ex: Compte / Folio). "
         + "Reponds UNIQUEMENT avec un objet JSON valide (chaine vide si absent): "
-        + "{\"institution\":\"3 chiffres (ex: 815 Desjardins, 003 RBC, 004 TD, 006 BNC)\",\"transit\":\"5 chiffres\",\"compte\":\"numero de compte sans espaces ni tirets\",\"titulaire\":\"nom imprime sur le cheque\",\"banque\":\"nom de l institution si visible\"}";
+        + "{\"institution\":\"3 chiffres (ex: 815 Desjardins, 003 RBC, 004 TD, 006 BNC)\",\"transit\":\"5 chiffres\",\"compte\":\"numero de compte seul, sans espaces ni tirets\",\"no_cheque\":\"numero du cheque (3-4 chiffres) pour verification\",\"titulaire\":\"nom imprime sur le cheque\",\"banque\":\"nom de l institution si visible\"}";
       if(pdfB64){
         contenu = [{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:promptCh}];
       } else if(imagesIn.length>0){

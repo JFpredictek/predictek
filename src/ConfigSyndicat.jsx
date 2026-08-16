@@ -56,7 +56,11 @@ export default function ConfigSyndicat(p){
       ass_nc_delai:sel.ass_nc_delai!==null&&sel.ass_nc_delai!==undefined?String(sel.ass_nc_delai):"30",
       approb_seuil:sel.approb_seuil!==null&&sel.approb_seuil!==undefined?String(sel.approb_seuil):"0",
       approb_nb_max:sel.approb_nb_max?String(sel.approb_nb_max):"3",
-      quorum_ago:sel.quorum_ago?String(sel.quorum_ago):"50"
+      quorum_ago:sel.quorum_ago?String(sel.quorum_ago):"50",
+      etude_assurance_ans:sel.etude_assurance_ans?String(sel.etude_assurance_ans):"5",
+      etude_prevoyance_ans:sel.etude_prevoyance_ans?String(sel.etude_prevoyance_ans):"5",
+      etude_assurance_date:sel.etude_assurance_date||"",
+      etude_prevoyance_date:sel.etude_prevoyance_date||""
     });
     try{
       var pl=JSON.parse(sel.approb_paliers||"");
@@ -83,7 +87,11 @@ export default function ConfigSyndicat(p){
       approb_nb_max:Math.max(1,parseInt(f.approb_nb_max)||3),
       approb_paliers:JSON.stringify(paliers.filter(function(x){return parseFloat(x.max)>0;}).map(function(x){return {max:parseFloat(x.max)||0,nb:Math.max(1,parseInt(x.nb)||1)};}).sort(function(a,b){return a.max-b.max;})),
       approb_requises:Math.max(1,parseInt(paliers[0]&&paliers[0].nb)||1),
-      quorum_ago:parseInt(f.quorum_ago)||50
+      quorum_ago:parseInt(f.quorum_ago)||50,
+      etude_assurance_ans:Math.max(1,parseInt(f.etude_assurance_ans)||5),
+      etude_prevoyance_ans:Math.max(1,parseInt(f.etude_prevoyance_ans)||5),
+      etude_assurance_date:f.etude_assurance_date||null,
+      etude_prevoyance_date:f.etude_prevoyance_date||null
     };
     sb.update("syndicats",sel.id,maj).then(function(r){
       if(r&&r.error){setSaving(false);setErr("ECHEC de la sauvegarde: "+(r.error.message||"les colonnes ass_avis_* existent-elles? (SQL fourni)"));return;}
@@ -176,13 +184,30 @@ export default function ConfigSyndicat(p){
           </div>
         </Carte>
 
+        <Carte titre="Etudes reglementaires" desc="Etude aux fins d assurance et etude du fonds de prevoyance (Loi 16). L intervalle est propre a CE syndicat. Le moteur de relances alerte l administrateur 6 mois avant l echeance pour lancer l appel d offres.">
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+            <div style={{background:T.alt,borderRadius:10,padding:12}}>
+              <div style={{fontSize:11,fontWeight:800,color:T.navy,marginBottom:10,textTransform:"uppercase"}}>Etude aux fins d assurance</div>
+              <div style={{marginBottom:10}}><Lbl l="Date de la derniere etude / validation"/><input type="date" value={f.etude_assurance_date||""} onChange={function(e){sf("etude_assurance_date",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Intervalle de renouvellement (annees)"/><input type="number" min="1" max="10" value={f.etude_assurance_ans||""} onChange={function(e){sf("etude_assurance_ans",e.target.value);}} style={INP}/></div>
+              {f.etude_assurance_date&&parseInt(f.etude_assurance_ans)>0&&(function(){var d=new Date(f.etude_assurance_date+"T12:00:00");d.setFullYear(d.getFullYear()+parseInt(f.etude_assurance_ans));return <div style={{fontSize:10,color:T.amber,fontWeight:700,marginTop:8}}>Prochaine echeance: {d.toISOString().substring(0,10)}</div>;})()}
+            </div>
+            <div style={{background:T.alt,borderRadius:10,padding:12}}>
+              <div style={{fontSize:11,fontWeight:800,color:T.navy,marginBottom:10,textTransform:"uppercase"}}>Etude du fonds de prevoyance (Loi 16)</div>
+              <div style={{marginBottom:10}}><Lbl l="Date de la derniere etude / validation"/><input type="date" value={f.etude_prevoyance_date||""} onChange={function(e){sf("etude_prevoyance_date",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Intervalle de renouvellement (annees)"/><input type="number" min="1" max="10" value={f.etude_prevoyance_ans||""} onChange={function(e){sf("etude_prevoyance_ans",e.target.value);}} style={INP}/></div>
+              {f.etude_prevoyance_date&&parseInt(f.etude_prevoyance_ans)>0&&(function(){var d=new Date(f.etude_prevoyance_date+"T12:00:00");d.setFullYear(d.getFullYear()+parseInt(f.etude_prevoyance_ans));return <div style={{fontSize:10,color:T.amber,fontWeight:700,marginTop:8}}>Prochaine echeance: {d.toISOString().substring(0,10)}</div>;})()}
+            </div>
+          </div>
+        </Carte>
+
         <Carte titre="Autres configurations" desc="Regles gerees dans leurs modules respectifs - acces direct.">
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
             <Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){if(p&&p.onNavigate)p.onNavigate("plancomptable");}}>Plan comptable du syndicat</Btn>
             <Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){if(p&&p.onNavigate)p.onNavigate("banques");}}>Comptes bancaires par fonds</Btn>
             <Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){if(p&&p.onNavigate)p.onNavigate("fondsview");}}>Comptabilite par fonds</Btn>
           </div>
-          <div style={{fontSize:10,color:T.muted,marginTop:10}}>Les intervalles des etudes (assurance, prevoyance) et le logo se configurent dans Predictek - Configuration - Parametres. Les informations du syndicat (adresse, courriels, exercice) aussi.</div>
+          <div style={{fontSize:10,color:T.muted,marginTop:10}}>Le logo de l entreprise et les informations du syndicat (adresse, courriels, exercice) se configurent dans Predictek - Configuration.</div>
         </Carte>
       </div>
     </div>
