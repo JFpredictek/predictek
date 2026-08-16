@@ -263,32 +263,8 @@ export default function Encaissements(){
     imprimerHTML("Etat de compte unite "+u.no_unite,html);
   }
 
-  function attestation(u){
-    var calc=calculArrerages(u);
-    var props=propsDe(u);
-    var spList=speciales.map(function(spx){
-      var part=(Number(spx.montant_total)||0)*(parseFloat(u.fraction)||0)/100;
-      return "<tr><td>"+(spx.titre||"")+"</td><td>"+(spx.date_vote||"-")+"</td><td class='right'>"+money(spx.montant_total)+"</td><td class='right'>"+money(part)+"</td><td>"+(spx.nb_versements||1)+" versement(s)</td></tr>";
-    }).join("");
-    var html="<h1>ATTESTATION DE L ETAT DES CHARGES COMMUNES</h1>"
-      +"<div class='muted'>Article 1069 du Code civil du Quebec - generee le "+new Date().toLocaleDateString("fr-CA")+"</div>"
-      +"<h2>Syndicat</h2><div><b>"+(sel?sel.nom:"")+"</b><br/>"+((sel&&sel.adr)||"")+(sel&&sel.ville?", "+sel.ville:"")+"<br/>NEQ: "+((sel&&sel.immat)||"-")+"</div>"
-      +"<h2>Unite visee</h2><table>"
-      +"<tr><th>Numero d unite</th><td>"+u.no_unite+"</td></tr>"
-      +"<tr><th>Cadastre</th><td>"+(u.cadastre||"-")+"</td></tr>"
-      +"<tr><th>Quote-part des parties communes</th><td>"+(parseFloat(u.fraction)||0).toFixed(3)+" %</td></tr>"
-      +"<tr><th>Proprietaire(s) actuel(s)</th><td>"+(props.map(function(c){return ((c.prenom||"")+" "+(c.nom||"")).trim();}).join(" et ")||"-")+"</td></tr>"
-      +"<tr><th>Cotisation mensuelle courante</th><td>"+money(u.cotisation_mensuelle)+"</td></tr></table>"
-      +"<h2>Etat des charges</h2><table>"
-      +"<tr><th>Charges communes dues (arrerages) en date de ce jour</th><td class='right'><b>"+money(calc.arrerages)+"</b></td></tr>"
-      +(calc.interets>0?"<tr><th>Interets de retard courus (mois courant)</th><td class='right'>"+money(calc.interets)+"</td></tr>":"")
-      +"</table>"
-      +"<h2>Cotisations speciales votees</h2>"
-      +(speciales.length>0?"<table><tr><th>Objet</th><th>Date du vote</th><th class='right'>Montant total</th><th class='right'>Part de l unite</th><th>Modalites</th></tr>"+spList+"</table>":"<div>Aucune cotisation speciale en vigueur.</div>")
-      +"<h2>Assurance du syndicat</h2><div>Expiration de la police: "+((sel&&sel.assurance_syndicat_exp)||"non renseignee")+"</div>"
-      +"<br/><br/><div>_____________________________<br/>Signature d un administrateur ou du gestionnaire<br/><span class='muted'>Atteste en vertu de l article 1069 C.c.Q. Les montants sont etablis d apres les registres du syndicat en date de ce jour.</span></div>";
-    imprimerHTML("Attestation de charges unite "+u.no_unite,html);
-  }
+  // L attestation (art. 1069 C.c.Q.) a ete deplacee dans le module Unites, enrichie
+  // (avis non regles, factures impayees, finances completes de la copropriete).
 
   var totMoisDu=unites.reduce(function(a,u){return a+(Number(u.cotisation_mensuelle)||0)+specialesDues(u,mois);},0);
   var totMoisPaye=unites.reduce(function(a,u){var p=paiementDuMois(u,"cotisation");return a+(p&&p.statut==="paye"?Number(p.montant||0):0);},0);
@@ -536,7 +512,7 @@ export default function Encaissements(){
                             }}>+ Encaisser</Btn>
                             {p&&p.statut==="paye"&&<Btn sm bg={T.amberL} tc={T.amber} bdr={"1px solid "+T.amber+"44"} onClick={function(){annulerPaiement(u);}}>Annuler</Btn>}
                             <Btn sm bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){etatDeCompte(u);}}>Etat de compte</Btn>
-                            <Btn sm bg={T.purple} onClick={function(){attestation(u);}}>Attestation notaire</Btn>
+                            {/* L attestation pour le notaire est maintenant dans le module Unites (dossier de l unite) */}
                           </div>
                         </td>
                       </tr>

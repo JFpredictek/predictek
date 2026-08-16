@@ -54,6 +54,44 @@ function fichierPourExtraction(file){
   });
 }
 
+// ===== ATTESTATION DU SYNDICAT (art. 1069 C.c.Q.) - helpers =====
+function padA2(n){return (n<10?"0":"")+n;}
+var MOIS_FR_A={"jan":0,"fev":1,"mar":2,"avr":3,"mai":4,"jun":5,"juin":5,"jul":6,"juil":6,"aou":7,"sep":8,"oct":9,"nov":10,"dec":11};
+function debutExerciceA(exerciceTxt){
+  var m=String(exerciceTxt||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").match(/(\d{1,2})\s*([a-z]{3,5})/);
+  var mois=0,jour=1;
+  if(m){var cle=m[2].substring(0,4);var mm=MOIS_FR_A[cle]!==undefined?MOIS_FR_A[cle]:MOIS_FR_A[m[2].substring(0,3)];if(mm!==undefined){mois=mm;jour=parseInt(m[1])||1;}}
+  var now=new Date();
+  var d=new Date(now.getFullYear(),mois,jour);
+  if(d>now)d=new Date(now.getFullYear()-1,mois,jour);
+  return d.getFullYear()+"-"+padA2(d.getMonth()+1)+"-"+padA2(d.getDate());
+}
+function moisEntreA(debut,moisFin){
+  var out=[];var d=new Date(debut.substring(0,7)+"-01T12:00:00");var fin=new Date(moisFin+"-01T12:00:00");var g=0;
+  while(d<=fin&&g<240){out.push(d.getFullYear()+"-"+padA2(d.getMonth()+1));d.setMonth(d.getMonth()+1);g++;}
+  return out;
+}
+function moneyA(v){return (Number(v)||0).toLocaleString("fr-CA",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";}
+function imprimerAtt(titre,corps){
+  var w=window.open("","_blank","width=900,height=700");
+  if(!w)return;
+  var logo="";try{logo=localStorage.getItem("predictek_logo")||"";}catch(e){}
+  w.document.write("<html><head><title>"+titre+"</title><style>"
+    +"body{font-family:Georgia,serif;color:#1C1A17;margin:36px;font-size:12px}"
+    +".ent{display:flex;align-items:center;gap:14px;border-bottom:3px solid #1B5E3B;padding-bottom:10px;margin-bottom:10px}"
+    +".ent img{height:48px}"
+    +"h1{font-size:17px;margin:8px 0 2px}"
+    +"h2{font-size:13px;background:#13233A;color:#fff;padding:5px 10px;border-radius:4px;margin:16px 0 6px}"
+    +"table{width:100%;border-collapse:collapse;margin-top:4px}"
+    +"th,td{border:1px solid #999;padding:5px 8px;font-size:11px;text-align:left}"
+    +"th{background:#EDEBE4}.right{text-align:right}.tot{font-weight:bold;background:#E8F2EC}"
+    +".muted{color:#666;font-size:10px}.alerte{color:#B83232;font-weight:bold}"
+    +"</style></head><body>"
+    +"<div class='ent'>"+(logo?"<img src='"+logo+"'/>":"")+"<div><div style='font-size:17px;font-weight:bold;color:#13233A'>Predictek</div><div class='muted'>Gestion de copropriete</div></div></div>"
+    +corps+"<script>window.print();</script></body></html>");
+  w.document.close();
+}
+
 export default function Unites(){
   var s0=useState([]);var syndicats=s0[0];var setSyndicats=s0[1];
   var s1=useState(null);var sel=s1[0];var setSel=s1[1];
@@ -286,6 +324,111 @@ export default function Unites(){
     }).catch(function(e){setMsgEdit("ECHEC: "+(e.message||"erreur inconnue"));setEditEnCours(false);});
   }
 
+  // ===== ATTESTATION COMPLETE DU SYNDICAT (pour le notaire, art. 1069 C.c.Q.) =====
+  // Inclut: charges et arrerages de l unite, interets, cotisations speciales, factures
+  // impayees, AVIS DE NON-CONFORMITE et D INFRACTION non regles, et les finances de la
+  // copropriete (budget, soldes des fonds, payables, assurance, etudes).
+  function attestationNotaire(u){
+    if(!sel)return;
+    setMsgVente("Preparation de l attestation de l unite "+u.no_unite+"...");
+    Promise.all([
+      sb.select("paiements",{eq:{syndicat_id:sel.id},limit:5000}),
+      sb.select("cotisations_speciales",{eq:{syndicat_id:sel.id},limit:100}),
+      sb.select("factures_copros",{eq:{syndicat_id:sel.id},limit:500}),
+      sb.select("avis_conformite",{eq:{syndicat_id:sel.id},limit:500}),
+      sb.select("config_publique",{limit:100}),
+      sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},limit:20}),
+      sb.select("budgets_gl",{eq:{syndicat_id:sel.id},limit:400}),
+      sb.select("factures",{eq:{syndicat_id:sel.id},limit:500}),
+      sb.select("budgets",{eq:{syndicat_id:sel.id},limit:10})
+    ]).then(function(rs){
+      var paie=(rs[0]&&rs[0].data)||[];
+      var speciales=(rs[1]&&rs[1].data)||[];
+      var fc=(rs[2]&&rs[2].data)||[];
+      var avis=(rs[3]&&rs[3].data)||[];
+      var cfg={};((rs[4]&&rs[4].data)||[]).forEach(function(x){cfg[x.cle]=x.valeur;});
+      var banques=(rs[5]&&rs[5].data)||[];
+      var budGL=(rs[6]&&rs[6].data)||[];
+      var factF=(rs[7]&&rs[7].data)||[];
+      var budRows=(rs[8]&&rs[8].data)||[];
+      var auj=new Date().toISOString().substring(0,10);
+      var moisCour=auj.substring(0,7);
+      var taux=parseFloat(cfg.taux_interet_retard)||0;
+      // Arrerages de l unite depuis le debut de l exercice
+      var debut=debutExerciceA(sel.exercice);
+      var listeMois=moisEntreA(debut,moisCour);
+      var attendu=listeMois.length*(Number(u.cotisation_mensuelle)||0);
+      speciales.forEach(function(sp){
+        var part=(Number(sp.montant_total)||0)*(parseFloat(u.fraction)||0)/100;
+        attendu+=part; // du total vote, la part de l unite est exigible selon les modalites
+      });
+      var payeU=paie.filter(function(p){return p.unite_id===u.id&&p.statut==="paye";}).reduce(function(a,p){return a+Number(p.montant||0);},0);
+      var payeExercice=paie.filter(function(p){return p.unite_id===u.id&&p.statut==="paye"&&String(p.date_paiement||"")>=debut;}).reduce(function(a,p){return a+Number(p.montant||0);},0);
+      var arr=Math.max(0,Math.round((attendu-payeExercice)*100)/100);
+      var interets=Math.round(arr*taux/100/12*100)/100;
+      // Factures aux copros impayees de l unite
+      var fcU=fc.filter(function(f){return (f.unite_id===u.id||f.unite===u.no_unite)&&f.statut==="emise";});
+      var totFcU=fcU.reduce(function(a,f){return a+Number(f.montant||0);},0);
+      // Avis non regles de l unite: non-conformite (emis) et infractions (infraction_emise ou niveau infraction non corrige)
+      var avisU=avis.filter(function(a2){return a2.unite===u.no_unite&&(a2.statut==="emis"||a2.statut==="infraction_emise");});
+      // Finances de la copropriete
+      var exoDebut=(budRows[0]&&budRows[0].annee_debut)||null;
+      var budEx=budGL.filter(function(b){return !exoDebut||b.exercice_debut===exoDebut;});
+      var budgetDep=budEx.filter(function(b){return b.type_compte==="depense"||b.type_compte==="prevoyance";}).reduce(function(a,b){return a+Number(b.montant||0);},0);
+      var budgetFonds=budEx.filter(function(b){return b.type_compte==="fonds";}).reduce(function(a,b){return a+Number(b.montant||0);},0);
+      var budStatut=(budRows[0]&&budRows[0].statut)||"";
+      var payables=factF.filter(function(f){return f.statut!=="payee"&&f.statut!=="annulee"&&f.statut!=="rejetee";}).reduce(function(a,f){return a+(Number(f.total)||Number(f.montant)||0);},0);
+      var encaisseExo=paie.filter(function(p){return p.statut==="paye"&&String(p.date_paiement||"")>=debut;}).reduce(function(a,p){return a+Number(p.montant||0);},0);
+      var LBLF={operation:"Fonds d operation",prevoyance:"Fonds de prevoyance",assurance:"Fonds d auto-assurance"};
+      var props=propsDe(u);
+      var lg=function(v){return String(v==null?"":v).replace(/</g,"&lt;");};
+
+      var html="<h1>ATTESTATION DE L ETAT DES CHARGES COMMUNES ET DU SYNDICAT</h1>"
+        +"<div class='muted'>Articles 1068.1 et 1069 du Code civil du Quebec - generee le "+new Date().toLocaleDateString("fr-CA")+"</div>"
+        +"<h2>1. Syndicat</h2><table>"
+        +"<tr><th style='width:40%'>Nom</th><td>"+lg(sel.nom)+"</td></tr>"
+        +"<tr><th>Adresse</th><td>"+lg((sel.adr||"")+(sel.ville?", "+sel.ville:""))+"</td></tr>"
+        +"<tr><th>NEQ</th><td>"+lg(sel.immat||"-")+"</td></tr>"
+        +"<tr><th>Exercice financier</th><td>"+lg(sel.exercice||"annee civile")+" (exercice courant depuis le "+debut+")</td></tr></table>"
+        +"<h2>2. Unite visee</h2><table>"
+        +"<tr><th style='width:40%'>Numero d unite</th><td>"+lg(u.no_unite)+"</td></tr>"
+        +"<tr><th>Cadastre</th><td>"+lg(u.cadastre||"-")+"</td></tr>"
+        +"<tr><th>Quote-part des parties communes</th><td>"+(parseFloat(u.fraction)||0).toFixed(3)+" %</td></tr>"
+        +"<tr><th>Proprietaire(s)</th><td>"+lg(props.map(function(c){return ((c.prenom||"")+" "+(c.nom||"")).trim();}).join(" et ")||"-")+"</td></tr>"
+        +"<tr><th>Occupation</th><td>"+lg(u.occupation==="locataire"?"Louee"+(u.nom_locataire?" ("+u.nom_locataire+")":""):u.occupation==="court_terme"?"Location court terme":u.occupation==="resident"?"Resident":"Proprietaire occupant")+"</td></tr>"
+        +"<tr><th>Cotisation mensuelle courante</th><td>"+moneyA(u.cotisation_mensuelle)+(u.pap_actif?" (prelevement automatique actif)":"")+"</td></tr></table>"
+        +"<h2>3. Etat des charges de l unite</h2><table>"
+        +"<tr><th style='width:60%'>Charges payees depuis le debut de l exercice</th><td class='right'>"+moneyA(payeExercice)+"</td></tr>"
+        +"<tr><th>Charges communes DUES (arrerages) en date de ce jour</th><td class='right'><b>"+moneyA(arr)+"</b></td></tr>"
+        +"<tr><th>Interets de retard courus (taux "+taux+" %/an)</th><td class='right'>"+moneyA(interets)+"</td></tr>"
+        +(fcU.length>0?"<tr><th>Factures au coproprietaire IMPAYEES ("+fcU.length+")</th><td class='right' ><b class='alerte'>"+moneyA(totFcU)+"</b></td></tr>":"<tr><th>Factures au coproprietaire impayees</th><td class='right'>Aucune</td></tr>")
+        +"<tr class='tot'><th>TOTAL DU PAR L UNITE</th><td class='right'>"+moneyA(arr+interets+totFcU)+"</td></tr></table>"
+        +(fcU.length>0?"<table><tr><th>No</th><th>Type</th><th>Description</th><th>Echeance</th><th class='right'>Montant</th></tr>"
+          +fcU.map(function(f){return "<tr><td>"+lg(f.no_facture)+"</td><td>"+lg(f.type_frais)+"</td><td>"+lg((f.description||"").substring(0,80))+"</td><td>"+lg(f.date_echeance||"-")+"</td><td class='right'>"+moneyA(f.montant)+"</td></tr>";}).join("")+"</table>":"")
+        +"<h2>4. Avis de non-conformite et d infraction NON REGLES</h2>"
+        +(avisU.length===0?"<div>Aucun avis de non-conformite ni avis d infraction en vigueur pour cette unite.</div>"
+          :"<table><tr><th>Type</th><th>Objet</th><th>Article du reglement</th><th>Echeance</th><th class='right'>Penalite</th></tr>"
+          +avisU.map(function(a2){return "<tr><td class='"+(a2.statut==="infraction_emise"?"alerte":"")+"'>"+(a2.statut==="infraction_emise"?"AVIS D INFRACTION":"Avis de non-conformite")+"</td><td>"+lg(a2.objet)+"</td><td>"+lg(a2.article_reglement||"-")+"</td><td>"+lg(a2.echeance||"-")+"</td><td class='right'>"+(Number(a2.montant_penalite)>0?moneyA(a2.montant_penalite):"-")+"</td></tr>";}).join("")+"</table>")
+        +"<h2>5. Cotisations speciales votees</h2>"
+        +(speciales.length===0?"<div>Aucune cotisation speciale en vigueur.</div>"
+          :"<table><tr><th>Objet</th><th>Date du vote</th><th class='right'>Montant total</th><th class='right'>Part de l unite</th><th>Modalites</th></tr>"
+          +speciales.map(function(sp){var part=(Number(sp.montant_total)||0)*(parseFloat(u.fraction)||0)/100;return "<tr><td>"+lg(sp.titre)+"</td><td>"+lg(sp.date_vote||"-")+"</td><td class='right'>"+moneyA(sp.montant_total)+"</td><td class='right'>"+moneyA(part)+"</td><td>"+(sp.nb_versements||1)+" versement(s)</td></tr>";}).join("")+"</table>")
+        +"<h2>6. Finances de la copropriete</h2><table>"
+        +"<tr><th style='width:60%'>Budget de l exercice"+(exoDebut?" (debut "+exoDebut+")":"")+" - depenses et apports aux fonds</th><td class='right'>"+moneyA(budgetDep+budgetFonds)+"</td></tr>"
+        +"<tr><th>Statut du budget</th><td>"+(budStatut==="approuve"?"APPROUVE par tous les membres du CA":budStatut==="brouillon"?"Brouillon (non approuve)":"Non renseigne")+"</td></tr>"
+        +"<tr><th>Charges encaissees depuis le debut de l exercice (tous coproprietaires)</th><td class='right'>"+moneyA(encaisseExo)+"</td></tr>"
+        +"<tr><th>Comptes fournisseurs a payer (factures non payees)</th><td class='right'>"+moneyA(payables)+"</td></tr>"
+        +banques.map(function(b){return "<tr><th>"+lg(LBLF[b.fonds]||("Fonds "+(b.fonds||"")))+" - solde d ouverture"+(b.date_solde?" au "+b.date_solde:"")+"</th><td class='right'>"+moneyA(b.solde_ouverture)+"</td></tr>";}).join("")
+        +"<tr><th>Assurance du syndicat - expiration de la police</th><td>"+lg(sel.assurance_syndicat_exp||"non renseignee")+"</td></tr>"
+        +"<tr><th>Derniere etude aux fins d assurance</th><td>"+lg(sel.etude_assurance_date||"non renseignee")+(sel.etude_assurance_ans?" (intervalle "+sel.etude_assurance_ans+" ans)":"")+"</td></tr>"
+        +"<tr><th>Derniere etude du fonds de prevoyance (Loi 16)</th><td>"+lg(sel.etude_prevoyance_date||"non renseignee")+(sel.etude_prevoyance_ans?" (intervalle "+sel.etude_prevoyance_ans+" ans)":"")+"</td></tr></table>"
+        +"<div class='muted' style='margin-top:8px'>Les soldes des fonds correspondent aux soldes d ouverture configures, ajustes des mouvements enregistres; le detail complet figure dans la comptabilite par fonds du syndicat.</div>"
+        +"<br/><br/><div>_____________________________<br/>Signature d un administrateur ou du gestionnaire<br/><span class='muted'>Atteste en vertu des articles 1068.1 et 1069 C.c.Q., d apres les registres du syndicat en date de ce jour.</span></div>";
+      setMsgVente("");
+      imprimerAtt("Attestation - unite "+u.no_unite,html);
+    }).catch(function(e){setMsgVente("ECHEC de la preparation de l attestation: "+(e&&e.message?e.message:"erreur"));});
+  }
+
   var liste=unites.filter(function(u){
     if(!q)return true;
     var props=propsDe(u).map(function(c){return (c.prenom||"")+" "+(c.nom||"");}).join(" ");
@@ -331,6 +474,7 @@ export default function Unites(){
                 </div>
                 <div style={{display:"flex",gap:6,flexShrink:0}}>
                   <Btn sm onClick={function(){enEdition?setEditId(null):editer(u);}}>{enEdition?"Fermer":"Modifier"}</Btn>
+                  <Btn sm bg={T.purple} onClick={function(){attestationNotaire(u);}}>Attestation (notaire)</Btn>
                   <Btn sm bg={T.amber} onClick={function(){venteId===u.id?setVenteId(null):ouvrirVente(u);}}>{venteId===u.id?"Annuler la vente":"Vente de l unite"}</Btn>
                 </div>
               </div>
