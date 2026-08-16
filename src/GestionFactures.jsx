@@ -109,10 +109,9 @@ function CarteFacture(p){
             {f.no_facture&&<div>No: <span style={{color:T.navy,fontWeight:600}}>{f.no_facture}</span></div>}
             <div>Date: <span style={{color:T.navy}}>{f.date_facture||"-"}</span></div>
             <div>Echeance: <span style={{color:depasse?T.red:T.navy,fontWeight:depasse?700:400}}>{f.date_echeance||"-"}</span></div>
-            {f.no_compte_gl&&<div>GL: <span style={{color:T.accent,fontWeight:600}}>{f.no_compte_gl}</span></div>}
+            {f.no_compte_gl&&<div style={{gridColumn:"span 2"}}>GL: <span style={{color:T.accent,fontWeight:600}}>{f.no_compte_gl}{f.categorie_depense?" - "+f.categorie_depense:""}</span></div>}
             {f.terme_paiement&&<div>Terme: <span style={{color:T.navy,fontWeight:600}}>{f.terme_paiement==="reception"?"Sur reception":f.terme_paiement.replace("net","Net ")+" j"}</span></div>}
             {Number(f.escompte_pct)>0&&<div>Escompte: <span style={{color:T.accent,fontWeight:700}}>{Number(f.escompte_pct)}% {f.escompte_jours||10} j</span></div>}
-            {f.categorie_depense&&<div>Cat.: <span style={{color:T.navy}}>{f.categorie_depense}</span></div>}
             {f.source==="email"&&f.email_source&&<div>De: <span style={{color:T.purple}}>{f.email_source}</span></div>}
             {f.statut==="payee"&&f.date_paiement&&<div>Payee le: <span style={{color:T.accent,fontWeight:700}}>{f.date_paiement}</span></div>}
           </div>
@@ -320,6 +319,9 @@ function ModalApprobation(p){
   var s0=useState([]);var membres=s0[0];var setMembres=s0[1];
   var s1=useState([]);var approbations=s1[0];var setApprobations=s1[1];
   var s2=useState("");var commentaire=s2[0];var setCommentaire=s2[1];
+  var sQ=useState("");var quiVote=sQ[0];var setQuiVote=sQ[1];
+  var sE=useState("");var errV=sE[0];var setErrV=sE[1];
+  var USER={};try{USER=JSON.parse(localStorage.getItem("predictek_user")||"{}")||{};}catch(e){}
 
   useEffect(function(){
     if(!f)return;
@@ -334,9 +336,14 @@ function ModalApprobation(p){
   },[f]);
 
   function voter(decision){
-    var row={facture_id:f.id,decision:decision,commentaire:commentaire,membre_nom:"Vous"};
+    setErrV("");
+    var nomVotant=quiVote||USER.nom||"Membre CA";
+    var row={facture_id:f.id,decision:decision,commentaire:commentaire,membre_nom:nomVotant,date_decision:new Date().toISOString()};
     sb.insert("approbations_ca",row).then(function(res){
-      if(res&&res.data)setApprobations(function(prev){return prev.concat([res.data]);});
+      if(res&&res.error){setErrV("ECHEC de l enregistrement du vote: "+(res.error.message||"erreur")+". Rien n a ete enregistre.");return;}
+      if(!(res&&res.data&&res.data.id)){setErrV("ECHEC de l enregistrement du vote - rien n a ete enregistre.");return;}
+      setApprobations(function(prev){return prev.concat([res.data]);});
+      if(p.onVote)p.onVote(res.data);
       var nbApprouves=approbations.filter(function(a){return a.decision==="approuve";}).length+(decision==="approuve"?1:0);
       var nbRequis=f.nb_approbations_requises||1;
       if(decision==="approuve"&&nbApprouves>=nbRequis){
@@ -351,7 +358,8 @@ function ModalApprobation(p){
         sb.update("factures",f.id,{nb_approbations_recues:nbApprouves}).catch(function(){});
       }
       setCommentaire("");
-    }).catch(function(){});
+      sb.log("factures","approbation","Vote "+decision+" par "+nomVotant+" - facture "+(f.fournisseur_nom||"")+(f.no_facture?" #"+f.no_facture:""),"","");
+    }).catch(function(e){setErrV("ECHEC: "+(e&&e.message?e.message:"erreur reseau"));});
   }
 
   if(!f)return null;
@@ -400,9 +408,17 @@ function ModalApprobation(p){
         )}
 
         <div style={{marginBottom:12}}>
+          <Lbl l="Qui vote? (pour le suivi des approbations)"/>
+          <select value={quiVote||USER.nom||""} onChange={function(e){setQuiVote(e.target.value);}} style={INP}>
+            {USER.nom&&<option value={USER.nom}>{USER.nom} (moi)</option>}
+            {membres.map(function(m){var n=((m.prenom||"")+" "+(m.nom||"")).trim();return n&&n!==USER.nom?<option key={m.id} value={n}>{n}{m.role_ca?" ("+m.role_ca+")":""}</option>:null;})}
+          </select>
+        </div>
+        <div style={{marginBottom:12}}>
           <Lbl l="Commentaire (optionnel)"/>
           <input value={commentaire} onChange={function(e){setCommentaire(e.target.value);}} style={INP} placeholder="Raison de la decision..."/>
         </div>
+        {errV&&<div style={{background:T.redL,border:"1px solid "+T.red+"44",borderRadius:8,padding:"8px 12px",fontSize:12,color:T.red,fontWeight:700,marginBottom:10}}>{errV}</div>}
 
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           <Btn onClick={function(){voter("approuve");}} bg={T.accent}>Approuver</Btn>
@@ -710,7 +726,7 @@ export default function GestionFactures(){
 
         {filtrees.map(function(f){return(
           <CarteFacture key={f.id} facture={f}
-            appros={approsToutes.filter(function(a){return a.facture_id===f.id&&a.decision==="approuvee";})}
+            appros={approsToutes.filter(function(a){return a.facture_id===f.id&&(a.decision==="approuve"||a.decision==="approuvee");})}
             onVoirFichier={ouvrirViewer}
             onApprouver={function(fac){setFactureAppro(fac);}}
             onPayer={function(){setPayerF(f);setDatePaie(new Date().toISOString().substring(0,10));}}
@@ -800,6 +816,7 @@ export default function GestionFactures(){
           syndicatId={sel?sel.id:null}
           onClose={function(){setFactureAppro(null);}}
           onUpdate={updateStatut}
+          onVote={function(a){setApprosToutes(function(prev){return prev.concat([a]);});}}
         />
       )}
     </div>

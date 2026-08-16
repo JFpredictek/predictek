@@ -37,3 +37,20 @@ notify pgrst, 'reload schema';
 -- Suivi des invitations: date et heure d envoi de l invitation
 alter table public.usagers add column if not exists invite_le timestamptz;
 notify pgrst, 'reload schema';
+
+-- Historique des tickets (evolution: reponses, statuts, assignations - date/heure/usager)
+alter table public.tickets add column if not exists historique jsonb;
+-- Table des votes d approbation (si absente) + politiques
+create table if not exists public.approbations_ca (
+  id uuid primary key default gen_random_uuid(),
+  facture_id uuid, membre_nom text default '', decision text default '',
+  commentaire text default '', date_decision timestamptz default now()
+);
+alter table public.approbations_ca enable row level security;
+drop policy if exists "apc_sel" on public.approbations_ca;
+drop policy if exists "apc_mod" on public.approbations_ca;
+create policy "apc_sel" on public.approbations_ca for select to authenticated using (true);
+create policy "apc_mod" on public.approbations_ca for all to authenticated
+  using (public.est_gestion() or public.mon_role() = 'ca')
+  with check (public.est_gestion() or public.mon_role() = 'ca');
+notify pgrst, 'reload schema';

@@ -519,7 +519,11 @@ function FormTravaux(p){
         priorite:f.urgence?"urgente":"normale",
         categorie:"travaux",donnees:donnees
       };
-      if(p.ticket)return sb.update("tickets",p.ticket.id,corps); // modification de la demande existante
+      if(p.ticket){
+        // modification de la demande existante - consignee a l historique du ticket
+        corps.historique=(Array.isArray(p.ticket.historique)?p.ticket.historique:[]).concat([{q:new Date().toISOString(),u:((copro.prenom||"")+" "+(copro.nom||"")).trim()||"Coproprietaire",a:"Demande de travaux modifiee par le coproprietaire"}]);
+        return sb.update("tickets",p.ticket.id,corps);
+      }
       corps.statut="nouveau";
       return sb.insert("tickets",corps);
     }).then(function(r){
@@ -648,7 +652,11 @@ function TabTickets(p){
     setMsgT("");
     var corps={coproprietaire_id:copro.id,syndicat_id:copro.syndicat_id,unite:copro.unite,sujet:sujet,description:desc,priorite:prio};
     var op;
-    if(editSimpleId){op=sb.update("tickets",editSimpleId,corps);}
+    if(editSimpleId){
+      var tOrig=tickets.find(function(x){return x.id===editSimpleId;})||{};
+      corps.historique=(Array.isArray(tOrig.historique)?tOrig.historique:[]).concat([{q:new Date().toISOString(),u:((copro.prenom||"")+" "+(copro.nom||"")).trim()||"Coproprietaire",a:"Demande modifiee par le coproprietaire"}]);
+      op=sb.update("tickets",editSimpleId,corps);
+    }
     else{corps.statut="nouveau";op=sb.insert("tickets",corps);}
     op.then(function(res){
       if(res&&res.error){setMsgT("ECHEC de l envoi de la demande ("+(res.error.message||"erreur")+"). Rien n a ete enregistre.");return;}

@@ -140,8 +140,23 @@ export default function RequetesCopros(){
     return copros.find(function(c){return c.id===t.coproprietaire_id;})||null;
   }
 
-  function majTicket(t,changes,logTxt){
+  // Utilisateur courant (pour le verrou d assignation et l historique du ticket)
+  var USER={};try{USER=JSON.parse(localStorage.getItem("predictek_user")||"{}")||{};}catch(e){}
+
+  // Verrou: une fois le ticket ASSIGNE a une personne, seule cette personne (ou un admin)
+  // peut y repondre, changer son statut ou le transferer. "Tous les membres du CA" = tout le monde.
+  function estVerrouille(t){
+    if(!t.assigne_nom||t.assigne_type==="ca_tous")return false;
+    if((USER.role||"")==="admin")return false;
+    return (USER.nom||"").trim().toLowerCase()!==(t.assigne_nom||"").trim().toLowerCase();
+  }
+
+  function majTicket(t,changes,logTxt,evenement){
     setSaving(true);setErr("");
+    // Historique du ticket: chaque action est consignee (date, heure, usager, action)
+    var hist=Array.isArray(t.historique)?t.historique.slice():[];
+    hist.push({q:new Date().toISOString(),u:USER.nom||"Usager",a:evenement||logTxt});
+    changes=Object.assign({},changes,{historique:hist});
     sb.update("tickets",t.id,changes).then(function(r){
       setSaving(false);
       if(r&&r.error){setErr("ECHEC de la mise a jour: "+(r.error.message||""));return;}
@@ -156,10 +171,10 @@ export default function RequetesCopros(){
   function changerStatut(t,st){
     var ch={statut:st};
     if(st==="resolu"||st==="ferme")ch.date_resolution=new Date().toISOString();
-    majTicket(t,ch,"Requete \""+(t.sujet||"").substring(0,60)+"\" (unite "+(t.unite||"")+"): statut -> "+st);
+    majTicket(t,ch,"Requete \""+(t.sujet||"").substring(0,60)+"\" (unite "+(t.unite||"")+"): statut -> "+st,"Statut change: "+st);
   }
   function changerPriorite(t,pr){
-    majTicket(t,{priorite:pr},"Requete \""+(t.sujet||"").substring(0,60)+"\": priorite -> "+pr);
+    majTicket(t,{priorite:pr},"Requete \""+(t.sujet||"").substring(0,60)+"\": priorite -> "+pr,"Priorite changee: "+pr);
   }
   function assigner(t,val){
     // val = "g:<index>" (gestionnaire), "ca_tous", "ca:<index>" (membre CA), "" (retirer)
@@ -173,14 +188,14 @@ export default function RequetesCopros(){
       var m=membresCA[parseInt(val.slice(3))];
       if(m){ch.assigne_nom=((m.prenom||"")+" "+(m.nom||"")).trim();ch.assigne_courriel=m.courriel||"";ch.assigne_type="membre_ca";}
     }
-    majTicket(t,ch,"Requete \""+(t.sujet||"").substring(0,60)+"\": assignee a "+(ch.assigne_nom||"personne (retiree)"));
+    majTicket(t,ch,"Requete \""+(t.sujet||"").substring(0,60)+"\": assignee a "+(ch.assigne_nom||"personne (retiree)"),"Assignation: "+(ch.assigne_nom||"retiree"));
   }
 
   function envoyerReponse(t){
     if(!reponse.trim()){setErr("Ecrivez une reponse avant d envoyer.");return;}
     var ch={reponse:reponse.trim(),date_reponse:new Date().toISOString()};
     if(t.statut==="nouveau")ch.statut="en_cours";
-    majTicket(t,ch,"Reponse envoyee a la requete \""+(t.sujet||"").substring(0,60)+"\" (unite "+(t.unite||"")+")");
+    majTicket(t,ch,"Reponse envoyee a la requete \""+(t.sujet||"").substring(0,60)+"\" (unite "+(t.unite||"")+")","Reponse envoyee: "+reponse.trim().substring(0,120));
     setReponse("");
   }
 
@@ -220,6 +235,7 @@ export default function RequetesCopros(){
 
         {detail&&(function(){
           var t=detail;var st=stInfo(t.statut||"nouveau");var pr=prioInfo(t.priorite);var c=coproDe(t);
+          var verrou=estVerrouille(t);
           return(
             <div style={{background:T.surface,border:"2px solid "+st.c+"55",borderRadius:12,padding:20,marginBottom:16}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8,marginBottom:10}}>
@@ -273,15 +289,21 @@ export default function RequetesCopros(){
                 </div>
               )}
 
-              <div style={{marginBottom:12}}>
+              {verrou&&(
+                <div style={{background:"#6B3FA015",border:"2px solid #6B3FA0",borderRadius:10,padding:"10px 14px",fontSize:12,color:"#6B3FA0",fontWeight:700,marginBottom:12}}>
+                  Ce ticket est ASSIGNE a {t.assigne_nom}. Seule cette personne (ou un administrateur Predictek) peut y repondre,
+                  changer son statut ou le transferer a quelqu un d autre.
+                </div>
+              )}
+              {!verrou&&<div style={{marginBottom:12}}>
                 <Lbl l={t.reponse?"Modifier / completer la reponse (visible dans le portail du coproprietaire)":"Repondre (visible dans le portail du coproprietaire)"}/>
                 <textarea value={reponse} onChange={function(e){setReponse(e.target.value);}} style={Object.assign({},INP,{minHeight:70,resize:"vertical"})} placeholder="Votre reponse au coproprietaire..."/>
                 <div style={{marginTop:8}}><Btn onClick={function(){envoyerReponse(t);}} dis={saving||!reponse.trim()}>{saving?"Envoi...":"Enregistrer la reponse"}</Btn></div>
-              </div>
+              </div>}
 
               <div style={{marginBottom:12,background:"#F8F7F3",border:"1px solid "+T.border,borderRadius:8,padding:"10px 12px"}}>
-                <span style={{fontSize:10,color:T.muted,fontWeight:700,textTransform:"uppercase",marginRight:8}}>Assigner a:</span>
-                <select value={t.assigne_type==="gestionnaire"?"g:"+gestionnaires.findIndex(function(g){return ((g.prenom||"")+" "+(g.nom||"")).trim()===t.assigne_nom;}):t.assigne_type==="ca_tous"?"ca_tous":t.assigne_type==="membre_ca"?"ca:"+membresCA.findIndex(function(m){return ((m.prenom||"")+" "+(m.nom||"")).trim()===t.assigne_nom;}):""} onChange={function(e){assigner(t,e.target.value);}} disabled={saving} style={Object.assign({},INP,{width:300,display:"inline-block"})}>
+                <span style={{fontSize:10,color:T.muted,fontWeight:700,textTransform:"uppercase",marginRight:8}}>{verrou?"Assigne a (seul "+(t.assigne_nom||"")+" peut transferer):":"Assigner / transferer a:"}</span>
+                <select value={t.assigne_type==="gestionnaire"?"g:"+gestionnaires.findIndex(function(g){return ((g.prenom||"")+" "+(g.nom||"")).trim()===t.assigne_nom;}):t.assigne_type==="ca_tous"?"ca_tous":t.assigne_type==="membre_ca"?"ca:"+membresCA.findIndex(function(m){return ((m.prenom||"")+" "+(m.nom||"")).trim()===t.assigne_nom;}):""} onChange={function(e){assigner(t,e.target.value);}} disabled={saving||verrou} style={Object.assign({},INP,{width:300,display:"inline-block",opacity:verrou?0.6:1})}>
                   <option value="">Personne (non assigne)</option>
                   {gestionnaires.length>0&&<optgroup label="Gestionnaires Predictek">{gestionnaires.map(function(g,i){return <option key={"g"+i} value={"g:"+i}>{((g.prenom||"")+" "+(g.nom||"")).trim()+(g.courriel?" - "+g.courriel:"")}</option>;})}</optgroup>}
                   {membresCA.length>0&&<optgroup label="Conseil d administration"><option value="ca_tous">Tous les membres du CA</option>{membresCA.map(function(m,i){return <option key={"m"+i} value={"ca:"+i}>{((m.prenom||"")+" "+(m.nom||"")).trim()+(m.role_ca?" ("+m.role_ca+")":"")}</option>;})}</optgroup>}
@@ -291,9 +313,26 @@ export default function RequetesCopros(){
 
               <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginBottom:4}}>
                 <span style={{fontSize:10,color:T.muted,fontWeight:700,textTransform:"uppercase"}}>Statut:</span>
-                {STATUTS.filter(function(s){return s.id!==(t.statut||"nouveau");}).map(function(s){return <Btn key={s.id} sm bg={s.bg} tc={s.c} bdr={"1px solid "+s.c+"44"} onClick={function(){changerStatut(t,s.id);}} dis={saving}>{s.l}</Btn>;})}
+                {STATUTS.filter(function(s){return s.id!==(t.statut||"nouveau");}).map(function(s){return <Btn key={s.id} sm bg={s.bg} tc={s.c} bdr={"1px solid "+s.c+"44"} onClick={function(){changerStatut(t,s.id);}} dis={saving||verrou}>{s.l}</Btn>;})}
               </div>
               <div style={{fontSize:10,color:T.muted,marginBottom:8}}>RESOLU = le probleme du coproprietaire est regle (avec la reponse envoyee). FERME = dossier classe sans intervention (doublon, non fonde, abandonne). Les deux arretent les rappels; seul le libelle change pour le coproprietaire.</div>
+
+              {Array.isArray(t.historique)&&t.historique.length>0&&(
+                <div style={{marginTop:12,background:"#F8F7F3",border:"1px solid "+T.border,borderRadius:10,padding:14}}>
+                  <div style={{fontSize:11,fontWeight:800,color:T.navy,textTransform:"uppercase",marginBottom:8}}>Historique du ticket ({t.historique.length})</div>
+                  {t.historique.slice().reverse().map(function(h,ix){
+                    var quand=h.q?new Date(h.q).toLocaleString("fr-CA",{hour12:false}).replace(",","").substring(0,17):"-";
+                    return(
+                      <div key={ix} style={{display:"flex",gap:10,padding:"5px 0",borderTop:ix>0?"1px solid "+T.border:"none",fontSize:11,alignItems:"baseline"}}>
+                        <span style={{color:T.muted,whiteSpace:"nowrap",fontWeight:600}}>{quand}</span>
+                        <span style={{fontWeight:700,color:"#6B3FA0",whiteSpace:"nowrap"}}>{h.u||"?"}</span>
+                        <span style={{color:T.text,flex:1}}>{h.a||""}</span>
+                      </div>
+                    );
+                  })}
+                  <div style={{fontSize:9,color:T.muted,marginTop:6}}>Creation du ticket: {fmtDate(t.created_at)} par le coproprietaire{c?" "+((c.prenom||"")+" "+(c.nom||"")).trim():""}.</div>
+                </div>
+              )}
               <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
                 <span style={{fontSize:10,color:T.muted,fontWeight:700,textTransform:"uppercase"}}>Priorite:</span>
                 {Object.keys(PRIORITES).filter(function(k){return k!==(t.priorite||"normale");}).map(function(k){return <Btn key={k} sm bg={PRIORITES[k].bg} tc={PRIORITES[k].c} bdr={"1px solid "+PRIORITES[k].c+"44"} onClick={function(){changerPriorite(t,k);}} dis={saving}>{PRIORITES[k].l}</Btn>;})}
