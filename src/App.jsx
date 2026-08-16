@@ -129,14 +129,14 @@ var NAV={
   ],
   ca:[
     {titre:"Tableau de bord",items:[{id:"tableau"}]},
-    {titre:"Finances",items:[{sub:"Payables"},{id:"factures"},{sub:"Recevables"},{id:"encaissements"},{id:"speciales"},{sub:"Comptabilite"},{id:"budget"},{id:"fondsview"},{id:"soldesouv"},{id:"journalgl"},{sub:"Rapports"},{id:"etatsfin"},{id:"rapports"}]},
+    {titre:"Finances",items:[{sub:"Payables"},{id:"factures"},{sub:"Recevables"},{id:"encaissements"},{id:"speciales"},{sub:"Comptabilite"},{id:"budget"},{id:"fondsview"},{id:"journalgl"},{sub:"Rapports"},{id:"etatsfin"},{id:"rapports"}]},
     {titre:"Fournisseurs",items:[{id:"fournisseurs"},{id:"bons"}]},
     {titre:"Immeuble",items:[{id:"unites"},{id:"carnet"},{id:"sinistres"},{id:"agenda"}]},
     {titre:"Documents",items:[{id:"docs"}]},
     {titre:"Instances",items:[{id:"assemblees"},{id:"pv"},{id:"ca"},{id:"registre"}]},
     {titre:"Requetes",items:[{id:"requetes"}]},
     {titre:"Communications",items:[{id:"comm"},{id:"conformite"},{id:"notif"}]},
-    {titre:"Configuration",items:[{id:"configsynd"},{id:"plancomptable"},{id:"usagersca"},{id:"reconn"}]}
+    {titre:"Configuration",items:[{id:"configsynd"},{id:"plancomptable"},{id:"banques"},{id:"soldesouv"},{id:"usagersca"},{id:"reconn"}]}
   ],
   portail:[
     {titre:"Mon espace",items:[{id:"copro"},{id:"releves"}]}

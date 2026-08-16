@@ -715,7 +715,6 @@ export default function Encaissements(){
         <select value={sel.id} onChange={function(e){var s=syndicats.find(function(x){return x.id===e.target.value;});if(s)setSel(s);}} style={{background:"#ffffff18",border:"1px solid #ffffff40",borderRadius:6,padding:"5px 10px",color:"#fff",fontSize:12,fontFamily:"inherit"}}>
           {syndicats.map(function(s){return <option key={s.id} value={s.id} style={{color:"#000"}}>{s.nom}</option>;})}
         </select>
-        <input type="month" value={mois} onChange={function(e){setMois(e.target.value);setSelRows({});}} style={{background:"#ffffff18",border:"1px solid #ffffff40",borderRadius:6,padding:"4px 10px",color:"#fff",fontSize:12,fontFamily:"inherit"}}/>
         <div style={{marginLeft:"auto",display:"flex",gap:8,flexWrap:"wrap"}}>
           <Btn sm onClick={function(){setShowFC(true);setEditFCId(null);setNfFC({unite:"",type_frais:"frais",description:"",montant:"",date_facture:new Date().toISOString().substring(0,10),date_echeance:""});setErr("");window.scrollTo(0,0);}}>+ Emettre une facture</Btn>
           <Btn sm bg={T.purple} onClick={function(){setShowAv(true);setErr("");window.scrollTo(0,0);}}>+ Encaisser une avance</Btn>
@@ -883,6 +882,9 @@ export default function Encaissements(){
         })()}
 
         <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap",marginBottom:10}}>
+          <div style={{width:150}}><Lbl l="Mois / annee"/>
+            <input type="month" value={mois} onChange={function(e){setMois(e.target.value);setSelRows({});}} style={INP}/>
+          </div>
           <div style={{width:120}}><Lbl l="Unite"/>
             <select value={fUnite} onChange={function(e){setFUnite(e.target.value);}} style={INP}>
               <option value="">Toutes</option>

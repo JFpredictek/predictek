@@ -278,18 +278,17 @@ export default function TableauBordCA(props){
             </div>
           )}
 
-          <div style={{marginBottom:16}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,alignItems:"start"}}>
             <SectionTickets tickets={tickets}
               onOuvrir={function(t){
                 try{localStorage.setItem("predictek_ticket_ouvre",String(t.id));}catch(e){}
                 if(props&&props.onNavigate)props.onNavigate("requetes");
               }}
               onTout={function(){if(props&&props.onNavigate)props.onNavigate("requetes");}}/>
-          </div>
-
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-            <SectionReunions reunions={reunions}/>
-            <SectionAlertes copros={copros}/>
+            <div style={{display:"flex",flexDirection:"column",gap:16}}>
+              <SectionReunions reunions={reunions}/>
+              <SectionAlertes copros={copros}/>
+            </div>
           </div>
         </div>
       )}

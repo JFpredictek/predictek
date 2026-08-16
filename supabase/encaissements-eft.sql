@@ -119,3 +119,7 @@ alter table public.bons_travail add column if not exists envoye_a text default '
 alter table public.syndicats add column if not exists ce_duree_vie_ans int default 12;
 
 notify pgrst, 'reload schema';
+
+-- Photos / pieces jointes des bons de travaux
+alter table public.bons_travail add column if not exists photos jsonb default '[]'::jsonb;
+notify pgrst, 'reload schema';
