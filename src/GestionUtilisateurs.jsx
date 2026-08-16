@@ -49,7 +49,11 @@ function CarteUtilisateur(p){
   );
 }
 
-export default function GestionUtilisateurs(){
+export default function GestionUtilisateurs(p){
+  // contexte="ca": version pour le Conseil d administration - seulement les membres CA
+  // et coproprietaires du syndicat (copie du meme outil, filtree). La version Predictek
+  // (sans contexte) reste complete avec les employes.
+  var ctxCA=!!(p&&p.contexte==="ca");
   var s0=useState([]);var syndicats=s0[0];var setSyndicats=s0[1];
   var s1=useState([]);var users=s1[0];var setUsers=s1[1];
   var s2=useState(false);var showForm=s2[0];var setShowForm=s2[1];
@@ -59,7 +63,7 @@ export default function GestionUtilisateurs(){
   var s6=useState("actifs");var filtre=s6[0];var setFiltre=s6[1];
   var s7=useState("");var errMsg=s7[0];var setErrMsg=s7[1];
   var s8=useState("");var okMsg=s8[0];var setOkMsg=s8[1];
-  var s9=useState("employes");var srcInv=s9[0];var setSrcInv=s9[1];
+  var s9=useState(ctxCA?"ca":"employes");var srcInv=s9[0];var setSrcInv=s9[1];
   var s9b=useState("");var syndInv=s9b[0];var setSyndInv=s9b[1];
   var s10=useState([]);var candidats=s10[0];var setCandidats=s10[1];
   var s11=useState({});var rolesChoisis=s11[0];var setRolesChoisis=s11[1];
@@ -178,12 +182,14 @@ export default function GestionUtilisateurs(){
     }
   }
 
-  var filtres=users.filter(function(u){return filtre==="tous"||(filtre==="actifs"?u.actif:!u.actif);});
+  var filtres=users.filter(function(u){return filtre==="tous"||(filtre==="actifs"?u.actif:!u.actif);})
+    .filter(function(u){return !ctxCA||(u.role==="ca"||u.role==="copropri-taire");});
+  var rolesVisibles=ctxCA?ROLES_DEF.filter(function(r){return r.id==="ca"||r.id==="copropri-taire";}):ROLES_DEF;
 
   return(
     <div style={{fontFamily:"Georgia,serif",minHeight:"100vh",background:T.bg}}>
       <div style={{background:T.navy,padding:"14px 20px",display:"flex",alignItems:"center",gap:16}}>
-        <div style={{fontSize:14,fontWeight:800,color:"#fff"}}>Gestion des utilisateurs</div>
+        <div style={{fontSize:14,fontWeight:800,color:"#fff"}}>{ctxCA?"Acces des utilisateurs (membres CA et coproprietaires)":"Gestion des utilisateurs"}</div>
         <div style={{marginLeft:"auto",display:"flex",gap:8}}>
           {["actifs","inactifs","tous"].map(function(f){var a=filtre===f;return <button key={f} onClick={function(){setFiltre(f);}} style={{background:a?"#ffffff18":"transparent",border:"none",borderBottom:a?"2px solid #3CAF6E":"2px solid transparent",padding:"6px 12px",color:a?"#fff":"#8da0bb",fontSize:11,cursor:"pointer",fontFamily:"inherit",fontWeight:a?700:400,textTransform:"capitalize"}}>{f}</button>;})}
           <Btn onClick={function(){setNf(VIDE_USER);setEditId(null);setShowForm(true);}}>+ Ajouter manuellement</Btn>
@@ -193,8 +199,8 @@ export default function GestionUtilisateurs(){
       <div style={{padding:20}}>
         {errMsg&&<div style={{background:T.redL,border:"1px solid "+T.red+"44",borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,marginBottom:14}}>{errMsg}</div>}
         {okMsg&&<div style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:8,padding:"10px 14px",fontSize:12,color:T.accent,marginBottom:14}}>{okMsg}</div>}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:20}}>
-          {ROLES_DEF.map(function(r){var count=users.filter(function(u){return u.role===r.id&&u.actif;}).length;return(
+        <div style={{display:"grid",gridTemplateColumns:"repeat("+rolesVisibles.length+",1fr)",gap:10,marginBottom:20}}>
+          {rolesVisibles.map(function(r){var count=users.filter(function(u){return u.role===r.id&&u.actif;}).length;return(
             <div key={r.id} style={{background:T.surface,border:"1px solid "+r.color+"33",borderRadius:12,padding:14}}>
               <div style={{fontSize:11,fontWeight:700,color:r.color,marginBottom:4}}>{r.l}</div>
               <div style={{fontSize:22,fontWeight:800,color:T.navy}}>{count}</div>
@@ -210,7 +216,7 @@ export default function GestionUtilisateurs(){
               <div><Lbl l="Prenom"/><input value={nf.prenom} onChange={function(e){setN("prenom",e.target.value);}} style={INP} placeholder="Jean-Francois"/></div>
               <div><Lbl l="Nom"/><input value={nf.nom} onChange={function(e){setN("nom",e.target.value);}} style={INP} placeholder="Laroche"/></div>
               <div style={{gridColumn:"1/-1"}}><Lbl l="Courriel (identifiant de connexion)"/><input type="email" value={nf.courriel} onChange={function(e){setN("courriel",e.target.value);}} style={INP} placeholder="jf@predictek.ca"/></div>
-              <div><Lbl l="Role"/><select value={nf.role} onChange={function(e){setN("role",e.target.value);}} style={INP}>{ROLES_DEF.map(function(r){return <option key={r.id} value={r.id}>{r.l}</option>;})}</select></div>
+              <div><Lbl l="Role"/><select value={nf.role} onChange={function(e){setN("role",e.target.value);}} style={INP}>{rolesVisibles.map(function(r){return <option key={r.id} value={r.id}>{r.l}</option>;})}</select></div>
               <div><Lbl l="Syndicat assigne" hint="Pour gestionnaire et membre CA"/><select value={nf.syndicat_id} onChange={function(e){setN("syndicat_id",e.target.value);}} style={INP}><option value="">Tous les syndicats</option>{syndicats.map(function(s){return <option key={s.id} value={s.id}>{s.nom}</option>;})}</select></div>
               <div style={{gridColumn:"1/-1",display:"flex",alignItems:"center",gap:8,cursor:"pointer"}} onClick={function(){setN("actif",!nf.actif);}}>
                 <div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(nf.actif?T.accent:T.border),background:nf.actif?T.accent:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}>{nf.actif&&<span style={{color:"#fff",fontSize:11,fontWeight:700}}>V</span>}</div>
@@ -230,7 +236,7 @@ export default function GestionUtilisateurs(){
         <div style={{background:T.surface,border:"1px solid "+T.blue+"44",borderRadius:14,padding:18,marginBottom:20}}>
           <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:10}}>Inviter des utilisateurs</div>
           <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:12,flexWrap:"wrap"}}>
-            {[{id:"employes",l:"Employes Predictek"},{id:"ca",l:"Membres du CA"},{id:"copros",l:"Coproprietaires"}].map(function(t){var a=srcInv===t.id;return(
+            {(ctxCA?[{id:"ca",l:"Membres du CA"},{id:"copros",l:"Coproprietaires"}]:[{id:"employes",l:"Employes Predictek"},{id:"ca",l:"Membres du CA"},{id:"copros",l:"Coproprietaires"}]).map(function(t){var a=srcInv===t.id;return(
               <button key={t.id} onClick={function(){setSrcInv(t.id);}} style={{background:a?T.navy:"transparent",border:"1px solid "+(a?T.navy:T.border),borderRadius:20,padding:"6px 16px",fontSize:12,cursor:"pointer",fontFamily:"inherit",color:a?"#fff":T.muted,fontWeight:a?700:400}}>{t.l}</button>
             );})}
             {srcInv!=="employes"&&(
@@ -267,7 +273,7 @@ export default function GestionUtilisateurs(){
                   ):(
                     <span style={{display:"flex",gap:6,alignItems:"center"}}>
                       <select value={rolesChoisis[c.courriel]||c.roleDefaut} onChange={function(e){var v=e.target.value;setRolesChoisis(function(pr){var n=Object.assign({},pr);n[c.courriel]=v;return n;});}} style={Object.assign({},INP,{width:190})}>
-                        {ROLES_DEF.map(function(r){return <option key={r.id} value={r.id}>{r.l}</option>;})}
+                        {rolesVisibles.map(function(r){return <option key={r.id} value={r.id}>{r.l}</option>;})}
                       </select>
                       <Btn sm bg={T.blue} dis={inviteEnCours===c.courriel} onClick={function(){inviterCandidat(c);}}>{inviteEnCours===c.courriel?"Envoi...":"Inviter"}</Btn>
                     </span>

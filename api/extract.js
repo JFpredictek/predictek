@@ -129,7 +129,7 @@ export default async function handler(req, res) {
         + "Recopie le numero de compte CHIFFRE PAR CHIFFRE tel qu il apparait, sans espaces ni tirets, sans y coller le numero de cheque ni le transit. "
         + "Si la ligne MICR est illisible, prends les numeros indiques ailleurs sur le document (ex: Compte / Folio). "
         + "Reponds UNIQUEMENT avec un objet JSON valide (chaine vide si absent): "
-        + "{\"institution\":\"3 chiffres (ex: 815 Desjardins, 003 RBC, 004 TD, 006 BNC)\",\"transit\":\"5 chiffres\",\"compte\":\"numero de compte seul, sans espaces ni tirets\",\"no_cheque\":\"numero du cheque (3-4 chiffres) pour verification\",\"titulaire\":\"nom imprime sur le cheque\",\"banque\":\"nom de l institution si visible\"}";
+        + "{\"micr\":\"la ligne MICR COMPLETE recopiee telle quelle, avec ses espaces et symboles\",\"institution\":\"3 chiffres (ex: 815 Desjardins, 003 RBC, 004 TD, 006 BNC)\",\"transit\":\"5 chiffres\",\"compte\":\"numero de compte seul, sans espaces ni tirets\",\"no_cheque\":\"numero du cheque (3-4 chiffres) pour verification\",\"titulaire\":\"nom imprime sur le cheque\",\"banque\":\"nom de l institution si visible\"}";
       if(pdfB64){
         contenu = [{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:promptCh}];
       } else if(imagesIn.length>0){
@@ -218,7 +218,10 @@ export default async function handler(req, res) {
     } else {
       contenu = [{type:"text",text:prompt}];
     }
-    var r2 = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:(imagesIn.length>0?MODEL_RAPIDE:MODEL_FORT),max_tokens:4000,messages:[{role:"user",content:contenu}]})});
+    // Mode cheque: TOUJOURS le modele fort - la police MICR est difficile a lire,
+    // le modele rapide se trompait sur le numero de compte (meme en photo).
+    var modelChoisi = (mode==="cheque") ? MODEL_FORT : (imagesIn.length>0?MODEL_RAPIDE:MODEL_FORT);
+    var r2 = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:modelChoisi,max_tokens:4000,messages:[{role:"user",content:contenu}]})});
     var raw2 = await r2.text();
     var d2; try{d2=JSON.parse(raw2);}catch(e){return res.status(500).json({error:"JSON invalide: "+raw2.substring(0,100)});}
     if(d2.error) return res.status(500).json({error:d2.error.message,type:d2.error.type});

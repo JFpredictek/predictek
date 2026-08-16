@@ -4,7 +4,6 @@ import Login from "./Login";
 import ResetPassword from "./ResetPassword";
 import HubDashboard from "./HubDashboard";
 import Hub from "./Hub";
-import CRM from "./CRM";
 import FournisseursAdmin from "./FournisseursAdmin";
 import PortailCopro from "./PortailCopro";
 import Notifications from "./Notifications";
@@ -59,7 +58,7 @@ var SECTIONS=[
       {id:"facturation",label:"Facturation clients",icon:"FC"},
       {id:"comptaentreprise",label:"Comptabilite Predictek",icon:"CE"},
       {id:"roles",label:"Roles",icon:"ROL"},
-      {id:"crm",label:"CRM",icon:"CRM"},
+      {id:"crm",label:"CRM - Requetes et tickets",icon:"CRM"},
       {id:"ia",label:"IA",icon:"IA"},
       {id:"loi25",label:"Loi 25",icon:"L25"},
     ]
@@ -93,6 +92,7 @@ var SECTIONS=[
       {id:"conformite",label:"Avis de non-conformite",icon:"NC"},
       {id:"notif",label:"Centre de notifications",icon:"N"},
       {id:"configsynd",label:"Configuration du syndicat",icon:"CS"},
+      {id:"usagersca",label:"Acces des utilisateurs",icon:"USR"},
       {id:"ca",label:"Membres CA",icon:"MC"},
       {id:"fournisseurs",label:"Fournisseurs",icon:"F"},
       {id:"agenda",label:"Agenda",icon:"AGD"},
@@ -120,15 +120,17 @@ var NAV={
     {titre:"Tableau de bord",items:[{id:"dashboard"}]},
     {titre:"Configuration",items:[{id:"onboarding"},{id:"gestion"}]},
     {titre:"Equipe",items:[{id:"employes"},{id:"paie"},{id:"usagers"},{id:"roles"}]},
-    {titre:"Entreprise",items:[{id:"facturation"},{id:"comptaentreprise"},{id:"crm"},{id:"ia"},{id:"loi25"},{id:"historique"}]}
+    {titre:"Entreprise",items:[{id:"facturation"},{id:"comptaentreprise"},{id:"ia"},{id:"loi25"},{id:"historique"}]},
+    {titre:"CRM",items:[{id:"crm"}]}
   ],
   ca:[
     {titre:"Tableau de bord",items:[{id:"tableau"}]},
-    {titre:"Finances",items:[{sub:"Payables"},{id:"factures"},{id:"fournisseurs"},{id:"bons"},{sub:"Recevables"},{id:"encaissements"},{sub:"Comptabilite"},{id:"budget"},{id:"fondsview"},{id:"banques"},{id:"journalgl"},{sub:"Rapports"},{id:"etatsfin"},{id:"rapports"}]},
+    {titre:"Finances",items:[{sub:"Payables"},{id:"factures"},{sub:"Recevables"},{id:"encaissements"},{sub:"Comptabilite"},{id:"budget"},{id:"fondsview"},{id:"banques"},{id:"journalgl"},{sub:"Rapports"},{id:"etatsfin"},{id:"rapports"}]},
+    {titre:"Fournisseurs",items:[{id:"fournisseurs"},{id:"bons"}]},
     {titre:"Immeuble",items:[{id:"unites"},{id:"carnet"},{id:"docs"},{id:"sinistres"},{id:"agenda"}]},
     {titre:"Instances",items:[{id:"assemblees"},{id:"pv"},{id:"ca"},{id:"registre"}]},
     {titre:"Communications",items:[{id:"comm"},{id:"requetes"},{id:"conformite"},{id:"notif"}]},
-    {titre:"Configuration",items:[{id:"configsynd"},{id:"plancomptable"},{id:"reconn"}]}
+    {titre:"Configuration",items:[{id:"configsynd"},{id:"plancomptable"},{id:"usagersca"},{id:"reconn"}]}
   ],
   portail:[
     {titre:"Mon espace",items:[{id:"copro"},{id:"releves"}]}
@@ -323,7 +325,8 @@ export default function App(){
         {active==="facturation"&&<Facturation/>}
         {active==="comptaentreprise"&&<PredictekCompta/>}
         {active==="releves"&&<RelevesCompte/>}
-        {active==="crm"&&<CRM/>}
+        {active==="crm"&&<RequetesCopros/>}
+        {active==="usagersca"&&<GestionUtilisateurs contexte="ca"/>}
         {active==="fournisseurs"&&<FournisseursAdmin/>}
         {active==="copro"&&<PortailCopro role={user.role||""}/>}
         {active==="notif"&&<Notifications onNavigate={function(id){setMod("ca",id);}}/>}

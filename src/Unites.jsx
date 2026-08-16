@@ -183,7 +183,7 @@ export default function Unites(){
         cpt=cpt.slice(0,12);
         if(cpt.length>=5){setN("banque_compte",cpt);pris.push("compte "+cpt);}
       }
-      setChExtrait(pris.length>0?"Extrait du specimen: "+pris.join(", ")+(d.banque?" ("+d.banque+")":"")+" - VERIFIEZ chaque numero (surtout le compte) avant de sauvegarder.":"Aucune information lisible sur ce specimen - saisissez manuellement.");
+      setChExtrait(pris.length>0?"Extrait du specimen: "+pris.join(", ")+(d.banque?" ("+d.banque+")":"")+(d.micr?" | Ligne MICR lue: "+String(d.micr).substring(0,60):"")+" - VERIFIEZ chaque numero (surtout le compte) avant de sauvegarder.":"Aucune information lisible sur ce specimen - saisissez manuellement.");
     }).catch(function(e){setChExtrait("Extraction impossible ("+e.message+") - saisissez manuellement.");});
   }
 

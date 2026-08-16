@@ -536,10 +536,17 @@ function TabTickets(p){
 
   function soumettre(){
     if(!sujet.trim())return;
+    setMsgT("");
     sb.insert("tickets",{coproprietaire_id:copro.id,syndicat_id:copro.syndicat_id,unite:copro.unite,sujet:sujet,description:desc,statut:"nouveau",priorite:prio}).then(function(res){
-      if(res&&res.data)setTickets(function(prev){return [res.data].concat(prev);});
-      setShowN(false);setSujet("");setDesc("");setPrio("normale");
-    }).catch(function(){});
+      if(res&&res.error){setMsgT("ECHEC de l envoi de la demande ("+(res.error.message||"erreur")+"). Rien n a ete enregistre.");return;}
+      if(res&&res.data&&res.data.id){
+        setTickets(function(prev){return [res.data].concat(prev);});
+        setShowN(false);setSujet("");setDesc("");setPrio("normale");
+        setMsgT("Demande envoyee au syndicat - suivez son statut ici.");
+      }else{
+        setMsgT("ECHEC de l envoi de la demande - rien n a ete enregistre. Reessayez ou contactez votre gestionnaire.");
+      }
+    }).catch(function(e){setMsgT("ECHEC: "+(e&&e.message?e.message:"erreur reseau")+". Rien n a ete enregistre.");});
   }
 
   return(
@@ -551,7 +558,7 @@ function TabTickets(p){
           <Btn onClick={function(){setShowN(true);setShowT(false);}}>+ Nouvelle demande</Btn>
         </div>
       </div>
-      {msgT&&<div style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:8,padding:"9px 13px",fontSize:12,fontWeight:700,color:T.accent,marginBottom:12}}>{msgT}</div>}
+      {msgT&&<div style={{background:msgT.indexOf("ECHEC")===0?T.redL:T.accentL,border:"1px solid "+(msgT.indexOf("ECHEC")===0?T.red:T.accent)+"44",borderRadius:8,padding:"9px 13px",fontSize:12,fontWeight:700,color:msgT.indexOf("ECHEC")===0?T.red:T.accent,marginBottom:12}}>{msgT}</div>}
       {showT&&<FormTravaux copro={copro} onAnnuler={function(){setShowT(false);}} onCree={function(tk){
         setTickets(function(prev){return [tk].concat(prev);});
         setShowT(false);
