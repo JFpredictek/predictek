@@ -139,9 +139,9 @@ export default function PVReunion(){
               </div>}
               <div><Lbl l="Type"/><select value={pv.typereunion} onChange={function(e){setPVField("typereunion",e.target.value);}} style={INP}><option value="CA">Conseil d administration</option><option value="AGO">Assemblee generale ordinaire</option><option value="AGE">Assemblee generale extraordinaire</option></select></div>
               <div><Lbl l="Date"/><input type="date" value={pv.dateReunion} onChange={function(e){setPVField("dateReunion",e.target.value);}} style={INP}/></div>
-              <div><Lbl l="Heure debut"/><input value={pv.heure} onChange={function(e){setPVField("heure",e.target.value);}} style={INP} placeholder="19:00"/></div>
-              <div><Lbl l="Heure fin"/><input value={pv.heureFin} onChange={function(e){setPVField("heureFin",e.target.value);}} style={INP} placeholder="20:30"/></div>
-              <div><Lbl l="Lieu"/><input value={pv.lieu} onChange={function(e){setPVField("lieu",e.target.value);}} style={INP} placeholder="Salle communautaire..."/></div>
+              <div><Lbl l="Heure debut"/><input value={pv.heure} onChange={function(e){setPVField("heure",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Heure fin"/><input value={pv.heureFin} onChange={function(e){setPVField("heureFin",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Lieu"/><input value={pv.lieu} onChange={function(e){setPVField("lieu",e.target.value);}} style={INP}/></div>
               <div><Lbl l="President(e)"/><input value={pv.president} onChange={function(e){setPVField("president",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Secretaire"/><input value={pv.secretaire} onChange={function(e){setPVField("secretaire",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Prochaine reunion"/><input value={pv.prochaineReunion} onChange={function(e){setPVField("prochaineReunion",e.target.value);}} style={INP} placeholder="A determiner..."/></div>

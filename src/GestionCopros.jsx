@@ -15,13 +15,13 @@ function FormulaireCP(p){
   var nf=p.nf;var setField=p.setField;var ong=p.ong;
   if(ong==="base")return(
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-      <div><Lbl l="No unite" req/><input value={nf.unite||""} onChange={function(e){setField("unite",e.target.value.toUpperCase());}} style={INP} placeholder="101"/></div>
-      <div><Lbl l="Fraction"/><input type="number" step="0.001" value={nf.fraction||""} onChange={function(e){setField("fraction",e.target.value);}} style={INP} placeholder="0.025"/></div>
-      <div><Lbl l="Nom" req/><input value={nf.nom||""} onChange={function(e){setField("nom",e.target.value);}} style={INP} placeholder="Laroche"/></div>
-      <div><Lbl l="Prenom"/><input value={nf.prenom||""} onChange={function(e){setField("prenom",e.target.value);}} style={INP} placeholder="Jean-Francois"/></div>
+      <div><Lbl l="No unite" req/><input value={nf.unite||""} onChange={function(e){setField("unite",e.target.value.toUpperCase());}} style={INP}/></div>
+      <div><Lbl l="Fraction"/><input type="number" step="0.001" value={nf.fraction||""} onChange={function(e){setField("fraction",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="Nom" req/><input value={nf.nom||""} onChange={function(e){setField("nom",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="Prenom"/><input value={nf.prenom||""} onChange={function(e){setField("prenom",e.target.value);}} style={INP}/></div>
       <div style={{gridColumn:"1/-1"}}><Lbl l="Nom 2 (co-proprietaire)"/><input value={nf.nom2||""} onChange={function(e){setField("nom2",e.target.value);}} style={INP} placeholder="Deuxieme proprietaire si applicable"/></div>
-      <div><Lbl l="Courriel"/><input type="email" value={nf.courriel||""} onChange={function(e){setField("courriel",e.target.value);}} style={INP} placeholder="prenom@email.com"/></div>
-      <div><Lbl l="Telephone"/><input value={nf.telephone||""} onChange={function(e){setField("telephone",e.target.value);}} style={INP} placeholder="418-555-0000"/></div>
+      <div><Lbl l="Courriel"/><input type="email" value={nf.courriel||""} onChange={function(e){setField("courriel",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="Telephone"/><input value={nf.telephone||""} onChange={function(e){setField("telephone",e.target.value);}} style={INP}/></div>
       <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse unitaire (si differente)"/><input value={nf.adresse||""} onChange={function(e){setField("adresse",e.target.value);}} style={INP}/></div>
       <div><Lbl l="Code d acces portail"/><input value={nf.code_acces||""} onChange={function(e){setField("code_acces",e.target.value);}} style={INP} placeholder="Min. 4 caracteres"/></div>
       <div><Lbl l="Statut"/><select value={nf.statut||"actif"} onChange={function(e){setField("statut",e.target.value);}} style={INP}><option value="actif">Actif</option><option value="inactif">Inactif</option><option value="vendu">Vendu</option></select></div>
@@ -49,18 +49,18 @@ function FormulaireCP(p){
   if(ong==="certificat")return(
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
       <div style={{gridColumn:"1/-1",background:T.blueL,border:"1px solid "+T.blue+"33",borderRadius:8,padding:10,fontSize:11,color:T.blue}}>Certificat eau chaude - obligatoire selon reglementation provinciale</div>
-      <div><Lbl l="Marque / modele"/><input value={nf.ce_marque||""} onChange={function(e){setField("ce_marque",e.target.value);}} style={INP} placeholder="Rheem, A.O. Smith..."/></div>
-      <div><Lbl l="Annee installation"/><input type="number" value={nf.ce_annee_install||""} onChange={function(e){setField("ce_annee_install",e.target.value);}} style={INP} placeholder="2018"/></div>
-      <div><Lbl l="Duree de vie (ans)"/><input type="number" value={nf.ce_duree_vie||12} onChange={function(e){setField("ce_duree_vie",e.target.value);}} style={INP} placeholder="12"/></div>
+      <div><Lbl l="Marque / modele"/><input value={nf.ce_marque||""} onChange={function(e){setField("ce_marque",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="Annee installation"/><input type="number" value={nf.ce_annee_install||""} onChange={function(e){setField("ce_annee_install",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="Duree de vie (ans)"/><input type="number" value={nf.ce_duree_vie||12} onChange={function(e){setField("ce_duree_vie",e.target.value);}} style={INP}/></div>
       <div><Lbl l="Date expiration certificat"/><input type="date" value={nf.ce_expiry||""} onChange={function(e){setField("ce_expiry",e.target.value);}} style={INP}/></div>
     </div>
   );
   if(ong==="assurance")return(
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
       <div style={{gridColumn:"1/-1",background:T.purpleL,border:"1px solid #6B3FA044",borderRadius:8,padding:10,fontSize:11,color:"#6B3FA0"}}>Assurance responsabilite civile du coproprietaire - exigee par la declaration</div>
-      <div><Lbl l="Compagnie d assurance"/><input value={nf.ass_cie||""} onChange={function(e){setField("ass_cie",e.target.value);}} style={INP} placeholder="Intact, Desjardins..."/></div>
-      <div><Lbl l="No de police"/><input value={nf.ass_numero||""} onChange={function(e){setField("ass_numero",e.target.value);}} style={INP} placeholder="HO-123456"/></div>
-      <div><Lbl l="Montant couverture ($)"/><input type="number" step="10000" value={nf.ass_montant||""} onChange={function(e){setField("ass_montant",e.target.value);}} style={INP} placeholder="1000000"/></div>
+      <div><Lbl l="Compagnie d assurance"/><input value={nf.ass_cie||""} onChange={function(e){setField("ass_cie",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="No de police"/><input value={nf.ass_numero||""} onChange={function(e){setField("ass_numero",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="Montant couverture ($)"/><input type="number" step="10000" value={nf.ass_montant||""} onChange={function(e){setField("ass_montant",e.target.value);}} style={INP}/></div>
       <div><Lbl l="Date expiration"/><input type="date" value={nf.ass_expiry||""} onChange={function(e){setField("ass_expiry",e.target.value);}} style={INP}/></div>
     </div>
   );

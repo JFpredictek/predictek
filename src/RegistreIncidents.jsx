@@ -74,7 +74,7 @@ export default function RegistreIncidents(){
             <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:16}}>Nouvel incident</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:12}}>
               <div><Lbl l="Date de l incident"/><input type="date" value={nf.date_incident} onChange={function(e){setN("date_incident",e.target.value);}} style={INP}/></div>
-              <div><Lbl l="Personnes touchees (nombre)"/><input type="number" value={nf.personnes_touchees} onChange={function(e){setN("personnes_touchees",e.target.value);}} style={INP} placeholder="0"/></div>
+              <div><Lbl l="Personnes touchees (nombre)"/><input type="number" value={nf.personnes_touchees} onChange={function(e){setN("personnes_touchees",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Risque de prejudice"/><select value={nf.risque_prejudice} onChange={function(e){setN("risque_prejudice",e.target.value);}} style={INP}><option value="faible">Faible</option><option value="moyen">Moyen</option><option value="serieux">Serieux (avis CAI requis)</option></select></div>
               <div style={{gridColumn:"1/-1"}}><Lbl l="Description de l incident"/><textarea value={nf.description} onChange={function(e){setN("description",e.target.value);}} rows={2} style={Object.assign({},INP,{resize:"vertical"})} placeholder="Ce qui s est passe, quand, comment il a ete decouvert..."/></div>
               <div style={{gridColumn:"1/-1"}}><Lbl l="Renseignements vises"/><input value={nf.renseignements_vises} onChange={function(e){setN("renseignements_vises",e.target.value);}} style={INP} placeholder="Ex: noms et courriels de 12 coproprietaires"/></div>

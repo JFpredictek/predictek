@@ -183,8 +183,8 @@ function TabReunions(p){
           <div><Lbl l="Type"/><select value={nf.type||"CA"} onChange={function(e){setType(e.target.value);}} style={INP}><option value="CA">Conseil d administration</option><option value="AGO">Assemblee generale ordinaire</option><option value="AGE">Assemblee generale extraordinaire</option></select></div>
           <div><Lbl l="Date"/><input type="date" value={nf.date_reunion||""} onChange={function(e){setDate(e.target.value);}} style={INP}/></div>
           <div><Lbl l="Heure"/><input value={nf.heure||"19:00"} onChange={function(e){setHeure(e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Lieu"/><input value={nf.lieu||""} onChange={function(e){setLieu(e.target.value);}} style={INP} placeholder="Salle communautaire..."/></div>
-          <div style={{gridColumn:"1/-1"}}><Lbl l="Ordre du jour (virgule entre chaque point)"/><textarea value={nf.ordre||""} onChange={function(e){setOrdre(e.target.value);}} style={Object.assign({},INP,{minHeight:60,resize:"vertical"})} placeholder="Ouverture, Adoption PV, Budget, Divers, Fermeture"/></div>
+          <div><Lbl l="Lieu"/><input value={nf.lieu||""} onChange={function(e){setLieu(e.target.value);}} style={INP}/></div>
+          <div style={{gridColumn:"1/-1"}}><Lbl l="Ordre du jour (virgule entre chaque point)"/><textarea value={nf.ordre||""} onChange={function(e){setOrdre(e.target.value);}} style={Object.assign({},INP,{minHeight:60,resize:"vertical"})}/></div>
         </div>
         <div style={{display:"flex",gap:8}}><Btn onClick={ajouter}>Planifier</Btn><Btn onClick={function(){setShowN(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn></div>
       </Card>}

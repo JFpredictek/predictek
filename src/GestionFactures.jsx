@@ -237,7 +237,7 @@ function FormFacture(p){
         <input type="file" accept=".pdf,image/*" onChange={function(e){var f=e.target.files&&e.target.files[0];if(f){onFile(f);extraire(f);try{setApercu({url:URL.createObjectURL(f),isPdf:/pdf$/i.test(f.type)||/\.pdf$/i.test(f.name)});setZoomF(1);}catch(ex){}}}} style={{fontSize:11,fontFamily:"inherit"}}/>
         {extraitMsg&&<div style={{fontSize:11,color:T.blue,fontWeight:600,marginTop:6}}>{extraitMsg}</div>}
       </div>
-      <div style={{gridColumn:"1/-1"}}><Lbl l="Fournisseur"/><input value={nf.fournisseur_nom||""} onChange={function(e){sf("fournisseur_nom",e.target.value);}} style={INP} placeholder="Nom de l entreprise..."/></div>
+      <div style={{gridColumn:"1/-1"}}><Lbl l="Fournisseur"/><input value={nf.fournisseur_nom||""} onChange={function(e){sf("fournisseur_nom",e.target.value);}} style={INP}/></div>
       <div><Lbl l="No facture"/><input value={nf.no_facture||""} onChange={function(e){sf("no_facture",e.target.value);}} style={INP} placeholder="INV-2024-001"/></div>
       <div><Lbl l="Date facture"/><input type="date" value={nf.date_facture||""} onChange={function(e){var dv=e.target.value;sf("date_facture",dv);var ech=echeanceDuTerme(dv,nf.terme_paiement||"net30");if(ech)sf("date_echeance",ech);}} style={INP}/></div>
       <div><Lbl l="Terme de paiement"/><select value={nf.terme_paiement||"net30"} onChange={function(e){var tv=e.target.value;sf("terme_paiement",tv);var ech=echeanceDuTerme(nf.date_facture,tv);if(ech)sf("date_echeance",ech);}} style={INP}>
@@ -245,8 +245,8 @@ function FormFacture(p){
       </select></div>
       <div><Lbl l="Date echeance (calculee du terme, modifiable)"/><input type="date" value={nf.date_echeance||""} onChange={function(e){sf("date_echeance",e.target.value);}} style={INP}/></div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-        <div><Lbl l="Escompte (%)"/><input type="number" step="0.1" min="0" value={nf.escompte_pct||""} onChange={function(e){sf("escompte_pct",e.target.value);}} style={INP} placeholder="2"/></div>
-        <div><Lbl l="si paye en (jours)"/><input type="number" min="0" value={nf.escompte_jours||""} onChange={function(e){sf("escompte_jours",e.target.value);}} style={INP} placeholder="10"/></div>
+        <div><Lbl l="Escompte (%)"/><input type="number" step="0.1" min="0" value={nf.escompte_pct||""} onChange={function(e){sf("escompte_pct",e.target.value);}} style={INP}/></div>
+        <div><Lbl l="si paye en (jours)"/><input type="number" min="0" value={nf.escompte_jours||""} onChange={function(e){sf("escompte_jours",e.target.value);}} style={INP}/></div>
       </div>
       {parseFloat(nf.escompte_pct)>0&&parseFloat(nf.total)>0&&(
         <div style={{gridColumn:"1/-1",background:"#E8F2EC",borderRadius:8,padding:"7px 11px",fontSize:11,color:"#1B5E3B",fontWeight:700}}>
@@ -301,8 +301,8 @@ function FormFacture(p){
         );
       })()}
       <div style={{gridColumn:"1/-1"}}><Lbl l="Description / notes"/><textarea value={nf.description||""} onChange={function(e){sf("description",e.target.value);}} style={Object.assign({},INP,{minHeight:60,resize:"vertical"})} placeholder="Description des travaux ou services..."/></div>
-      <div><Lbl l="No TPS fournisseur"/><input value={nf.no_tps_fournisseur||""} onChange={function(e){sf("no_tps_fournisseur",e.target.value);}} style={INP} placeholder="123456789 RT0001"/></div>
-      <div><Lbl l="No TVQ fournisseur"/><input value={nf.no_tvq_fournisseur||""} onChange={function(e){sf("no_tvq_fournisseur",e.target.value);}} style={INP} placeholder="1234567890 TQ0001"/></div>
+      <div><Lbl l="No TPS fournisseur"/><input value={nf.no_tps_fournisseur||""} onChange={function(e){sf("no_tps_fournisseur",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="No TVQ fournisseur"/><input value={nf.no_tvq_fournisseur||""} onChange={function(e){sf("no_tvq_fournisseur",e.target.value);}} style={INP}/></div>
       <div style={{gridColumn:"1/-1",background:"#F8F7F3",border:"1px solid #DDD9CF",borderRadius:8,padding:10}}>
         <div style={{fontSize:10,fontWeight:800,color:"#13233A",textTransform:"uppercase",marginBottom:8}}>Coordonnees du fournisseur (repertoire) - captees de la facture</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -310,7 +310,7 @@ function FormFacture(p){
           <div><Lbl l="Telephone"/><input value={nf.f_telephone||""} onChange={function(e){sf("f_telephone",e.target.value);}} style={INP}/></div>
           <div><Lbl l="Adresse"/><input value={nf.f_adresse||""} onChange={function(e){sf("f_adresse",e.target.value);}} style={INP}/></div>
           <div><Lbl l="Site web"/><input value={nf.f_site_web||""} onChange={function(e){sf("f_site_web",e.target.value);}} style={INP}/></div>
-          <div><Lbl l="Licence RBQ (entrepreneurs)"/><input value={nf.f_rbq||""} onChange={function(e){sf("f_rbq",e.target.value);}} style={INP} placeholder="5678-1234-01"/></div>
+          <div><Lbl l="Licence RBQ (entrepreneurs)"/><input value={nf.f_rbq||""} onChange={function(e){sf("f_rbq",e.target.value);}} style={INP}/></div>
           <div><Lbl l="Personne contact"/><input value={nf.f_contact||""} onChange={function(e){sf("f_contact",e.target.value);}} style={INP}/></div>
         </div>
       </div>

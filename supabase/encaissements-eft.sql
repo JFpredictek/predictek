@@ -82,3 +82,40 @@ notify pgrst, 'reload schema';
 -- si vide, le logo Predictek est utilise
 alter table public.syndicats add column if not exists logo_data text default '';
 notify pgrst, 'reload schema';
+
+-- Lignes visees par un fichier EFT (pour encaisser exactement ces lignes a la completion)
+alter table public.fichiers_eft add column if not exists refs jsonb default '[]'::jsonb;
+notify pgrst, 'reload schema';
+
+-- ============================================================
+-- Vague 2: soldes d ouverture, bons de travaux (PO + envoi), chauffe-eau
+-- ============================================================
+
+-- SOLDES D OUVERTURE de tous les comptes GL (recevoir PAR UNITE, payer PAR FOURNISSEUR)
+create table if not exists public.soldes_ouverture (
+  id uuid primary key default gen_random_uuid(),
+  syndicat_id uuid,
+  no_compte text default '',
+  nom_compte text default '',
+  sens text default 'debit',
+  montant numeric default 0,
+  unite_id uuid,
+  unite text default '',
+  fournisseur text default '',
+  date_solde date,
+  note text default '',
+  statut text default 'actif',
+  created_at timestamptz default now()
+);
+alter table public.soldes_ouverture enable row level security;
+drop policy if exists so_all on public.soldes_ouverture;
+create policy so_all on public.soldes_ouverture for all to authenticated using (true) with check (true);
+
+-- Bons de travaux: trace d envoi au fournisseur (comme les invitations)
+alter table public.bons_travail add column if not exists envoye_le timestamptz;
+alter table public.bons_travail add column if not exists envoye_a text default '';
+
+-- Duree de vie des chauffe-eaux PAR SYNDICAT (avis avec les memes delais que l assurance)
+alter table public.syndicats add column if not exists ce_duree_vie_ans int default 12;
+
+notify pgrst, 'reload schema';

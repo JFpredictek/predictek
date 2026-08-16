@@ -169,7 +169,7 @@ export default function AgendaCalendrier(){
                 <div><Lbl l="Type"/><select value={nf.type} onChange={function(e){setN("type",e.target.value);}} style={INP}><option value="reunion">Reunion</option><option value="echeance">Echeance</option><option value="paiement">Paiement</option><option value="travaux">Travaux</option><option value="autre">Autre</option></select></div>
                 <div><Lbl l="Date"/><input type="date" value={nf.date} onChange={function(e){setN("date",e.target.value);}} style={INP}/></div>
                 <div><Lbl l="Heure"/><input type="time" value={nf.heure} onChange={function(e){setN("heure",e.target.value);}} style={INP}/></div>
-                <div><Lbl l="Lieu / Description"/><input value={nf.description} onChange={function(e){setN("description",e.target.value);}} style={INP} placeholder="Salle communautaire..."/></div>
+                <div><Lbl l="Lieu / Description"/><input value={nf.description} onChange={function(e){setN("description",e.target.value);}} style={INP}/></div>
               </div>
               <div style={{display:"flex",gap:6,marginTop:10}}>
                 <Btn sm onClick={sauvegarder} dis={saving||!nf.titre||!nf.date}>{saving?"...":"Sauvegarder"}</Btn>

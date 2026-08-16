@@ -40,7 +40,8 @@ function CarteFournisseur(p){
             {f.notes&&<div style={{gridColumn:"1/-1",color:T.muted,fontStyle:"italic"}}>{f.notes}</div>}
           </div>
         </div>
-        <div style={{display:"flex",gap:6,flexShrink:0,marginLeft:12}}>
+        <div style={{display:"flex",gap:6,flexShrink:0,marginLeft:12,flexWrap:"wrap"}}>
+          <Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){p.onBon(f);}}>+ Bon de travaux</Btn>
           <Btn sm onClick={function(){p.onEdit(f);}}>Modifier</Btn>
           <Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red+"44"} onClick={function(){p.onToggle(f.id,!f.actif);}}>
             {f.actif?"Archiver":"Reactiver"}
@@ -51,7 +52,7 @@ function CarteFournisseur(p){
   );
 }
 
-export default function FournisseursAdmin(){
+export default function FournisseursAdmin(props){
   var s0=useState([]);var fournisseurs=s0[0];var setFournisseurs=s0[1];
   var s1=useState(false);var showForm=s1[0];var setShowForm=s1[1];
   var s2=useState(VIDE);var nf=s2[0];var setNf=s2[1];
@@ -105,6 +106,12 @@ export default function FournisseursAdmin(){
     setEditId(f.id);setShowForm(true);
   }
 
+  // Creer un bon de travaux directement depuis la fiche du fournisseur
+  function creerBonPour(f){
+    try{localStorage.setItem("predictek_bon_prefill",JSON.stringify({fournisseur:f.nom}));}catch(e){}
+    if(props&&props.onNavigate)props.onNavigate("bons");
+  }
+
   function toggleActif(id,actif){
     sb.update("fournisseurs",id,{actif:actif}).then(function(){
       setFournisseurs(function(prev){return prev.map(function(f){return f.id===id?Object.assign({},f,{actif:actif}):f;});});
@@ -140,25 +147,25 @@ export default function FournisseursAdmin(){
           <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:14,padding:20,marginBottom:20}}>
             <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:16}}>{editId?"Modifier le fournisseur":"Nouveau fournisseur"}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-              <div style={{gridColumn:"1/-1"}}><Lbl l="Nom du fournisseur"/><input value={nf.nom} onChange={function(e){setN("nom",e.target.value);}} style={INP} placeholder="Nom de l entreprise..."/></div>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Nom du fournisseur"/><input value={nf.nom} onChange={function(e){setN("nom",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Categorie"/><select value={nf.categorie} onChange={function(e){setN("categorie",e.target.value);}} style={INP}>{CATEGORIES.map(function(c){return <option key={c}>{c}</option>;})}</select></div>
-              <div><Lbl l="Telephone"/><input value={nf.telephone} onChange={function(e){setN("telephone",e.target.value);}} style={INP} placeholder="418-555-0000"/></div>
-              <div><Lbl l="Courriel"/><input type="email" value={nf.courriel} onChange={function(e){setN("courriel",e.target.value);}} style={INP} placeholder="info@fournisseur.ca"/></div>
-              <div><Lbl l="Personne contact"/><input value={nf.contact} onChange={function(e){setN("contact",e.target.value);}} style={INP} placeholder="Jean Fortin"/></div>
-              <div><Lbl l="Licence RBQ (entrepreneurs)"/><input value={nf.rbq} onChange={function(e){setN("rbq",e.target.value);}} style={INP} placeholder="5678-1234-01"/></div>
-              <div><Lbl l="No TPS"/><input value={nf.no_tps} onChange={function(e){setN("no_tps",e.target.value);}} style={INP} placeholder="123456789 RT0001"/></div>
-              <div><Lbl l="No TVQ"/><input value={nf.no_tvq} onChange={function(e){setN("no_tvq",e.target.value);}} style={INP} placeholder="1234567890 TQ0001"/></div>
+              <div><Lbl l="Telephone"/><input value={nf.telephone} onChange={function(e){setN("telephone",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Courriel"/><input type="email" value={nf.courriel} onChange={function(e){setN("courriel",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Personne contact"/><input value={nf.contact} onChange={function(e){setN("contact",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Licence RBQ (entrepreneurs)"/><input value={nf.rbq} onChange={function(e){setN("rbq",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="No TPS"/><input value={nf.no_tps} onChange={function(e){setN("no_tps",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="No TVQ"/><input value={nf.no_tvq} onChange={function(e){setN("no_tvq",e.target.value);}} style={INP}/></div>
               <div style={{gridColumn:"1/-1",background:"#EFF6FF",borderRadius:10,padding:12}}>
                 <div style={{fontSize:11,fontWeight:800,color:T.blue,marginBottom:8,textTransform:"uppercase"}}>Coordonnees bancaires (paiement par EFT)</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 2fr",gap:10}}>
-                  <div><Lbl l="Institution (3 chiffres)"/><input value={nf.banque_institution} onChange={function(e){setN("banque_institution",e.target.value);}} style={INP} placeholder="815"/></div>
-                  <div><Lbl l="Transit (5 chiffres)"/><input value={nf.banque_transit} onChange={function(e){setN("banque_transit",e.target.value);}} style={INP} placeholder="20030"/></div>
-                  <div><Lbl l="No de compte"/><input value={nf.banque_compte} onChange={function(e){setN("banque_compte",e.target.value);}} style={INP} placeholder="1234567"/></div>
+                  <div><Lbl l="Institution (3 chiffres)"/><input value={nf.banque_institution} onChange={function(e){setN("banque_institution",e.target.value);}} style={INP}/></div>
+                  <div><Lbl l="Transit (5 chiffres)"/><input value={nf.banque_transit} onChange={function(e){setN("banque_transit",e.target.value);}} style={INP}/></div>
+                  <div><Lbl l="No de compte"/><input value={nf.banque_compte} onChange={function(e){setN("banque_compte",e.target.value);}} style={INP}/></div>
                 </div>
                 <div style={{fontSize:10,color:T.muted,marginTop:6}}>Requis seulement pour payer ce fournisseur par fichier EFT (Finances - Factures, case Payer par EFT).</div>
               </div>
-              <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse"/><input value={nf.adresse} onChange={function(e){setN("adresse",e.target.value);}} style={INP} placeholder="123 rue Principale, Quebec QC"/></div>
-              <div style={{gridColumn:"1/-1"}}><Lbl l="Site web"/><input value={nf.site_web} onChange={function(e){setN("site_web",e.target.value);}} style={INP} placeholder="https://www.fournisseur.ca"/></div>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse"/><input value={nf.adresse} onChange={function(e){setN("adresse",e.target.value);}} style={INP}/></div>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Site web"/><input value={nf.site_web} onChange={function(e){setN("site_web",e.target.value);}} style={INP}/></div>
               <div style={{gridColumn:"1/-1"}}><Lbl l="Notes internes"/><textarea value={nf.notes} onChange={function(e){setN("notes",e.target.value);}} style={Object.assign({},INP,{minHeight:60,resize:"vertical"})} placeholder="Specialites, tarifs, contacts preferes..."/></div>
             </div>
             <div style={{display:"flex",gap:8}}>
@@ -169,7 +176,7 @@ export default function FournisseursAdmin(){
         )}
 
         <div style={{fontSize:12,color:T.muted,marginBottom:12}}>{filtres.length} fournisseur(s) actif(s){catFiltre!=="tout"?" - "+catFiltre:""}</div>
-        {filtres.map(function(f){return <CarteFournisseur key={f.id} fournisseur={f} onEdit={editer} onToggle={toggleActif}/>;})}
+        {filtres.map(function(f){return <CarteFournisseur key={f.id} fournisseur={f} onEdit={editer} onToggle={toggleActif} onBon={creerBonPour}/>;})}
         {filtres.length===0&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucun fournisseur{recherche?" pour cette recherche":""}</div>}
 
         {archives.length>0&&(
@@ -177,7 +184,7 @@ export default function FournisseursAdmin(){
             <button onClick={function(){setShowArchives(!showArchives);}} style={{background:"none",border:"none",color:T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
               {showArchives?"Masquer":"Afficher"} les archives ({archives.length})
             </button>
-            {showArchives&&archives.map(function(f){return <CarteFournisseur key={f.id} fournisseur={f} onEdit={editer} onToggle={toggleActif}/>;})}
+            {showArchives&&archives.map(function(f){return <CarteFournisseur key={f.id} fournisseur={f} onEdit={editer} onToggle={toggleActif} onBon={creerBonPour}/>;})}
           </div>
         )}
       </div>

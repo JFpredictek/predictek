@@ -277,8 +277,8 @@ function TabCharte(p){
             </div>
             {ajoutGroupe===g&&(
               <div style={{display:"flex",gap:8,alignItems:"flex-end",marginBottom:10,background:T.blueL,borderRadius:8,padding:10,flexWrap:"wrap"}}>
-                <div style={{width:90}}><Lbl l="Numero"/><input value={nfc.no} onChange={function(e){setNfc(Object.assign({},nfc,{no:e.target.value.replace(/\D/g,"").slice(0,6)}));}} style={INP} placeholder="5192"/></div>
-                <div style={{flex:1,minWidth:200}}><Lbl l="Nom du compte"/><input value={nfc.nom} onChange={function(e){setNfc(Object.assign({},nfc,{nom:e.target.value}));}} style={INP} placeholder="ex: 021258-1 Operation"/></div>
+                <div style={{width:90}}><Lbl l="Numero"/><input value={nfc.no} onChange={function(e){setNfc(Object.assign({},nfc,{no:e.target.value.replace(/\D/g,"").slice(0,6)}));}} style={INP}/></div>
+                <div style={{flex:1,minWidth:200}}><Lbl l="Nom du compte"/><input value={nfc.nom} onChange={function(e){setNfc(Object.assign({},nfc,{nom:e.target.value}));}} style={INP}/></div>
                 <div style={{width:150}}><Lbl l="Type"/><select value={nfc.type} onChange={function(e){setNfc(Object.assign({},nfc,{type:e.target.value}));}} style={INP}>{Object.keys(TYPES_LBL).map(function(t){return <option key={t} value={t}>{TYPES_LBL[t]}</option>;})}</select></div>
                 <Btn sm onClick={function(){ajouterCompte(g);}}>Ajouter</Btn>
                 <Btn sm bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setAjoutGroupe(null);}}>Annuler</Btn>
@@ -710,7 +710,7 @@ function TabBudget(p){
 
               {ajoutGrp===fid&&(
                 <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap",background:T.accentL,borderRadius:8,padding:10,marginTop:10}}>
-                  <div style={{width:90}}><Lbl l="No"/><input value={nCompte.no} onChange={function(e){setNCompte(Object.assign({},nCompte,{no:e.target.value.replace(/\D/g,"").slice(0,4)}));}} style={INP} placeholder="5250"/></div>
+                  <div style={{width:90}}><Lbl l="No"/><input value={nCompte.no} onChange={function(e){setNCompte(Object.assign({},nCompte,{no:e.target.value.replace(/\D/g,"").slice(0,4)}));}} style={INP}/></div>
                   <div style={{flex:1,minWidth:180}}><Lbl l="Nom du compte"/><input value={nCompte.nom} onChange={function(e){setNCompte(Object.assign({},nCompte,{nom:e.target.value}));}} style={INP} placeholder="Ex: Lavage de vitres"/></div>
                   <div style={{width:150}}><Lbl l="Type"/><select value={nCompte.type} onChange={function(e){setNCompte(Object.assign({},nCompte,{type:e.target.value}));}} style={INP}><option value="depense">Depense</option><option value="revenu">Revenu</option><option value="fonds">Transfert interfonds</option></select></div>
                   <Btn sm onClick={ajouterCompteGL} dis={!nCompte.no||!nCompte.nom}>Ajouter</Btn>
@@ -847,8 +847,8 @@ function TabBanques(p){
               <div style={{display:"grid",gap:8}}>
                 <div><Lbl l="Banque / caisse"/><input value={f.banque||""} onChange={function(e){ch(fd.id,"banque",e.target.value);}} style={INP} placeholder="Desjardins, BNC..."/></div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                  <div><Lbl l="Institution (3)"/><input value={f.institution||""} onChange={function(e){ch(fd.id,"institution",e.target.value.replace(/\D/g,"").slice(0,3));}} style={INP} placeholder="815"/></div>
-                  <div><Lbl l="Transit (5)"/><input value={f.transit||""} onChange={function(e){ch(fd.id,"transit",e.target.value.replace(/\D/g,"").slice(0,5));}} style={INP} placeholder="30040"/></div>
+                  <div><Lbl l="Institution (3)"/><input value={f.institution||""} onChange={function(e){ch(fd.id,"institution",e.target.value.replace(/\D/g,"").slice(0,3));}} style={INP}/></div>
+                  <div><Lbl l="Transit (5)"/><input value={f.transit||""} onChange={function(e){ch(fd.id,"transit",e.target.value.replace(/\D/g,"").slice(0,5));}} style={INP}/></div>
                 </div>
                 <div><Lbl l="No de compte"/><input value={f.no_compte||""} onChange={function(e){ch(fd.id,"no_compte",e.target.value.replace(/\D/g,"").slice(0,12));}} style={INP}/></div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
@@ -1298,7 +1298,7 @@ function TabFonds(p){
       {err&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,fontWeight:700,marginBottom:12}}>{err}</div>}
       {showAjout&&(
         <div style={{display:"flex",gap:8,alignItems:"flex-end",background:T.blueL,borderRadius:10,padding:12,marginBottom:14,flexWrap:"wrap"}}>
-          <div style={{minWidth:220}}><Lbl l="Nom du nouveau fonds"/><input value={nomFonds} onChange={function(e){setNomFonds(e.target.value);}} style={INP} placeholder="ex: travaux, ascenseur..."/></div>
+          <div style={{minWidth:220}}><Lbl l="Nom du nouveau fonds"/><input value={nomFonds} onChange={function(e){setNomFonds(e.target.value);}} style={INP}/></div>
           <Btn onClick={ajouterFonds}>Creer le fonds</Btn>
           <div style={{fontSize:10,color:T.muted}}>Un compte bancaire lui sera associe; rattachez ensuite ses comptes GL dans le Plan comptable.</div>
         </div>

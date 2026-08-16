@@ -221,10 +221,10 @@ export default function CarnetEntretien(){
               <div style={{gridColumn:"1/-1"}}><Lbl l="Nom de la composante"/><input value={nf.composante} onChange={function(e){setN("composante",e.target.value);}} style={INP} placeholder="Ex: Toiture, Chauffe-eau..."/></div>
               <div><Lbl l="Categorie"/><select value={nf.categorie} onChange={function(e){setN("categorie",e.target.value);}} style={INP}>{["Structure","Enveloppe","Mecanique","Electrique","Securite","Interieur","Exterieur","Amenites","Autre"].map(function(c){return <option key={c}>{c}</option>;})}</select></div>
               <div><Lbl l="Etat actuel"/><select value={nf.etat} onChange={function(e){setN("etat",e.target.value);}} style={INP}>{ETATS.map(function(e){return <option key={e} value={e} style={{textTransform:"capitalize"}}>{e.charAt(0).toUpperCase()+e.slice(1)}</option>;})}</select></div>
-              <div><Lbl l="Annee d installation"/><input type="number" min="1950" max="2030" value={nf.annee_installation} onChange={function(e){setN("annee_installation",e.target.value);}} style={INP} placeholder="2005"/></div>
-              <div><Lbl l="Duree de vie (ans)"/><input type="number" min="5" max="100" value={nf.duree_vie_ans} onChange={function(e){setN("duree_vie_ans",e.target.value);}} style={INP} placeholder="25"/></div>
+              <div><Lbl l="Annee d installation"/><input type="number" min="1950" max="2030" value={nf.annee_installation} onChange={function(e){setN("annee_installation",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Duree de vie (ans)"/><input type="number" min="5" max="100" value={nf.duree_vie_ans} onChange={function(e){setN("duree_vie_ans",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Annee remplacement prevue" hint="Laissez vide = calcul automatique"/><input type="number" min="2020" max="2100" value={nf.annee_remplacement} onChange={function(e){setN("annee_remplacement",e.target.value);}} style={INP} placeholder="Calcule auto..."/></div>
-              <div><Lbl l="Cout de remplacement ($)"/><input type="number" step="1000" value={nf.cout_remplacement} onChange={function(e){setN("cout_remplacement",e.target.value);}} style={INP} placeholder="50000"/></div>
+              <div><Lbl l="Cout de remplacement ($)"/><input type="number" step="1000" value={nf.cout_remplacement} onChange={function(e){setN("cout_remplacement",e.target.value);}} style={INP}/></div>
               <div style={{gridColumn:"1/-1"}}><Lbl l="Notes"/><input value={nf.notes} onChange={function(e){setN("notes",e.target.value);}} style={INP} placeholder="Observations, derniere inspection..."/></div>
             </div>
             <div style={{display:"flex",gap:8}}>

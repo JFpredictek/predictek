@@ -24,6 +24,8 @@ import ReconnaissanceDoc from "./ReconnaissanceDoc";
 import Communications from "./Communications";
 import RapportsFinanciers from "./RapportsFinanciers";
 import BonsTravail from "./BonsTravail";
+import CotisationsSpeciales from "./CotisationsSpeciales";
+import SoldesOuverture from "./SoldesOuverture";
 import PVReunion from "./PVReunion";
 import RelevesCompte from "./RelevesCompte";
 import GestionUtilisateurs from "./GestionUtilisateurs";
@@ -79,7 +81,9 @@ var SECTIONS=[
       {id:"fondsview",label:"Comptabilite par fonds",icon:"FD"},
       {id:"banques",label:"Comptes bancaires",icon:"CB"},
       {id:"journalgl",label:"Journal des transactions",icon:"JL"},
+      {id:"soldesouv",label:"Soldes d ouverture",icon:"SO"},
       {id:"encaissements",label:"Encaissements",icon:"EN"},
+      {id:"speciales",label:"Cotisations speciales",icon:"CSP"},
       {id:"bons",label:"Bons travaux",icon:"BT"},
       {id:"comm",label:"Communications",icon:"CO"},
       
@@ -125,9 +129,10 @@ var NAV={
   ],
   ca:[
     {titre:"Tableau de bord",items:[{id:"tableau"}]},
-    {titre:"Finances",items:[{sub:"Payables"},{id:"factures"},{sub:"Recevables"},{id:"encaissements"},{sub:"Comptabilite"},{id:"budget"},{id:"fondsview"},{id:"banques"},{id:"journalgl"},{sub:"Rapports"},{id:"etatsfin"},{id:"rapports"}]},
+    {titre:"Finances",items:[{sub:"Payables"},{id:"factures"},{sub:"Recevables"},{id:"encaissements"},{id:"speciales"},{sub:"Comptabilite"},{id:"budget"},{id:"fondsview"},{id:"soldesouv"},{id:"journalgl"},{sub:"Rapports"},{id:"etatsfin"},{id:"rapports"}]},
     {titre:"Fournisseurs",items:[{id:"fournisseurs"},{id:"bons"}]},
-    {titre:"Immeuble",items:[{id:"unites"},{id:"carnet"},{id:"docs"},{id:"sinistres"},{id:"agenda"}]},
+    {titre:"Immeuble",items:[{id:"unites"},{id:"carnet"},{id:"sinistres"},{id:"agenda"}]},
+    {titre:"Documents",items:[{id:"docs"}]},
     {titre:"Instances",items:[{id:"assemblees"},{id:"pv"},{id:"ca"},{id:"registre"}]},
     {titre:"Requetes",items:[{id:"requetes"}]},
     {titre:"Communications",items:[{id:"comm"},{id:"conformite"},{id:"notif"}]},
@@ -325,6 +330,8 @@ export default function App(){
         {active==="banques"&&<BudgetCompta key="bq" onglet="banques"/>}
         {active==="journalgl"&&<BudgetCompta key="jl" onglet="journal"/>}
         {active==="encaissements"&&<Encaissements/>}
+        {active==="speciales"&&<CotisationsSpeciales/>}
+        {active==="soldesouv"&&<SoldesOuverture/>}
         {active==="assemblees"&&<Assemblees/>}
         {active==="paie"&&<ModuleT4/>}
         {active==="carnet"&&<CarnetEntretien/>}
@@ -345,7 +352,7 @@ export default function App(){
         {active==="releves"&&<RelevesCompte/>}
         {active==="crm"&&<RequetesCopros/>}
         {active==="usagersca"&&<GestionUtilisateurs contexte="ca"/>}
-        {active==="fournisseurs"&&<FournisseursAdmin/>}
+        {active==="fournisseurs"&&<FournisseursAdmin onNavigate={function(id){setMod("ca",id);}}/>}
         {active==="copro"&&<PortailCopro role={user.role||""}/>}
         {active==="notif"&&<Notifications onNavigate={function(id){setMod("ca",id);}}/>}
         {active==="ia"&&<ModuleIA/>}

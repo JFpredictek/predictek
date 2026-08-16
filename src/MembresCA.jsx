@@ -75,21 +75,21 @@ function FormMembreCA(p){
   var nf=p.nf;var setField=p.setField;
   return(
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-      <div><Lbl l="Prenom" req/><input value={nf.prenom||""} onChange={function(e){setField("prenom",e.target.value);}} style={INP} placeholder="Jean-Francois"/></div>
-      <div><Lbl l="Nom" req/><input value={nf.nom||""} onChange={function(e){setField("nom",e.target.value);}} style={INP} placeholder="Laroche"/></div>
+      <div><Lbl l="Prenom" req/><input value={nf.prenom||""} onChange={function(e){setField("prenom",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="Nom" req/><input value={nf.nom||""} onChange={function(e){setField("nom",e.target.value);}} style={INP}/></div>
       <div><Lbl l="Role au CA" req/><select value={nf.role_ca||"membre"} onChange={function(e){setField("role_ca",e.target.value);}} style={INP}>{ROLES.map(function(r){return <option key={r.id} value={r.id}>{r.l}</option>;})}</select></div>
-      <div><Lbl l="No unite"/><input value={nf.unite||""} onChange={function(e){setField("unite",e.target.value);}} style={INP} placeholder="301"/></div>
-      <div><Lbl l="Courriel" req/><input type="email" value={nf.courriel||""} onChange={function(e){setField("courriel",e.target.value);}} style={INP} placeholder="prenom@email.com"/></div>
-      <div><Lbl l="Cellulaire"/><input value={nf.cellulaire||""} onChange={function(e){setField("cellulaire",e.target.value);}} style={INP} placeholder="418-555-0000"/></div>
-      <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse civique"/><input value={nf.adresse_civique||""} onChange={function(e){setField("adresse_civique",e.target.value);}} style={INP} placeholder="123 rue Principale"/></div>
-      <div><Lbl l="Ville"/><input value={nf.ville||""} onChange={function(e){setField("ville",e.target.value);}} style={INP} placeholder="Quebec"/></div>
+      <div><Lbl l="No unite"/><input value={nf.unite||""} onChange={function(e){setField("unite",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="Courriel" req/><input type="email" value={nf.courriel||""} onChange={function(e){setField("courriel",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="Cellulaire"/><input value={nf.cellulaire||""} onChange={function(e){setField("cellulaire",e.target.value);}} style={INP}/></div>
+      <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse civique"/><input value={nf.adresse_civique||""} onChange={function(e){setField("adresse_civique",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="Ville"/><input value={nf.ville||""} onChange={function(e){setField("ville",e.target.value);}} style={INP}/></div>
       <div><Lbl l="Province"/><select value={nf.province||"QC"} onChange={function(e){setField("province",e.target.value);}} style={INP}><option>QC</option><option>ON</option><option>BC</option><option>AB</option></select></div>
-      <div><Lbl l="Code postal"/><input value={nf.code_postal||""} onChange={function(e){setField("code_postal",e.target.value.toUpperCase());}} style={INP} placeholder="G1A 1A1"/></div>
+      <div><Lbl l="Code postal"/><input value={nf.code_postal||""} onChange={function(e){setField("code_postal",e.target.value.toUpperCase());}} style={INP}/></div>
       <div><Lbl l="Date debut mandat"/><input type="date" value={nf.date_debut_mandat||""} onChange={function(e){setField("date_debut_mandat",e.target.value);}} style={INP}/></div>
       <div><Lbl l="Date fin mandat"/><input type="date" value={nf.date_fin_mandat||""} onChange={function(e){setField("date_fin_mandat",e.target.value);}} style={INP}/></div>
       <div style={{gridColumn:"1/-1",background:T.amberL,border:"1px solid "+T.amber+"44",borderRadius:10,padding:12}}>
         <div style={{fontSize:11,fontWeight:700,color:T.amber,marginBottom:6}}>NAS - Information confidentielle (chiffree)</div>
-        <input value={nf.nas||""} onChange={function(e){setField("nas",e.target.value.replace(/[^0-9]/g,"").slice(0,9));}} style={INP} placeholder="000000000" maxLength={9} type="password"/>
+        <input value={nf.nas||""} onChange={function(e){setField("nas",e.target.value.replace(/[^0-9]/g,"").slice(0,9));}} style={INP} maxLength={9} type="password"/>
         <div style={{fontSize:10,color:T.amber,marginTop:4}}>Le NAS est chiffre automatiquement avant sauvegarde. Il ne peut etre lu directement dans la base de donnees.</div>
       </div>
       <div style={{gridColumn:"1/-1",display:"flex",alignItems:"center",gap:8,cursor:"pointer"}} onClick={function(){setField("actif",!nf.actif);}}>

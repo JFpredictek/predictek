@@ -188,11 +188,11 @@ export default function Sinistres(){
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:10}}>
               <div><Lbl l="Date du sinistre" req/><input type="date" value={nf.date_sinistre||""} onChange={function(e){setN("date_sinistre",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Type" req/><select value={nf.type} onChange={function(e){setN("type",e.target.value);}} style={INP}>{TYPES.map(function(t){return <option key={t.id} value={t.id}>{t.l}</option>;})}</select></div>
-              <div><Lbl l="Lieu (partie commune, etage...)"/><input value={nf.lieu||""} onChange={function(e){setN("lieu",e.target.value);}} style={INP} placeholder="ex: salle mecanique, corridor 3e"/></div>
+              <div><Lbl l="Lieu (partie commune, etage...)"/><input value={nf.lieu||""} onChange={function(e){setN("lieu",e.target.value);}} style={INP}/></div>
               <div style={{gridColumn:"1/-1"}}><Lbl l="Description" req/><textarea value={nf.description||""} onChange={function(e){setN("description",e.target.value);}} style={Object.assign({},INP,{minHeight:60,resize:"vertical"})} placeholder="Ce qui s est passe, dommages constates..."/></div>
-              <div><Lbl l="Unites touchees"/><input value={nf.unites_touchees||""} onChange={function(e){setN("unites_touchees",e.target.value);}} style={INP} placeholder="ex: 301, 302, 401"/></div>
-              <div><Lbl l="Cause"/><input value={nf.cause||""} onChange={function(e){setN("cause",e.target.value);}} style={INP} placeholder="ex: chauffe-eau unite 401"/></div>
-              <div><Lbl l="Responsable presume"/><input value={nf.responsable_presume||""} onChange={function(e){setN("responsable_presume",e.target.value);}} style={INP} placeholder="ex: coproprietaire 401 (art. 1074.2)"/></div>
+              <div><Lbl l="Unites touchees"/><input value={nf.unites_touchees||""} onChange={function(e){setN("unites_touchees",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Cause"/><input value={nf.cause||""} onChange={function(e){setN("cause",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Responsable presume"/><input value={nf.responsable_presume||""} onChange={function(e){setN("responsable_presume",e.target.value);}} style={INP}/></div>
             </div>
             <div style={{fontSize:11,fontWeight:800,color:T.navy,textTransform:"uppercase",letterSpacing:"0.05em",margin:"6px 0"}}>Assurance et montants</div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:10}}>

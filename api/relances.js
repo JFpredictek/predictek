@@ -89,7 +89,7 @@ module.exports = async function(req, res){
   var mois = iso.substring(0,7);
   var jourDuMois = parseInt(iso.substring(8,10), 10);
 
-  var syndicats = await sbGet(svc, "syndicats?select=id,nom,code,assurance_syndicat_exp,etude_assurance_date,etude_prevoyance_date,etude_assurance_ans,etude_prevoyance_ans,ass_avis_avant1,ass_avis_avant2,ass_avis_apres,ass_nc_auto,ass_nc_delai,relances_actives");
+  var syndicats = await sbGet(svc, "syndicats?select=id,nom,code,assurance_syndicat_exp,etude_assurance_date,etude_prevoyance_date,etude_assurance_ans,etude_prevoyance_ans,ass_avis_avant1,ass_avis_avant2,ass_avis_apres,ass_nc_auto,ass_nc_delai,ce_duree_vie_ans,relances_actives");
   var synMap = {}; syndicats.forEach(function(s){synMap[s.id]=s;});
   // Relances gerees PAR SYNDICAT (Centre de notifications): un syndicat desactive est ignore
   function relancesActives(sid){ var s = synMap[sid]; return !s || s.relances_actives !== false; }
@@ -206,6 +206,35 @@ module.exports = async function(req, res){
         description: "Avis de non-conformite AUTOMATIQUE: assurance non fournie - unite " + (nc.u.no_unite||"") + " (echeance " + echNC + ")", details: "", syndicat_code: nc.syn.code || ""});
     }
   }
+
+  // REGLE 2c - CHAUFFE-EAU des unites: MEMES delais d avis que l assurance.
+  // Fin de vie estimee = date d installation + duree de vie configuree PAR SYNDICAT
+  // (Configuration du syndicat, carte Avis d assurance et de chauffe-eau).
+  unites.forEach(function(u){
+    if(!u.ce_date_install) return;
+    var syn = synMap[u.syndicat_id] || {nom:"votre syndicat", code:""};
+    var duree = parseInt(syn.ce_duree_vie_ans, 10); if(!(duree > 0)) duree = 12;
+    var avant1 = parseInt(syn.ass_avis_avant1, 10); if(!(avant1 >= 0)) avant1 = 90;
+    var avant2 = parseInt(syn.ass_avis_avant2, 10); if(!(avant2 >= 0)) avant2 = 30;
+    var dInst = new Date(String(u.ce_date_install).substring(0,10) + "T12:00:00");
+    if(isNaN(dInst.getTime())) return;
+    var dFin = new Date(dInst.getTime()); dFin.setFullYear(dFin.getFullYear() + duree);
+    var finTxt = dFin.toISOString().substring(0,10);
+    var jours = Math.ceil((dFin - maintenant) / 86400000);
+    var typeC = jours < 0 ? "chauffe_eau_expire" : jours <= avant2 ? "chauffe_eau_30" : jours <= avant1 ? "chauffe_eau_90" : null;
+    if(!typeC) return;
+    var proprietaires = copros.filter(function(c){return c.unite_id === u.id && c.courriel;});
+    proprietaires.forEach(function(c){
+      var cleC = typeC + "_" + c.id + "_" + finTxt;
+      if(deja[cleC]) return;
+      if(aEnvoyer.some(function(x){return x.cle === cleC;})) return;
+      aEnvoyer.push({
+        type: typeC, cle: cleC, copro: c, syn: syn,
+        sujet: "[" + syn.nom + "] " + (jours < 0 ? "Le chauffe-eau de l unite " + (u.no_unite||"") + " a DEPASSE sa duree de vie" : "Le chauffe-eau de l unite " + (u.no_unite||"") + " arrive en fin de vie dans " + jours + " jours"),
+        contexte: "le chauffe-eau de l unite " + (u.no_unite||"") + " (installe le " + String(u.ce_date_install).substring(0,10) + ", duree de vie " + duree + " ans) " + (jours < 0 ? "a depasse sa duree de vie le " + finTxt : "atteindra sa duree de vie le " + finTxt) + "; son remplacement doit etre planifie et une preuve transmise au syndicat"
+      });
+    });
+  });
 
   // ============ ALERTES ADMINISTRATIVES (envoyees a l administrateur, jamais aux coproprietaires) ============
   var alertesAdmin = [];

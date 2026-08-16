@@ -6,6 +6,35 @@ var T={bg:"#F5F3EE",surface:"#FFF",alt:"#EDEBE4",border:"#DDD9CF",muted:"#7C7568
 var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10px",fontSize:12,fontFamily:"inherit",background:"#FFF",outline:"none",boxSizing:"border-box"};
 
 function Btn(p){return <button onClick={p.onClick} disabled={p.dis} style={{background:p.dis?"#ccc":p.bg||T.accent,border:p.bdr||"none",borderRadius:7,padding:p.sm?"5px 12px":"8px 18px",color:p.tc||"#fff",fontSize:p.sm?11:12,fontWeight:600,cursor:p.dis?"not-allowed":"pointer",fontFamily:"inherit"}}>{p.children}</button>;}
+
+// ----- Extraction automatique de la preuve d assurance televersee -----
+function lireReponseP(r){return r.text().then(function(t){try{return JSON.parse(t);}catch(e){return {error:"Reponse inattendue du serveur (code "+r.status+")"};}});}
+function fichierPourExtractionP(file){
+  return new Promise(function(resolve,reject){
+    var isPdf=/pdf$/i.test(file.type)||/\.pdf$/i.test(file.name);
+    var fr=new FileReader();
+    fr.onerror=function(){reject(new Error("Lecture du fichier impossible"));};
+    fr.onload=function(ev){
+      var b64=String(ev.target.result).split(",")[1];
+      if(isPdf){
+        if(b64.length>4200000){reject(new Error("PDF trop volumineux (max ~3 Mo)"));return;}
+        resolve({pdf:b64});
+      }else{
+        var img=new Image();
+        img.onload=function(){
+          var cv=document.createElement("canvas");
+          var sc=Math.min(1,1600/Math.max(img.width,img.height));
+          cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
+          cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+          resolve({images:[cv.toDataURL("image/jpeg",0.8).split(",")[1]]});
+        };
+        img.onerror=function(){reject(new Error("Image illisible"));};
+        img.src=ev.target.result;
+      }
+    };
+    fr.readAsDataURL(file);
+  });
+}
 function Badge(p){var C={paye:{bg:"#D4EDDA",tc:"#155724"},en_attente:{bg:"#FEF3E2",tc:"#B86020"},retard:{bg:"#F8D7DA",tc:"#721C24"},nouveau:{bg:"#EFF6FF",tc:"#1A56DB"},en_cours:{bg:"#FEF3E2",tc:"#B86020"},resolu:{bg:"#D4EDDA",tc:"#155724"}};var c=C[p.s]||{bg:"#F0EDE8",tc:"#7C7568"};return <span style={{background:c.bg,color:c.tc,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:700}}>{p.l}</span>;}
 
 function EcranLogin(p){
@@ -76,6 +105,8 @@ function Tableau(p){
   var sUM=useState("");var msgUni=sUM[0];var setMsgUni=sUM[1];
   var sUA=useState(null);var fichAss=sUA[0];var setFichAss=sUA[1];
   var sUC=useState(null);var fichCE=sUC[0];var setFichCE=sUC[1];
+  var sAE=useState("");var assExtraitMsg=sAE[0];var setAssExtraitMsg=sAE[1];
+  var sAX=useState({});var assExtr=sAX[0];var setAssExtr=sAX[1];
   var sFC=useState([]);var facturesCop=sFC[0];var setFacturesCop=sFC[1];
   var sDS=useState([]);var docsSyn=sDS[0];var setDocsSyn=sDS[1];
 
@@ -118,6 +149,25 @@ function Tableau(p){
     }
   },[copro]);
 
+  // Extraction automatique de la preuve d assurance (compagnie, police, dates)
+  function extraireAssurancePortail(file){
+    setAssExtraitMsg("Lecture automatique de la preuve d assurance en cours...");
+    setAssExtr({});
+    fichierPourExtractionP(file).then(function(src){
+      var corps=Object.assign({mode:"assurance"},src);
+      return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify(corps)}).then(lireReponseP);
+    }).then(function(resp){
+      if(!resp||resp.error){setAssExtraitMsg("Extraction impossible ("+((resp&&resp.error)||"erreur")+") - entrez la date d expiration manuellement, le document sera quand meme depose.");return;}
+      var d=resp.data||{};var pris=[];var ex={};
+      if(d.compagnie){ex.ass_cie=d.compagnie;pris.push(d.compagnie);}
+      if(d.police){ex.assurance_police=d.police;pris.push("police "+d.police);}
+      if(d.dateDebut&&/^\d{4}-\d{2}-\d{2}$/.test(d.dateDebut)){ex.assurance_debut=d.dateDebut;pris.push("debut "+d.dateDebut);}
+      if(d.dateExp&&/^\d{4}-\d{2}-\d{2}$/.test(d.dateExp)){setFUni(function(pr){return Object.assign({},pr,{assurance_exp:d.dateExp});});pris.push("expiration "+d.dateExp);}
+      setAssExtr(ex);
+      setAssExtraitMsg(pris.length>0?"Extrait automatiquement: "+pris.join(", ")+" - verifiez puis cliquez Sauvegarder.":"Aucune information lisible dans ce document - entrez la date d expiration manuellement.");
+    }).catch(function(e){setAssExtraitMsg("Extraction impossible ("+(e&&e.message?e.message:"erreur")+") - entrez la date manuellement, le document sera quand meme depose.");});
+  }
+
   function sauverUnite(){
     if(!uni||!fUni)return;
     setMsgUni("Sauvegarde...");
@@ -127,6 +177,9 @@ function Tableau(p){
       urg_nom:fUni.urg_nom||"",urg_lien:fUni.urg_lien||"",urg_tel:fUni.urg_tel||"",urg_courriel:fUni.urg_courriel||"",
       assurance_exp:fUni.assurance_exp||null,
       chauffe_eau:fUni.chauffe_eau||"",ce_date_install:fUni.ce_date_install||null};
+    if(assExtr.ass_cie)maj.ass_cie=assExtr.ass_cie;
+    if(assExtr.assurance_police)maj.assurance_police=assExtr.assurance_police;
+    if(assExtr.assurance_debut)maj.assurance_debut=assExtr.assurance_debut;
     var etapes=Promise.resolve();
     if(fichAss){
       var ext=(fichAss.name.match(/\.[a-zA-Z0-9]+$/)||[".pdf"])[0];
@@ -294,14 +347,19 @@ function Tableau(p){
                   <div><div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>EXPIRE LE</div><input type="date" value={fUni.assurance_exp||""} onChange={function(e){setFUni(Object.assign({},fUni,{assurance_exp:e.target.value}));}} style={INP}/></div>
                   <div>
                     <div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>PREUVE D ASSURANCE (PDF/photo)</div>
-                    <input type="file" accept=".pdf,image/*" onChange={function(e){setFichAss(e.target.files&&e.target.files[0]?e.target.files[0]:null);}} style={{fontSize:11,fontFamily:"inherit"}}/>
+                    <input type="file" accept=".pdf,image/*" onChange={function(e){
+                      var fA=e.target.files&&e.target.files[0]?e.target.files[0]:null;
+                      setFichAss(fA);
+                      if(fA)extraireAssurancePortail(fA);else{setAssExtraitMsg("");setAssExtr({});}
+                    }} style={{fontSize:11,fontFamily:"inherit"}}/>
                     {fichAss&&<div style={{fontSize:10,color:T.accent,marginTop:3}}>{fichAss.name}</div>}
                   </div>
+                  {assExtraitMsg&&<div style={{gridColumn:"1/-1",fontSize:11,fontWeight:700,color:assExtraitMsg.indexOf("impossible")>=0||assExtraitMsg.indexOf("Aucune")>=0?T.amber:T.accent,background:assExtraitMsg.indexOf("impossible")>=0?T.amberL:T.accentL,borderRadius:7,padding:"6px 10px"}}>{assExtraitMsg}</div>}
                 </div>
 
                 <div style={{fontSize:10,fontWeight:800,color:T.navy,textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:6}}>Mon chauffe-eau</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:12}}>
-                  <div><div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>MARQUE / MODELE</div><input value={fUni.chauffe_eau} onChange={function(e){setFUni(Object.assign({},fUni,{chauffe_eau:e.target.value}));}} style={INP} placeholder="Giant 60 gal"/></div>
+                  <div><div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>MARQUE / MODELE</div><input value={fUni.chauffe_eau} onChange={function(e){setFUni(Object.assign({},fUni,{chauffe_eau:e.target.value}));}} style={INP}/></div>
                   <div><div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>INSTALLE (mois-annee)</div><input type="month" value={fUni.ce_date_install?String(fUni.ce_date_install).substring(0,7):""} onChange={function(e){setFUni(Object.assign({},fUni,{ce_date_install:e.target.value}));}} style={INP}/></div>
                   <div>
                     <div style={{fontSize:10,color:T.muted,fontWeight:700,marginBottom:4}}>PREUVE / FACTURE (PDF/photo)</div>

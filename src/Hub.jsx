@@ -400,20 +400,20 @@ function ParamsSyndicat(p){
           <div style={{gridColumn:"1/-1"}}><Lbl l="Adresse"/><input value={f.adr||""} onChange={function(e){ch("adr",e.target.value);}} style={INP}/></div>
           <div><Lbl l="Ville"/><input value={f.ville||""} onChange={function(e){ch("ville",e.target.value);}} style={INP}/></div>
           <div><Lbl l="Province"/><select value={f.province||"QC"} onChange={function(e){ch("province",e.target.value);}} style={INP}><option>QC</option><option>ON</option><option>NB</option></select></div>
-          <div><Lbl l="Code postal"/><input value={f.code_postal||""} onChange={function(e){ch("code_postal",fmtCP(e.target.value));}} style={INP} placeholder="G1A 1A1"/></div>
+          <div><Lbl l="Code postal"/><input value={f.code_postal||""} onChange={function(e){ch("code_postal",fmtCP(e.target.value));}} style={INP}/></div>
           <div><Lbl l="NEQ (immatriculation)"/><input value={f.immat||""} onChange={function(e){ch("immat",fmtNEQ(e.target.value));}} style={INP} placeholder="11 chiffres"/></div>
           <div><Lbl l="Courriel du syndicat"/><input value={f.courriel||""} onChange={function(e){ch("courriel",e.target.value.trim());}} style={Object.assign({},INP,f.courriel&&!courrielValide(f.courriel)?{border:"2px solid #B83232"}:{})}/></div>
-          <div><Lbl l="Telephone"/><input value={f.tel||""} onChange={function(e){ch("tel",fmtTel(e.target.value));}} style={INP} placeholder="418-555-0000" maxLength={12}/></div>
+          <div><Lbl l="Telephone"/><input value={f.tel||""} onChange={function(e){ch("tel",fmtTel(e.target.value));}} style={INP} maxLength={12}/></div>
         </div>
       </div>
 
       <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:18,marginBottom:14}}>
         <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:12}}>Constitution et regles</div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-          <div><Lbl l="Annee de constitution"/><input type="number" value={f.annee_constitution||""} onChange={function(e){ch("annee_constitution",e.target.value);}} style={INP} placeholder="ex: 1987"/></div>
-          <div><Lbl l="Quorum AGO (%)"/><input type="number" min="10" max="100" value={f.quorum_ago||""} onChange={function(e){ch("quorum_ago",e.target.value);}} style={INP} placeholder="ex: 50"/></div>
+          <div><Lbl l="Annee de constitution"/><input type="number" value={f.annee_constitution||""} onChange={function(e){ch("annee_constitution",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Quorum AGO (%)"/><input type="number" min="10" max="100" value={f.quorum_ago||""} onChange={function(e){ch("quorum_ago",e.target.value);}} style={INP}/></div>
           <div><Lbl l="Type de copropriete"/><select value={f.type_copro||""} onChange={function(e){ch("type_copro",e.target.value);}} style={INP}><option value="">-</option><option value="horizontale">Horizontale</option><option value="verticale">Verticale</option><option value="mixte">Mixte</option></select></div>
-          <div><Lbl l="Exercice financier"/><input value={f.exercice||""} onChange={function(e){ch("exercice",e.target.value);}} style={INP} placeholder="ex: 1 nov au 31 oct"/></div>
+          <div><Lbl l="Exercice financier"/><input value={f.exercice||""} onChange={function(e){ch("exercice",e.target.value);}} style={INP}/></div>
           <div><Lbl l="Nombre d unites (calcule)"/><input value={nbU||f.nb_unites||0} readOnly style={Object.assign({},INP,{background:T.alt,color:T.muted})}/></div>
           <div><Lbl l="Statut"/><input value={f.statut||""} readOnly style={Object.assign({},INP,{background:T.alt,color:T.muted})}/></div>
         </div>
@@ -1015,20 +1015,20 @@ function Onboarding(p){
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <Field l="Nom officiel du syndicat" full hint="Nom tel qu il apparait dans votre acte de copropriete"><input value={data.nom} onChange={function(e){sd("nom",e.target.value);}} style={INP} placeholder="Syndicat Piedmont"/></Field>
-            <Field l="Code client" hint="Genere automatiquement: nom + no civique (ex: Piedmont531)"><div style={{display:"flex",gap:6}}><input value={data.code} onChange={function(e){sd("code",e.target.value.replace(/[^A-Za-z0-9]/g,"").slice(0,20));}} style={Object.assign({},INP,{flex:1})} placeholder="Piedmont531" maxLength={20}/><button onClick={function(){
+            <Field l="Nom officiel du syndicat" full hint="Nom tel qu il apparait dans votre acte de copropriete"><input value={data.nom} onChange={function(e){sd("nom",e.target.value);}} style={INP}/></Field>
+            <Field l="Code client" hint="Genere automatiquement: nom + no civique (ex: Piedmont531)"><div style={{display:"flex",gap:6}}><input value={data.code} onChange={function(e){sd("code",e.target.value.replace(/[^A-Za-z0-9]/g,"").slice(0,20));}} style={Object.assign({},INP,{flex:1})} maxLength={20}/><button onClick={function(){
                 var stop=["syndicat","syndicats","de","des","du","la","le","les","copropriete","coproprietaires","coproprietes","sdc","phase","condominiums","condominium","condo","condos","l","d","et","au","aux"];
                 var mots=(data.nom||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g," ").split(/\s+/).filter(function(m){return m.length>1&&stop.indexOf(m.toLowerCase())<0;});
                 var base=mots.length>0?mots[0].charAt(0).toUpperCase()+mots[0].slice(1).toLowerCase():"";
                 var num=((data.adr||"").match(/\d+/)||[""])[0];
                 if(base||num){sd("code",(base+num).slice(0,20));}
               }} style={{background:"#1B5E3B",color:"#fff",border:"none",borderRadius:6,padding:"0 12px",fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>Auto</button></div></Field>
-            <Field l="Annee de constitution"><input type="number" value={data.anneeConstruction} onChange={function(e){sd("anneeConstruction",e.target.value);}} style={INP} placeholder="2013"/></Field>
-            <Field l="Adresse du syndicat" full hint="Adresse du domicile tel qu inscrit au REQ"><input value={data.adr} onChange={function(e){sd("adr",e.target.value);}} style={INP} placeholder="123 Chemin du Hibou"/></Field>
-            <Field l="Ville"><input value={data.ville} onChange={function(e){sd("ville",e.target.value);}} style={INP} placeholder="Stoneham-et-Tewkesbury"/></Field>
+            <Field l="Annee de constitution"><input type="number" value={data.anneeConstruction} onChange={function(e){sd("anneeConstruction",e.target.value);}} style={INP}/></Field>
+            <Field l="Adresse du syndicat" full hint="Adresse du domicile tel qu inscrit au REQ"><input value={data.adr} onChange={function(e){sd("adr",e.target.value);}} style={INP}/></Field>
+            <Field l="Ville"><input value={data.ville} onChange={function(e){sd("ville",e.target.value);}} style={INP}/></Field>
             <Field l="Province"><select value={data.province} onChange={function(e){sd("province",e.target.value);}} style={INP}><option>QC</option><option>ON</option><option>BC</option><option>AB</option></select></Field>
             <Field l="Code postal"><input value={data.codePostal} onChange={function(e){sd("codePostal",e.target.value.toUpperCase());}} style={INP} placeholder="G3C 1T1"/></Field>
-            <Field l="Numero immatriculation REQ" hint="11 chiffres - registre entreprises Quebec"><input value={data.immat} onChange={function(e){sd("immat",fmtNEQ(e.target.value));}} style={INP} placeholder="1144524577"/></Field>
+            <Field l="Numero immatriculation REQ" hint="11 chiffres - registre entreprises Quebec"><input value={data.immat} onChange={function(e){sd("immat",fmtNEQ(e.target.value));}} style={INP}/></Field>
             <Field l="Exercice financier"><select value={data.exercice} onChange={function(e){sd("exercice",e.target.value);}} style={INP}><option value="1 nov au 31 oct">1 nov au 31 oct</option><option value="1 jan au 31 dec">1 jan au 31 dec</option><option value="1 avr au 31 mars">1 avr au 31 mars</option><option value="1 juil au 30 juin">1 juil au 30 juin</option></select></Field>
             <Field l="Quorum AGO % (dclaration)"><input type="number" min="10" max="75" value={data.quorumAGO} onChange={function(e){sd("quorumAGO",parseInt(e.target.value)||25);}} style={INP}/></Field>
           </div>
@@ -1052,9 +1052,9 @@ function Onboarding(p){
             <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:4}}>Courriels du syndicat</div>
             <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Ces adresses seront utilisees pour les communications automatiques</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-              <Field l="Courriel OFFICIEL du syndicat" hint="Adresse principale - affichee dans les parametres et les communications"><input value={data.courrielCA} onChange={function(e){sd("courrielCA",e.target.value.trim());}} style={Object.assign({},INP,data.courrielCA&&!courrielValide(data.courrielCA)?{border:"2px solid #B83232"}:{})} placeholder="ca@syndicat.com"/></Field>
-              <Field l="Courriel factures fournisseurs" hint="Traitement automatique des factures recues"><input value={data.courrielFactures} onChange={function(e){sd("courrielFactures",e.target.value.trim());}} style={INP} placeholder="factures@syndicat.com"/></Field>
-              <Field l="Courriel urgences 24/7"><input value={data.courrielUrgences} onChange={function(e){sd("courrielUrgences",e.target.value.trim());}} style={INP} placeholder="urgences@syndicat.com"/></Field>
+              <Field l="Courriel OFFICIEL du syndicat" hint="Adresse principale - affichee dans les parametres et les communications"><input value={data.courrielCA} onChange={function(e){sd("courrielCA",e.target.value.trim());}} style={Object.assign({},INP,data.courrielCA&&!courrielValide(data.courrielCA)?{border:"2px solid #B83232"}:{})}/></Field>
+              <Field l="Courriel factures fournisseurs" hint="Traitement automatique des factures recues"><input value={data.courrielFactures} onChange={function(e){sd("courrielFactures",e.target.value.trim());}} style={INP}/></Field>
+              <Field l="Courriel urgences 24/7"><input value={data.courrielUrgences} onChange={function(e){sd("courrielUrgences",e.target.value.trim());}} style={INP}/></Field>
             </div>
           </div>
           <div style={{display:"flex",justifyContent:"flex-end",marginTop:20}}>
@@ -1086,14 +1086,14 @@ function Onboarding(p){
                     <option value="secretaire">Secretaire</option>
                     <option value="membre">Membre / Administrateur</option>
                   </select></Field>
-                  <Field l="Adresse postale" full><input value={admin.adr} onChange={function(e){sadmin(i,"adr",e.target.value);}} style={INP} placeholder="123 rue Exemple"/></Field>
+                  <Field l="Adresse postale" full><input value={admin.adr} onChange={function(e){sadmin(i,"adr",e.target.value);}} style={INP}/></Field>
                   <Field l="Ville"><input value={admin.ville} onChange={function(e){sadmin(i,"ville",e.target.value);}} style={INP}/></Field>
                   <Field l="Province"><select value={admin.province} onChange={function(e){sadmin(i,"province",e.target.value);}} style={INP}><option>QC</option><option>ON</option><option>BC</option><option>AB</option><option>MB</option><option>SK</option><option>NB</option><option>NS</option><option>PE</option><option>NL</option></select></Field>
-                  <Field l="Code postal"><input value={admin.codePostal} onChange={function(e){sadmin(i,"codePostal",fmtCP(e.target.value));}} style={INP} placeholder="G1A 1A1"/></Field>
-                  <Field l="Courriel"><input type="email" value={admin.courriel} onChange={function(e){sadmin(i,"courriel",e.target.value.trim());}} style={Object.assign({},INP,admin.courriel&&!courrielValide(admin.courriel)?{border:"2px solid #B83232"}:{})} placeholder="nom@exemple.com"/>{admin.courriel&&!courrielValide(admin.courriel)&&<div style={{fontSize:10,color:"#B83232",marginTop:2}}>Format de courriel invalide</div>}</Field>
-                  <Field l="Mobile"><input type="tel" value={admin.mobile} onChange={function(e){sadmin(i,"mobile",fmtTel(e.target.value));}} style={INP} placeholder="418-555-0000" maxLength={12}/></Field>
+                  <Field l="Code postal"><input value={admin.codePostal} onChange={function(e){sadmin(i,"codePostal",fmtCP(e.target.value));}} style={INP}/></Field>
+                  <Field l="Courriel"><input type="email" value={admin.courriel} onChange={function(e){sadmin(i,"courriel",e.target.value.trim());}} style={Object.assign({},INP,admin.courriel&&!courrielValide(admin.courriel)?{border:"2px solid #B83232"}:{})}/>{admin.courriel&&!courrielValide(admin.courriel)&&<div style={{fontSize:10,color:"#B83232",marginTop:2}}>Format de courriel invalide</div>}</Field>
+                  <Field l="Mobile"><input type="tel" value={admin.mobile} onChange={function(e){sadmin(i,"mobile",fmtTel(e.target.value));}} style={INP} maxLength={12}/></Field>
                   <Field l="Debut du mandat"><input type="date" value={admin.dateDebut} onChange={function(e){sadmin(i,"dateDebut",e.target.value);}} style={INP}/></Field>
-                  <Field l="NAS" hint="Visible pendant la saisie - chiffre des l activation, jamais stocke en clair"><input type="text" inputMode="numeric" autoComplete="off" value={admin.nas} onChange={function(e){sadmin(i,"nas",fmtNAS(e.target.value));}} style={Object.assign({},INP,admin.nas?(nasValide(admin.nas)?{border:"2px solid #1B5E3B"}:{border:"2px solid #B83232"}):{})} placeholder="000-000-000" maxLength={11}/>{admin.nas&&!nasValide(admin.nas)&&<div style={{fontSize:10,color:"#B83232",marginTop:2}}>NAS invalide - 9 chiffres requis (verification Luhn)</div>}</Field>
+                  <Field l="NAS" hint="Visible pendant la saisie - chiffre des l activation, jamais stocke en clair"><input type="text" inputMode="numeric" autoComplete="off" value={admin.nas} onChange={function(e){sadmin(i,"nas",fmtNAS(e.target.value));}} style={Object.assign({},INP,admin.nas?(nasValide(admin.nas)?{border:"2px solid #1B5E3B"}:{border:"2px solid #B83232"}):{})} maxLength={11}/>{admin.nas&&!nasValide(admin.nas)&&<div style={{fontSize:10,color:"#B83232",marginTop:2}}>NAS invalide - 9 chiffres requis (verification Luhn)</div>}</Field>
                 </div>
               </div>
             );})}
@@ -1474,18 +1474,18 @@ function ParamsPredictek(){
         <div style={{background:NC.surface,border:"1px solid "+NC.border,borderRadius:12,padding:20}}>
           <div style={{fontSize:13,fontWeight:700,color:NC.navy,marginBottom:14}}>Informations legales et coordonnees</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-            <div style={{gridColumn:"1/-1"}}><div style={NL}>Nom legal</div><input value={infos.nomLegal} onChange={function(e){setI("nomLegal",e.target.value);}} style={NI} placeholder="9XXX-XXXX Quebec inc."/></div>
-            <div><div style={NL}>Nom commercial</div><input value={infos.nomCommercial} onChange={function(e){setI("nomCommercial",e.target.value);}} style={NI} placeholder="Predictek"/></div>
-            <div><div style={NL}>NEQ</div><input value={infos.neq} onChange={function(e){setI("neq",e.target.value);}} style={NI} placeholder="1234567890"/></div>
-            <div style={{gridColumn:"1/-1"}}><div style={NL}>Adresse</div><input value={infos.adr} onChange={function(e){setI("adr",e.target.value);}} style={NI} placeholder="123 rue Principale"/></div>
-            <div><div style={NL}>Ville</div><input value={infos.ville} onChange={function(e){setI("ville",e.target.value);}} style={NI} placeholder="Quebec"/></div>
+            <div style={{gridColumn:"1/-1"}}><div style={NL}>Nom legal</div><input value={infos.nomLegal} onChange={function(e){setI("nomLegal",e.target.value);}} style={NI}/></div>
+            <div><div style={NL}>Nom commercial</div><input value={infos.nomCommercial} onChange={function(e){setI("nomCommercial",e.target.value);}} style={NI}/></div>
+            <div><div style={NL}>NEQ</div><input value={infos.neq} onChange={function(e){setI("neq",e.target.value);}} style={NI}/></div>
+            <div style={{gridColumn:"1/-1"}}><div style={NL}>Adresse</div><input value={infos.adr} onChange={function(e){setI("adr",e.target.value);}} style={NI}/></div>
+            <div><div style={NL}>Ville</div><input value={infos.ville} onChange={function(e){setI("ville",e.target.value);}} style={NI}/></div>
             <div><div style={NL}>Province</div><select value={infos.province} onChange={function(e){setI("province",e.target.value);}} style={NI}><option>QC</option><option>ON</option><option>BC</option><option>AB</option></select></div>
-            <div><div style={NL}>Code postal</div><input value={infos.codePostal} onChange={function(e){setI("codePostal",e.target.value.toUpperCase());}} style={NI} placeholder="G1A 1A1"/></div>
-            <div><div style={NL}>Telephone</div><input value={infos.telephone} onChange={function(e){setI("telephone",e.target.value);}} style={NI} placeholder="418-555-0000"/></div>
-            <div><div style={NL}>Courriel</div><input value={infos.courriel} onChange={function(e){setI("courriel",e.target.value);}} style={NI} placeholder="info@predictek.ca"/></div>
-            <div><div style={NL}>Site web</div><input value={infos.siteWeb} onChange={function(e){setI("siteWeb",e.target.value);}} style={NI} placeholder="app.predictek.ca"/></div>
-            <div><div style={NL}>Debut exercice</div><input value={infos.exerciceDebut} onChange={function(e){setI("exerciceDebut",e.target.value);}} style={NI} placeholder="01-11"/></div>
-            <div><div style={NL}>Fin exercice</div><input value={infos.exerciceFin} onChange={function(e){setI("exerciceFin",e.target.value);}} style={NI} placeholder="31-10"/></div>
+            <div><div style={NL}>Code postal</div><input value={infos.codePostal} onChange={function(e){setI("codePostal",e.target.value.toUpperCase());}} style={NI}/></div>
+            <div><div style={NL}>Telephone</div><input value={infos.telephone} onChange={function(e){setI("telephone",e.target.value);}} style={NI}/></div>
+            <div><div style={NL}>Courriel</div><input value={infos.courriel} onChange={function(e){setI("courriel",e.target.value);}} style={NI}/></div>
+            <div><div style={NL}>Site web</div><input value={infos.siteWeb} onChange={function(e){setI("siteWeb",e.target.value);}} style={NI}/></div>
+            <div><div style={NL}>Debut exercice</div><input value={infos.exerciceDebut} onChange={function(e){setI("exerciceDebut",e.target.value);}} style={NI}/></div>
+            <div><div style={NL}>Fin exercice</div><input value={infos.exerciceFin} onChange={function(e){setI("exerciceFin",e.target.value);}} style={NI}/></div>
           </div>
         </div>
         </div>
@@ -1497,14 +1497,14 @@ function ParamsPredictek(){
           <div style={{display:"grid",gap:12}}>
             <div style={{background:NC.accentL,borderRadius:10,padding:14,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div style={{fontSize:12,fontWeight:700,color:NC.accent,gridColumn:"1/-1"}}>TPS - Federal (5%)</div>
-              <div><div style={NL}>Numero TPS</div><input value={fisc.noTPS} onChange={function(e){setF("noTPS",e.target.value.toUpperCase());}} style={NI} placeholder="123456789 RT0001"/></div>
+              <div><div style={NL}>Numero TPS</div><input value={fisc.noTPS} onChange={function(e){setF("noTPS",e.target.value.toUpperCase());}} style={NI}/></div>
               <div><div style={NL}>Frequence</div><select value={fisc.freqTPS} onChange={function(e){setF("freqTPS",e.target.value);}} style={NI}><option value="mensuelle">Mensuelle</option><option value="trimestrielle">Trimestrielle</option><option value="annuelle">Annuelle</option></select></div>
               <div style={{gridColumn:"1/-1",display:"flex",alignItems:"center",gap:8}}><input type="checkbox" id="cbTPS" checked={!!fisc.inscritTPS} onChange={function(e){setF("inscritTPS",e.target.checked);}}/><label htmlFor="cbTPS" style={{fontSize:12}}>Inscrit a la TPS</label></div>
             </div>
             <div style={{background:NC.blueL,borderRadius:10,padding:14,display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
               <div style={{fontSize:12,fontWeight:700,color:NC.blue,gridColumn:"1/-1"}}>TVQ - Provincial (9.975%)</div>
-              <div><div style={NL}>Numero TVQ</div><input value={fisc.noTVQ} onChange={function(e){setF("noTVQ",e.target.value.toUpperCase());}} style={NI} placeholder="1234567890 TQ0001"/></div>
-              <div><div style={NL}>No declarant</div><input value={fisc.noDeclarant} onChange={function(e){setF("noDeclarant",e.target.value);}} style={NI} placeholder="1234567890"/></div>
+              <div><div style={NL}>Numero TVQ</div><input value={fisc.noTVQ} onChange={function(e){setF("noTVQ",e.target.value.toUpperCase());}} style={NI}/></div>
+              <div><div style={NL}>No declarant</div><input value={fisc.noDeclarant} onChange={function(e){setF("noDeclarant",e.target.value);}} style={NI}/></div>
               <div><div style={NL}>Frequence</div><select value={fisc.freqTVQ} onChange={function(e){setF("freqTVQ",e.target.value);}} style={NI}><option value="mensuelle">Mensuelle</option><option value="trimestrielle">Trimestrielle</option><option value="annuelle">Annuelle</option></select></div>
               <div style={{gridColumn:"1/-1",display:"flex",alignItems:"center",gap:8}}><input type="checkbox" id="cbTVQ" checked={!!fisc.inscritTVQ} onChange={function(e){setF("inscritTVQ",e.target.checked);}}/><label htmlFor="cbTVQ" style={{fontSize:12}}>Inscrit a la TVQ</label></div>
             </div>
@@ -1518,9 +1518,9 @@ function ParamsPredictek(){
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <div><div style={NL}>Institution</div><input value={banque.institution} onChange={function(e){setB("institution",e.target.value);}} style={NI} placeholder="Desjardins, RBC..."/></div>
             <div><div style={NL}>Nom du compte</div><input value={banque.nomCompte} onChange={function(e){setB("nomCompte",e.target.value);}} style={NI} placeholder="Compte operations"/></div>
-            <div><div style={NL}>Transit (5 chiffres)</div><input value={banque.transit} onChange={function(e){setB("transit",e.target.value);}} style={NI} placeholder="12345"/></div>
-            <div><div style={NL}>No institution (3 chiffres)</div><input value={banque.noInstitution} onChange={function(e){setB("noInstitution",e.target.value);}} style={NI} placeholder="815"/></div>
-            <div style={{gridColumn:"1/-1"}}><div style={NL}>No de compte</div><input value={banque.noCompte} onChange={function(e){setB("noCompte",e.target.value);}} style={NI} placeholder="1234567"/></div>
+            <div><div style={NL}>Transit (5 chiffres)</div><input value={banque.transit} onChange={function(e){setB("transit",e.target.value);}} style={NI}/></div>
+            <div><div style={NL}>No institution (3 chiffres)</div><input value={banque.noInstitution} onChange={function(e){setB("noInstitution",e.target.value);}} style={NI}/></div>
+            <div style={{gridColumn:"1/-1"}}><div style={NL}>No de compte</div><input value={banque.noCompte} onChange={function(e){setB("noCompte",e.target.value);}} style={NI}/></div>
           </div>
         </div>
       )}

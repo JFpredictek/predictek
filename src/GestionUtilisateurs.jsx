@@ -217,9 +217,9 @@ export default function GestionUtilisateurs(p){
           <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:14,padding:20,marginBottom:20}}>
             <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:16}}>{editId?"Modifier l utilisateur":"Nouvel utilisateur"}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-              <div><Lbl l="Prenom"/><input value={nf.prenom} onChange={function(e){setN("prenom",e.target.value);}} style={INP} placeholder="Jean-Francois"/></div>
-              <div><Lbl l="Nom"/><input value={nf.nom} onChange={function(e){setN("nom",e.target.value);}} style={INP} placeholder="Laroche"/></div>
-              <div style={{gridColumn:"1/-1"}}><Lbl l="Courriel (identifiant de connexion)"/><input type="email" value={nf.courriel} onChange={function(e){setN("courriel",e.target.value);}} style={INP} placeholder="jf@predictek.ca"/></div>
+              <div><Lbl l="Prenom"/><input value={nf.prenom} onChange={function(e){setN("prenom",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Nom"/><input value={nf.nom} onChange={function(e){setN("nom",e.target.value);}} style={INP}/></div>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Courriel (identifiant de connexion)"/><input type="email" value={nf.courriel} onChange={function(e){setN("courriel",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Role"/><select value={nf.role} onChange={function(e){setN("role",e.target.value);}} style={INP}>{rolesVisibles.map(function(r){return <option key={r.id} value={r.id}>{r.l}</option>;})}</select></div>
               <div><Lbl l="Syndicat assigne" hint="Pour gestionnaire et membre CA"/><select value={nf.syndicat_id} onChange={function(e){setN("syndicat_id",e.target.value);}} style={INP}><option value="">Tous les syndicats</option>{syndicats.map(function(s){return <option key={s.id} value={s.id}>{s.nom}</option>;})}</select></div>
               <div style={{gridColumn:"1/-1",display:"flex",alignItems:"center",gap:8,cursor:"pointer"}} onClick={function(){setN("actif",!nf.actif);}}>

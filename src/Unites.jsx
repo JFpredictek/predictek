@@ -606,7 +606,7 @@ export default function Unites(){
                     )}
 
                     <SecTitre l="Chauffe-eau" c={T.purple}/>
-                    <div><Lbl l="Marque / modele"/><input value={nf.chauffe_eau} onChange={function(e){setN("chauffe_eau",e.target.value);}} style={INP} placeholder="Giant 60 gal"/></div>
+                    <div><Lbl l="Marque / modele"/><input value={nf.chauffe_eau} onChange={function(e){setN("chauffe_eau",e.target.value);}} style={INP}/></div>
                     <div><Lbl l="Installation (mois-annee)"/><input type="month" value={nf.ce_date_install||""} onChange={function(e){setN("ce_date_install",e.target.value);}} style={INP}/></div>
                     <div style={{gridColumn:"span 2"}}><Lbl l="Photo du chauffe-eau (preuve)"/><div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}><input type="file" accept="image/*,.pdf" onChange={function(e){setCeFile(e.target.files&&e.target.files[0]?e.target.files[0]:null);}} style={{fontSize:11,fontFamily:"inherit"}}/>{ceFile&&<span style={{fontSize:10,color:T.accent}}>{ceFile.name}</span>}{u.ce_photo&&<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){voirFichier(u.ce_photo);}}>Voir le document actuel</Btn>}</div></div>
 
@@ -622,11 +622,11 @@ export default function Unites(){
                     <div><Lbl l="Nom"/><input value={nf.urg_nom} onChange={function(e){setN("urg_nom",e.target.value);}} style={INP}/></div>
                     <div><Lbl l="Lien"/><input value={nf.urg_lien} onChange={function(e){setN("urg_lien",e.target.value);}} style={INP} placeholder="Fils, soeur..."/></div>
                     <div><Lbl l="Telephone"/><input value={nf.urg_tel} onChange={function(e){setN("urg_tel",fmtTel(e.target.value));}} style={INP} maxLength={12}/></div>
-                    <div><Lbl l="Courriel"/><input value={nf.urg_courriel||""} onChange={function(e){setN("urg_courriel",e.target.value.trim());}} style={INP} placeholder="urgence@exemple.com"/></div>
+                    <div><Lbl l="Courriel"/><input value={nf.urg_courriel||""} onChange={function(e){setN("urg_courriel",e.target.value.trim());}} style={INP}/></div>
 
                     <SecTitre l="Prelevement bancaire (PAP)" c={T.navy}/>
-                    <div><Lbl l="Institution (3 chiffres)"/><input value={nf.banque_institution} onChange={function(e){setN("banque_institution",e.target.value.replace(/\D/g,"").slice(0,3));}} style={INP} placeholder="815"/></div>
-                    <div><Lbl l="Transit (5 chiffres)"/><input value={nf.banque_transit} onChange={function(e){setN("banque_transit",e.target.value.replace(/\D/g,"").slice(0,5));}} style={INP} placeholder="30040"/></div>
+                    <div><Lbl l="Institution (3 chiffres)"/><input value={nf.banque_institution} onChange={function(e){setN("banque_institution",e.target.value.replace(/\D/g,"").slice(0,3));}} style={INP}/></div>
+                    <div><Lbl l="Transit (5 chiffres)"/><input value={nf.banque_transit} onChange={function(e){setN("banque_transit",e.target.value.replace(/\D/g,"").slice(0,5));}} style={INP}/></div>
                     <div><Lbl l="No de compte"/><input value={nf.banque_compte} onChange={function(e){setN("banque_compte",e.target.value.replace(/\D/g,"").slice(0,12));}} style={INP}/></div>
                     <div style={{alignSelf:"end"}}>
                       <Lbl l="Prelevement (PAP)"/>

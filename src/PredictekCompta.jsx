@@ -438,7 +438,7 @@ export default function PredictekCompta(){
                     <input type="file" accept=".pdf,image/*" onChange={function(e){var f=e.target.files&&e.target.files[0];if(f){setFacFile(f);extraireDepense(f);try{setApercuD({url:URL.createObjectURL(f),isPdf:/pdf$/i.test(f.type)||/\.pdf$/i.test(f.name)});}catch(ex){}}}} style={{fontSize:11,fontFamily:"inherit"}}/>
                     {extraitMsg&&<div style={{fontSize:11,color:T.blue,fontWeight:600,marginTop:6}}>{extraitMsg}</div>}
                   </div>
-                  <div><Lbl l="Fournisseur"/><input value={nfD.fournisseur} onChange={function(e){setD("fournisseur",e.target.value);}} style={INP} placeholder="Nom de l entreprise..."/></div>
+                  <div><Lbl l="Fournisseur"/><input value={nfD.fournisseur} onChange={function(e){setD("fournisseur",e.target.value);}} style={INP}/></div>
                   <div><Lbl l="No facture"/><input value={nfD.no_facture} onChange={function(e){setD("no_facture",e.target.value);}} style={INP}/></div>
                   <div><Lbl l="Date facture"/><input type="date" value={nfD.date_facture} onChange={function(e){setD("date_facture",e.target.value);}} style={INP}/></div>
                   <div><Lbl l="Sous-total ($)"/><input type="number" step="0.01" value={nfD.sous_total} onChange={function(e){var st=parseFloat(e.target.value)||0;var tps=Math.round(st*0.05*100)/100;var tvq=Math.round(st*0.09975*100)/100;setD("sous_total",st);setD("tps",tps);setD("tvq",tvq);setD("total",Math.round((st+tps+tvq)*100)/100);}} style={INP}/></div>
@@ -540,7 +540,7 @@ export default function PredictekCompta(){
                   <div style={{gridColumn:"2/4"}}><Lbl l="Compte"/><select value={nf.no_compte} onChange={function(e){setN("no_compte",e.target.value);}} style={INP}>
                     {comptes.filter(function(c){return c.actif;}).sort(function(a,b){return a.no_compte.localeCompare(b.no_compte);}).map(function(c){return <option key={c.no_compte} value={c.no_compte}>{c.no_compte} - {c.nom_compte}</option>;})}
                   </select></div>
-                  <div style={{gridColumn:"1/-1"}}><Lbl l="Description"/><input value={nf.description} onChange={function(e){setN("description",e.target.value);}} style={INP} placeholder="ex: Abonnement infonuagique aout"/></div>
+                  <div style={{gridColumn:"1/-1"}}><Lbl l="Description"/><input value={nf.description} onChange={function(e){setN("description",e.target.value);}} style={INP}/></div>
                   <div><Lbl l="Debit ($) - depenses"/><input type="number" step="0.01" value={nf.debit} onChange={function(e){setN("debit",e.target.value);}} style={INP}/></div>
                   <div><Lbl l="Credit ($) - revenus"/><input type="number" step="0.01" value={nf.credit} onChange={function(e){setN("credit",e.target.value);}} style={INP}/></div>
                   <div><Lbl l="Reference"/><input value={nf.reference} onChange={function(e){setN("reference",e.target.value);}} style={INP} placeholder="No facture, cheque..."/></div>

@@ -64,14 +64,14 @@ function FormAssurance(p){
   return(
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
       <div style={{gridColumn:"1/-1"}}><Lbl l="Type de couverture"/><select value={nf.type_ass} onChange={function(e){sf("type_ass",e.target.value);}} style={INP}>{TYPES_ASS.map(function(t){return <option key={t.id} value={t.id}>{t.l}</option>;})}</select></div>
-      <div><Lbl l="Compagnie d assurance"/><input value={nf.cie||""} onChange={function(e){sf("cie",e.target.value);}} style={INP} placeholder="Intact, Desjardins..."/></div>
-      <div><Lbl l="No de police"/><input value={nf.no_police||""} onChange={function(e){sf("no_police",e.target.value);}} style={INP} placeholder="HO-123456"/></div>
+      <div><Lbl l="Compagnie d assurance"/><input value={nf.cie||""} onChange={function(e){sf("cie",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="No de police"/><input value={nf.no_police||""} onChange={function(e){sf("no_police",e.target.value);}} style={INP}/></div>
       <div><Lbl l="Nom du courtier"/><input value={nf.courtier||""} onChange={function(e){sf("courtier",e.target.value);}} style={INP} placeholder="Nom du courtier..."/></div>
-      <div><Lbl l="Tel courtier"/><input value={nf.tel_courtier||""} onChange={function(e){sf("tel_courtier",e.target.value);}} style={INP} placeholder="418-555-0000"/></div>
-      <div><Lbl l="Courriel courtier"/><input value={nf.courriel_courtier||""} onChange={function(e){sf("courriel_courtier",e.target.value);}} style={INP} placeholder="courtier@assurance.ca"/></div>
-      <div><Lbl l="Montant couverture ($)"/><input type="number" step="10000" value={nf.montant_couverture||""} onChange={function(e){sf("montant_couverture",e.target.value);}} style={INP} placeholder="5000000"/></div>
-      <div><Lbl l="Franchise ($)"/><input type="number" step="500" value={nf.franchise||""} onChange={function(e){sf("franchise",e.target.value);}} style={INP} placeholder="2500"/></div>
-      <div><Lbl l="Prime annuelle ($)"/><input type="number" step="100" value={nf.prime_annuelle||""} onChange={function(e){sf("prime_annuelle",e.target.value);}} style={INP} placeholder="12000"/></div>
+      <div><Lbl l="Tel courtier"/><input value={nf.tel_courtier||""} onChange={function(e){sf("tel_courtier",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="Courriel courtier"/><input value={nf.courriel_courtier||""} onChange={function(e){sf("courriel_courtier",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="Montant couverture ($)"/><input type="number" step="10000" value={nf.montant_couverture||""} onChange={function(e){sf("montant_couverture",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="Franchise ($)"/><input type="number" step="500" value={nf.franchise||""} onChange={function(e){sf("franchise",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="Prime annuelle ($)"/><input type="number" step="100" value={nf.prime_annuelle||""} onChange={function(e){sf("prime_annuelle",e.target.value);}} style={INP}/></div>
       <div><Lbl l="Vide"/></div>
       <div><Lbl l="Date debut"/><input type="date" value={nf.date_debut||""} onChange={function(e){sf("date_debut",e.target.value);}} style={INP}/></div>
       <div><Lbl l="Date expiration"/><input type="date" value={nf.date_fin||""} onChange={function(e){sf("date_fin",e.target.value);}} style={INP}/></div>

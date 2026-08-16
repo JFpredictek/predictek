@@ -30,13 +30,16 @@ function CardBon(p){
             {b.fournisseur_nom&&<span>Fournisseur: <b style={{color:T.navy}}>{b.fournisseur_nom}</b></span>}
             {b.unite&&<span>Unite: <b style={{color:T.navy}}>{b.unite}</b></span>}
             {b.date_debut&&<span>Debut: {b.date_debut}</span>}
+            {b.date_fin&&<span>Fin prevue: {b.date_fin}</span>}
             {b.cout_estime&&<span>Cout: <b style={{color:T.accent}}>{Number(b.cout_estime).toFixed(2)} $</b></span>}
             {b.cout_final&&<span>Final: <b style={{color:T.navy}}>{Number(b.cout_final).toFixed(2)} $</b></span>}
           </div>
+          {b.envoye_le&&<div style={{fontSize:10,color:T.accent,fontWeight:700,marginTop:4}}>ENVOYE au fournisseur le {String(b.envoye_le).substring(0,16).replace("T"," ")}{b.envoye_a?" ("+b.envoye_a+")":""}</div>}
           {b.notes&&<div style={{fontSize:11,color:T.muted,marginTop:6,fontStyle:"italic"}}>{b.notes}</div>}
         </div>
         <div style={{display:"flex",gap:6,flexShrink:0,marginLeft:12,flexWrap:"wrap"}}>
           <Btn sm onClick={function(){p.onEdit(b);}}>Modifier</Btn>
+          {b.fournisseur_nom&&<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){p.onEnvoyer(b);}}>{b.envoye_le?"Renvoyer par courriel":"Envoyer par courriel"}</Btn>}
           {b.statut==="nouveau"&&<Btn sm bg={T.amberL} tc={T.amber} bdr={"1px solid "+T.amber+"44"} onClick={function(){p.onChangeStatut(b.id,"soumis");}}>Soumettre</Btn>}
           {b.statut==="soumis"&&<Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){p.onChangeStatut(b.id,"approuve");}}>Approuver</Btn>}
           {b.statut==="approuve"&&<Btn sm bg={T.blue} onClick={function(){p.onChangeStatut(b.id,"en_cours");}}>Demarrer</Btn>}
@@ -59,6 +62,8 @@ export default function BonsTravail(){
   var s6=useState("actifs");var vue=s6[0];var setVue=s6[1];
   var s7=useState(false);var saving=s7[0];var setSaving=s7[1];
   var s8=useState([]);var fournisseurs=s8[0];var setFournisseurs=s8[1];
+  var s9=useState([]);var unitesSyn=s9[0];var setUnitesSyn=s9[1];
+  var s10=useState(false);var uniteLibre=s10[0];var setUniteLibre=s10[1];
 
   useEffect(function(){
     sb.select("syndicats",{order:"nom.asc"}).then(function(res){
@@ -67,6 +72,15 @@ export default function BonsTravail(){
     sb.select("fournisseurs",{eq:{actif:true},order:"nom.asc"}).then(function(res){
       if(res&&res.data)setFournisseurs(res.data);
     }).catch(function(){});
+    // Prefill depuis la fiche fournisseur (bouton + Bon de travaux du module Fournisseurs)
+    try{
+      var pre=localStorage.getItem("predictek_bon_prefill");
+      if(pre){
+        localStorage.removeItem("predictek_bon_prefill");
+        var d=JSON.parse(pre);
+        if(d&&d.fournisseur){setNf(Object.assign({},VIDE_B,{fournisseur_nom:d.fournisseur}));setEditId(null);setShowForm(true);}
+      }
+    }catch(e){}
   },[]);
 
   useEffect(function(){
@@ -75,6 +89,9 @@ export default function BonsTravail(){
     sb.select("bons_travail",{eq:{syndicat_id:sel.id},order:"created_at.desc"}).then(function(res){
       if(res&&res.data)setBons(res.data);
     }).catch(function(){});
+    sb.select("unites",{eq:{syndicat_id:sel.id},order:"no_unite.asc",limit:1000}).then(function(res){
+      if(res&&res.data)setUnitesSyn(res.data);else setUnitesSyn([]);
+    }).catch(function(){setUnitesSyn([]);});
   },[sel]);
 
   function setN(k,v){setNf(function(pr){var n=Object.assign({},pr);n[k]=v;return n;});}
@@ -82,7 +99,8 @@ export default function BonsTravail(){
   function sauvegarder(){
     if(!nf.titre||!sel)return;
     setSaving(true);
-    var no=nf.no_bon||("BT-"+new Date().getFullYear()+"-"+String(bons.length+1).padStart(3,"0"));
+    // Numero de PO a compteur automatique, prefixe du code client (syndicat)
+    var no=nf.no_bon||("PO-"+String(sel.code||"SYN").toUpperCase()+"-"+String(bons.length+1).padStart(4,"0"));
     var row={syndicat_id:sel.id,titre:nf.titre,description:nf.description||"",priorite:nf.priorite||"normale",statut:nf.statut||"nouveau",fournisseur_nom:nf.fournisseur_nom||"",unite:nf.unite||"",date_debut:nf.date_debut||null,date_fin:nf.date_fin||null,cout_estime:parseFloat(nf.cout_estime)||null,cout_final:parseFloat(nf.cout_final)||null,no_bon:no,notes:nf.notes||""};
     var op=editId?sb.update("bons_travail",editId,row):sb.insert("bons_travail",row);
     op.then(function(res){
@@ -95,7 +113,34 @@ export default function BonsTravail(){
 
   function editer(b){
     setNf({titre:b.titre||"",description:b.description||"",priorite:b.priorite||"normale",statut:b.statut||"nouveau",fournisseur_nom:b.fournisseur_nom||"",unite:b.unite||"",date_debut:b.date_debut||"",date_fin:b.date_fin||"",cout_estime:b.cout_estime||"",cout_final:b.cout_final||"",no_bon:b.no_bon||"",notes:b.notes||""});
+    setUniteLibre(!!b.unite&&b.unite!=="Parties communes"&&!unitesSyn.some(function(u){return u.no_unite===b.unite;}));
     setEditId(b.id);setShowForm(true);
+  }
+
+  // Envoi du bon (PO) au fournisseur par courriel: ouvre le courriel prerempli
+  // et garde la trace de l envoi (date/heure + adresse), comme les invitations.
+  function envoyerBon(b){
+    var fo=fournisseurs.find(function(x){return String(x.nom||"").trim().toLowerCase()===String(b.fournisseur_nom||"").trim().toLowerCase();});
+    var courriel=fo&&fo.courriel?fo.courriel:"";
+    if(!courriel){alert("Ce fournisseur n a pas de courriel dans sa fiche (module Fournisseurs). Ajoutez-le d abord.");return;}
+    var sujet="Bon de travaux "+(b.no_bon||"")+" - "+(sel?sel.nom:"");
+    var corps="Bonjour,%0D%0A%0D%0AVeuillez trouver ci-dessous le bon de travaux.%0D%0A%0D%0A"
+      +"No de PO: "+(b.no_bon||"")+"%0D%0A"
+      +"Syndicat: "+encodeURIComponent(sel?sel.nom:"")+"%0D%0A"
+      +(b.unite?"Unite / emplacement: "+encodeURIComponent(b.unite)+"%0D%0A":"")
+      +(b.date_debut?"Date prevue: "+b.date_debut+"%0D%0A":"")
+      +(b.date_fin?"Fin prevue: "+b.date_fin+"%0D%0A":"")
+      +"Travaux: "+encodeURIComponent(b.titre||"")+"%0D%0A"
+      +(b.description?"Description: "+encodeURIComponent(b.description)+"%0D%0A":"")
+      +(b.cout_estime?"Cout estime: "+Number(b.cout_estime).toFixed(2)+" $%0D%0A":"")
+      +"%0D%0AMerci de confirmer la reception et la date d execution.%0D%0A";
+    window.location.href="mailto:"+courriel+"?subject="+encodeURIComponent(sujet)+"&body="+corps;
+    var quand=new Date().toISOString();
+    sb.update("bons_travail",b.id,{envoye_le:quand,envoye_a:courriel}).then(function(r){
+      if(r&&r.error){alert("Courriel ouvert, mais ECHEC de l enregistrement de la trace d envoi: "+(r.error.message||"colonnes envoye_le/envoye_a manquantes (SQL fourni)"));return;}
+      setBons(function(prev){return prev.map(function(x){return x.id===b.id?Object.assign({},x,{envoye_le:quand,envoye_a:courriel}):x;});});
+      sb.log("bons_travail","envoi","Bon "+(b.no_bon||"")+" envoye a "+courriel,"",sel.code||"");
+    });
   }
 
   function changerStatut(id,statut){
@@ -141,18 +186,30 @@ export default function BonsTravail(){
         {showForm&&(
           <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:14,padding:20,marginBottom:20}}>
             <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:16}}>{editId?"Modifier le bon":"Nouveau bon de travail"}</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-              <div style={{gridColumn:"1/-1"}}><Lbl l="Titre"/><input value={nf.titre} onChange={function(e){setN("titre",e.target.value);}} style={INP} placeholder="Remplacement pompe circulatrice..."/></div>
-              <div style={{gridColumn:"1/-1"}}><Lbl l="Description"/><textarea value={nf.description} onChange={function(e){setN("description",e.target.value);}} style={Object.assign({},INP,{minHeight:70,resize:"vertical"})} placeholder="Details des travaux requis..."/></div>
-              <div><Lbl l="Priorite"/><select value={nf.priorite} onChange={function(e){setN("priorite",e.target.value);}} style={INP}>{Object.entries(PRIORITES).map(function(e){return <option key={e[0]} value={e[0]}>{e[1].l}</option>;})}</select></div>
-              <div><Lbl l="Statut"/><select value={nf.statut} onChange={function(e){setN("statut",e.target.value);}} style={INP}>{Object.entries(STATUTS_BT).map(function(e){return <option key={e[0]} value={e[0]}>{e[1].l}</option>;})}</select></div>
-              <div><Lbl l="Fournisseur assign-"/><select value={nf.fournisseur_nom} onChange={function(e){setN("fournisseur_nom",e.target.value);}} style={INP}><option value="">-- Choisir fournisseur --</option>{fournisseurs.map(function(f){return <option key={f.id}>{f.nom}</option>;})}</select></div>
-              <div><Lbl l="Unite concernee"/><input value={nf.unite} onChange={function(e){setN("unite",e.target.value);}} style={INP} placeholder="101 ou Parties communes"/></div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:10,marginBottom:12}}>
+              <div><Lbl l="Fournisseur assigne"/><select value={nf.fournisseur_nom} onChange={function(e){setN("fournisseur_nom",e.target.value);}} style={INP}><option value="">Choisir...</option>{fournisseurs.map(function(f){return <option key={f.id}>{f.nom}</option>;})}</select></div>
+              <div><Lbl l="Unite concernee"/>
+                <select value={uniteLibre?"__autre":(nf.unite||"")} onChange={function(e){
+                  var v=e.target.value;
+                  if(v==="__autre"){setUniteLibre(true);setN("unite","");}
+                  else{setUniteLibre(false);setN("unite",v);}
+                }} style={INP}>
+                  <option value="">Choisir...</option>
+                  <option value="Parties communes">Parties communes</option>
+                  {unitesSyn.map(function(u){return <option key={u.id} value={u.no_unite}>Unite {u.no_unite}</option>;})}
+                  <option value="__autre">Autre (saisir librement)</option>
+                </select>
+                {uniteLibre&&<input value={nf.unite} onChange={function(e){setN("unite",e.target.value);}} style={Object.assign({},INP,{marginTop:6})}/>}
+              </div>
               <div><Lbl l="Date debut prevue"/><input type="date" value={nf.date_debut} onChange={function(e){setN("date_debut",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Date fin prevue"/><input type="date" value={nf.date_fin} onChange={function(e){setN("date_fin",e.target.value);}} style={INP}/></div>
-              <div><Lbl l="Cout estime ($)"/><input type="number" step="100" value={nf.cout_estime} onChange={function(e){setN("cout_estime",e.target.value);}} style={INP} placeholder="0.00"/></div>
-              <div><Lbl l="Cout final ($) si connu"/><input type="number" step="0.01" value={nf.cout_final} onChange={function(e){setN("cout_final",e.target.value);}} style={INP} placeholder="0.00"/></div>
-              <div style={{gridColumn:"1/-1"}}><Lbl l="Notes"/><textarea value={nf.notes} onChange={function(e){setN("notes",e.target.value);}} style={Object.assign({},INP,{minHeight:50,resize:"vertical"})} placeholder="Observations, acces requis..."/></div>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Titre"/><input value={nf.titre} onChange={function(e){setN("titre",e.target.value);}} style={INP}/></div>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Description"/><textarea value={nf.description} onChange={function(e){setN("description",e.target.value);}} style={Object.assign({},INP,{minHeight:70,resize:"vertical"})}/></div>
+              <div><Lbl l="Priorite"/><select value={nf.priorite} onChange={function(e){setN("priorite",e.target.value);}} style={INP}>{Object.entries(PRIORITES).map(function(e){return <option key={e[0]} value={e[0]}>{e[1].l}</option>;})}</select></div>
+              <div><Lbl l="Statut"/><select value={nf.statut} onChange={function(e){setN("statut",e.target.value);}} style={INP}>{Object.entries(STATUTS_BT).map(function(e){return <option key={e[0]} value={e[0]}>{e[1].l}</option>;})}</select></div>
+              <div><Lbl l="Cout estime ($)"/><input type="number" step="100" value={nf.cout_estime} onChange={function(e){setN("cout_estime",e.target.value);}} style={INP}/></div>
+              <div><Lbl l="Cout final ($) si connu"/><input type="number" step="0.01" value={nf.cout_final} onChange={function(e){setN("cout_final",e.target.value);}} style={INP}/></div>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Notes"/><textarea value={nf.notes} onChange={function(e){setN("notes",e.target.value);}} style={Object.assign({},INP,{minHeight:50,resize:"vertical"})}/></div>
             </div>
             <div style={{display:"flex",gap:8}}>
               <Btn onClick={sauvegarder} dis={saving||!nf.titre}>{saving?"Sauvegarde...":"Sauvegarder"}</Btn>
@@ -161,7 +218,7 @@ export default function BonsTravail(){
           </div>
         )}
 
-        {filtres.map(function(b){return <CardBon key={b.id} bon={b} onEdit={editer} onChangeStatut={changerStatut}/>;  })}
+        {filtres.map(function(b){return <CardBon key={b.id} bon={b} onEdit={editer} onChangeStatut={changerStatut} onEnvoyer={envoyerBon}/>;  })}
         {filtres.length===0&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucun bon de travail dans cette categorie</div>}
       </div>
     </div>

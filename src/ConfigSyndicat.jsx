@@ -68,6 +68,7 @@ export default function ConfigSyndicat(p){
       ass_syn_police:sel.ass_syn_police||"",
       ass_syn_montant:sel.ass_syn_montant||"",
       assurance_syndicat_exp:sel.assurance_syndicat_exp||"",
+      ce_duree_vie_ans:sel.ce_duree_vie_ans?String(sel.ce_duree_vie_ans):"12",
       pap_methode:sel.pap_methode||"desjardins",
       pap_orig_id:sel.pap_orig_id||"",
       pap_nom_long:sel.pap_nom_long||sel.nom||"",
@@ -203,6 +204,7 @@ export default function ConfigSyndicat(p){
       ass_syn_police:f.ass_syn_police||"",
       ass_syn_montant:f.ass_syn_montant||"",
       assurance_syndicat_exp:f.assurance_syndicat_exp||null,
+      ce_duree_vie_ans:Math.max(1,parseInt(f.ce_duree_vie_ans)||12),
       pap_methode:f.pap_methode||"desjardins",
       pap_orig_id:(f.pap_orig_id||"").toUpperCase().slice(0,10),
       pap_nom_long:(f.pap_nom_long||"").slice(0,30),
@@ -256,11 +258,12 @@ export default function ConfigSyndicat(p){
         {msg&&<div style={{background:T.accentL,border:"2px solid "+T.accent,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.accent,fontWeight:700,marginBottom:12}}>{msg}</div>}
         {err&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,fontWeight:700,marginBottom:12}}>{err}</div>}
 
-        <Carte titre="Avis d assurance des unites" desc="Chaque unite doit fournir sa preuve d assurance. Le moteur de relances envoie automatiquement les avis par courriel selon ces delais; le coproprietaire transmet son certificat via son portail.">
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:12}}>
+        <Carte titre="Avis d assurance ET de chauffe-eau des unites" desc="Chaque unite doit fournir sa preuve d assurance et l age de son chauffe-eau. Les MEMES delais d avis servent aux deux: le moteur de relances envoie les avis par courriel avant/apres l echeance de l assurance ET avant/apres la fin de vie du chauffe-eau (date d installation + duree de vie ci-dessous).">
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:12}}>
             <div><Lbl l="1er avis AVANT l echeance (jours)"/><input type="number" min="0" value={f.ass_avis_avant1||""} onChange={function(e){sf("ass_avis_avant1",e.target.value);}} style={INP}/></div>
             <div><Lbl l="2e avis AVANT l echeance (jours)"/><input type="number" min="0" value={f.ass_avis_avant2||""} onChange={function(e){sf("ass_avis_avant2",e.target.value);}} style={INP}/></div>
             <div><Lbl l="Relance APRES l echeance (jours)"/><input type="number" min="0" value={f.ass_avis_apres||""} onChange={function(e){sf("ass_avis_apres",e.target.value);}} style={INP}/></div>
+            <div style={{background:T.blueL,borderRadius:8,padding:"6px 10px"}}><Lbl l="Duree de vie d un chauffe-eau (annees)"/><input type="number" min="1" max="30" value={f.ce_duree_vie_ans||""} onChange={function(e){sf("ce_duree_vie_ans",e.target.value);}} style={INP}/></div>
           </div>
           <div style={{display:"flex",gap:14,alignItems:"flex-end",flexWrap:"wrap",background:f.ass_nc_auto?T.amberL:T.alt,borderRadius:10,padding:12}}>
             <div>
@@ -312,9 +315,9 @@ export default function ConfigSyndicat(p){
 
         <Carte titre="Assurance du syndicat (police maitresse)" desc="Ces informations proviennent de la police televersee a la creation du syndicat et figurent sur l attestation du notaire - completez ce qui manque.">
           <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:14}}>
-            <div><Lbl l="Compagnie d assurance"/><input value={f.ass_syn_compagnie||""} onChange={function(e){sf("ass_syn_compagnie",e.target.value);}} style={INP} placeholder="Intact, Promutuel..."/></div>
+            <div><Lbl l="Compagnie d assurance"/><input value={f.ass_syn_compagnie||""} onChange={function(e){sf("ass_syn_compagnie",e.target.value);}} style={INP}/></div>
             <div><Lbl l="No de police"/><input value={f.ass_syn_police||""} onChange={function(e){sf("ass_syn_police",e.target.value);}} style={INP}/></div>
-            <div><Lbl l="Montant de couverture"/><input value={f.ass_syn_montant||""} onChange={function(e){sf("ass_syn_montant",e.target.value);}} style={INP} placeholder="2 000 000 $"/></div>
+            <div><Lbl l="Montant de couverture"/><input value={f.ass_syn_montant||""} onChange={function(e){sf("ass_syn_montant",e.target.value);}} style={INP}/></div>
             <div><Lbl l="Expiration de la police"/><input type="date" value={f.assurance_syndicat_exp||""} onChange={function(e){sf("assurance_syndicat_exp",e.target.value);}} style={INP}/></div>
           </div>
           <div style={{background:T.alt,borderRadius:10,padding:12}}>
@@ -382,10 +385,10 @@ export default function ConfigSyndicat(p){
                 <option value="cpa005">Autre institution (CPA-005)</option>
               </select>
             </div>
-            <div><Lbl l="Nom d utilisateur / no d emetteur (10 car.)"/><input value={f.pap_orig_id||""} onChange={function(e){sf("pap_orig_id",e.target.value.toUpperCase().slice(0,10));}} style={INP} placeholder="2003000279"/></div>
+            <div><Lbl l="Nom d utilisateur / no d emetteur (10 car.)"/><input value={f.pap_orig_id||""} onChange={function(e){sf("pap_orig_id",e.target.value.toUpperCase().slice(0,10));}} style={INP}/></div>
             <div><Lbl l="Centre de donnees (Desjardins: 81510)"/><input value={f.pap_centre||""} onChange={function(e){sf("pap_centre",e.target.value.replace(/\D/g,"").slice(0,5));}} style={INP}/></div>
-            <div><Lbl l="Nom LONG de la copropriete (releve bancaire)"/><input value={f.pap_nom_long||""} onChange={function(e){sf("pap_nom_long",e.target.value.slice(0,30));}} style={INP} placeholder="Copropriete Piedmont"/></div>
-            <div><Lbl l="Nom COURT du syndicat (transaction)"/><input value={f.pap_nom_court||""} onChange={function(e){sf("pap_nom_court",e.target.value.slice(0,15));}} style={INP} placeholder="Piedmont"/></div>
+            <div><Lbl l="Nom LONG de la copropriete (releve bancaire)"/><input value={f.pap_nom_long||""} onChange={function(e){sf("pap_nom_long",e.target.value.slice(0,30));}} style={INP}/></div>
+            <div><Lbl l="Nom COURT du syndicat (transaction)"/><input value={f.pap_nom_court||""} onChange={function(e){sf("pap_nom_court",e.target.value.slice(0,15));}} style={INP}/></div>
             <div><Lbl l="No du prochain fichier a la banque"/><input value={f.pap_no_fichier||""} onChange={function(e){sf("pap_no_fichier",e.target.value.replace(/\D/g,"").slice(0,4));}} style={INP}/></div>
             <div style={{gridColumn:"span 2"}}><Lbl l="Compte de banque du syndicat (depot et retours)"/>
               <select value={f.pap_compte_id||""} onChange={function(e){sf("pap_compte_id",e.target.value);}} style={INP}>
@@ -421,7 +424,7 @@ export default function ConfigSyndicat(p){
 
         <Carte titre="Frais pour fonds insuffisants (NSF)" desc="Lorsqu un prelevement rebondit (provision insuffisante), ce montant est refacture automatiquement au coproprietaire en plus de la cotisation (bouton Rebond NSF dans Encaissements).">
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
-            <div><Lbl l="Frais factures par votre banque ($)"/><input type="number" step="0.01" min="0" value={f.frais_nsf||""} onChange={function(e){sf("frais_nsf",e.target.value);}} style={INP} placeholder="52.00"/></div>
+            <div><Lbl l="Frais factures par votre banque ($)"/><input type="number" step="0.01" min="0" value={f.frais_nsf||""} onChange={function(e){sf("frais_nsf",e.target.value);}} style={INP}/></div>
           </div>
         </Carte>
 

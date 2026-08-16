@@ -222,8 +222,8 @@ export default function Assemblees(){
               <div><Lbl l="Date"/><input type="date" value={nf.date_assemblee} onChange={function(e){setN("date_assemblee",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Heure"/><input type="time" value={nf.heure} onChange={function(e){setN("heure",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Mode"/><select value={nf.mode} onChange={function(e){setN("mode",e.target.value);}} style={INP}><option value="presentiel">Presentiel</option><option value="visio">Visioconference</option><option value="mixte">Mixte</option></select></div>
-              <div style={{gridColumn:"span 2"}}><Lbl l="Lieu"/><input value={nf.lieu} onChange={function(e){setN("lieu",e.target.value);}} style={INP} placeholder="Salle communautaire, adresse..."/></div>
-              <div style={{gridColumn:"span 2"}}><Lbl l="Lien visio (si applicable)"/><input value={nf.lien_visio} onChange={function(e){setN("lien_visio",e.target.value);}} style={INP} placeholder="https://..."/></div>
+              <div style={{gridColumn:"span 2"}}><Lbl l="Lieu"/><input value={nf.lieu} onChange={function(e){setN("lieu",e.target.value);}} style={INP}/></div>
+              <div style={{gridColumn:"span 2"}}><Lbl l="Lien visio (si applicable)"/><input value={nf.lien_visio} onChange={function(e){setN("lien_visio",e.target.value);}} style={INP}/></div>
               <div style={{gridColumn:"1/-1"}}><Lbl l="Ordre du jour"/><textarea value={nf.ordre_du_jour} onChange={function(e){setN("ordre_du_jour",e.target.value);}} style={Object.assign({},INP,{height:150,resize:"vertical"})}/></div>
             </div>
             {nf.date_assemblee&&joursAvantAssemblee(nf.date_assemblee)!==null&&joursAvantAssemblee(nf.date_assemblee)<(parseInt(delaiConv)||15)&&(
@@ -308,7 +308,7 @@ export default function Assemblees(){
                     );})}
                     {!voteEnCours.resolution?(
                       <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap",background:T.blueL,borderRadius:10,padding:12}}>
-                        <div style={{flex:1,minWidth:240}}><Lbl l="Resolution a voter"/><input value={nv.resolution} onChange={function(e){setNv(Object.assign({},nv,{resolution:e.target.value}));}} style={INP} placeholder="ex: Adoption du budget 2026-2027"/></div>
+                        <div style={{flex:1,minWidth:240}}><Lbl l="Resolution a voter"/><input value={nv.resolution} onChange={function(e){setNv(Object.assign({},nv,{resolution:e.target.value}));}} style={INP}/></div>
                         <div style={{width:230}}><Lbl l="Majorite requise"/><select value={nv.majorite} onChange={function(e){setNv(Object.assign({},nv,{majorite:e.target.value}));}} style={INP}>
                           <option value="50">Majorite simple (voix exprimees)</option>
                           <option value="75">75 % des voix des coproprietaires</option>

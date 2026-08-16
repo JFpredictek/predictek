@@ -308,8 +308,8 @@ export default function GestionEmployes(){
               <div><Lbl l="Prenom *"/><input value={form.prenom} onChange={function(e){sf("prenom",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Nom *"/><input value={form.nom} onChange={function(e){sf("nom",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Date de naissance"/><input type="date" value={form.naissance||""} onChange={function(e){sf("naissance",e.target.value);}} style={INP}/></div>
-              <div><Lbl l="NAS (chiffre a la sauvegarde)"/><input type="text" inputMode="numeric" autoComplete="off" value={form.nas} onChange={function(e){sf("nas",fmtNAS(e.target.value));}} style={Object.assign({},INP,form.nas?(nasValide(form.nas)?{border:"2px solid #1B5E3B"}:{border:"2px solid #B83232"}):{})} placeholder="000-000-000" maxLength={11}/>{form.id&&<div style={{fontSize:9,color:T.muted,marginTop:2}}>Laisser vide pour conserver le NAS deja chiffre</div>}</div>
-              <div><Lbl l="No civique"/><input value={form.no_civique||""} onChange={function(e){sf("no_civique",e.target.value.replace(/[^0-9A-Za-z-]/g,""));}} style={INP} placeholder="1234"/></div>
+              <div><Lbl l="NAS (chiffre a la sauvegarde)"/><input type="text" inputMode="numeric" autoComplete="off" value={form.nas} onChange={function(e){sf("nas",fmtNAS(e.target.value));}} style={Object.assign({},INP,form.nas?(nasValide(form.nas)?{border:"2px solid #1B5E3B"}:{border:"2px solid #B83232"}):{})} maxLength={11}/>{form.id&&<div style={{fontSize:9,color:T.muted,marginTop:2}}>Laisser vide pour conserver le NAS deja chiffre</div>}</div>
+              <div><Lbl l="No civique"/><input value={form.no_civique||""} onChange={function(e){sf("no_civique",e.target.value.replace(/[^0-9A-Za-z-]/g,""));}} style={INP}/></div>
               <div><Lbl l="Code postal (propose rue et ville)"/><input value={form.code_postal||""} onChange={function(e){var cp=fmtCP(e.target.value);sf("code_postal",cp);var six=cp.replace(" ","");
                 if(six.length===6){
                   // Code postal COMPLET: geocoder.ca donne la rue et la ville exactes
@@ -324,7 +324,7 @@ export default function GestionEmployes(){
                 } else if(six.length>=3){
                   fetch("https://api.zippopotam.us/ca/"+six.substring(0,3)).then(function(r){return r.ok?r.json():null;}).then(function(d){if(d&&d.places&&d.places[0]){if(!form.ville)sf("ville",d.places[0]["place name"]);sf("province",d.places[0]["state abbreviation"]||"QC");}}).catch(function(){});
                 }}} style={INP} placeholder="J2B 4W4" maxLength={7}/></div>
-              <div><Lbl l="Rue (proposee selon le code postal)"/><input list="ruesSuggListe" value={form.rue||""} onChange={function(e){sf("rue",e.target.value);}} style={INP} placeholder="rue Principale"/><datalist id="ruesSuggListe">{ruesSugg.map(function(rr){return <option key={rr} value={rr}/>;})}</datalist></div>
+              <div><Lbl l="Rue (proposee selon le code postal)"/><input list="ruesSuggListe" value={form.rue||""} onChange={function(e){sf("rue",e.target.value);}} style={INP}/><datalist id="ruesSuggListe">{ruesSugg.map(function(rr){return <option key={rr} value={rr}/>;})}</datalist></div>
               <div><Lbl l="Ville"/><input value={form.ville||""} onChange={function(e){sf("ville",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Province"/><select value={form.province||"QC"} onChange={function(e){sf("province",e.target.value);}} style={INP}><option>QC</option><option>ON</option><option>NB</option><option>NS</option><option>AB</option><option>BC</option><option>MB</option><option>SK</option><option>PE</option><option>NL</option></select></div>
               <Sec l="Coordonnees"/>

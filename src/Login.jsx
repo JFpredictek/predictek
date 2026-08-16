@@ -89,7 +89,7 @@ export default function Login(p){
               <div style={{fontSize:18,fontWeight:700,color:"#fff",marginBottom:24,textAlign:"center"}}>Connexion</div>
               <div style={{marginBottom:16}}>
                 <div style={{fontSize:11,color:"#8da0bb",fontWeight:600,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.05em"}}>Courriel</div>
-                <input value={email} onChange={function(e){setEmail(e.target.value);setErr("");}} onKeyDown={handleKeyDown} type="email" placeholder="votre@courriel.ca" style={Object.assign({},INP,{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff",padding:"12px 14px"})}/>
+                <input value={email} onChange={function(e){setEmail(e.target.value);setErr("");}} onKeyDown={handleKeyDown} type="email" style={Object.assign({},INP,{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff",padding:"12px 14px"})}/>
               </div>
               <div style={{marginBottom:8}}>
                 <div style={{fontSize:11,color:"#8da0bb",fontWeight:600,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.05em"}}>Mot de passe</div>
@@ -112,7 +112,7 @@ export default function Login(p){
               <div style={{fontSize:12,color:"#8da0bb",marginBottom:24,textAlign:"center"}}>Entrez votre courriel pour recevoir un lien de reinitialisation.</div>
               <div style={{marginBottom:16}}>
                 <div style={{fontSize:11,color:"#8da0bb",fontWeight:600,marginBottom:6,textTransform:"uppercase",letterSpacing:"0.05em"}}>Courriel</div>
-                <input value={email} onChange={function(e){setEmail(e.target.value);}} type="email" placeholder="votre@courriel.ca" style={Object.assign({},INP,{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff",padding:"12px 14px"})}/>
+                <input value={email} onChange={function(e){setEmail(e.target.value);}} type="email" style={Object.assign({},INP,{background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.12)",color:"#fff",padding:"12px 14px"})}/>
               </div>
               {err&&<div style={{background:"rgba(184,50,50,0.15)",border:"1px solid rgba(184,50,50,0.3)",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#ff7070",marginBottom:16}}>{err}</div>}
               <GradBtn onClick={handleReset} dis={loading}>{loading?"Envoi...":"Envoyer le lien"}</GradBtn>

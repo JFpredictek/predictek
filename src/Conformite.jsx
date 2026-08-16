@@ -206,8 +206,8 @@ export default function Conformite(){
               </select></div>
               <div><Lbl l="Date de l avis"/><input type="date" value={nf.date_avis} onChange={function(e){setN("date_avis",e.target.value);}} style={INP}/></div>
               <div><Lbl l="Echeance pour corriger" req/><input type="date" value={nf.echeance} onChange={function(e){setN("echeance",e.target.value);}} style={INP}/></div>
-              <div style={{gridColumn:"1/-1"}}><Lbl l="Objet" req/><input value={nf.objet} onChange={function(e){setN("objet",e.target.value);}} style={INP} placeholder="ex: Bruit excessif apres 22 h / animal non declare / objet sur le balcon..."/></div>
-              <div style={{gridColumn:"1/-1"}}><Lbl l="Article du reglement vise"/><input value={nf.article_reglement} onChange={function(e){setN("article_reglement",e.target.value);}} style={INP} placeholder="ex: Art. 12.3 du reglement de l immeuble - Animaux"/></div>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Objet" req/><input value={nf.objet} onChange={function(e){setN("objet",e.target.value);}} style={INP}/></div>
+              <div style={{gridColumn:"1/-1"}}><Lbl l="Article du reglement vise"/><input value={nf.article_reglement} onChange={function(e){setN("article_reglement",e.target.value);}} style={INP}/></div>
               <div style={{gridColumn:"1/-1"}}><Lbl l="Description des faits"/><textarea value={nf.description} onChange={function(e){setN("description",e.target.value);}} style={Object.assign({},INP,{minHeight:60,resize:"vertical"})} placeholder="Dates, faits constates, plaintes recues..."/></div>
             </div>
             {nf.unite&&(
@@ -250,7 +250,7 @@ export default function Conformite(){
               </div>
               {infractionPour===a.id&&(
                 <div style={{display:"flex",gap:10,alignItems:"flex-end",background:T.redL,borderRadius:8,padding:12,marginTop:10,flexWrap:"wrap"}}>
-                  <div style={{width:200}}><Lbl l="Penalite ($) selon le reglement"/><input type="number" step="0.01" value={penalite} onChange={function(e){setPenalite(e.target.value);}} style={INP} placeholder="ex: 100.00"/></div>
+                  <div style={{width:200}}><Lbl l="Penalite ($) selon le reglement"/><input type="number" step="0.01" value={penalite} onChange={function(e){setPenalite(e.target.value);}} style={INP}/></div>
                   <Btn bg={T.red} onClick={function(){emettreInfraction(a);}} dis={saving}>{saving?"Emission...":"Confirmer l avis d infraction"}</Btn>
                   <div style={{fontSize:10,color:T.muted}}>Cree un avis d infraction lie et marque l avis initial INFRACTION EMISE.</div>
                 </div>

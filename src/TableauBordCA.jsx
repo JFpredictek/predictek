@@ -59,28 +59,31 @@ function SectionReunions(p){
 
 function SectionTickets(p){
   var tickets=p.tickets||[];
-  var ouverts=tickets.filter(function(t){return t.statut!=="resolu";});
+  var ouverts=tickets.filter(function(t){return t.statut!=="resolu"&&t.statut!=="ferme";});
   var urgents=ouverts.filter(function(t){return t.priorite==="haute";});
   var COULEURS={nouveau:{bg:"#EFF6FF",tc:"#1A56DB"},en_cours:{bg:"#FEF3E2",tc:"#B86020"},resolu:{bg:"#D4EDDA",tc:"#155724"}};
   return(
     <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:14,padding:16}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-        <div style={{fontSize:12,fontWeight:700,color:T.navy}}>Tickets CRM</div>
-        <div style={{display:"flex",gap:8}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+        <div style={{fontSize:13,fontWeight:800,color:T.navy}}>CRM - Requetes et tickets</div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
           <span style={{fontSize:11,color:T.muted}}>{ouverts.length} ouvert(s)</span>
           {urgents.length>0&&<span style={{fontSize:11,fontWeight:700,color:T.red,background:T.redL,borderRadius:20,padding:"1px 8px"}}>{urgents.length} urgent(s)</span>}
+          <button onClick={function(){if(p.onTout)p.onTout();}} style={{background:"#EFF6FF",border:"1px solid #1A56DB44",borderRadius:7,padding:"4px 12px",fontSize:11,fontWeight:700,color:"#1A56DB",cursor:"pointer",fontFamily:"inherit"}}>Voir tout le CRM</button>
         </div>
       </div>
-      {ouverts.slice(0,4).map(function(t){
+      {ouverts.slice(0,10).map(function(t){
         var c=COULEURS[t.statut]||COULEURS.nouveau;
         return(
-          <div key={t.id} style={{padding:"8px 0",borderBottom:"1px solid "+T.border}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-              <div style={{flex:1,marginRight:8}}>
-                <div style={{fontSize:11,fontWeight:600,color:T.navy}}>{t.sujet}</div>
-                <div style={{fontSize:10,color:T.muted}}>Unite {t.unite||"-"}{t.created_at?" - "+new Date(t.created_at).toLocaleDateString("fr-CA"):""}</div>
+          <div key={t.id} onClick={function(){if(p.onOuvrir)p.onOuvrir(t);}} title="Cliquer pour ouvrir ce ticket dans le CRM" style={{padding:"9px 8px",borderBottom:"1px solid "+T.border,cursor:"pointer",borderRadius:6}}
+            onMouseEnter={function(e){e.currentTarget.style.background="#EFF6FF";}} onMouseLeave={function(e){e.currentTarget.style.background="transparent";}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:12,fontWeight:700,color:"#1A56DB",textDecoration:"underline"}}>{t.sujet}</div>
+                <div style={{fontSize:10,color:T.muted}}>Unite {t.unite||"-"}{t.created_at?" - soumis le "+new Date(t.created_at).toLocaleDateString("fr-CA"):""}{t.assigne_nom?" - assigne a "+t.assigne_nom:""}</div>
               </div>
-              <span style={{background:c.bg,color:c.tc,borderRadius:20,padding:"1px 8px",fontSize:9,fontWeight:700,whiteSpace:"nowrap"}}>{t.statut}</span>
+              {t.priorite==="haute"&&<span style={{background:T.redL,color:T.red,borderRadius:20,padding:"1px 8px",fontSize:9,fontWeight:800,whiteSpace:"nowrap"}}>URGENT</span>}
+              <span style={{background:c.bg,color:c.tc,borderRadius:20,padding:"1px 8px",fontSize:9,fontWeight:700,whiteSpace:"nowrap"}}>{t.statut==="en_cours"?"EN COURS":String(t.statut||"").toUpperCase()}</span>
             </div>
           </div>
         );
@@ -275,34 +278,18 @@ export default function TableauBordCA(props){
             </div>
           )}
 
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:16}}>
-            <SectionReunions reunions={reunions}/>
-            <SectionTickets tickets={tickets}/>
+          <div style={{marginBottom:16}}>
+            <SectionTickets tickets={tickets}
+              onOuvrir={function(t){
+                try{localStorage.setItem("predictek_ticket_ouvre",String(t.id));}catch(e){}
+                if(props&&props.onNavigate)props.onNavigate("requetes");
+              }}
+              onTout={function(){if(props&&props.onNavigate)props.onNavigate("requetes");}}/>
           </div>
 
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+            <SectionReunions reunions={reunions}/>
             <SectionAlertes copros={copros}/>
-            <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:14,padding:16}}>
-              <div style={{fontSize:12,fontWeight:700,color:T.navy,marginBottom:12}}>Resume coproprietaires</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                <div style={{background:T.accentL,borderRadius:10,padding:12,textAlign:"center"}}>
-                  <div style={{fontSize:22,fontWeight:800,color:T.accent}}>{coprosActifs.length}</div>
-                  <div style={{fontSize:10,color:T.muted}}>Unites actives</div>
-                </div>
-                <div style={{background:T.blueL,borderRadius:10,padding:12,textAlign:"center"}}>
-                  <div style={{fontSize:22,fontWeight:800,color:T.blue}}>{papUnites.length}</div>
-                  <div style={{fontSize:10,color:T.muted}}>Unites en PAP</div>
-                </div>
-                <div style={{background:T.amberL,borderRadius:10,padding:12,textAlign:"center"}}>
-                  <div style={{fontSize:22,fontWeight:800,color:T.amber}}>{enAttente.length}</div>
-                  <div style={{fontSize:10,color:T.muted}}>En attente</div>
-                </div>
-                <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:12,textAlign:"center"}}>
-                  <div style={{fontSize:16,fontWeight:800,color:T.navy}}>{copros.filter(function(c){return c.locataire;}).length}</div>
-                  <div style={{fontSize:10,color:T.muted}}>Locataires</div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       )}

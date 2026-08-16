@@ -219,7 +219,7 @@ export default function Communications(){
                 <div style={{fontSize:12,fontWeight:700,color:T.blue,marginBottom:8}}>Configuration SendGrid</div>
                 <div style={{fontSize:11,color:T.muted,marginBottom:10}}>Entrez votre cle API SendGrid pour activer l envoi reel. Elle sera sauvegardee localement.</div>
                 <div style={{display:"flex",gap:8}}>
-                  <input type="password" value={sgKey} onChange={function(e){setSgKey(e.target.value);}} style={Object.assign({},INP,{flex:1})} placeholder="SG.xxxxxxxxxxxxxxxxxx..."/>
+                  <input type="password" value={sgKey} onChange={function(e){setSgKey(e.target.value);}} style={Object.assign({},INP,{flex:1})}/>
                   <Btn sm onClick={function(){try{localStorage.setItem("predictek_sg_key",sgKey);}catch(e){}setSendResult("Cle SendGrid sauvegardee!");}} bg={T.blue}>Sauvegarder</Btn>
                 </div>
                 <div style={{fontSize:10,color:T.muted,marginTop:6}}>Obtenez votre cle sur sendgrid.com. Domaine expediteur requis: predictek.ca</div>

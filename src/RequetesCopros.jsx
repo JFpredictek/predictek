@@ -125,7 +125,17 @@ export default function RequetesCopros(){
   function charger(){
     if(!sel)return;
     sb.select("tickets",{eq:{syndicat_id:sel.id},order:"created_at.desc",limit:500}).then(function(r){
-      if(r&&r.data)setTickets(r.data);
+      if(r&&r.data){
+        setTickets(r.data);
+        // Ouverture directe d un ticket clique depuis le Tableau CA
+        try{
+          var idOuvre=localStorage.getItem("predictek_ticket_ouvre");
+          if(idOuvre){
+            var tOuvre=r.data.find(function(t){return String(t.id)===idOuvre;});
+            if(tOuvre){localStorage.removeItem("predictek_ticket_ouvre");setDetail(tOuvre);window.scrollTo(0,0);}
+          }
+        }catch(e){}
+      }
       if(r&&r.error)setErr("Chargement impossible: "+(r.error.message||""));
     }).catch(function(){});
     sb.select("coproprietaires",{eq:{syndicat_id:sel.id},limit:2000}).then(function(r){

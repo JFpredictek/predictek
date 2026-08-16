@@ -222,9 +222,9 @@ export default function Facturation(){
                     </select>
                   </div>
                   {(!tf||tf.mode!=="forfait")?(
-                    <div style={{width:140}}><Lbl l="$ / unite / mois"/><input type="number" step="0.01" defaultValue={tf?tf.tarif_unite:""} onBlur={function(e){majTarif(s.id,{tarif_unite:parseFloat(e.target.value)||0});}} style={INP} placeholder="ex: 15.00"/></div>
+                    <div style={{width:140}}><Lbl l="$ / unite / mois"/><input type="number" step="0.01" defaultValue={tf?tf.tarif_unite:""} onBlur={function(e){majTarif(s.id,{tarif_unite:parseFloat(e.target.value)||0});}} style={INP}/></div>
                   ):(
-                    <div style={{width:140}}><Lbl l="Forfait $ / mois"/><input type="number" step="0.01" defaultValue={tf?tf.forfait:""} onBlur={function(e){majTarif(s.id,{forfait:parseFloat(e.target.value)||0});}} style={INP} placeholder="ex: 500.00"/></div>
+                    <div style={{width:140}}><Lbl l="Forfait $ / mois"/><input type="number" step="0.01" defaultValue={tf?tf.forfait:""} onBlur={function(e){majTarif(s.id,{forfait:parseFloat(e.target.value)||0});}} style={INP}/></div>
                   )}
                   <div style={{width:130,textAlign:"right"}}>
                     <div style={{fontSize:10,color:T.muted}}>Mensuel (avant taxes)</div>
@@ -248,8 +248,8 @@ export default function Facturation(){
               <div><Lbl l="Code postal"/><input value={infos.code_postal||""} onChange={function(e){setInfos(Object.assign({},infos,{code_postal:e.target.value}));}} style={INP}/></div>
               <div><Lbl l="Telephone"/><input value={infos.tel||""} onChange={function(e){setInfos(Object.assign({},infos,{tel:e.target.value}));}} style={INP}/></div>
               <div><Lbl l="Courriel"/><input value={infos.courriel||""} onChange={function(e){setInfos(Object.assign({},infos,{courriel:e.target.value}));}} style={INP}/></div>
-              <div><Lbl l="No TPS"/><input value={infos.no_tps||""} onChange={function(e){setInfos(Object.assign({},infos,{no_tps:e.target.value}));}} style={INP} placeholder="123456789 RT0001"/></div>
-              <div><Lbl l="No TVQ"/><input value={infos.no_tvq||""} onChange={function(e){setInfos(Object.assign({},infos,{no_tvq:e.target.value}));}} style={INP} placeholder="1234567890 TQ0001"/></div>
+              <div><Lbl l="No TPS"/><input value={infos.no_tps||""} onChange={function(e){setInfos(Object.assign({},infos,{no_tps:e.target.value}));}} style={INP}/></div>
+              <div><Lbl l="No TVQ"/><input value={infos.no_tvq||""} onChange={function(e){setInfos(Object.assign({},infos,{no_tvq:e.target.value}));}} style={INP}/></div>
             </div>
             <Btn onClick={sauverInfos}>Sauvegarder</Btn>
           </div>
