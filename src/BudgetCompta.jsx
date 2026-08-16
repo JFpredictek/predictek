@@ -423,11 +423,25 @@ function TabBudget(p){
 
   function setM(no,v){setMontants(function(pr){var n=Object.assign({},pr);n[no]=v;return n;});}
 
-  var totDep=lignesActives.filter(function(c){return c.type==="depense";}).reduce(function(a,c){return a+(parseFloat(montants[c.no])||0);},0);
-  var totFonds=lignesActives.filter(function(c){return c.type==="fonds";}).reduce(function(a,c){return a+(parseFloat(montants[c.no])||0);},0);
-  // Revenus AUTRES que les cotisations (4100/4150) - reduisent les cotisations requises
-  var totRevAutres=lignesActives.filter(function(c){return c.type==="revenu"&&c.no!=="4100"&&c.no!=="4150";}).reduce(function(a,c){return a+(parseFloat(montants[c.no])||0);},0);
-  var cotisationsAnnuelles=Math.max(0,totDep+totFonds-totRevAutres);
+  // ===== CALCUL DES COTISATIONS - VENTILE PAR FONDS =====
+  // Part OPERATION = depenses d operation - autres revenus d operation (location, frais...).
+  // Part de CHAQUE AUTRE FONDS = transferts interfonds + contributions budgetees a ce fonds.
+  // Les DEPENSES des autres fonds (ex: serie 7000 prevoyance) sont payees PAR le fonds
+  // lui-meme et n entrent PAS dans la cotisation; leurs revenus d interets non plus.
+  var mSomme=function(arr){return arr.reduce(function(a,c){return a+(parseFloat(montants[c.no])||0);},0);};
+  var estContribution=function(c){return /contribution/i.test(c.nom||"")&&c.no!=="4100"&&c.no!=="4150";};
+  var totDep=mSomme(lignesActives.filter(function(c){return c.type==="depense"&&c.fonds==="operation";}));
+  var totRevAutres=mSomme(lignesActives.filter(function(c){return c.type==="revenu"&&c.fonds==="operation"&&c.no!=="4100"&&c.no!=="4150"&&!estContribution(c);}));
+  var cotParFonds={operation:Math.max(0,totDep-totRevAutres)};
+  lignesActives.forEach(function(c){
+    if(c.fonds==="operation")return;
+    var part=(c.type==="fonds")||(c.type==="revenu"&&estContribution(c));
+    if(!part)return;
+    cotParFonds[c.fonds]=(cotParFonds[c.fonds]||0)+(parseFloat(montants[c.no])||0);
+  });
+  var totFonds=Object.keys(cotParFonds).filter(function(f){return f!=="operation";}).reduce(function(a,f){return a+cotParFonds[f];},0);
+  var cotisationsAnnuelles=cotParFonds.operation+totFonds;
+  var fondsAvecPart=Object.keys(cotParFonds).filter(function(f){return f==="operation"||cotParFonds[f]>0;});
   var totalFraction=unites.reduce(function(a,u){return a+(parseFloat(u.fraction)||0);},0);
 
   function sauvegarderBudget(){
@@ -560,8 +574,8 @@ function TabBudget(p){
       {err&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,fontWeight:700,marginBottom:12}}>{err}</div>}
 
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
-        <div style={{background:T.redL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Depenses budgetees</div><div style={{fontSize:18,fontWeight:800,color:T.red}}>{money(totDep)}</div></div>
-        <div style={{background:T.purpleL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Transferts interfonds</div><div style={{fontSize:18,fontWeight:800,color:T.purple}}>{money(totFonds)}</div></div>
+        <div style={{background:T.redL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Depenses d operation</div><div style={{fontSize:18,fontWeight:800,color:T.red}}>{money(totDep)}</div></div>
+        <div style={{background:T.purpleL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Apports aux autres fonds (transferts + contributions)</div><div style={{fontSize:18,fontWeight:800,color:T.purple}}>{money(totFonds)}</div></div>
         <div style={{background:T.blueL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Autres revenus (-)</div><div style={{fontSize:18,fontWeight:800,color:T.blue}}>{money(totRevAutres)}</div></div>
         <div style={{background:T.accentL,border:"2px solid "+T.accent,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.accent,fontWeight:700}}>COTISATIONS ANNUELLES</div><div style={{fontSize:18,fontWeight:800,color:T.accent}}>{money(cotisationsAnnuelles)}</div><div style={{fontSize:10,color:T.muted}}>{money(cotisationsAnnuelles/12)} /mois</div></div>
       </div>
@@ -686,29 +700,49 @@ function TabBudget(p){
         </div>
         {unites.length===0?(
           <div style={{fontSize:12,color:T.muted,padding:10}}>Aucune unite pour ce syndicat.</div>
-        ):(
-          <div style={{maxHeight:300,overflowY:"auto"}}>
+        ):(function(){
+          var LBLC={operation:"Operation",prevoyance:"Prevoyance",assurance:"Auto-assur.",special:"Trav. spec."};
+          var thG={padding:"6px 10px",textAlign:"left",fontSize:10,fontWeight:700,color:T.muted,textTransform:"uppercase",whiteSpace:"nowrap"};
+          var thD=Object.assign({},thG,{textAlign:"right"});
+          return(
+          <div style={{maxHeight:340,overflowY:"auto",overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
               <thead><tr style={{background:T.alt,position:"sticky",top:0}}>
-                {["Unite","Quote-part","Cotisation annuelle","Cotisation mensuelle","Actuelle"].map(function(h){return <th key={h} style={{padding:"6px 10px",textAlign:"left",fontSize:10,fontWeight:700,color:T.muted,textTransform:"uppercase"}}>{h}</th>;})}
+                <th style={thG}>Unite</th>
+                <th style={thD}>Quote-part</th>
+                {fondsAvecPart.map(function(f){return <th key={f} style={thD}>{(LBLC[f]||f)+" /mois"}</th>;})}
+                <th style={thD}>Total /mois</th>
+                <th style={thD}>Total /annee</th>
+                <th style={thD}>Actuelle</th>
               </tr></thead>
               <tbody>
                 {unites.map(function(u){
-                  var annuel=cotisationsAnnuelles*(parseFloat(u.fraction)||0)/100;
+                  var fr=(parseFloat(u.fraction)||0)/100;
+                  var annuel=cotisationsAnnuelles*fr;
                   return(
                     <tr key={u.id} style={{borderTop:"1px solid "+T.border}}>
                       <td style={{padding:"5px 10px",fontWeight:700}}>{u.no_unite}</td>
-                      <td style={{padding:"5px 10px"}}>{(parseFloat(u.fraction)||0).toFixed(3)} %</td>
-                      <td style={{padding:"5px 10px",textAlign:"right"}}>{money(annuel)}</td>
+                      <td style={{padding:"5px 10px",textAlign:"right"}}>{(parseFloat(u.fraction)||0).toFixed(3)} %</td>
+                      {fondsAvecPart.map(function(f){return <td key={f} style={{padding:"5px 10px",textAlign:"right",color:f==="operation"?T.text:T.blue}}>{money(cotParFonds[f]*fr/12)}</td>;})}
                       <td style={{padding:"5px 10px",textAlign:"right",fontWeight:700,color:T.accent}}>{money(annuel/12)}</td>
+                      <td style={{padding:"5px 10px",textAlign:"right"}}>{money(annuel)}</td>
                       <td style={{padding:"5px 10px",textAlign:"right",color:T.muted}}>{u.cotisation_mensuelle?money(u.cotisation_mensuelle):"-"}</td>
                     </tr>
                   );
                 })}
+                <tr style={{borderTop:"2px solid "+T.navy,background:T.alt}}>
+                  <td style={{padding:"5px 10px",fontWeight:800}}>TOTAL</td>
+                  <td style={{padding:"5px 10px",textAlign:"right",fontWeight:700}}>{totalFraction.toFixed(3)} %</td>
+                  {fondsAvecPart.map(function(f){return <td key={f} style={{padding:"5px 10px",textAlign:"right",fontWeight:700}}>{money(cotParFonds[f]/12)}</td>;})}
+                  <td style={{padding:"5px 10px",textAlign:"right",fontWeight:800,color:T.accent}}>{money(cotisationsAnnuelles/12)}</td>
+                  <td style={{padding:"5px 10px",textAlign:"right",fontWeight:700}}>{money(cotisationsAnnuelles)}</td>
+                  <td style={{padding:"5px 10px"}}></td>
+                </tr>
               </tbody>
             </table>
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
