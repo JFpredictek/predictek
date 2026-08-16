@@ -77,6 +77,7 @@ function Tableau(p){
   var sUA=useState(null);var fichAss=sUA[0];var setFichAss=sUA[1];
   var sUC=useState(null);var fichCE=sUC[0];var setFichCE=sUC[1];
   var sFC=useState([]);var facturesCop=sFC[0];var setFacturesCop=sFC[1];
+  var sDS=useState([]);var docsSyn=sDS[0];var setDocsSyn=sDS[1];
 
   useEffect(function(){
     if(!copro)return;
@@ -108,6 +109,11 @@ function Tableau(p){
       // Factures emises au coproprietaire (frais, infractions, refacturation)
       sb.select("factures_copros",{eq:{syndicat_id:copro.syndicat_id},order:"date_facture.desc",limit:50}).then(function(r){
         if(r&&r.data)setFacturesCop(r.data.filter(function(f){return f.coproprietaire_id===copro.id||(f.unite&&f.unite===copro.unite);}));
+      }).catch(function(){});
+      // Documents du SYNDICAT accessibles a tous les coproprietaires (certificat d assurance
+      // de la copropriete, PV, assemblees, budgets...) - les confidentiels sont exclus
+      sb.select("documents",{eq:{niveau:"syndicat",syndicat_id:copro.syndicat_id},order:"created_at.desc",limit:100}).then(function(r){
+        if(r&&r.data)setDocsSyn(r.data.filter(function(d){return !d.confidentiel;}));
       }).catch(function(){});
     }
   },[copro]);
@@ -384,6 +390,29 @@ function Tableau(p){
               {voirReglements&&syndic&&syndic.reglements_resume&&(
                 <div style={{marginTop:10,background:T.blueL,borderRadius:8,padding:12,fontSize:12,color:"#1C1A17",whiteSpace:"pre-wrap",lineHeight:1.55,maxHeight:400,overflowY:"auto"}}>{syndic.reglements_resume}</div>
               )}
+              {docsSyn.length>0&&(
+                <div style={{marginTop:12}}>
+                  {docsSyn.map(function(d){
+                    var estAss=d.type_doc==="assurance"||/assurance/i.test(d.nom||"");
+                    return(
+                      <div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,padding:"7px 0",borderTop:"1px solid "+T.border,flexWrap:"wrap"}}>
+                        <div style={{flex:1,minWidth:180}}>
+                          <div style={{fontSize:12,fontWeight:600,color:T.navy}}>
+                            {estAss&&<span style={{background:T.accentL,color:T.accent,borderRadius:5,padding:"1px 7px",fontSize:9,fontWeight:800,marginRight:6}}>ASSURANCE</span>}
+                            {d.nom}
+                          </div>
+                          <div style={{fontSize:10,color:T.muted}}>{d.type_doc||"Document"}{d.date_doc?" - "+d.date_doc:""}{estAss&&syndic&&syndic.assurance_syndicat_exp?" - police du syndicat expire le "+syndic.assurance_syndicat_exp:""}</div>
+                        </div>
+                        {d.url&&<Btn sm bg={T.blue} onClick={function(){
+                          if(d.url.indexOf("storage:")===0){sb.lienFichier("preuves",d.url.substring(8)).then(function(u){if(u)window.open(u,"_blank");});}
+                          else window.open(d.url,"_blank");
+                        }}>Ouvrir</Btn>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {docsSyn.length===0&&<div style={{fontSize:10,color:T.muted,marginTop:8}}>Le certificat d assurance de la copropriete et les autres documents partages (PV, assemblees...) apparaitront ici des que le gestionnaire les depose dans Documents (niveau syndicat, non confidentiel).</div>}
             </div>
 
             {docs.length===0&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucun autre document personnel pour l instant</div>}

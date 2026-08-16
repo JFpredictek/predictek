@@ -315,7 +315,7 @@ function TabBudget(p){
   // Gestion des comptes GL directement du budget: ajouter, ou rendre inactif
   function ajouterCompteGL(){
     if(!nCompte.no||!nCompte.nom||!syndicat)return;
-    sb.insert("comptes_syndicat",{syndicat_id:syndicat.id,no_compte:nCompte.no,nom_compte:nCompte.nom,type_compte:nCompte.type,groupe:ajoutGrp||"Autres",actif:true,fonds:"operation"}).then(function(r){
+    sb.insert("comptes_syndicat",{syndicat_id:syndicat.id,no_compte:nCompte.no,nom_compte:nCompte.nom,type_compte:nCompte.type,groupe:nCompte.type==="revenu"?"Revenus":"Autres",actif:true,fonds:ajoutGrp||"operation"}).then(function(r){
       if(r&&r.error){setErr("ECHEC de l ajout du compte: "+(r.error.message||""));return;}
       setAjoutGrp(null);setNCompte({no:"",nom:"",type:"depense"});
       setMsg("Compte "+r.data.no_compte+" - "+r.data.nom_compte+" ajoute au plan comptable.");
@@ -323,12 +323,14 @@ function TabBudget(p){
       setTimeout(function(){setMsg("");},4000);
     }).catch(function(e){setErr("Erreur: "+(e&&e.message?e.message:""));});
   }
-  function desactiverCompteGL(no){
+  // Meme principe que le Plan comptable: une coche active/desactive le compte,
+  // il reste TOUJOURS visible et peut etre reactive en tout temps.
+  function basculerActifGL(no){
     var c=comptes.find(function(x){return x.no_compte===no;});
     if(!c)return;
-    sb.update("comptes_syndicat",c.id,{actif:false}).then(function(r){
+    sb.update("comptes_syndicat",c.id,{actif:!c.actif}).then(function(r){
       if(r&&r.error){setErr("ECHEC: "+(r.error.message||""));return;}
-      setMsg("Compte "+no+" rendu INACTIF (reactivable dans Plan comptable). Son montant budgete est ignore.");
+      setMsg("Compte "+no+" "+(c.actif?"rendu INACTIF (son montant budgete est ignore)":"REACTIVE")+".");
       if(p.recharger)p.recharger();
       setTimeout(function(){setMsg("");},4000);
     }).catch(function(){});
@@ -397,16 +399,19 @@ function TabBudget(p){
     setTimeout(function(){setMsg("");},5000);
   }
 
-  var lignesBudget=comptes.filter(function(c){return c.actif&&["revenu","depense","fonds"].indexOf(c.type_compte)>=0;})
-    .map(function(c){return {no:c.no_compte,nom:c.nom_compte,type:c.type_compte,groupe:c.groupe||"Autres",fonds:c.fonds||"operation"};})
+  // TOUS les comptes (actifs ET inactifs) - les inactifs restent visibles avec une coche
+  // pour les reactiver, comme dans le Plan comptable. Seuls les ACTIFS comptent dans les totaux.
+  var lignesBudget=comptes.filter(function(c){return ["revenu","depense","fonds"].indexOf(c.type_compte)>=0;})
+    .map(function(c){return {no:c.no_compte,nom:c.nom_compte,type:c.type_compte,groupe:c.groupe||"Autres",fonds:c.fonds||"operation",actif:!!c.actif};})
     .sort(function(a,b){return String(a.no).localeCompare(String(b.no));});
+  var lignesActives=lignesBudget.filter(function(c){return c.actif;});
 
   function setM(no,v){setMontants(function(pr){var n=Object.assign({},pr);n[no]=v;return n;});}
 
-  var totDep=lignesBudget.filter(function(c){return c.type==="depense";}).reduce(function(a,c){return a+(parseFloat(montants[c.no])||0);},0);
-  var totFonds=lignesBudget.filter(function(c){return c.type==="fonds";}).reduce(function(a,c){return a+(parseFloat(montants[c.no])||0);},0);
+  var totDep=lignesActives.filter(function(c){return c.type==="depense";}).reduce(function(a,c){return a+(parseFloat(montants[c.no])||0);},0);
+  var totFonds=lignesActives.filter(function(c){return c.type==="fonds";}).reduce(function(a,c){return a+(parseFloat(montants[c.no])||0);},0);
   // Revenus AUTRES que les cotisations (4100/4150) - reduisent les cotisations requises
-  var totRevAutres=lignesBudget.filter(function(c){return c.type==="revenu"&&c.no!=="4100"&&c.no!=="4150";}).reduce(function(a,c){return a+(parseFloat(montants[c.no])||0);},0);
+  var totRevAutres=lignesActives.filter(function(c){return c.type==="revenu"&&c.no!=="4100"&&c.no!=="4150";}).reduce(function(a,c){return a+(parseFloat(montants[c.no])||0);},0);
   var cotisationsAnnuelles=Math.max(0,totDep+totFonds-totRevAutres);
   var totalFraction=unites.reduce(function(a,u){return a+(parseFloat(u.fraction)||0);},0);
 
@@ -476,8 +481,6 @@ function TabBudget(p){
   }
 
   if(!syndicat)return null;
-  var groupes=[];
-  lignesBudget.forEach(function(c){if(groupes.indexOf(c.groupe)<0)groupes.push(c.groupe);});
 
   return(
     <div>
@@ -517,49 +520,6 @@ function TabBudget(p){
         <div style={{background:T.accentL,border:"2px solid "+T.accent,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.accent,fontWeight:700}}>COTISATIONS ANNUELLES</div><div style={{fontSize:18,fontWeight:800,color:T.accent}}>{money(cotisationsAnnuelles)}</div><div style={{fontSize:10,color:T.muted}}>{money(cotisationsAnnuelles/12)} /mois</div></div>
       </div>
 
-      {(function(){
-        // BUDGET PAR FONDS: revenus, depenses et SOLDE de chaque fonds (balance ou non)
-        var fondsIds=["operation","prevoyance","assurance"];
-        lignesBudget.forEach(function(c){if(fondsIds.indexOf(c.fonds)<0)fondsIds.push(c.fonds);});
-        var LBL_F={operation:"Fonds d operation",prevoyance:"Fonds de prevoyance",assurance:"Fonds d auto-assurance"};
-        var m=function(no){return parseFloat(montants[no])||0;};
-        return(
-          <div style={{background:T.surface,border:"2px solid "+T.navy+"33",borderRadius:12,padding:16,marginBottom:16}}>
-            <div style={{fontSize:13,fontWeight:800,color:T.navy,marginBottom:2}}>Budget par fonds</div>
-            <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Revenus, depenses et solde de chaque fonds. Un solde a 0 = le fonds balance; positif = surplus; negatif = deficit a corriger.</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:12}}>
-              {fondsIds.map(function(fid){
-                var lF=lignesBudget.filter(function(c){return c.fonds===fid;});
-                var rev,dep;
-                if(fid==="operation"){
-                  rev=cotisationsAnnuelles+lF.filter(function(c){return c.type==="revenu"&&c.no!=="4100"&&c.no!=="4150";}).reduce(function(a,c){return a+m(c.no);},0);
-                  dep=lF.filter(function(c){return c.type==="depense";}).reduce(function(a,c){return a+m(c.no);},0)
-                    +lignesBudget.filter(function(c){return c.type==="fonds";}).reduce(function(a,c){return a+m(c.no);},0); // transferts VERS les autres fonds
-                }else{
-                  rev=lF.filter(function(c){return c.type==="fonds"||c.type==="revenu";}).reduce(function(a,c){return a+m(c.no);},0); // transferts recus + revenus propres
-                  dep=lF.filter(function(c){return c.type==="depense";}).reduce(function(a,c){return a+m(c.no);},0);
-                }
-                var solde=Math.round((rev-dep)*100)/100;
-                var balance=Math.abs(solde)<0.005;
-                if(fid!=="operation"&&rev===0&&dep===0)return null;
-                return(
-                  <div key={fid} style={{border:"2px solid "+(balance?T.accent:solde>0?T.blue:T.red)+"66",borderRadius:10,padding:12,background:balance?T.accentL:solde>0?T.blueL:T.redL}}>
-                    <div style={{fontSize:11,fontWeight:800,color:T.navy,textTransform:"uppercase",marginBottom:8}}>{LBL_F[fid]||("Fonds "+fid)}</div>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"2px 0"}}><span style={{color:T.muted}}>Revenus budgetes{fid==="operation"?" (incl. cotisations)":fid!=="operation"?" (incl. transferts)":""}</span><span style={{fontWeight:700,color:T.accent}}>{money(rev)}</span></div>
-                    <div style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"2px 0"}}><span style={{color:T.muted}}>Depenses prevues{fid==="operation"?" (incl. transferts)":""}</span><span style={{fontWeight:700,color:T.red}}>{money(dep)}</span></div>
-                    <div style={{borderTop:"2px solid "+T.border,marginTop:6,paddingTop:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <span style={{fontSize:11,fontWeight:800,color:T.navy}}>SOLDE</span>
-                      <span style={{fontSize:15,fontWeight:800,color:balance?T.accent:solde>0?T.blue:T.red}}>{money(solde)}</span>
-                    </div>
-                    <div style={{fontSize:10,fontWeight:800,marginTop:4,color:balance?T.accent:solde>0?T.blue:T.red}}>{balance?"BALANCE":solde>0?"SURPLUS":"DEFICIT"}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })()}
-
       {lignesBudget.length===0&&<div style={{background:T.amberL,borderRadius:10,padding:14,fontSize:12,color:T.amber,fontWeight:600,marginBottom:12}}>Aucun compte actif - activez des comptes dans l onglet Plan comptable.</div>}
 
       {aPrecedent&&(
@@ -567,49 +527,105 @@ function TabBudget(p){
           <Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={reporterBudgetPrecedent}>Reporter le budget de l annee precedente (champs vides)</Btn>
         </div>
       )}
-      {groupes.map(function(g){
-        var lignes=lignesBudget.filter(function(c){return c.groupe===g;});
-        var sousTotal=lignes.reduce(function(a,c){return a+(parseFloat(montants[c.no])||0);},0);
-        return(
-          <div key={g} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14,marginBottom:10}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,alignItems:"center",gap:8}}>
-              <div style={{fontSize:11,fontWeight:800,color:T.navy,textTransform:"uppercase",letterSpacing:"0.05em"}}>{g}</div>
-              <div style={{display:"flex",gap:10,alignItems:"center"}}>
-                <button onClick={function(){setAjoutGrp(ajoutGrp===g?null:g);setNCompte({no:"",nom:"",type:"depense"});}} style={{background:"none",border:"1px dashed "+T.accent,borderRadius:6,padding:"2px 10px",fontSize:10,fontWeight:700,color:T.accent,cursor:"pointer",fontFamily:"inherit"}}>+ Compte GL</button>
-                <div style={{fontSize:11,fontWeight:800,color:T.navy}}>{money(sousTotal)}</div>
-              </div>
+      {(function(){
+        // SAISIE DU BUDGET ORGANISEE PAR FONDS: pour chaque fonds -> revenus, depenses, SOLDE.
+        var fondsIds=["operation","prevoyance","assurance"];
+        lignesBudget.forEach(function(c){if(fondsIds.indexOf(c.fonds)<0)fondsIds.push(c.fonds);});
+        var LBL_F={operation:"FONDS D OPERATION",prevoyance:"FONDS DE PREVOYANCE",assurance:"FONDS D AUTO-ASSURANCE"};
+        var CLR_F={operation:T.accent,prevoyance:T.blue,assurance:T.purple};
+        var m=function(no){return parseFloat(montants[no])||0;};
+        var ligneRow=function(c){
+          return(
+            <div key={c.no} style={{display:"flex",alignItems:"center",gap:10,padding:"4px 0",opacity:c.actif?1:0.45}}>
+              <input type="checkbox" checked={c.actif} onChange={function(){basculerActifGL(c.no);}} title={c.actif?"Rendre inactif":"Reactiver"} style={{flexShrink:0,cursor:"pointer"}}/>
+              <span style={{fontSize:11,fontWeight:700,color:T.muted,width:44,flexShrink:0}}>{c.no}</span>
+              <span style={{fontSize:12,color:T.text,flex:1,textDecoration:c.actif?"none":"line-through"}}>{c.nom}{c.no==="4100"||c.no==="4150"?<span style={{fontSize:9,color:T.muted}}> (calcule)</span>:null}{!c.actif&&<span style={{fontSize:9,color:T.red,fontWeight:700}}> INACTIF</span>}</span>
+              {aPrecedent&&<span style={{width:86,textAlign:"right",fontSize:11,color:T.muted}}>{budPrec[c.no]!==undefined?money(budPrec[c.no]):"-"}</span>}
+              {aPrecedent&&<span style={{width:86,textAlign:"right",fontSize:11,fontWeight:700,color:reelPrec[c.no]?T.navy:T.muted}}>{reelPrec[c.no]?money(reelPrec[c.no]):"-"}</span>}
+              <input type="number" step="0.01" value={montants[c.no]||""} onChange={function(e){setM(c.no,e.target.value);}} style={Object.assign({},INP,{width:130,textAlign:"right"})} placeholder="0.00" disabled={!c.actif||c.no==="4100"||c.no==="4150"}/>
             </div>
-            {aPrecedent&&(
-              <div style={{display:"flex",gap:10,padding:"2px 0",fontSize:9,fontWeight:800,color:T.muted,textTransform:"uppercase"}}>
-                <span style={{width:44,flexShrink:0}}></span><span style={{flex:1}}></span>
-                <span style={{width:86,textAlign:"right"}}>Budget prec.</span>
-                <span style={{width:86,textAlign:"right"}}>Reel prec.</span>
-                <span style={{width:130,textAlign:"right"}}>Budget {exo?exo.debut.substring(0,4):""}</span>
-                <span style={{width:20}}></span>
-              </div>
-            )}
-            {lignes.map(function(c){return(
-              <div key={c.no} style={{display:"flex",alignItems:"center",gap:10,padding:"4px 0"}}>
-                <span style={{fontSize:11,fontWeight:700,color:T.muted,width:44,flexShrink:0}}>{c.no}</span>
-                <span style={{fontSize:12,color:T.text,flex:1}}>{c.nom}{c.no==="4100"||c.no==="4150"?<span style={{fontSize:9,color:T.muted}}> (calcule - n entre pas dans le total)</span>:null}</span>
-                {aPrecedent&&<span style={{width:86,textAlign:"right",fontSize:11,color:T.muted}}>{budPrec[c.no]!==undefined?money(budPrec[c.no]):"-"}</span>}
-                {aPrecedent&&<span style={{width:86,textAlign:"right",fontSize:11,fontWeight:700,color:reelPrec[c.no]?T.navy:T.muted}}>{reelPrec[c.no]?money(reelPrec[c.no]):"-"}</span>}
-                <input type="number" step="0.01" value={montants[c.no]||""} onChange={function(e){setM(c.no,e.target.value);}} style={Object.assign({},INP,{width:130,textAlign:"right"})} placeholder="0.00" disabled={c.no==="4100"||c.no==="4150"}/>
-                <button title="Rendre ce compte inactif" onClick={function(){desactiverCompteGL(c.no);}} style={{background:"none",border:"none",color:T.red,fontSize:13,fontWeight:800,cursor:"pointer",width:20,padding:0,fontFamily:"inherit"}}>x</button>
-              </div>
-            );})}
-            {ajoutGrp===g&&(
-              <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap",background:T.accentL,borderRadius:8,padding:10,marginTop:8}}>
-                <div style={{width:90}}><Lbl l="No"/><input value={nCompte.no} onChange={function(e){setNCompte(Object.assign({},nCompte,{no:e.target.value.replace(/\D/g,"").slice(0,4)}));}} style={INP} placeholder="5250"/></div>
-                <div style={{flex:1,minWidth:180}}><Lbl l="Nom du compte"/><input value={nCompte.nom} onChange={function(e){setNCompte(Object.assign({},nCompte,{nom:e.target.value}));}} style={INP} placeholder="Ex: Lavage de vitres"/></div>
-                <div style={{width:150}}><Lbl l="Type"/><select value={nCompte.type} onChange={function(e){setNCompte(Object.assign({},nCompte,{type:e.target.value}));}} style={INP}><option value="depense">Depense</option><option value="revenu">Revenu</option><option value="fonds">Transfert interfonds</option></select></div>
-                <Btn sm onClick={ajouterCompteGL} dis={!nCompte.no||!nCompte.nom}>Ajouter</Btn>
-                <Btn sm bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setAjoutGrp(null);}}>Annuler</Btn>
-              </div>
-            )}
+          );
+        };
+        var enTete=aPrecedent?(
+          <div style={{display:"flex",gap:10,padding:"2px 0",fontSize:9,fontWeight:800,color:T.muted,textTransform:"uppercase"}}>
+            <span style={{width:13}}></span><span style={{width:44,flexShrink:0}}></span><span style={{flex:1}}></span>
+            <span style={{width:86,textAlign:"right"}}>Budget prec.</span>
+            <span style={{width:86,textAlign:"right"}}>Reel prec.</span>
+            <span style={{width:130,textAlign:"right"}}>Budget {exo?exo.debut.substring(0,4):""}</span>
           </div>
-        );
-      })}
+        ):null;
+        return fondsIds.map(function(fid){
+          var lF=lignesBudget.filter(function(c){return c.fonds===fid;});
+          var lFA=lF.filter(function(c){return c.actif;});
+          if(fid!=="operation"&&lF.length===0)return null;
+          var rev,dep,revLignes,depLignes,transLignes;
+          if(fid==="operation"){
+            revLignes=lF.filter(function(c){return c.type==="revenu";});
+            depLignes=lF.filter(function(c){return c.type==="depense";});
+            transLignes=lignesBudget.filter(function(c){return c.type==="fonds";});
+            rev=cotisationsAnnuelles+lFA.filter(function(c){return c.type==="revenu"&&c.no!=="4100"&&c.no!=="4150";}).reduce(function(a,c){return a+m(c.no);},0);
+            dep=lFA.filter(function(c){return c.type==="depense";}).reduce(function(a,c){return a+m(c.no);},0)
+              +lignesActives.filter(function(c){return c.type==="fonds";}).reduce(function(a,c){return a+m(c.no);},0);
+          }else{
+            revLignes=lF.filter(function(c){return c.type==="revenu"||c.type==="fonds";});
+            depLignes=lF.filter(function(c){return c.type==="depense";});
+            transLignes=[];
+            rev=lFA.filter(function(c){return c.type==="revenu"||c.type==="fonds";}).reduce(function(a,c){return a+m(c.no);},0);
+            dep=lFA.filter(function(c){return c.type==="depense";}).reduce(function(a,c){return a+m(c.no);},0);
+          }
+          var solde=Math.round((rev-dep)*100)/100;
+          var balance=Math.abs(solde)<0.005;
+          var clr=CLR_F[fid]||T.navy;
+          return(
+            <div key={fid} style={{background:T.surface,border:"2px solid "+clr+"55",borderRadius:12,padding:16,marginBottom:14}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,gap:8,flexWrap:"wrap"}}>
+                <div style={{fontSize:13,fontWeight:800,color:clr,letterSpacing:"0.04em"}}>{LBL_F[fid]||("FONDS "+String(fid).toUpperCase())}</div>
+                <button onClick={function(){setAjoutGrp(ajoutGrp===fid?null:fid);setNCompte({no:"",nom:"",type:"depense"});}} style={{background:"none",border:"1px dashed "+clr,borderRadius:6,padding:"2px 10px",fontSize:10,fontWeight:700,color:clr,cursor:"pointer",fontFamily:"inherit"}}>+ Compte GL dans ce fonds</button>
+              </div>
+
+              <div style={{fontSize:10,fontWeight:800,color:T.accent,textTransform:"uppercase",marginBottom:2}}>Revenus{fid==="operation"?" (les cotisations s ajoutent automatiquement)":fid!=="operation"?" et transferts recus":""}</div>
+              {enTete}
+              {revLignes.length===0&&<div style={{fontSize:11,color:T.muted,padding:"2px 0 6px"}}>Aucun compte de revenu dans ce fonds.</div>}
+              {revLignes.map(ligneRow)}
+              {fid==="operation"&&(
+                <div style={{display:"flex",justifyContent:"space-between",background:T.accentL,borderRadius:7,padding:"5px 10px",margin:"4px 0",fontSize:11,fontWeight:700,color:T.accent}}>
+                  <span>Cotisations annuelles (calculees du budget)</span><span>{money(cotisationsAnnuelles)}</span>
+                </div>
+              )}
+
+              <div style={{fontSize:10,fontWeight:800,color:T.red,textTransform:"uppercase",margin:"10px 0 2px"}}>Depenses</div>
+              {depLignes.length===0&&<div style={{fontSize:11,color:T.muted,padding:"2px 0 6px"}}>Aucun compte de depense dans ce fonds.</div>}
+              {depLignes.map(ligneRow)}
+
+              {fid==="operation"&&transLignes.length>0&&(
+                <div>
+                  <div style={{fontSize:10,fontWeight:800,color:T.purple,textTransform:"uppercase",margin:"10px 0 2px"}}>Transferts interfonds (sorties vers les autres fonds)</div>
+                  {transLignes.map(ligneRow)}
+                </div>
+              )}
+
+              <div style={{borderTop:"2px solid "+clr+"55",marginTop:10,paddingTop:8,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6}}>
+                <span style={{fontSize:11,color:T.muted}}>Revenus {money(rev)} - Depenses {money(dep)}</span>
+                <span style={{display:"flex",gap:10,alignItems:"center"}}>
+                  <span style={{fontSize:12,fontWeight:800,color:T.navy}}>SOLDE DU FONDS</span>
+                  <span style={{fontSize:16,fontWeight:800,color:balance?T.accent:solde>0?T.blue:T.red}}>{money(solde)}</span>
+                  <span style={{fontSize:10,fontWeight:800,padding:"2px 10px",borderRadius:12,background:balance?T.accentL:solde>0?T.blueL:T.redL,color:balance?T.accent:solde>0?T.blue:T.red}}>{balance?"BALANCE":solde>0?"SURPLUS":"DEFICIT"}</span>
+                </span>
+              </div>
+
+              {ajoutGrp===fid&&(
+                <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap",background:T.accentL,borderRadius:8,padding:10,marginTop:10}}>
+                  <div style={{width:90}}><Lbl l="No"/><input value={nCompte.no} onChange={function(e){setNCompte(Object.assign({},nCompte,{no:e.target.value.replace(/\D/g,"").slice(0,4)}));}} style={INP} placeholder="5250"/></div>
+                  <div style={{flex:1,minWidth:180}}><Lbl l="Nom du compte"/><input value={nCompte.nom} onChange={function(e){setNCompte(Object.assign({},nCompte,{nom:e.target.value}));}} style={INP} placeholder="Ex: Lavage de vitres"/></div>
+                  <div style={{width:150}}><Lbl l="Type"/><select value={nCompte.type} onChange={function(e){setNCompte(Object.assign({},nCompte,{type:e.target.value}));}} style={INP}><option value="depense">Depense</option><option value="revenu">Revenu</option><option value="fonds">Transfert interfonds</option></select></div>
+                  <Btn sm onClick={ajouterCompteGL} dis={!nCompte.no||!nCompte.nom}>Ajouter</Btn>
+                  <Btn sm bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setAjoutGrp(null);}}>Annuler</Btn>
+                </div>
+              )}
+            </div>
+          );
+        });
+      })()}
 
       <div style={{background:T.surface,border:"2px solid "+T.accent+"66",borderRadius:12,padding:16,marginTop:16}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}}>
