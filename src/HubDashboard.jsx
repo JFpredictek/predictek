@@ -20,18 +20,18 @@ function CarteSyndicat(p){
         {alertCount>0&&<span style={{background:T.amberL,color:T.amber,borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,flexShrink:0}}>{alertCount} alerte(s)</span>}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
-        <div style={{textAlign:"center",background:T.accentL,borderRadius:8,padding:10}}>
+        <button onClick={function(e){e.stopPropagation();if(p.onNav)p.onNav("unites");}} title="Voir les unites" style={{textAlign:"center",background:T.accentL,borderRadius:8,padding:10,border:"1px solid transparent",cursor:"pointer",fontFamily:"inherit"}}>
           <div style={{fontSize:20,fontWeight:800,color:T.accent}}>{stats.nbUnites||0}</div>
           <div style={{fontSize:9,color:T.muted,textTransform:"uppercase"}}>Unités</div>
-        </div>
-        <div style={{textAlign:"center",background:T.blueL,borderRadius:8,padding:10}}>
+        </button>
+        <button onClick={function(e){e.stopPropagation();if(p.onNav)p.onNav("unites");}} title="Voir les coproprietaires (par unite)" style={{textAlign:"center",background:T.blueL,borderRadius:8,padding:10,border:"1px solid transparent",cursor:"pointer",fontFamily:"inherit"}}>
           <div style={{fontSize:20,fontWeight:800,color:T.blue}}>{stats.nbCopros||0}</div>
           <div style={{fontSize:9,color:T.muted,textTransform:"uppercase"}}>Copros</div>
-        </div>
-        <div style={{textAlign:"center",background:stats.ticketsOuverts>0?T.amberL:T.alt,borderRadius:8,padding:10}}>
+        </button>
+        <button onClick={function(e){e.stopPropagation();if(p.onNav)p.onNav("crm");}} title="Voir les tickets (CRM)" style={{textAlign:"center",background:stats.ticketsOuverts>0?T.amberL:T.alt,borderRadius:8,padding:10,border:"1px solid transparent",cursor:"pointer",fontFamily:"inherit"}}>
           <div style={{fontSize:20,fontWeight:800,color:stats.ticketsOuverts>0?T.amber:T.muted}}>{stats.ticketsOuverts||0}</div>
           <div style={{fontSize:9,color:T.muted,textTransform:"uppercase"}}>Tickets ouverts</div>
-        </div>
+        </button>
       </div>
       {(stats.membresCA||[]).length>0&&(
         <div style={{background:"#EFF6FF",border:"1px solid #1A56DB33",borderRadius:8,padding:"10px 12px",marginBottom:10}}>
@@ -39,8 +39,8 @@ function CarteSyndicat(p){
           {(stats.membresCA||[]).map(function(m){
             var roleLbl=m.role_ca==="president"?"President(e)":m.role_ca==="vice_president"?"Vice-pres.":m.role_ca==="secretaire"?"Secretaire":m.role_ca==="tresorier"?"Tresorier(e)":"Membre";
             return(
-              <div key={m.id} style={{display:"flex",gap:8,alignItems:"baseline",flexWrap:"wrap",padding:"3px 0",borderTop:"1px solid #1A56DB18"}}>
-                <span style={{fontSize:11,fontWeight:700,color:T.navy,minWidth:150}}>{((m.prenom||"")+" "+(m.nom||"")).trim()}</span>
+              <div key={m.id} onClick={function(e){e.stopPropagation();if(p.onNav)p.onNav("ca");}} title="Ouvrir la fiche du membre (Membres CA)" style={{display:"flex",gap:8,alignItems:"baseline",flexWrap:"wrap",padding:"3px 0",borderTop:"1px solid #1A56DB18",cursor:"pointer"}}>
+                <span style={{fontSize:11,fontWeight:700,color:T.navy,minWidth:150,textDecoration:"underline",textDecorationColor:"#1A56DB44"}}>{((m.prenom||"")+" "+(m.nom||"")).trim()}</span>
                 <span style={{fontSize:9,fontWeight:800,color:"#1A56DB",background:"#1A56DB15",borderRadius:5,padding:"1px 7px"}}>{roleLbl}</span>
                 {m.cellulaire&&<span style={{fontSize:10,color:T.muted}}>{m.cellulaire}</span>}
                 {m.courriel&&<span style={{fontSize:10,color:T.muted}}>{m.courriel}</span>}
@@ -182,7 +182,7 @@ export default function HubDashboard(p){
         )}
 
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))",gap:16}}>
-          {syndicats.map(function(s){return <CarteSyndicat key={s.id} syndicat={s} stats={stats[s.id]||{}} onSelect={function(){if(onNavigate)onNavigate("unites");}} />;})}
+          {syndicats.map(function(s){return <CarteSyndicat key={s.id} syndicat={s} stats={stats[s.id]||{}} onNav={onNavigate} onSelect={function(){if(onNavigate)onNavigate("unites");}} />;})}
         </div>
       </div>
     </div>
