@@ -466,6 +466,36 @@ function TabBudget(p){
     }).catch(function(e){setEnCours(false);setErr("Erreur: "+(e&&e.message?e.message:""));});
   }
 
+  // BOUTON "Demander l approbation": envoie une REQUETE (ticket) assignee a tous les
+  // membres du CA - visible dans Requetes, le CRM et le compteur du menu.
+  function demanderApprobation(){
+    if(!syndicat||!exo||!budRow)return;
+    var sujet="APPROBATION REQUISE - Budget "+exo.label;
+    sb.select("tickets",{eq:{syndicat_id:syndicat.id,categorie:"approbation"},limit:200}).then(function(r){
+      var ouvert=((r&&r.data)||[]).find(function(t){return t.sujet===sujet&&(t.statut==="nouveau"||t.statut==="en_cours");});
+      if(ouvert){setMsg("La requete d approbation de ce budget est deja envoyee (ticket ouvert).");setTimeout(function(){setMsg("");},5000);return;}
+      sb.insert("tickets",{syndicat_id:syndicat.id,unite:"",sujet:sujet,
+        description:"Le budget "+exo.label+" est en brouillon et attend l approbation de TOUS les membres du CA. Cotisations annuelles calculees: "+cotisationsAnnuelles.toFixed(2)+" $ ("+money(cotisationsAnnuelles/12)+" par mois). Chaque membre doit approuver dans Finances - Comptabilite - Budget et cotisations.",
+        statut:"nouveau",priorite:"haute",categorie:"approbation",
+        assigne_nom:"Tous les membres du CA",assigne_type:"ca_tous",
+        assigne_courriel:membresCA.map(function(m){return m.courriel;}).filter(Boolean).join(", ").substring(0,300)
+      }).then(function(r2){
+        if(r2&&r2.data&&r2.data.id){setMsg("Requete d approbation ENVOYEE aux membres du CA - elle apparait dans Requetes et le CRM.");sb.log("budget","approbation","Requete d approbation du budget "+exo.debut+" envoyee au CA","",syndicat.code||"");}
+        else setErr("ECHEC de l envoi de la requete"+((r2&&r2.error&&r2.error.message)?" ("+r2.error.message+")":"")+".");
+        setTimeout(function(){setMsg("");},6000);
+      });
+    }).catch(function(e){setErr("Erreur: "+(e&&e.message?e.message:""));});
+  }
+
+  function fermerRequeteApprobation(){
+    var sujet="APPROBATION REQUISE - Budget "+(exo?exo.label:"");
+    sb.select("tickets",{eq:{syndicat_id:syndicat.id,categorie:"approbation"},limit:200}).then(function(r){
+      ((r&&r.data)||[]).filter(function(t){return t.sujet===sujet&&(t.statut==="nouveau"||t.statut==="en_cours");}).forEach(function(t){
+        sb.update("tickets",t.id,{statut:"resolu",reponse:"Budget approuve par tous les membres du CA.",date_reponse:new Date().toISOString(),date_resolution:new Date().toISOString()}).catch(function(){});
+      });
+    }).catch(function(){});
+  }
+
   // Le budget doit etre approuve par TOUS les membres actifs du CA avant de confirmer
   // les cotisations. Chaque membre approuve a son tour; le statut passe a APPROUVE
   // seulement quand tout le monde a approuve.
@@ -487,6 +517,7 @@ function TabBudget(p){
       if(rb&&rb.error){setErr("ECHEC de l approbation: "+(rb.error.message||""));return;}
       if(rb&&rb.data)setBudRow(rb.data);
       setApprouvant("");
+      if(complet)fermerRequeteApprobation();
       setMsg(complet
         ?"Budget "+exo.label+" APPROUVE par TOUS les membres du CA ("+liste.length+"/"+nomsCA.length+") - vous pouvez appliquer les cotisations."
         :"Approbation de "+approuvant+" enregistree ("+liste.length+"/"+nomsCA.length+" membres) - il manque: "+nomsCA.filter(function(n){return !liste.some(function(a){return a.nom===n;});}).join(", ")+".");
@@ -550,7 +581,8 @@ function TabBudget(p){
                 <span style={{fontSize:12,fontWeight:800,color:T.amber}}>{budRow?"BUDGET EN BROUILLON - approbation de TOUS les membres du CA requise ("+approbations.length+"/"+nomsCA.length+")":"Aucun budget sauvegarde pour cet exercice"}</span>
               )}
               {budRow&&!approuveTotal&&(
-                <span style={{display:"flex",gap:8,alignItems:"center",marginLeft:"auto"}}>
+                <span style={{display:"flex",gap:8,alignItems:"center",marginLeft:"auto",flexWrap:"wrap"}}>
+                  <Btn sm bg={T.navy} onClick={demanderApprobation}>Demander l approbation (requete au CA)</Btn>
                   <select value={approuvant} onChange={function(e){setApprouvant(e.target.value);}} style={Object.assign({},INP,{width:230})}>
                     <option value="">Membre du CA qui approuve...</option>
                     {membresCA.map(function(m){var n=((m.prenom||"")+" "+(m.nom||"")).trim();return approbations.some(function(a){return a.nom===n;})?null:<option key={m.id} value={n}>{n}{m.role_ca?" ("+m.role_ca+")":""}</option>;})}

@@ -561,6 +561,14 @@ export default function GestionFactures(){
       }else{
         setFactures(function(prev){return [res.data].concat(prev);});
         sb.log("factures","ajout","Facture ajoutee: "+nf.fournisseur_nom+" - "+nf.total+" $","GL: "+glFinal,sel.code||"");
+        // DEMANDE D APPROBATION: la facture en attente cree une REQUETE assignee au CA
+        if(row.statut==="en_attente_approbation"){
+          sb.insert("tickets",{syndicat_id:sel.id,unite:"",
+            sujet:"APPROBATION REQUISE - Facture "+(nf.fournisseur_nom||"")+" "+(parseFloat(nf.total)||0).toFixed(2)+" $",
+            description:"Une facture attend l approbation du CA ("+(row.nb_approbations_requises||1)+" approbation(s) requise(s)). Fournisseur: "+(nf.fournisseur_nom||"")+(nf.no_facture?" #"+nf.no_facture:"")+". Approuvez dans Finances - Payables - Factures. ref:"+res.data.id,
+            statut:"nouveau",priorite:"haute",categorie:"approbation",
+            assigne_nom:"Tous les membres du CA",assigne_type:"ca_tous",assigne_courriel:""}).catch(function(){});
+        }
         // FACTURATION AU COPROPRIETAIRE: cree immediatement les factures des unites choisies
         if((nf.refact_unites||[]).length>0){
           var uIds=nf.refact_unites;
@@ -630,6 +638,14 @@ export default function GestionFactures(){
   function updateStatut(id, statut){
     setFactures(function(prev){return prev.map(function(f){return f.id===id?Object.assign({},f,{statut:statut}):f;});});
     setFactureAppro(null);
+    // Ferme la requete d approbation liee a cette facture quand la decision est prise
+    if(statut==="approuvee"||statut==="rejetee"){
+      sb.select("tickets",{eq:{syndicat_id:sel.id,categorie:"approbation"},limit:200}).then(function(r){
+        ((r&&r.data)||[]).filter(function(t){return (t.description||"").indexOf("ref:"+id)>=0&&(t.statut==="nouveau"||t.statut==="en_cours");}).forEach(function(t){
+          sb.update("tickets",t.id,{statut:"resolu",reponse:"Facture "+(statut==="approuvee"?"APPROUVEE":"REJETEE")+" par le CA.",date_reponse:new Date().toISOString(),date_resolution:new Date().toISOString()}).catch(function(){});
+        });
+      }).catch(function(){});
+    }
   }
 
   var filtrees=factures.filter(function(f){return filtreStatut==="toutes"||f.statut===filtreStatut;});
