@@ -214,7 +214,7 @@ function Tableau(p){
           </div>
         )}
 
-        {ong==="tickets"&&<TabTickets copro={copro} tickets={tickets} setTickets={setTickets} onSubmit={soumettreTicket}/>}
+        {ong==="tickets"&&<TabTickets copro={copro} syndic={syndic} tickets={tickets} setTickets={setTickets} onSubmit={soumettreTicket}/>}
 
         {ong==="docs"&&(
           <div>
@@ -300,12 +300,239 @@ function Tableau(p){
   );
 }
 
+// Types de travaux du formulaire d autorisation (modele generique Predictek)
+var NATURES_TRAVAUX=[
+  {k:"entrepreneurs",l:"Travaux qui necessitent un ou des entrepreneurs"},
+  {k:"interieur",l:"Travaux d amelioration interieure"},
+  {k:"structure",l:"Travaux qui affectent la structure, les murs exterieurs et/ou la toiture"},
+  {k:"communes",l:"Travaux qui affectent les parties communes (terrains, arbres, rue privee)"},
+  {k:"cheminee",l:"Travaux qui touchent la cheminee"},
+  {k:"communes_restreint",l:"Travaux qui affectent les parties communes a usage restreint (balcon, trottoir, stationnement)"},
+  {k:"plomberie",l:"Travaux qui touchent la plomberie"},
+  {k:"electricite",l:"Travaux qui touchent le circuit electrique"},
+  {k:"plafond",l:"Travaux qui touchent le plafond, la ventilation et/ou les murs"},
+  {k:"permis",l:"Travaux qui necessitent un permis"}
+];
+
+// Impression du formulaire officiel, aux couleurs de l entreprise (logo) et du syndicat
+function imprimerDemandeTravaux(t,syndic){
+  var d=(t.donnees&&typeof t.donnees==="object")?t.donnees:{};
+  var logo="";try{logo=localStorage.getItem("predictek_logo")||"";}catch(e){}
+  var natures=(d.natures||[]).map(function(k){var n=NATURES_TRAVAUX.find(function(x){return x.k===k;});return n?n.l:k;});
+  var lg=function(v){return (v||"").replace(/</g,"&lt;");};
+  var ligne=function(lbl,val){return "<tr><td class='l'>"+lbl+"</td><td class='v'>"+lg(val)+"</td></tr>";};
+  var statutTxt=t.statut==="resolu"||t.statut==="ferme"?"COMPLETEE":"EN COURS";
+  var w=window.open("","_blank");
+  if(!w)return;
+  w.document.write("<html><head><title>Demande d autorisation de travaux</title><style>"
+    +"body{font-family:Georgia,serif;color:#1C1A17;margin:36px;font-size:12px}"
+    +".ent{display:flex;align-items:center;gap:14px;border-bottom:3px solid #1B5E3B;padding-bottom:12px;margin-bottom:6px}"
+    +".ent img{height:52px}"
+    +".ent .t1{font-size:19px;font-weight:bold;color:#13233A}"
+    +".ent .t2{font-size:12px;color:#555}"
+    +".syn{font-size:13px;font-weight:bold;color:#1B5E3B;margin:8px 0 14px}"
+    +"h2{font-size:13px;background:#13233A;color:#fff;padding:6px 10px;border-radius:4px;margin:16px 0 6px}"
+    +"table{width:100%;border-collapse:collapse}"
+    +"td{border:1px solid #bbb;padding:6px 8px;vertical-align:top}"
+    +"td.l{width:38%;background:#F5F3EE;font-weight:bold}"
+    +".intro{background:#FEF3E2;border:1px solid #B86020;border-radius:6px;padding:9px 12px;font-size:11px;line-height:1.6}"
+    +".eng{border:1px solid #bbb;border-radius:6px;padding:10px 12px;font-size:11px;line-height:1.7;margin-top:6px}"
+    +"ul{margin:4px 0;padding-left:20px}li{margin-bottom:3px}"
+    +".statut{float:right;font-size:11px;font-weight:bold;padding:3px 12px;border-radius:14px;border:2px solid "+(statutTxt==="COMPLETEE"?"#1B5E3B;color:#1B5E3B":"#B86020;color:#B86020")+"}"
+    +"</style></head><body>"
+    +"<div class='ent'>"+(logo?"<img src='"+logo+"'/>":"")+"<div><div class='t1'>Predictek</div><div class='t2'>Gestion de copropriete</div></div><div style='flex:1'></div><span class='statut'>"+statutTxt+"</span></div>"
+    +"<div class='syn'>Syndicat: "+lg(syndic&&syndic.nom?syndic.nom:"")+(syndic&&syndic.adr?" - "+lg(syndic.adr)+(syndic.ville?", "+lg(syndic.ville):""):"")+"</div>"
+    +"<div style='font-size:16px;font-weight:bold;margin-bottom:8px'>DEMANDE D AUTORISATION DE TRAVAUX</div>"
+    +"<div class='intro'>Avant de commencer les travaux, l autorisation du conseil d administration est obligatoire. Des travaux realises sans autorisation peuvent etre sanctionnes et la remise en etat des lieux peut etre exigee aux frais du coproprietaire. Les renseignements de ce formulaire demeurent confidentiels; seuls les administrateurs du syndicat y ont acces. Tout changement a la demande initiale doit etre signale aux administrateurs.</div>"
+    +"<h2>1. Renseignements sur le coproprietaire</h2><table>"
+    +ligne("Nom du coproprietaire requerant",d.nom)
+    +ligne("Adresse / unite",d.unite)
+    +ligne("Telephone",d.telephone)
+    +ligne("Date de la demande",d.dateDemande)
+    +ligne("Travaux relies a une urgence?",d.urgence?"OUI":"Non")
+    +"</table>"
+    +"<h2>2. Renseignements sur les entrepreneurs (si applicable)</h2><table>"
+    +ligne("Nom de ou des entrepreneurs",d.entNom)
+    +ligne("Numero de licence RBQ",d.entRBQ)
+    +ligne("Personne contact",d.entContact)
+    +ligne("Telephone",d.entTel)
+    +ligne("Courriel",d.entCourriel)
+    +ligne("Police d assurance responsabilite civile",d.pieceAssurance?"Fournie (piece jointe au dossier)":"Non fournie")
+    +ligne("Devis",d.pieceDevis?"Fourni (piece jointe au dossier)":"Non fourni")
+    +"</table>"
+    +"<h2>3. Nature des travaux</h2>"
+    +(natures.length?"<ul>"+natures.map(function(n){return "<li>"+lg(n)+"</li>";}).join("")+"</ul>":"<div style='color:#777'>Aucune categorie cochee</div>")
+    +"<h2>4. Description et calendrier</h2><table>"
+    +ligne("Description detaillee (lieux, pieces, materiaux, impact sur le batiment)",d.description)
+    +ligne("Impact sur les autres coproprietaires et mesures d attenuation",d.impact)
+    +ligne("Date prevue - debut des travaux",d.dateDebut)
+    +ligne("Date prevue - fin des travaux",d.dateFin)
+    +"</table>"
+    +"<h2>5. Engagement du coproprietaire</h2>"
+    +"<div class='eng'>Je serai tenu responsable de tout dommage cause par mes entrepreneurs aux parties communes de l immeuble et je verrai a ce que les lieux communs soient laisses propres apres chaque journee de travail. Je m engage a permettre au representant du syndicat d inspecter les travaux realises. Si le syndicat le juge necessaire, je fournirai une expertise independante confirmant que les travaux respectent la declaration de copropriete (notamment pour l insonorisation). Je certifie que mes assurances personnelles couvrent les dommages en cas de sinistre.</div>"
+    +"<table style='margin-top:10px'>"+ligne("Signature du coproprietaire (nom en lettres moulees)",d.signature)+ligne("Date",d.dateDemande)+"</table>"
+    +(t.reponse?"<h2>Decision du syndicat</h2><div class='eng'>"+lg(t.reponse)+(t.date_reponse?"<br/><b>Date: "+t.date_reponse.substring(0,10)+"</b>":"")+"</div>":"")
+    +"<div style='margin-top:18px;font-size:10px;color:#777'>Genere par Predictek - "+new Date().toLocaleDateString("fr-CA")+"</div>"
+    +"</body></html>");
+  w.document.close();
+  setTimeout(function(){w.print();},400);
+}
+
+// Formulaire complet de demande d autorisation de travaux (portail coproprietaire)
+function FormTravaux(p){
+  var copro=p.copro;
+  var s0=useState({nom:((copro.prenom||"")+" "+(copro.nom||"")).trim(),unite:copro.unite||"",telephone:copro.telephone||copro.cellulaire||"",dateDemande:new Date().toISOString().substring(0,10),urgence:false,entNom:"",entRBQ:"",entContact:"",entTel:"",entCourriel:"",natures:[],description:"",impact:"",dateDebut:"",dateFin:"",signature:"",engage:false});
+  var f=s0[0];var setF=s0[1];
+  var s1=useState(null);var fAss=s1[0];var setFAss=s1[1];
+  var s2=useState(null);var fDevis=s2[0];var setFDevis=s2[1];
+  var s3=useState("");var msg=s3[0];var setMsg=s3[1];
+  var s4=useState(false);var envoi=s4[0];var setEnvoi=s4[1];
+  function sf(k,v){setF(function(o){var n=Object.assign({},o);n[k]=v;return n;});}
+  function toggleNature(k){setF(function(o){var n=Object.assign({},o);n.natures=o.natures.indexOf(k)>=0?o.natures.filter(function(x){return x!==k;}):o.natures.concat([k]);return n;});}
+
+  function soumettre(){
+    if(!f.description.trim()){setMsg("ECHEC: decrivez les travaux (section Description).");return;}
+    if(f.natures.length===0){setMsg("ECHEC: cochez au moins une nature de travaux.");return;}
+    if(!f.engage||!f.signature.trim()){setMsg("ECHEC: cochez l engagement et inscrivez votre nom en guise de signature.");return;}
+    setEnvoi(true);setMsg("Envoi de la demande en cours...");
+    var donnees=Object.assign({},f);
+    var etapes=Promise.resolve();
+    if(fAss){
+      var extA=(fAss.name.match(/\.[a-zA-Z0-9]+$/)||[".pdf"])[0];
+      var chA=copro.syndicat_id+"/travaux/"+copro.id+"-assurance-"+Date.now()+extA;
+      etapes=etapes.then(function(){return sb.uploadFichier("preuves",chA,fAss).then(function(up){if(up&&up.chemin)donnees.pieceAssurance=chA;});});
+    }
+    if(fDevis){
+      var extD=(fDevis.name.match(/\.[a-zA-Z0-9]+$/)||[".pdf"])[0];
+      var chD=copro.syndicat_id+"/travaux/"+copro.id+"-devis-"+Date.now()+extD;
+      etapes=etapes.then(function(){return sb.uploadFichier("preuves",chD,fDevis).then(function(up){if(up&&up.chemin)donnees.pieceDevis=chD;});});
+    }
+    etapes.then(function(){
+      return sb.insert("tickets",{
+        coproprietaire_id:copro.id,syndicat_id:copro.syndicat_id,unite:copro.unite,
+        sujet:"Demande d autorisation de travaux - unite "+(copro.unite||""),
+        description:"Formulaire officiel soumis via le portail. "+f.description.substring(0,300),
+        statut:"nouveau",priorite:f.urgence?"urgente":"normale",
+        categorie:"travaux",donnees:donnees
+      });
+    }).then(function(r){
+      setEnvoi(false);
+      if(r&&r.data&&r.data.id){p.onCree(r.data);}
+      else setMsg("ECHEC de l envoi de la demande"+((r&&r.error&&r.error.message)?" ("+r.error.message+")":"")+". Rien n a ete enregistre.");
+    }).catch(function(e){setEnvoi(false);setMsg("ECHEC: "+(e&&e.message?e.message:"erreur reseau"));});
+  }
+
+  var SEC={background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:16,marginBottom:12};
+  var TIT={fontSize:12,fontWeight:800,color:"#fff",background:T.navy,borderRadius:6,padding:"5px 10px",marginBottom:12,display:"inline-block"};
+  var LBL={fontSize:10,color:T.muted,fontWeight:600,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.05em"};
+
+  return(
+    <div style={{marginBottom:16}}>
+      <div style={{background:T.amberL,border:"1px solid #B8602055",borderRadius:10,padding:"10px 14px",fontSize:11,color:"#B86020",lineHeight:1.6,marginBottom:12}}>
+        <b>Important:</b> l autorisation du conseil d administration est obligatoire AVANT de commencer les travaux.
+        Des travaux realises sans autorisation peuvent etre sanctionnes et la remise en etat peut etre exigee a vos frais.
+        Vos renseignements demeurent confidentiels (administrateurs seulement).
+      </div>
+
+      <div style={SEC}>
+        <div style={TIT}>1. Renseignements sur le coproprietaire</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <div><div style={LBL}>Nom du requerant</div><input value={f.nom} onChange={function(e){sf("nom",e.target.value);}} style={INP}/></div>
+          <div><div style={LBL}>Unite / adresse</div><input value={f.unite} onChange={function(e){sf("unite",e.target.value);}} style={INP}/></div>
+          <div><div style={LBL}>Telephone</div><input value={f.telephone} onChange={function(e){sf("telephone",e.target.value);}} style={INP}/></div>
+          <div><div style={LBL}>Date de la demande</div><input type="date" value={f.dateDemande} onChange={function(e){sf("dateDemande",e.target.value);}} style={INP}/></div>
+        </div>
+        <label style={{display:"flex",alignItems:"center",gap:8,marginTop:10,fontSize:12,cursor:"pointer"}}>
+          <input type="checkbox" checked={f.urgence} onChange={function(e){sf("urgence",e.target.checked);}}/>
+          Ces travaux sont relies a une <b>urgence</b>
+        </label>
+      </div>
+
+      <div style={SEC}>
+        <div style={TIT}>2. Entrepreneurs (si applicable)</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <div><div style={LBL}>Nom de ou des entrepreneurs</div><input value={f.entNom} onChange={function(e){sf("entNom",e.target.value);}} style={INP}/></div>
+          <div><div style={LBL}>Licence RBQ (si applicable)</div><input value={f.entRBQ} onChange={function(e){sf("entRBQ",e.target.value);}} style={INP}/></div>
+          <div><div style={LBL}>Personne contact</div><input value={f.entContact} onChange={function(e){sf("entContact",e.target.value);}} style={INP}/></div>
+          <div><div style={LBL}>Telephone</div><input value={f.entTel} onChange={function(e){sf("entTel",e.target.value);}} style={INP}/></div>
+          <div><div style={LBL}>Courriel</div><input value={f.entCourriel} onChange={function(e){sf("entCourriel",e.target.value);}} style={INP}/></div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginTop:10}}>
+          <div>
+            <div style={LBL}>Police d assurance resp. civile de l entrepreneur (PDF/photo)</div>
+            <input type="file" accept=".pdf,image/*" onChange={function(e){setFAss(e.target.files&&e.target.files[0]?e.target.files[0]:null);}} style={{fontSize:11,fontFamily:"inherit"}}/>
+          </div>
+          <div>
+            <div style={LBL}>Devis (PDF/photo)</div>
+            <input type="file" accept=".pdf,image/*" onChange={function(e){setFDevis(e.target.files&&e.target.files[0]?e.target.files[0]:null);}} style={{fontSize:11,fontFamily:"inherit"}}/>
+          </div>
+        </div>
+      </div>
+
+      <div style={SEC}>
+        <div style={TIT}>3. Nature des travaux (cochez tout ce qui s applique)</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+          {NATURES_TRAVAUX.map(function(n){return(
+            <label key={n.k} style={{display:"flex",alignItems:"flex-start",gap:8,fontSize:11,cursor:"pointer",padding:"4px 0"}}>
+              <input type="checkbox" checked={f.natures.indexOf(n.k)>=0} onChange={function(){toggleNature(n.k);}} style={{marginTop:2}}/>
+              {n.l}
+            </label>
+          );})}
+        </div>
+      </div>
+
+      <div style={SEC}>
+        <div style={TIT}>4. Description et calendrier</div>
+        <div style={{marginBottom:10}}>
+          <div style={LBL}>Description detaillee (lieux, pieces, impact sur le batiment, materiaux utilises...)</div>
+          <textarea value={f.description} onChange={function(e){sf("description",e.target.value);}} rows={4} style={Object.assign({},INP,{resize:"vertical"})} placeholder="Le plus de details possible. Photos, croquis ou instructions: joignez-les en pieces jointes ci-dessus."/>
+        </div>
+        <div style={{marginBottom:10}}>
+          <div style={LBL}>Impact sur les autres coproprietaires et mesures pour reduire le desagrement</div>
+          <textarea value={f.impact} onChange={function(e){sf("impact",e.target.value);}} rows={3} style={Object.assign({},INP,{resize:"vertical"})}/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <div><div style={LBL}>Date prevue - debut des travaux</div><input type="date" value={f.dateDebut} onChange={function(e){sf("dateDebut",e.target.value);}} style={INP}/></div>
+          <div><div style={LBL}>Date prevue - fin des travaux</div><input type="date" value={f.dateFin} onChange={function(e){sf("dateFin",e.target.value);}} style={INP}/></div>
+        </div>
+      </div>
+
+      <div style={SEC}>
+        <div style={TIT}>5. Engagement</div>
+        <div style={{fontSize:11,color:T.muted,lineHeight:1.7,marginBottom:10}}>
+          Je serai tenu responsable de tout dommage cause par mes entrepreneurs aux parties communes et je verrai
+          a ce que les lieux communs soient laisses propres apres chaque journee de travail. Je m engage a permettre
+          au representant du syndicat d inspecter les travaux. Si le syndicat le juge necessaire, je fournirai une
+          expertise independante confirmant le respect de la declaration de copropriete (notamment l insonorisation).
+          Je certifie que mes assurances personnelles couvrent les dommages en cas de sinistre.
+        </div>
+        <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12,cursor:"pointer",marginBottom:10}}>
+          <input type="checkbox" checked={f.engage} onChange={function(e){sf("engage",e.target.checked);}}/>
+          <b>J ai lu et j accepte cet engagement</b>
+        </label>
+        <div style={{maxWidth:340}}>
+          <div style={LBL}>Signature (votre nom en lettres moulees)</div>
+          <input value={f.signature} onChange={function(e){sf("signature",e.target.value);}} style={INP} placeholder="Ex: JEAN TREMBLAY"/>
+        </div>
+      </div>
+
+      {msg&&<div style={{background:msg.indexOf("ECHEC")===0?T.redL:T.blueL,borderRadius:8,padding:"9px 13px",fontSize:12,fontWeight:700,color:msg.indexOf("ECHEC")===0?T.red:T.blue,marginBottom:10}}>{msg}</div>}
+      <div style={{display:"flex",gap:8}}>
+        <Btn onClick={soumettre} dis={envoi}>{envoi?"Envoi en cours...":"Soumettre ma demande d autorisation"}</Btn>
+        <Btn onClick={p.onAnnuler} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} dis={envoi}>Annuler</Btn>
+      </div>
+    </div>
+  );
+}
+
 function TabTickets(p){
   var copro=p.copro;var tickets=p.tickets;var setTickets=p.setTickets;
   var s0=useState(false);var showN=s0[0];var setShowN=s0[1];
   var s1=useState("");var sujet=s1[0];var setSujet=s1[1];
   var s2=useState("");var desc=s2[0];var setDesc=s2[1];
   var s3=useState("normale");var prio=s3[0];var setPrio=s3[1];
+  var s4=useState(false);var showT=s4[0];var setShowT=s4[1];
+  var s5=useState("");var msgT=s5[0];var setMsgT=s5[1];
 
   function soumettre(){
     if(!sujet.trim())return;
@@ -317,10 +544,19 @@ function TabTickets(p){
 
   return(
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
         <div style={{fontSize:14,fontWeight:700,color:T.navy}}>Mes demandes</div>
-        <Btn onClick={function(){setShowN(true);}}>+ Nouvelle demande</Btn>
+        <div style={{display:"flex",gap:8}}>
+          <Btn bg={T.navy} onClick={function(){setShowT(true);setShowN(false);setMsgT("");}}>+ Autorisation de travaux</Btn>
+          <Btn onClick={function(){setShowN(true);setShowT(false);}}>+ Nouvelle demande</Btn>
+        </div>
       </div>
+      {msgT&&<div style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:8,padding:"9px 13px",fontSize:12,fontWeight:700,color:T.accent,marginBottom:12}}>{msgT}</div>}
+      {showT&&<FormTravaux copro={copro} onAnnuler={function(){setShowT(false);}} onCree={function(tk){
+        setTickets(function(prev){return [tk].concat(prev);});
+        setShowT(false);
+        setMsgT("Demande d autorisation de travaux soumise. Le conseil d administration l etudiera; suivez son statut ici.");
+      }}/>}
       {showN&&(
         <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:16,marginBottom:16}}>
           <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:12}}>Nouvelle demande</div>
@@ -346,12 +582,24 @@ function TabTickets(p){
           </div>
         </div>
       )}
-      {tickets.length===0&&!showN&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucune demande - cliquez "+ Nouvelle demande"</div>}
-      {tickets.map(function(t){return(
-        <div key={t.id} style={{padding:"14px 16px",background:T.surface,border:"1px solid "+T.border,borderRadius:10,marginBottom:8}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-            <div style={{fontSize:12,fontWeight:700,color:T.navy,flex:1}}>{t.sujet}</div>
-            <Badge s={t.statut} l={t.statut==="nouveau"?"Nouveau":t.statut==="en_cours"?"En cours":t.statut==="ferme"?"Ferme":"Resolu"}/>
+      {tickets.length===0&&!showN&&!showT&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucune demande - cliquez "+ Nouvelle demande" ou "+ Autorisation de travaux"</div>}
+      {tickets.map(function(t){
+        var complete=t.statut==="resolu"||t.statut==="ferme";
+        var travaux=t.categorie==="travaux";
+        var dateFin=t.date_resolution||t.date_reponse;
+        return(
+        <div key={t.id} style={{padding:"14px 16px",background:T.surface,border:"1px solid "+(travaux?"#13233A55":T.border),borderRadius:10,marginBottom:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6,gap:8,flexWrap:"wrap"}}>
+            <div style={{fontSize:12,fontWeight:700,color:T.navy,flex:1,minWidth:200}}>
+              {travaux&&<span style={{background:T.navy,color:"#fff",borderRadius:5,padding:"1px 8px",fontSize:9,fontWeight:800,marginRight:7,verticalAlign:"middle"}}>TRAVAUX</span>}
+              {t.sujet}
+            </div>
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              <span style={{background:complete?"#D4EDDA":T.amberL,color:complete?"#155724":"#B86020",borderRadius:20,padding:"2px 12px",fontSize:10,fontWeight:800}}>
+                {complete?"COMPLETEE"+(dateFin?" le "+String(dateFin).substring(0,10):""):"EN COURS"}
+              </span>
+              {travaux&&<Btn sm bg={T.alt} tc={T.navy} bdr={"1px solid "+T.border} onClick={function(){imprimerDemandeTravaux(t,p.syndic);}}>Imprimer</Btn>}
+            </div>
           </div>
           {t.description&&<div style={{fontSize:11,color:T.muted}}>{t.description}</div>}
           {t.reponse&&(

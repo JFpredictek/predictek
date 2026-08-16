@@ -17,6 +17,83 @@ var STATUTS=[
   {id:"ferme",l:"FERME",c:"#7C7568",bg:"#EDEBE4"}
 ];
 var PRIORITES={urgente:{l:"URGENTE",c:"#B83232",bg:"#FDECEA"},haute:{l:"HAUTE",c:"#B86020",bg:"#FEF3E2"},normale:{l:"Normale",c:"#1A56DB",bg:"#EFF6FF"},basse:{l:"Basse",c:"#7C7568",bg:"#EDEBE4"}};
+
+// Formulaire d autorisation de travaux (memes cles que le portail coproprietaire)
+var NATURES_TRAVAUX=[
+  {k:"entrepreneurs",l:"Travaux qui necessitent un ou des entrepreneurs"},
+  {k:"interieur",l:"Travaux d amelioration interieure"},
+  {k:"structure",l:"Travaux qui affectent la structure, les murs exterieurs et/ou la toiture"},
+  {k:"communes",l:"Travaux qui affectent les parties communes (terrains, arbres, rue privee)"},
+  {k:"cheminee",l:"Travaux qui touchent la cheminee"},
+  {k:"communes_restreint",l:"Travaux qui affectent les parties communes a usage restreint (balcon, trottoir, stationnement)"},
+  {k:"plomberie",l:"Travaux qui touchent la plomberie"},
+  {k:"electricite",l:"Travaux qui touchent le circuit electrique"},
+  {k:"plafond",l:"Travaux qui touchent le plafond, la ventilation et/ou les murs"},
+  {k:"permis",l:"Travaux qui necessitent un permis"}
+];
+
+function imprimerDemandeTravaux(t,syndic){
+  var d=(t.donnees&&typeof t.donnees==="object")?t.donnees:{};
+  var logo="";try{logo=localStorage.getItem("predictek_logo")||"";}catch(e){}
+  var natures=(d.natures||[]).map(function(k){var n=NATURES_TRAVAUX.find(function(x){return x.k===k;});return n?n.l:k;});
+  var lg=function(v){return (v||"").replace(/</g,"&lt;");};
+  var ligne=function(lbl,val){return "<tr><td class='l'>"+lbl+"</td><td class='v'>"+lg(val)+"</td></tr>";};
+  var statutTxt=t.statut==="resolu"||t.statut==="ferme"?"COMPLETEE":"EN COURS";
+  var w=window.open("","_blank");
+  if(!w)return;
+  w.document.write("<html><head><title>Demande d autorisation de travaux</title><style>"
+    +"body{font-family:Georgia,serif;color:#1C1A17;margin:36px;font-size:12px}"
+    +".ent{display:flex;align-items:center;gap:14px;border-bottom:3px solid #1B5E3B;padding-bottom:12px;margin-bottom:6px}"
+    +".ent img{height:52px}"
+    +".ent .t1{font-size:19px;font-weight:bold;color:#13233A}"
+    +".ent .t2{font-size:12px;color:#555}"
+    +".syn{font-size:13px;font-weight:bold;color:#1B5E3B;margin:8px 0 14px}"
+    +"h2{font-size:13px;background:#13233A;color:#fff;padding:6px 10px;border-radius:4px;margin:16px 0 6px}"
+    +"table{width:100%;border-collapse:collapse}"
+    +"td{border:1px solid #bbb;padding:6px 8px;vertical-align:top}"
+    +"td.l{width:38%;background:#F5F3EE;font-weight:bold}"
+    +".intro{background:#FEF3E2;border:1px solid #B86020;border-radius:6px;padding:9px 12px;font-size:11px;line-height:1.6}"
+    +".eng{border:1px solid #bbb;border-radius:6px;padding:10px 12px;font-size:11px;line-height:1.7;margin-top:6px}"
+    +"ul{margin:4px 0;padding-left:20px}li{margin-bottom:3px}"
+    +".statut{float:right;font-size:11px;font-weight:bold;padding:3px 12px;border-radius:14px;border:2px solid "+(statutTxt==="COMPLETEE"?"#1B5E3B;color:#1B5E3B":"#B86020;color:#B86020")+"}"
+    +"</style></head><body>"
+    +"<div class='ent'>"+(logo?"<img src='"+logo+"'/>":"")+"<div><div class='t1'>Predictek</div><div class='t2'>Gestion de copropriete</div></div><div style='flex:1'></div><span class='statut'>"+statutTxt+"</span></div>"
+    +"<div class='syn'>Syndicat: "+lg(syndic&&syndic.nom?syndic.nom:"")+(syndic&&syndic.adr?" - "+lg(syndic.adr)+(syndic.ville?", "+lg(syndic.ville):""):"")+"</div>"
+    +"<div style='font-size:16px;font-weight:bold;margin-bottom:8px'>DEMANDE D AUTORISATION DE TRAVAUX</div>"
+    +"<div class='intro'>Avant de commencer les travaux, l autorisation du conseil d administration est obligatoire. Des travaux realises sans autorisation peuvent etre sanctionnes et la remise en etat des lieux peut etre exigee aux frais du coproprietaire. Les renseignements de ce formulaire demeurent confidentiels; seuls les administrateurs du syndicat y ont acces. Tout changement a la demande initiale doit etre signale aux administrateurs.</div>"
+    +"<h2>1. Renseignements sur le coproprietaire</h2><table>"
+    +ligne("Nom du coproprietaire requerant",d.nom)
+    +ligne("Adresse / unite",d.unite)
+    +ligne("Telephone",d.telephone)
+    +ligne("Date de la demande",d.dateDemande)
+    +ligne("Travaux relies a une urgence?",d.urgence?"OUI":"Non")
+    +"</table>"
+    +"<h2>2. Renseignements sur les entrepreneurs (si applicable)</h2><table>"
+    +ligne("Nom de ou des entrepreneurs",d.entNom)
+    +ligne("Numero de licence RBQ",d.entRBQ)
+    +ligne("Personne contact",d.entContact)
+    +ligne("Telephone",d.entTel)
+    +ligne("Courriel",d.entCourriel)
+    +ligne("Police d assurance responsabilite civile",d.pieceAssurance?"Fournie (piece jointe au dossier)":"Non fournie")
+    +ligne("Devis",d.pieceDevis?"Fourni (piece jointe au dossier)":"Non fourni")
+    +"</table>"
+    +"<h2>3. Nature des travaux</h2>"
+    +(natures.length?"<ul>"+natures.map(function(n){return "<li>"+lg(n)+"</li>";}).join("")+"</ul>":"<div style='color:#777'>Aucune categorie cochee</div>")
+    +"<h2>4. Description et calendrier</h2><table>"
+    +ligne("Description detaillee (lieux, pieces, materiaux, impact sur le batiment)",d.description)
+    +ligne("Impact sur les autres coproprietaires et mesures d attenuation",d.impact)
+    +ligne("Date prevue - debut des travaux",d.dateDebut)
+    +ligne("Date prevue - fin des travaux",d.dateFin)
+    +"</table>"
+    +"<h2>5. Engagement du coproprietaire</h2>"
+    +"<div class='eng'>Je serai tenu responsable de tout dommage cause par mes entrepreneurs aux parties communes de l immeuble et je verrai a ce que les lieux communs soient laisses propres apres chaque journee de travail. Je m engage a permettre au representant du syndicat d inspecter les travaux realises. Si le syndicat le juge necessaire, je fournirai une expertise independante confirmant que les travaux respectent la declaration de copropriete (notamment pour l insonorisation). Je certifie que mes assurances personnelles couvrent les dommages en cas de sinistre.</div>"
+    +"<table style='margin-top:10px'>"+ligne("Signature du coproprietaire (nom en lettres moulees)",d.signature)+ligne("Date",d.dateDemande)+"</table>"
+    +(t.reponse?"<h2>Decision du syndicat</h2><div class='eng'>"+lg(t.reponse)+(t.date_reponse?"<br/><b>Date: "+String(t.date_reponse).substring(0,10)+"</b>":"")+"</div>":"")
+    +"<div style='margin-top:18px;font-size:10px;color:#777'>Genere par Predictek - "+new Date().toLocaleDateString("fr-CA")+"</div>"
+    +"</body></html>");
+  w.document.close();
+  setTimeout(function(){w.print();},400);
+}
 function stInfo(s){return STATUTS.find(function(x){return x.id===s;})||STATUTS[0];}
 function prioInfo(pr){return PRIORITES[pr]||PRIORITES.normale;}
 function fmtDate(iso){if(!iso)return "-";try{return new Date(iso).toLocaleString("fr-CA",{dateStyle:"short",timeStyle:"short"});}catch(e){return String(iso).substring(0,10);}}
@@ -136,6 +213,36 @@ export default function RequetesCopros(){
               </div>
               {t.description&&<div style={{background:T.alt,borderRadius:8,padding:12,fontSize:12,color:T.text,marginBottom:12,whiteSpace:"pre-wrap"}}>{t.description}</div>}
 
+              {t.categorie==="travaux"&&t.donnees&&(function(){
+                var d=typeof t.donnees==="object"?t.donnees:{};
+                var natures=(d.natures||[]).map(function(k){var n=NATURES_TRAVAUX.find(function(x){return x.k===k;});return n?n.l:k;});
+                var L=function(lb,v){return v?<div style={{display:"flex",gap:8,padding:"3px 0",borderBottom:"1px solid #DDD9CF66"}}><span style={{fontSize:10,fontWeight:700,color:T.muted,minWidth:190,textTransform:"uppercase"}}>{lb}</span><span style={{fontSize:12,color:T.text,flex:1}}>{v}</span></div>:null;};
+                return(
+                  <div style={{background:"#F8F7F3",border:"1px solid "+T.navy+"33",borderRadius:10,padding:14,marginBottom:12}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                      <div style={{fontSize:11,fontWeight:800,color:T.navy,textTransform:"uppercase"}}>Formulaire - Demande d autorisation de travaux</div>
+                      <Btn sm bg={T.navy} onClick={function(){imprimerDemandeTravaux(t,sel);}}>Imprimer le formulaire</Btn>
+                    </div>
+                    {L("Requerant",d.nom)}
+                    {L("Telephone",d.telephone)}
+                    {L("Urgence",d.urgence?"OUI":"Non")}
+                    {L("Entrepreneur(s)",d.entNom)}
+                    {L("Licence RBQ",d.entRBQ)}
+                    {L("Contact entrepreneur",[d.entContact,d.entTel,d.entCourriel].filter(Boolean).join(" - "))}
+                    {natures.length>0&&L("Nature des travaux",natures.join("; "))}
+                    {L("Description",d.description)}
+                    {L("Impact / mesures",d.impact)}
+                    {L("Debut prevu",d.dateDebut)}
+                    {L("Fin prevue",d.dateFin)}
+                    {L("Signature",d.signature)}
+                    <div style={{display:"flex",gap:8,marginTop:10,flexWrap:"wrap"}}>
+                      {d.pieceAssurance&&<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){sb.lienFichier("preuves",d.pieceAssurance).then(function(u){if(u)window.open(u,"_blank");else setErr("Impossible d ouvrir la police d assurance.");});}}>Police d assurance de l entrepreneur</Btn>}
+                      {d.pieceDevis&&<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){sb.lienFichier("preuves",d.pieceDevis).then(function(u){if(u)window.open(u,"_blank");else setErr("Impossible d ouvrir le devis.");});}}>Devis de l entrepreneur</Btn>}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {t.reponse&&(
                 <div style={{background:T.blueL,border:"1px solid "+T.blue+"33",borderRadius:8,padding:12,marginBottom:12}}>
                   <div style={{fontSize:10,fontWeight:800,color:T.blue,textTransform:"uppercase",marginBottom:4}}>Reponse du syndicat{t.date_reponse?" - "+fmtDate(t.date_reponse):""}</div>
@@ -174,6 +281,7 @@ export default function RequetesCopros(){
             <div key={t.id} onClick={function(){setDetail(t);setReponse("");window.scrollTo(0,0);}} style={{background:T.surface,border:"1px solid "+T.border,borderLeft:"4px solid "+st.c,borderRadius:10,padding:"12px 16px",marginBottom:8,cursor:"pointer",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
               <span style={{background:st.bg,color:st.c,borderRadius:6,padding:"3px 10px",fontSize:10,fontWeight:800,flexShrink:0}}>{st.l}</span>
               <span style={{background:pr.bg,color:pr.c,borderRadius:6,padding:"3px 10px",fontSize:10,fontWeight:800,flexShrink:0}}>{pr.l}</span>
+              {t.categorie==="travaux"&&<span style={{background:T.navy,color:"#fff",borderRadius:6,padding:"3px 10px",fontSize:10,fontWeight:800,flexShrink:0}}>TRAVAUX</span>}
               <div style={{flex:1,minWidth:220}}>
                 <div style={{fontSize:13,fontWeight:700,color:T.navy}}>{t.sujet}</div>
                 <div style={{fontSize:11,color:T.muted}}>Unite {t.unite||"-"}{c?" - "+((c.prenom||"")+" "+(c.nom||"")).trim():""} - {fmtDate(t.created_at)}</div>
