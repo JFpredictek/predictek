@@ -340,7 +340,9 @@ export default function Unites(){
       sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},limit:20}),
       sb.select("budgets_gl",{eq:{syndicat_id:sel.id},limit:400}),
       sb.select("factures",{eq:{syndicat_id:sel.id},limit:500}),
-      sb.select("budgets",{eq:{syndicat_id:sel.id},limit:10})
+      sb.select("budgets",{eq:{syndicat_id:sel.id},limit:10}),
+      sb.select("comptes_syndicat",{eq:{syndicat_id:sel.id},limit:300}),
+      sb.select("journal",{eq:{syndicat_id:sel.id},limit:2000})
     ]).then(function(rs){
       var paie=(rs[0]&&rs[0].data)||[];
       var speciales=(rs[1]&&rs[1].data)||[];
@@ -351,6 +353,8 @@ export default function Unites(){
       var budGL=(rs[6]&&rs[6].data)||[];
       var factF=(rs[7]&&rs[7].data)||[];
       var budRows=(rs[8]&&rs[8].data)||[];
+      var comptesGL=(rs[9]&&rs[9].data)||[];
+      var journal=(rs[10]&&rs[10].data)||[];
       var auj=new Date().toISOString().substring(0,10);
       var moisCour=auj.substring(0,7);
       var taux=parseFloat(cfg.taux_interet_retard)||0;
@@ -380,6 +384,22 @@ export default function Unites(){
       var payables=factF.filter(function(f){return f.statut!=="payee"&&f.statut!=="annulee"&&f.statut!=="rejetee";}).reduce(function(a,f){return a+(Number(f.total)||Number(f.montant)||0);},0);
       var encaisseExo=paie.filter(function(p){return p.statut==="paye"&&String(p.date_paiement||"")>=debut;}).reduce(function(a,p){return a+Number(p.montant||0);},0);
       var LBLF={operation:"Fonds d operation",prevoyance:"Fonds de prevoyance",assurance:"Fonds d auto-assurance"};
+      // SOLDE COURANT de chaque fonds bancaire: ouverture + revenus - depenses
+      // (meme calcul que la Comptabilite par fonds)
+      var fondsDeGL=function(no){var c=comptesGL.find(function(x){return String(x.no_compte)===String(no);});return (c&&c.fonds)||"operation";};
+      var MAP_TP={cotisation:"4110",speciale:"4130",frais:"4600",infraction:"4620",interets:"4590",refacturation:"4650",autre:"4900"};
+      function soldeFonds(fid,ouverture){
+        var rev=0,dep=0;
+        paie.forEach(function(pm){if(pm.statut!=="paye")return;var no=MAP_TP[pm.type]||"4110";if(fondsDeGL(no)===fid)rev+=Number(pm.montant)||0;});
+        factF.forEach(function(fx){if(fx.statut==="annulee"||fx.statut==="rejetee")return;if(fx.statut!=="payee")return;if(fondsDeGL(fx.no_compte_gl||"5990")===fid)dep+=Number(fx.total)||Number(fx.montant)||0;});
+        journal.forEach(function(j){
+          var cat=(j.categorie||"").toLowerCase();
+          var cible=cat.indexOf("prevoyance")>=0?"prevoyance":cat.indexOf("assurance")>=0?"assurance":"operation";
+          if(cible!==fid)return;
+          dep+=Number(j.montant_debit)||0;rev+=Number(j.montant_credit)||0;
+        });
+        return Math.round((ouverture+rev-dep)*100)/100;
+      }
       var props=propsDe(u);
       var lg=function(v){return String(v==null?"":v).replace(/</g,"&lt;");};
 
@@ -418,11 +438,18 @@ export default function Unites(){
         +"<tr><th>Statut du budget</th><td>"+(budStatut==="approuve"?"APPROUVE par tous les membres du CA":budStatut==="brouillon"?"Brouillon (non approuve)":"Non renseigne")+"</td></tr>"
         +"<tr><th>Charges encaissees depuis le debut de l exercice (tous coproprietaires)</th><td class='right'>"+moneyA(encaisseExo)+"</td></tr>"
         +"<tr><th>Comptes fournisseurs a payer (factures non payees)</th><td class='right'>"+moneyA(payables)+"</td></tr>"
-        +banques.map(function(b){return "<tr><th>"+lg(LBLF[b.fonds]||("Fonds "+(b.fonds||"")))+" - solde d ouverture"+(b.date_solde?" au "+b.date_solde:"")+"</th><td class='right'>"+moneyA(b.solde_ouverture)+"</td></tr>";}).join("")
+        +banques.map(function(b){
+          var ouv=parseFloat(b.solde_ouverture)||0;
+          var courant=soldeFonds(b.fonds,ouv);
+          return "<tr><th>"+lg(LBLF[b.fonds]||("Fonds "+(b.fonds||"")))+" - SOLDE COURANT (ouverture "+moneyA(ouv)+(b.date_solde?" au "+b.date_solde:"")+" + mouvements)"+(b.banque?" - "+lg(b.banque):"")+"</th><td class='right'><b>"+moneyA(courant)+"</b></td></tr>";
+        }).join("")
+        +"<tr><th>Assurance du syndicat - compagnie</th><td>"+lg(sel.ass_syn_compagnie||"non renseignee")+"</td></tr>"
+        +"<tr><th>Assurance du syndicat - no de police</th><td>"+lg(sel.ass_syn_police||"non renseigne")+"</td></tr>"
+        +(sel.ass_syn_montant?"<tr><th>Assurance du syndicat - montant de couverture</th><td>"+lg(sel.ass_syn_montant)+"</td></tr>":"")
         +"<tr><th>Assurance du syndicat - expiration de la police</th><td>"+lg(sel.assurance_syndicat_exp||"non renseignee")+"</td></tr>"
         +"<tr><th>Derniere etude aux fins d assurance</th><td>"+lg(sel.etude_assurance_date||"non renseignee")+(sel.etude_assurance_ans?" (intervalle "+sel.etude_assurance_ans+" ans)":"")+"</td></tr>"
         +"<tr><th>Derniere etude du fonds de prevoyance (Loi 16)</th><td>"+lg(sel.etude_prevoyance_date||"non renseignee")+(sel.etude_prevoyance_ans?" (intervalle "+sel.etude_prevoyance_ans+" ans)":"")+"</td></tr></table>"
-        +"<div class='muted' style='margin-top:8px'>Les soldes des fonds correspondent aux soldes d ouverture configures, ajustes des mouvements enregistres; le detail complet figure dans la comptabilite par fonds du syndicat.</div>"
+        +"<div class='muted' style='margin-top:8px'>Les soldes courants des fonds = solde d ouverture du compte bancaire + encaissements - deboursements enregistres; le detail figure dans la comptabilite par fonds du syndicat.</div>"
         +"<br/><br/><div>_____________________________<br/>Signature d un administrateur ou du gestionnaire<br/><span class='muted'>Atteste en vertu des articles 1068.1 et 1069 C.c.Q., d apres les registres du syndicat en date de ce jour.</span></div>";
       setMsgVente("");
       imprimerAtt("Attestation - unite "+u.no_unite,html);

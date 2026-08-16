@@ -862,6 +862,7 @@ function Onboarding(p){
       nbMembresCA:data.nbMembresCA,membresCA:data.membresCA,admins:data.admins||[],
       courriel:data.courrielCA||"",courrielCA:data.courrielCA,courrielFactures:data.courrielFactures,
       assSyndicatExp:data.assSyndicatExp||null,etudeAssuranceDate:data.etudeAssuranceDate||null,etudePrevoyanceDate:data.etudePrevoyanceDate||null,
+      assSynCompagnie:data.assSynCompagnie||"",assSynPolice:data.assSynPolice||"",assSynMontant:data.assSynMontant||"",
       soldeOp:parseFloat(data.soldeOp)||0,soldePrev:parseFloat(data.soldePrev)||0,soldeAss:parseFloat(data.soldeAss)||0,
       copros:copros,documents:data.documents,composantes:data.composantes,
       statut:"actif",dateCreation:today(),
@@ -1331,7 +1332,10 @@ function Onboarding(p){
                         var d=resp.data||{};
                         if(dtype.cat==="police"&&d.dateExp&&/^\d{4}-\d{2}-\d{2}$/.test(d.dateExp)){
                           sd("assSyndicatExp",d.dateExp);
-                          setDocMsg("Police d assurance: expiration extraite -> "+d.dateExp+(d.compagnie?" ("+d.compagnie+")":""));
+                          if(d.compagnie)sd("assSynCompagnie",d.compagnie);
+                          if(d.police)sd("assSynPolice",d.police);
+                          if(d.montantResponsabilite)sd("assSynMontant",String(d.montantResponsabilite));
+                          setDocMsg("Police d assurance: expiration "+d.dateExp+(d.compagnie?", compagnie "+d.compagnie:"")+(d.police?", police "+d.police:"")+" - conserves pour l attestation.");
                         }else if(dtype.cat==="etude_assurance"&&d.date&&/^\d{4}-\d{2}-\d{2}$/.test(d.date)){
                           sd("etudeAssuranceDate",d.date);
                           setDocMsg("Etude aux fins d assurance: date extraite -> "+d.date+(d.firme?" ("+d.firme+")":"")+". L appel d offres sera planifie selon l intervalle configure.");
@@ -1594,7 +1598,7 @@ export default function Hub(){
       var d=new Date(s);
       return isNaN(d.getTime())?null:d.toISOString().substring(0,10);
     };
-    sb.insert("syndicats",{code:nouveau.code,nom:nouveau.nom,adr:nouveau.adr||"",ville:nouveau.ville||"",province:nouveau.province||"QC",code_postal:nouveau.codePostal||"",immat:nouveau.immat||"",nb_unites:nouveau.nbUnites||0,president:nouveau.president||"",courriel:nouveau.courriel||"",tel:nouveau.tel||"",annee_constitution:parseInt(nouveau.anneeConstruction)||null,quorum_ago:nouveau.quorumAGO||null,type_copro:nouveau.typeCopro||"",exercice:nouveau.exercice||"",reglements_resume:nouveau.reglementsResume||"",assurance_syndicat_exp:nouveau.assSyndicatExp||null,etude_assurance_date:nouveau.etudeAssuranceDate||null,etude_prevoyance_date:nouveau.etudePrevoyanceDate||null,statut:"actif"}).then(function(res){
+    sb.insert("syndicats",{code:nouveau.code,nom:nouveau.nom,adr:nouveau.adr||"",ville:nouveau.ville||"",province:nouveau.province||"QC",code_postal:nouveau.codePostal||"",immat:nouveau.immat||"",nb_unites:nouveau.nbUnites||0,president:nouveau.president||"",courriel:nouveau.courriel||"",tel:nouveau.tel||"",annee_constitution:parseInt(nouveau.anneeConstruction)||null,quorum_ago:nouveau.quorumAGO||null,type_copro:nouveau.typeCopro||"",exercice:nouveau.exercice||"",reglements_resume:nouveau.reglementsResume||"",assurance_syndicat_exp:nouveau.assSyndicatExp||null,etude_assurance_date:nouveau.etudeAssuranceDate||null,etude_prevoyance_date:nouveau.etudePrevoyanceDate||null,ass_syn_compagnie:nouveau.assSynCompagnie||"",ass_syn_police:nouveau.assSynPolice||"",ass_syn_montant:nouveau.assSynMontant||"",statut:"actif"}).then(function(res){
       if(!res||!res.data||!res.data.id){
         var msg=(res&&res.error&&(res.error.message||res.error.hint))||"raison inconnue";
         setErrSync("ECHEC de la sauvegarde du syndicat "+(nouveau.nom||"")+" en base de donnees ("+msg+"). Vos donnees restent dans la sauvegarde locale du navigateur - utilisez le bouton Recuperer ci-dessous apres correction.");

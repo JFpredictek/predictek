@@ -60,7 +60,11 @@ export default function ConfigSyndicat(p){
       etude_assurance_ans:sel.etude_assurance_ans?String(sel.etude_assurance_ans):"5",
       etude_prevoyance_ans:sel.etude_prevoyance_ans?String(sel.etude_prevoyance_ans):"5",
       etude_assurance_date:sel.etude_assurance_date||"",
-      etude_prevoyance_date:sel.etude_prevoyance_date||""
+      etude_prevoyance_date:sel.etude_prevoyance_date||"",
+      ass_syn_compagnie:sel.ass_syn_compagnie||"",
+      ass_syn_police:sel.ass_syn_police||"",
+      ass_syn_montant:sel.ass_syn_montant||"",
+      assurance_syndicat_exp:sel.assurance_syndicat_exp||""
     });
     try{
       var pl=JSON.parse(sel.approb_paliers||"");
@@ -91,7 +95,11 @@ export default function ConfigSyndicat(p){
       etude_assurance_ans:Math.max(1,parseInt(f.etude_assurance_ans)||5),
       etude_prevoyance_ans:Math.max(1,parseInt(f.etude_prevoyance_ans)||5),
       etude_assurance_date:f.etude_assurance_date||null,
-      etude_prevoyance_date:f.etude_prevoyance_date||null
+      etude_prevoyance_date:f.etude_prevoyance_date||null,
+      ass_syn_compagnie:f.ass_syn_compagnie||"",
+      ass_syn_police:f.ass_syn_police||"",
+      ass_syn_montant:f.ass_syn_montant||"",
+      assurance_syndicat_exp:f.assurance_syndicat_exp||null
     };
     sb.update("syndicats",sel.id,maj).then(function(r){
       if(r&&r.error){setSaving(false);setErr("ECHEC de la sauvegarde: "+(r.error.message||"les colonnes ass_avis_* existent-elles? (SQL fourni)"));return;}
@@ -181,6 +189,15 @@ export default function ConfigSyndicat(p){
         <Carte titre="Interets sur les arrerages" desc="Taux annuel applique au calcul des arrerages dans Encaissements (selon votre declaration de copropriete).">
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
             <div><Lbl l="Taux d interet annuel (%) - global"/><input type="number" step="0.01" min="0" value={glob.taux} onChange={function(e){setGlob(Object.assign({},glob,{taux:e.target.value}));}} style={INP}/></div>
+          </div>
+        </Carte>
+
+        <Carte titre="Assurance du syndicat (police maitresse)" desc="Ces informations proviennent de la police televersee a la creation du syndicat et figurent sur l attestation du notaire - completez ce qui manque.">
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+            <div><Lbl l="Compagnie d assurance"/><input value={f.ass_syn_compagnie||""} onChange={function(e){sf("ass_syn_compagnie",e.target.value);}} style={INP} placeholder="Intact, Promutuel..."/></div>
+            <div><Lbl l="No de police"/><input value={f.ass_syn_police||""} onChange={function(e){sf("ass_syn_police",e.target.value);}} style={INP}/></div>
+            <div><Lbl l="Montant de couverture"/><input value={f.ass_syn_montant||""} onChange={function(e){sf("ass_syn_montant",e.target.value);}} style={INP} placeholder="2 000 000 $"/></div>
+            <div><Lbl l="Expiration de la police"/><input type="date" value={f.assurance_syndicat_exp||""} onChange={function(e){sf("assurance_syndicat_exp",e.target.value);}} style={INP}/></div>
           </div>
         </Carte>
 

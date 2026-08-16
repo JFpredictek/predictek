@@ -34,3 +34,10 @@ where not exists (select 1 from public.comptes_syndicat c where c.syndicat_id = 
 -- Approbation du budget par TOUS les membres du CA (liste des approbations)
 alter table public.budgets add column if not exists approbations jsonb;
 notify pgrst, 'reload schema';
+
+-- Details de la police d assurance du syndicat (compagnie, no de police, montant)
+-- pour l attestation du notaire (seule l expiration etait conservee avant)
+alter table public.syndicats add column if not exists ass_syn_compagnie text default '';
+alter table public.syndicats add column if not exists ass_syn_police text default '';
+alter table public.syndicats add column if not exists ass_syn_montant text default '';
+notify pgrst, 'reload schema';
