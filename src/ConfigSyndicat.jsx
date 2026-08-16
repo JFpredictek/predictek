@@ -30,6 +30,8 @@ export default function ConfigSyndicat(p){
   var s6=useState(false);var saving=s6[0];var setSaving=s6[1];
   var s7=useState([{max:"1000",nb:"1"},{max:"5000",nb:"2"},{max:"10000",nb:"3"}]);var paliers=s7[0];var setPaliers=s7[1];
   var s8=useState([]);var banques=s8[0];var setBanques=s8[1];
+  var s9=useState([]);var policeDocs=s9[0];var setPoliceDocs=s9[1];
+  var s10=useState(false);var uploadPolice=s10[0];var setUploadPolice=s10[1];
 
   useEffect(function(){
     sb.select("syndicats",{order:"nom.asc"}).then(function(r){
@@ -85,6 +87,7 @@ export default function ConfigSyndicat(p){
     sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},limit:20}).then(function(r){
       if(r&&r.data)setBanques(r.data);else setBanques([]);
     }).catch(function(){setBanques([]);});
+    chargerPolices(sel.id);
     try{
       var pl=JSON.parse(sel.approb_paliers||"");
       if(Array.isArray(pl)&&pl.length>0)setPaliers(pl.slice(0,3).map(function(x){return {max:String(x.max),nb:String(x.nb)};}));
@@ -96,6 +99,51 @@ export default function ConfigSyndicat(p){
   }
 
   function sf(k,v){setF(function(pr){var n=Object.assign({},pr);n[k]=v;return n;});}
+
+  // ----- Documents de la police d assurance du syndicat (upload + visualisation) -----
+  function chargerPolices(sid){
+    sb.select("documents",{eq:{syndicat_id:sid,niveau:"syndicat",type_doc:"assurance"},order:"created_at.desc",limit:50}).then(function(r){
+      if(r&&r.data)setPoliceDocs(r.data);else setPoliceDocs([]);
+    }).catch(function(){setPoliceDocs([]);});
+  }
+  function televerserPolices(ev){
+    var files=Array.prototype.slice.call(ev.target.files||[]);
+    ev.target.value="";
+    if(files.length===0||!sel)return;
+    setUploadPolice(true);setErr("");
+    var auj=new Date().toISOString().substring(0,10);
+    Promise.all(files.map(function(file){
+      var nomProp=String(file.name||"police.pdf").replace(/[^a-zA-Z0-9._-]/g,"_");
+      var chemin=sel.id+"/police-syndicat/"+Date.now()+"-"+nomProp;
+      return sb.uploadFichier("preuves",chemin,file).then(function(up){
+        if(!up||!up.chemin)return {error:(up&&up.error&&up.error.message)||"televersement echoue",nom:file.name};
+        return sb.insert("documents",{syndicat_id:sel.id,niveau:"syndicat",nom:"Police d assurance - "+file.name,type_doc:"assurance",description:"Police maitresse du syndicat (televersee via Configuration)",date_doc:auj,confidentiel:false,url:"storage:"+up.chemin,taille_kb:Math.round((file.size||0)/1024)}).then(function(r2){
+          if(!r2||!r2.data||!r2.data.id)return {error:(r2&&r2.error&&r2.error.message)||"insertion echouee",nom:file.name};
+          return {ok:true,nom:file.name};
+        });
+      });
+    })).then(function(rs){
+      setUploadPolice(false);
+      var oks=rs.filter(function(r){return r.ok;}).length;
+      var echecs=rs.filter(function(r){return r.error;});
+      if(echecs.length>0)setErr("ECHEC du televersement pour "+echecs.map(function(x){return x.nom+" ("+x.error+")";}).join(", "));
+      if(oks>0){
+        setMsg(oks+" police(s) televersee(s) - visible(s) ici, dans Documents et dans le portail des copros.");
+        sb.log("configuration","ajout",oks+" police(s) d assurance du syndicat televersee(s)","",sel.code||"");
+        setTimeout(function(){setMsg("");},7000);
+      }
+      chargerPolices(sel.id);
+    }).catch(function(e){setUploadPolice(false);setErr("ECHEC: "+(e&&e.message?e.message:""));});
+  }
+  function voirPolice(d){
+    if(d.url&&d.url.indexOf("storage:")===0){
+      sb.lienFichier("preuves",d.url.substring(8)).then(function(u){
+        if(u)window.open(u,"_blank");
+        else setErr("Impossible de generer le lien du document.");
+      });
+    }else if(d.url){window.open(d.url,"_blank");}
+    else setErr("Ce document n a pas de fichier joint (entree d inventaire seulement, issue de l onboarding).");
+  }
 
   var FONDS_NOMS={operation:"Fonds d operation",prevoyance:"Fonds de prevoyance",assurance:"Fonds d auto-assurance",special:"Fonds de travaux speciaux"};
   function libBanque(b){
@@ -263,11 +311,33 @@ export default function ConfigSyndicat(p){
         </Carte>
 
         <Carte titre="Assurance du syndicat (police maitresse)" desc="Ces informations proviennent de la police televersee a la creation du syndicat et figurent sur l attestation du notaire - completez ce qui manque.">
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:14}}>
             <div><Lbl l="Compagnie d assurance"/><input value={f.ass_syn_compagnie||""} onChange={function(e){sf("ass_syn_compagnie",e.target.value);}} style={INP} placeholder="Intact, Promutuel..."/></div>
             <div><Lbl l="No de police"/><input value={f.ass_syn_police||""} onChange={function(e){sf("ass_syn_police",e.target.value);}} style={INP}/></div>
             <div><Lbl l="Montant de couverture"/><input value={f.ass_syn_montant||""} onChange={function(e){sf("ass_syn_montant",e.target.value);}} style={INP} placeholder="2 000 000 $"/></div>
             <div><Lbl l="Expiration de la police"/><input type="date" value={f.assurance_syndicat_exp||""} onChange={function(e){sf("assurance_syndicat_exp",e.target.value);}} style={INP}/></div>
+          </div>
+          <div style={{background:T.alt,borderRadius:10,padding:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:policeDocs.length>0?10:0}}>
+              <div style={{fontSize:11,fontWeight:800,color:T.navy,textTransform:"uppercase"}}>Documents de la police ({policeDocs.length})</div>
+              <label style={{display:"inline-block",background:T.blueL,color:T.blue,border:"1px solid "+T.blue+"44",borderRadius:7,padding:"6px 13px",fontSize:11,fontWeight:700,cursor:uploadPolice?"wait":"pointer",marginLeft:"auto"}}>
+                {uploadPolice?"Televersement...":"+ Televerser une ou des police(s) (PDF)"}
+                <input type="file" accept=".pdf,image/*" multiple onChange={televerserPolices} disabled={uploadPolice} style={{display:"none"}}/>
+              </label>
+            </div>
+            {policeDocs.map(function(d){
+              return(
+                <div key={d.id} style={{display:"flex",alignItems:"center",gap:10,background:"#fff",border:"1px solid "+T.border,borderRadius:8,padding:"7px 12px",marginBottom:6}}>
+                  <span style={{background:T.blueL,color:T.blue,borderRadius:20,padding:"1px 8px",fontSize:9,fontWeight:800}}>ASSURANCE</span>
+                  <div style={{flex:1,minWidth:180}}>
+                    <div style={{fontSize:12,fontWeight:700,color:T.navy}}>{d.nom}</div>
+                    <div style={{fontSize:10,color:T.muted}}>{d.date_doc?"Date: "+String(d.date_doc).substring(0,10):""}{d.taille_kb?" - "+d.taille_kb+" ko":""}{!d.url?" - INVENTAIRE SEULEMENT (fichier non joint a l onboarding)":""}</div>
+                  </div>
+                  {d.url?<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){voirPolice(d);}}>Visualiser</Btn>:null}
+                </div>
+              );
+            })}
+            {policeDocs.length===0&&<div style={{fontSize:11,color:T.muted,marginTop:8}}>Aucun document de police pour ce syndicat - televersez le PDF de la police maitresse ci-dessus.</div>}
           </div>
         </Carte>
 
