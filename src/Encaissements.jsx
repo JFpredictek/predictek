@@ -71,6 +71,8 @@ export default function Encaissements(){
   var s16=useState({unite:"",type_frais:"frais",description:"",montant:"",date_facture:new Date().toISOString().substring(0,10),date_echeance:""});var nfFC=s16[0];var setNfFC=s16[1];
   var s17=useState({origId:"",origNom:"",centre:"",noFichier:"1"});var dpa=s17[0];var setDpa=s17[1];
   var s18=useState(false);var showDpaCfg=s18[0];var setShowDpaCfg=s18[1];
+  var s19=useState(null);var encU=s19[0];var setEncU=s19[1];
+  var s20=useState({type:"interets",montant:"",date:new Date().toISOString().substring(0,10),moyen:"prelevement",note:""});var encF=s20[0];var setEncF=s20[1];
 
   useEffect(function(){
     sb.select("syndicats",{order:"nom.asc"}).then(function(res){
@@ -197,6 +199,33 @@ export default function Encaissements(){
   function sauverTaux(v){
     setTauxInteret(v);
     sb.upsert("config_publique",[{cle:"taux_interet_retard",valeur:String(parseFloat(v)||0)}],"cle").catch(function(){});
+  }
+
+  // ===== ENCAISSEMENT LIBRE, UNITE PAR UNITE =====
+  // Tout type d encaissement (cotisation en rattrapage, speciale, INTERETS de retard,
+  // frais, infraction, refacturation, autre), par tout moyen (prelevement, cheque,
+  // virement, comptant). Chaque type est mappe a son compte GL dans la comptabilite.
+  function encaisserLibre(){
+    if(!encU||!sel)return;
+    var mnt=parseFloat(encF.montant)||0;
+    if(mnt<=0){setErr("Entrez un montant positif.");return;}
+    setErr("");
+    var pr=propsDe(encU)[0];
+    var TYPES_LBL={cotisation:"Cotisation",speciale:"Cotisation speciale",interets:"Interets de retard",frais:"Frais",infraction:"Infraction / penalite",refacturation:"Refacturation",autre:"Autre encaissement"};
+    sb.insert("paiements",{
+      syndicat_id:sel.id,unite_id:encU.id,coproprietaire_id:pr?pr.id:null,
+      type:encF.type,mois:(encF.date||"").substring(0,7),date_paiement:encF.date,
+      montant:mnt,moyen:encF.moyen,statut:"paye",
+      description:(TYPES_LBL[encF.type]||encF.type)+" - unite "+encU.no_unite+(encF.note?" - "+encF.note.substring(0,120):"")
+    }).then(function(r){
+      if(r&&r.error){setErr("ECHEC de l encaissement: "+(r.error.message||"")+". Rien n a ete enregistre.");return;}
+      if(!(r&&r.data&&r.data.id)){setErr("ECHEC de l encaissement - rien n a ete enregistre.");return;}
+      setMsg("Encaissement de "+money(mnt)+" ("+(TYPES_LBL[encF.type]||encF.type)+", "+encF.moyen+") enregistre pour l unite "+encU.no_unite+".");
+      sb.log("encaissements","paiement","Unite "+encU.no_unite+": "+(TYPES_LBL[encF.type]||encF.type)+" "+mnt.toFixed(2)+" $ ("+encF.moyen+")","",sel.code||"");
+      setEncU(null);
+      chargerTout();
+      setTimeout(function(){setMsg("");},5000);
+    }).catch(function(e){setErr("ECHEC: "+(e&&e.message?e.message:"erreur"));});
   }
 
   // ----- Cotisations speciales -----
@@ -433,7 +462,45 @@ export default function Encaissements(){
             <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
               <Btn onClick={genererMois} dis={enCours}>Generer les cotisations de {mois}</Btn>
               <Btn bg={T.blue} onClick={encaisserLotPAP} dis={enCours}>{enCours?"Traitement...":"Encaisser le LOT PAP ("+nbPap+" unite(s))"}</Btn>
+              <div style={{fontSize:10,color:T.muted,alignSelf:"center"}}>Le lot PAP est un raccourci; chaque unite peut aussi etre encaissee individuellement (bouton + Encaisser).</div>
             </div>
+
+            {encU&&(
+              <div style={{background:T.surface,border:"2px solid "+T.accent,borderRadius:12,padding:16,marginBottom:14}}>
+                <div style={{fontSize:13,fontWeight:800,color:T.navy,marginBottom:2}}>Encaissement - unite {encU.no_unite}</div>
+                <div style={{fontSize:11,color:T.muted,marginBottom:12}}>{propsDe(encU).map(function(c){return ((c.prenom||"")+" "+(c.nom||"")).trim();}).join(" et ")||""} - tout type d encaissement, chaque type est comptabilise a son compte GL.</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:12}}>
+                  <div><Lbl l="Type d encaissement"/>
+                    <select value={encF.type} onChange={function(e){setEncF(Object.assign({},encF,{type:e.target.value}));}} style={INP}>
+                      <option value="cotisation">Cotisation (rattrapage)</option>
+                      <option value="speciale">Cotisation speciale</option>
+                      <option value="interets">Interets de retard</option>
+                      <option value="frais">Frais</option>
+                      <option value="infraction">Infraction / penalite</option>
+                      <option value="refacturation">Refacturation</option>
+                      <option value="autre">Autre</option>
+                    </select>
+                  </div>
+                  <div><Lbl l="Montant ($)"/><input type="number" step="0.01" min="0" value={encF.montant} onChange={function(e){setEncF(Object.assign({},encF,{montant:e.target.value}));}} style={INP} placeholder="0.00"/></div>
+                  <div><Lbl l="Date de l encaissement"/><input type="date" value={encF.date} onChange={function(e){setEncF(Object.assign({},encF,{date:e.target.value}));}} style={INP}/></div>
+                  <div><Lbl l="Moyen"/>
+                    <select value={encF.moyen} onChange={function(e){setEncF(Object.assign({},encF,{moyen:e.target.value}));}} style={INP}>
+                      <option value="prelevement">Prelevement bancaire</option>
+                      <option value="cheque">Cheque</option>
+                      <option value="virement">Virement Interac</option>
+                      <option value="comptant">Comptant</option>
+                      <option value="autre">Autre</option>
+                    </select>
+                  </div>
+                  <div style={{gridColumn:"span 2"}}><Lbl l="Note / reference (optionnel)"/><input value={encF.note} onChange={function(e){setEncF(Object.assign({},encF,{note:e.target.value}));}} style={INP} placeholder="No de cheque, periode visee..."/></div>
+                </div>
+                {(function(){var c2=calculArrerages(encU);return c2.interets>0?<div style={{fontSize:11,fontWeight:700,color:T.amber,marginBottom:10}}>Interets de retard calcules pour cette unite: {money(c2.interets)} (arrerages {money(c2.arrerages)} x {tauxInteret}%/an / 12)</div>:null;})()}
+                <div style={{display:"flex",gap:8}}>
+                  <Btn onClick={encaisserLibre} dis={!(parseFloat(encF.montant)>0)}>Enregistrer l encaissement</Btn>
+                  <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setEncU(null);}}>Annuler</Btn>
+                </div>
+              </div>
+            )}
 
             <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,overflow:"hidden"}}>
               <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
@@ -459,8 +526,14 @@ export default function Encaissements(){
                         <td style={{padding:"7px 10px",textAlign:"right",fontWeight:700,color:calc.arrerages>0?T.red:T.accent}}>{calc.arrerages>0?money(calc.arrerages):"0,00 $"}</td>
                         <td style={{padding:"7px 10px"}}>
                           <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                            {(!p||p.statut!=="paye")&&u.pap_actif&&<Btn sm bg={T.navy} onClick={function(){encaisser(u,"pap");}}>Prelevement (PAP)</Btn>}
                             {(!p||p.statut!=="paye")&&<Btn sm onClick={function(){encaisser(u,"cheque");}}>Payer (cheque)</Btn>}
                             {(!p||p.statut!=="paye")&&<Btn sm bg={T.blue} onClick={function(){encaisser(u,"virement");}}>Virement</Btn>}
+                            <Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){
+                              setEncU(u);
+                              setEncF({type:calc.interets>0?"interets":"autre",montant:calc.interets>0?String(calc.interets):"",date:new Date().toISOString().substring(0,10),moyen:u.pap_actif?"prelevement":"cheque",note:""});
+                              window.scrollTo(0,0);
+                            }}>+ Encaisser</Btn>
                             {p&&p.statut==="paye"&&<Btn sm bg={T.amberL} tc={T.amber} bdr={"1px solid "+T.amber+"44"} onClick={function(){annulerPaiement(u);}}>Annuler</Btn>}
                             <Btn sm bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){etatDeCompte(u);}}>Etat de compte</Btn>
                             <Btn sm bg={T.purple} onClick={function(){attestation(u);}}>Attestation notaire</Btn>

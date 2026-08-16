@@ -392,7 +392,7 @@ function TabBudget(p){
         var no=f.no_compte_gl||"5190";
         m[no]=(m[no]||0)+(Number(f.total)||Number(f.montant)||0);
       });
-      var MAP_P={cotisation:"4110",speciale:"4130",frais:"4600",infraction:"4620"};
+      var MAP_P={cotisation:"4110",speciale:"4130",frais:"4600",infraction:"4620",interets:"4590",refacturation:"4650",autre:"4900"};
       ((rs[1]&&rs[1].data)||[]).forEach(function(pm){
         if((pm.statut||"")!=="paye")return;
         if(!dansPrec(pm.date_paiement))return;
@@ -1009,7 +1009,7 @@ function TabEtats(p){
   factEx.forEach(function(f){addReel(f.no_compte_gl||"5990",parseFloat(f.total)||parseFloat(f.montant)||0);});
   // Revenus reels = paiements PAYES de l exercice (cotisations -> 4110, speciales -> 4130)
   var paieEx=paiements.filter(function(pm){return pm.statut==="paye"&&dansExercice(pm.date_paiement,exo);});
-  paieEx.forEach(function(pm){addReel(pm.type==="speciale"?"4130":pm.type==="frais"?"4600":pm.type==="infraction"?"4620":"4110",pm.montant);});
+  paieEx.forEach(function(pm){addReel(pm.type==="speciale"?"4130":pm.type==="frais"?"4600":pm.type==="infraction"?"4620":pm.type==="interets"?"4590":pm.type==="refacturation"?"4650":pm.type==="autre"?"4900":"4110",pm.montant);});
   // Journal de l exercice (autres ecritures - presente a part)
   var jrnEx=journal.filter(function(j){return dansExercice(j.date_transaction,exo);});
   var jrnDebit=jrnEx.reduce(function(a,j){return a+(Number(j.montant_debit)||0);},0);
@@ -1238,7 +1238,7 @@ function TabFonds(p){
   function calculFonds(fid){
     // Revenus reels: encaissements (cotisations 4110 / speciales 4130) selon le fonds du compte + credits du journal
     var rev=0;
-    paieEx.forEach(function(pm){var no=pm.type==="speciale"?"4130":pm.type==="frais"?"4600":pm.type==="infraction"?"4620":"4110";if(fondsDe(no)===fid)rev+=Number(pm.montant)||0;});
+    paieEx.forEach(function(pm){var no=pm.type==="speciale"?"4130":pm.type==="frais"?"4600":pm.type==="infraction"?"4620":pm.type==="interets"?"4590":pm.type==="refacturation"?"4650":pm.type==="autre"?"4900":"4110";if(fondsDe(no)===fid)rev+=Number(pm.montant)||0;});
     // Depenses reelles: factures selon le fonds du compte GL
     var dep=0;
     factEx.forEach(function(f){if(fondsDe(f.no_compte_gl||"5990")===fid)dep+=parseFloat(f.total)||parseFloat(f.montant)||0;});
