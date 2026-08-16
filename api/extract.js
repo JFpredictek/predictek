@@ -167,7 +167,10 @@ export default async function handler(req, res) {
       var listeGL = comptesGL.length>0 ? comptesGL.slice(0,80).map(function(c){return c.no+" = "+c.nom;}).join("; ") : "";
       var promptFac = "Voici une facture de fournisseur (Quebec, Canada). "
         + "Extrais les informations suivantes. Reponds UNIQUEMENT avec un objet JSON valide (chaine vide ou 0 si absent): "
-        + "{\"fournisseur\":\"nom du fournisseur\",\"numero\":\"numero de facture\",\"date\":\"AAAA-MM-JJ\",\"echeance\":\"AAAA-MM-JJ\",\"sousTotal\":nombre,\"tps\":nombre,\"tvq\":nombre,\"total\":nombre (montant total TTC),\"description\":\"description courte des biens/services\",\"categorie\":\"une valeur parmi: entretien, reparation, deneigement, paysagement, assurance, energie, administration, autre\""
+        + "{\"fournisseur\":\"nom du fournisseur\",\"numero\":\"numero de facture\",\"date\":\"AAAA-MM-JJ\",\"echeance\":\"AAAA-MM-JJ\",\"sousTotal\":nombre,\"tps\":nombre,\"tvq\":nombre,\"total\":nombre (montant total TTC),\"description\":\"description courte des biens/services\",\"categorie\":\"une valeur parmi: entretien, reparation, deneigement, paysagement, assurance, energie, administration, autre\","
+        + "\"fournisseurCourriel\":\"courriel du fournisseur visible sur la facture\",\"fournisseurTelephone\":\"telephone du fournisseur\",\"fournisseurAdresse\":\"adresse complete du fournisseur\",\"fournisseurSiteWeb\":\"site web du fournisseur\","
+        + "\"terme\":\"conditions de paiement, une valeur parmi: reception (payable sur reception/livraison/comptant), net10, net15, net30, net45, net60, net90 - deduis-le des mentions comme Net 30, Payable a la reception, Due on receipt, 30 jours; chaine vide si non indique\","
+        + "\"escomptePct\":nombre (escompte de paiement rapide en % si mentionne, ex: 2/10 net 30 signifie escomptePct 2 et escompteJours 10; 0 si aucun),\"escompteJours\":nombre"
         + (listeGL?",\"noCompteGL\":\"choisis dans le PLAN COMPTABLE du syndicat le compte de depense qui correspond le MIEUX au type de service de cette facture et reponds avec son NUMERO EXACT. Plan comptable: "+listeGL+"\"":"")
         + "}";
       if(pdfB64){

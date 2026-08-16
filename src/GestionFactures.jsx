@@ -110,6 +110,8 @@ function CarteFacture(p){
             <div>Date: <span style={{color:T.navy}}>{f.date_facture||"-"}</span></div>
             <div>Echeance: <span style={{color:depasse?T.red:T.navy,fontWeight:depasse?700:400}}>{f.date_echeance||"-"}</span></div>
             {f.no_compte_gl&&<div>GL: <span style={{color:T.accent,fontWeight:600}}>{f.no_compte_gl}</span></div>}
+            {f.terme_paiement&&<div>Terme: <span style={{color:T.navy,fontWeight:600}}>{f.terme_paiement==="reception"?"Sur reception":f.terme_paiement.replace("net","Net ")+" j"}</span></div>}
+            {Number(f.escompte_pct)>0&&<div>Escompte: <span style={{color:T.accent,fontWeight:700}}>{Number(f.escompte_pct)}% {f.escompte_jours||10} j</span></div>}
             {f.categorie_depense&&<div>Cat.: <span style={{color:T.navy}}>{f.categorie_depense}</span></div>}
             {f.source==="email"&&f.email_source&&<div>De: <span style={{color:T.purple}}>{f.email_source}</span></div>}
           </div>
@@ -119,6 +121,7 @@ function CarteFacture(p){
           {f.tps>0&&<div style={{fontSize:10,color:T.muted}}>TPS: {Number(f.tps).toFixed(2)} $ | TVQ: {Number(f.tvq).toFixed(2)} $</div>}
           <div style={{display:"flex",gap:6,marginTop:8,justifyContent:"flex-end",flexWrap:"wrap"}}>
             {f.fichier&&<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){p.onVoirFichier(f);}}>Voir la facture</Btn>}
+            {f.statut!=="payee"&&f.statut!=="annulee"&&<Btn sm bg={T.alt} tc={T.navy} bdr={"1px solid "+T.border} onClick={function(){p.onEdit(f);}}>Modifier</Btn>}
             {(f.statut==="recue"||f.statut==="en_attente_approbation")&&<Btn sm bg={T.amberL} tc={T.amber} bdr={"1px solid "+T.amber+"44"} onClick={function(){p.onApprouver(f);}}>Approuver</Btn>}
             {f.statut==="approuvee"&&<Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){p.onPayer(f.id);}}>Marquer payee</Btn>}
           </div>
@@ -126,6 +129,24 @@ function CarteFacture(p){
       </div>
     </div>
   );
+}
+
+// Termes de paiement standards (l echeance se calcule automatiquement)
+var TERMES_PAIEMENT=[
+  {id:"reception",l:"Payable sur reception / livraison",jours:0},
+  {id:"net10",l:"Net 10 jours",jours:10},
+  {id:"net15",l:"Net 15 jours",jours:15},
+  {id:"net30",l:"Net 30 jours",jours:30},
+  {id:"net45",l:"Net 45 jours",jours:45},
+  {id:"net60",l:"Net 60 jours",jours:60},
+  {id:"net90",l:"Net 90 jours",jours:90}
+];
+function echeanceDuTerme(dateFacture,termeId){
+  var t=TERMES_PAIEMENT.find(function(x){return x.id===termeId;});
+  if(!t||!dateFacture||!/^\d{4}-\d{2}-\d{2}$/.test(dateFacture))return "";
+  var d=new Date(dateFacture+"T12:00:00");
+  d.setDate(d.getDate()+t.jours);
+  return d.toISOString().substring(0,10);
 }
 
 function FormFacture(p){
@@ -153,6 +174,21 @@ function FormFacture(p){
       if(d.total){sf("total",Number(d.total));pris.push(Number(d.total).toFixed(2)+" $");}
       if(d.description)sf("description",d.description);
       if(d.noCompteGL&&comptesGL.some(function(c){return c.no===String(d.noCompteGL);})){sf("no_compte_gl",String(d.noCompteGL));var cGL=comptesGL.find(function(c){return c.no===String(d.noCompteGL);});pris.push("GL "+d.noCompteGL+" ("+(cGL?cGL.nom:"")+")");}
+      // Terme de paiement + escompte fournisseur (ex: 2% 10 jours net 30)
+      if(d.terme&&TERMES_PAIEMENT.some(function(t){return t.id===d.terme;})){
+        sf("terme_paiement",d.terme);
+        pris.push("terme "+(TERMES_PAIEMENT.find(function(t){return t.id===d.terme;})||{}).l);
+        if(!(d.echeance&&/^\d{4}-\d{2}-\d{2}$/.test(d.echeance))&&d.date&&/^\d{4}-\d{2}-\d{2}$/.test(d.date)){
+          var ech=echeanceDuTerme(d.date,d.terme);if(ech)sf("date_echeance",ech);
+        }
+      }
+      if(d.escomptePct&&parseFloat(d.escomptePct)>0){sf("escompte_pct",parseFloat(d.escomptePct));sf("escompte_jours",parseInt(d.escompteJours)||10);pris.push("escompte "+d.escomptePct+"% "+(d.escompteJours||10)+"j");}
+      // Coordonnees du fournisseur (pour creer sa fiche au repertoire)
+      if(d.fournisseurCourriel)sf("f_courriel",d.fournisseurCourriel);
+      if(d.fournisseurTelephone)sf("f_telephone",d.fournisseurTelephone);
+      if(d.fournisseurAdresse)sf("f_adresse",d.fournisseurAdresse);
+      if(d.fournisseurSiteWeb)sf("f_site_web",d.fournisseurSiteWeb);
+      if(d.fournisseurCourriel||d.fournisseurTelephone||d.fournisseurAdresse||d.fournisseurSiteWeb)pris.push("coordonnees du fournisseur");
       setExtraitMsg(pris.length>0?"Extrait automatiquement: "+pris.join(", ")+" - verifiez avant de sauvegarder.":"Aucune information lisible - saisissez manuellement.");
     }).catch(function(e){setExtraitMsg("Extraction impossible ("+e.message+") - saisissez manuellement.");});
   }
@@ -185,8 +221,20 @@ function FormFacture(p){
       </div>
       <div style={{gridColumn:"1/-1"}}><Lbl l="Fournisseur"/><input value={nf.fournisseur_nom||""} onChange={function(e){sf("fournisseur_nom",e.target.value);}} style={INP} placeholder="Nom de l entreprise..."/></div>
       <div><Lbl l="No facture"/><input value={nf.no_facture||""} onChange={function(e){sf("no_facture",e.target.value);}} style={INP} placeholder="INV-2024-001"/></div>
-      <div><Lbl l="Date facture"/><input type="date" value={nf.date_facture||""} onChange={function(e){sf("date_facture",e.target.value);}} style={INP}/></div>
-      <div><Lbl l="Date echeance"/><input type="date" value={nf.date_echeance||""} onChange={function(e){sf("date_echeance",e.target.value);}} style={INP}/></div>
+      <div><Lbl l="Date facture"/><input type="date" value={nf.date_facture||""} onChange={function(e){var dv=e.target.value;sf("date_facture",dv);var ech=echeanceDuTerme(dv,nf.terme_paiement||"net30");if(ech)sf("date_echeance",ech);}} style={INP}/></div>
+      <div><Lbl l="Terme de paiement"/><select value={nf.terme_paiement||"net30"} onChange={function(e){var tv=e.target.value;sf("terme_paiement",tv);var ech=echeanceDuTerme(nf.date_facture,tv);if(ech)sf("date_echeance",ech);}} style={INP}>
+        {TERMES_PAIEMENT.map(function(t){return <option key={t.id} value={t.id}>{t.l}</option>;})}
+      </select></div>
+      <div><Lbl l="Date echeance (calculee du terme, modifiable)"/><input type="date" value={nf.date_echeance||""} onChange={function(e){sf("date_echeance",e.target.value);}} style={INP}/></div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        <div><Lbl l="Escompte (%)"/><input type="number" step="0.1" min="0" value={nf.escompte_pct||""} onChange={function(e){sf("escompte_pct",e.target.value);}} style={INP} placeholder="2"/></div>
+        <div><Lbl l="si paye en (jours)"/><input type="number" min="0" value={nf.escompte_jours||""} onChange={function(e){sf("escompte_jours",e.target.value);}} style={INP} placeholder="10"/></div>
+      </div>
+      {parseFloat(nf.escompte_pct)>0&&parseFloat(nf.total)>0&&(
+        <div style={{gridColumn:"1/-1",background:"#E8F2EC",borderRadius:8,padding:"7px 11px",fontSize:11,color:"#1B5E3B",fontWeight:700}}>
+          Escompte fournisseur {nf.escompte_pct}% {nf.escompte_jours||10} jours: payez avant le {(function(){if(!nf.date_facture)return "-";var dd=new Date(nf.date_facture+"T12:00:00");dd.setDate(dd.getDate()+(parseInt(nf.escompte_jours)||10));return dd.toISOString().substring(0,10);})()} et economisez {(Number(nf.total)*parseFloat(nf.escompte_pct)/100).toFixed(2)} $ (a payer: {(Number(nf.total)*(1-parseFloat(nf.escompte_pct)/100)).toFixed(2)} $)
+        </div>
+      )}
       <div><Lbl l="Sous-total ($)"/><input type="number" step="0.01" value={nf.sous_total||""} onChange={function(e){var st=parseFloat(e.target.value)||0;var tps=Math.round(st*0.05*100)/100;var tvq=Math.round(st*0.09975*100)/100;sf("sous_total",st);sf("tps",tps);sf("tvq",tvq);sf("total",Math.round((st+tps+tvq)*100)/100);}} style={INP} placeholder="0.00"/></div>
       <div><Lbl l="TPS (5%)"/><input type="number" step="0.01" value={nf.tps||""} onChange={function(e){sf("tps",parseFloat(e.target.value)||0);}} style={INP}/></div>
       <div><Lbl l="TVQ (9.975%)"/><input type="number" step="0.01" value={nf.tvq||""} onChange={function(e){sf("tvq",parseFloat(e.target.value)||0);}} style={INP}/></div>
@@ -200,6 +248,15 @@ function FormFacture(p){
       <div style={{gridColumn:"1/-1"}}><Lbl l="Description / notes"/><textarea value={nf.description||""} onChange={function(e){sf("description",e.target.value);}} style={Object.assign({},INP,{minHeight:60,resize:"vertical"})} placeholder="Description des travaux ou services..."/></div>
       <div><Lbl l="No TPS fournisseur"/><input value={nf.no_tps_fournisseur||""} onChange={function(e){sf("no_tps_fournisseur",e.target.value);}} style={INP} placeholder="123456789 RT0001"/></div>
       <div><Lbl l="No TVQ fournisseur"/><input value={nf.no_tvq_fournisseur||""} onChange={function(e){sf("no_tvq_fournisseur",e.target.value);}} style={INP} placeholder="1234567890 TQ0001"/></div>
+      <div style={{gridColumn:"1/-1",background:"#F8F7F3",border:"1px solid #DDD9CF",borderRadius:8,padding:10}}>
+        <div style={{fontSize:10,fontWeight:800,color:"#13233A",textTransform:"uppercase",marginBottom:8}}>Coordonnees du fournisseur (repertoire) - captees de la facture</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          <div><Lbl l="Courriel"/><input value={nf.f_courriel||""} onChange={function(e){sf("f_courriel",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Telephone"/><input value={nf.f_telephone||""} onChange={function(e){sf("f_telephone",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Adresse"/><input value={nf.f_adresse||""} onChange={function(e){sf("f_adresse",e.target.value);}} style={INP}/></div>
+          <div><Lbl l="Site web"/><input value={nf.f_site_web||""} onChange={function(e){sf("f_site_web",e.target.value);}} style={INP}/></div>
+        </div>
+      </div>
       </div>
     </div>
   );
@@ -305,7 +362,7 @@ function ModalApprobation(p){
   );
 }
 
-var VIDE_F={fournisseur_nom:"",no_facture:"",date_facture:"",date_echeance:"",sous_total:"",tps:"",tvq:"",total:"",no_compte_gl:"5190",description:"",no_tps_fournisseur:"",no_tvq_fournisseur:"",nb_approbations_requises:1};
+var VIDE_F={fournisseur_nom:"",no_facture:"",date_facture:"",date_echeance:"",sous_total:"",tps:"",tvq:"",total:"",no_compte_gl:"5190",description:"",no_tps_fournisseur:"",no_tvq_fournisseur:"",nb_approbations_requises:1,terme_paiement:"net30",escompte_pct:"",escompte_jours:"",f_courriel:"",f_telephone:"",f_adresse:"",f_site_web:""};
 
 export default function GestionFactures(){
   var s0=useState([]);var syndicats=s0[0];var setSyndicats=s0[1];
@@ -322,6 +379,7 @@ export default function GestionFactures(){
   var s11=useState(null);var viewer=s11[0];var setViewer=s11[1];
   var s12=useState(1);var zoomV=s12[0];var setZoomV=s12[1];
   var s13=useState(CODES_GL_DEPENSES.map(function(g){return {no:g.no,nom:g.nom};}));var comptesGL=s13[0];var setComptesGL=s13[1];
+  var s14=useState(null);var editId=s14[0];var setEditId=s14[1];
 
   function ouvrirViewer(f){
     if(!f.fichier)return;
@@ -355,10 +413,21 @@ export default function GestionFactures(){
   function setField(k,v){setNf(function(pr){var n=Object.assign({},pr);n[k]=v;return n;});}
 
   // Cree le fournisseur automatiquement s il n existe pas encore (repertoire des fournisseurs)
-  function assurerFournisseur(nom, glNom){
+  // avec les coordonnees captees sur la facture (courriel, telephone, adresse, site web).
+  // S il existe deja, complete ses champs VIDES sans ecraser ce qui est deja la.
+  function assurerFournisseur(nom, glNom, contact){
+    contact=contact||{};
     return sb.select("fournisseurs",{eq:{nom:nom},limit:1}).then(function(r){
-      if(r&&r.data&&r.data.length>0)return;
-      return sb.insert("fournisseurs",{nom:nom,categorie:(glNom&&glNom.nom)||"Autre",telephone:"",courriel:"",adresse:"",site_web:"",notes:"Cree automatiquement a partir d une facture",actif:true});
+      if(r&&r.data&&r.data.length>0){
+        var fx=r.data[0];var maj={};
+        if(!fx.courriel&&contact.courriel)maj.courriel=contact.courriel;
+        if(!fx.telephone&&contact.telephone)maj.telephone=contact.telephone;
+        if(!fx.adresse&&contact.adresse)maj.adresse=contact.adresse;
+        if(!fx.site_web&&contact.site_web)maj.site_web=contact.site_web;
+        if(Object.keys(maj).length>0)return sb.update("fournisseurs",fx.id,maj);
+        return;
+      }
+      return sb.insert("fournisseurs",{nom:nom,categorie:(glNom&&glNom.nom)||"Autre",telephone:contact.telephone||"",courriel:contact.courriel||"",adresse:contact.adresse||"",site_web:contact.site_web||"",notes:"Cree automatiquement a partir d une facture",actif:true});
     }).catch(function(){});
   }
 
@@ -367,8 +436,14 @@ export default function GestionFactures(){
     setSaving(true);setErrSauve("");
     var glFinal=nf.no_compte_gl||codeGLAuto(nf.fournisseur_nom,nf.description||"");
     var glNom=CODES_GL_DEPENSES.find(function(g){return g.no===glFinal;});
-    var row={syndicat_id:sel.id,fournisseur:nf.fournisseur_nom,montant:parseFloat(nf.total)||0,fournisseur_nom:nf.fournisseur_nom,no_facture:nf.no_facture||"",date_facture:nf.date_facture||null,date_echeance:nf.date_echeance||null,sous_total:parseFloat(nf.sous_total)||0,tps:parseFloat(nf.tps)||0,tvq:parseFloat(nf.tvq)||0,total:parseFloat(nf.total)||0,no_compte_gl:glFinal,categorie_depense:glNom?glNom.nom:"Depenses diverses",description:nf.description||"",no_tps_fournisseur:nf.no_tps_fournisseur||"",no_tvq_fournisseur:nf.no_tvq_fournisseur||"",source:"manuel",statut:parseFloat(nf.total||0)>=seuilApprob&&seuilApprob>=0&&parseFloat(nf.total||0)>0?(parseFloat(nf.total||0)>=seuilApprob?"en_attente_approbation":"approuvee"):"approuvee",nb_approbations_requises:nbApprobPour(parseFloat(nf.total)||0)};
-    if(parseFloat(nf.total||0)<seuilApprob)row.statut="approuvee";
+    var row={syndicat_id:sel.id,fournisseur:nf.fournisseur_nom,montant:parseFloat(nf.total)||0,fournisseur_nom:nf.fournisseur_nom,no_facture:nf.no_facture||"",date_facture:nf.date_facture||null,date_echeance:nf.date_echeance||null,sous_total:parseFloat(nf.sous_total)||0,tps:parseFloat(nf.tps)||0,tvq:parseFloat(nf.tvq)||0,total:parseFloat(nf.total)||0,no_compte_gl:glFinal,categorie_depense:glNom?glNom.nom:"Depenses diverses",description:nf.description||"",no_tps_fournisseur:nf.no_tps_fournisseur||"",no_tvq_fournisseur:nf.no_tvq_fournisseur||"",terme_paiement:nf.terme_paiement||"net30",escompte_pct:parseFloat(nf.escompte_pct)||0,escompte_jours:parseInt(nf.escompte_jours)||0};
+    var contact={courriel:nf.f_courriel||"",telephone:nf.f_telephone||"",adresse:nf.f_adresse||"",site_web:nf.f_site_web||""};
+    if(!editId){
+      row.source="manuel";
+      row.statut=parseFloat(nf.total||0)>=seuilApprob&&seuilApprob>=0&&parseFloat(nf.total||0)>0?(parseFloat(nf.total||0)>=seuilApprob?"en_attente_approbation":"approuvee"):"approuvee";
+      row.nb_approbations_requises=nbApprobPour(parseFloat(nf.total)||0);
+      if(parseFloat(nf.total||0)<seuilApprob)row.statut="approuvee";
+    }
     var etapes=Promise.resolve();
     if(facFile){
       etapes=etapes.then(function(){
@@ -381,6 +456,7 @@ export default function GestionFactures(){
       });
     }
     etapes.then(function(){
+      if(editId)return sb.update("factures",editId,row);
       return sb.insert("factures",row);
     }).then(function(res){
       if(!res||!res.data||!res.data.id){
@@ -389,11 +465,24 @@ export default function GestionFactures(){
         setSaving(false);
         return;
       }
-      setFactures(function(prev){return [res.data].concat(prev);});
-      assurerFournisseur(nf.fournisseur_nom, glNom);
-      sb.log("factures","ajout","Facture ajoutee: "+nf.fournisseur_nom+" - "+nf.total+" $","GL: "+glFinal,sel.code||"");
-      setShowForm(false);setNf(VIDE_F);setFacFile(null);setSaving(false);
+      if(editId){
+        setFactures(function(prev){return prev.map(function(f){return f.id===editId?Object.assign({},f,res.data):f;});});
+        sb.log("factures","modification","Facture modifiee: "+nf.fournisseur_nom+" - "+nf.total+" $ (terme "+(nf.terme_paiement||"")+")","GL: "+glFinal,sel.code||"");
+      }else{
+        setFactures(function(prev){return [res.data].concat(prev);});
+        sb.log("factures","ajout","Facture ajoutee: "+nf.fournisseur_nom+" - "+nf.total+" $","GL: "+glFinal,sel.code||"");
+      }
+      assurerFournisseur(nf.fournisseur_nom, glNom, contact);
+      setShowForm(false);setNf(VIDE_F);setFacFile(null);setSaving(false);setEditId(null);
     }).catch(function(e){setErrSauve("ECHEC: "+(e&&e.message?e.message:"erreur inconnue"));setSaving(false);});
+  }
+
+  function editerFacture(f){
+    if(f.statut==="payee")return;
+    setEditId(f.id);
+    setNf({fournisseur_nom:f.fournisseur_nom||"",no_facture:f.no_facture||"",date_facture:f.date_facture||"",date_echeance:f.date_echeance||"",sous_total:f.sous_total||"",tps:f.tps||"",tvq:f.tvq||"",total:f.total||"",no_compte_gl:f.no_compte_gl||"5190",description:f.description||"",no_tps_fournisseur:f.no_tps_fournisseur||"",no_tvq_fournisseur:f.no_tvq_fournisseur||"",nb_approbations_requises:f.nb_approbations_requises||1,terme_paiement:f.terme_paiement||"net30",escompte_pct:f.escompte_pct||"",escompte_jours:f.escompte_jours||"",f_courriel:"",f_telephone:"",f_adresse:"",f_site_web:""});
+    setFacFile(null);setShowForm(true);setErrSauve("");
+    window.scrollTo(0,0);
   }
 
   function marquerPayee(id){
@@ -478,15 +567,17 @@ export default function GestionFactures(){
 
         {showForm&&(
           <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:14,padding:20,marginBottom:20}}>
-            <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:16}}>Nouvelle facture</div>
+            <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:16}}>{editId?"Modifier la facture (possible tant qu elle n est pas payee)":"Nouvelle facture"}</div>
             <FormFacture nf={nf} setField={setField} onFile={setFacFile} comptesGL={comptesGL}/>
             {errSauve&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",marginTop:12,fontSize:12,color:T.red,fontWeight:700}}>{errSauve}</div>}
-            <div style={{background:T.amberL,border:"1px solid "+T.amber+"44",borderRadius:8,padding:10,margin:"12px 0",fontSize:11,color:T.amber}}>
-              Seuil d approbation: factures &gt; 1 000 $ requierent 1 approbation CA. &gt; 5 000 $ requierent 2 approbations.
-            </div>
+            {!editId&&(
+              <div style={{background:T.amberL,border:"1px solid "+T.amber+"44",borderRadius:8,padding:10,margin:"12px 0",fontSize:11,color:T.amber}}>
+                Les paliers d approbation du CA sont configures dans Configuration du syndicat.
+              </div>
+            )}
             <div style={{display:"flex",gap:8,marginTop:12}}>
-              <Btn onClick={sauvegarder} dis={saving||!nf.fournisseur_nom}>{saving?"Sauvegarde...":"Sauvegarder"}</Btn>
-              <Btn onClick={function(){setShowForm(false);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
+              <Btn onClick={sauvegarder} dis={saving||!nf.fournisseur_nom}>{saving?"Sauvegarde...":(editId?"Sauvegarder les modifications":"Sauvegarder")}</Btn>
+              <Btn onClick={function(){setShowForm(false);setEditId(null);setNf(VIDE_F);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border}>Annuler</Btn>
             </div>
           </div>
         )}
@@ -502,6 +593,7 @@ export default function GestionFactures(){
             onVoirFichier={ouvrirViewer}
             onApprouver={function(fac){setFactureAppro(fac);}}
             onPayer={marquerPayee}
+            onEdit={editerFacture}
           />
         );})}
         {filtrees.length===0&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucune facture dans cette categorie</div>}

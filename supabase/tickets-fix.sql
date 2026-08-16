@@ -20,3 +20,9 @@ alter table public.tickets add column if not exists assigne_nom text default '';
 alter table public.tickets add column if not exists assigne_courriel text default '';
 alter table public.tickets add column if not exists assigne_type text default '';
 notify pgrst, 'reload schema';
+
+-- Termes de paiement et escompte fournisseur sur les factures
+alter table public.factures add column if not exists terme_paiement text default 'net30';
+alter table public.factures add column if not exists escompte_pct numeric default 0;
+alter table public.factures add column if not exists escompte_jours int default 0;
+notify pgrst, 'reload schema';
