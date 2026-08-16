@@ -114,7 +114,17 @@ function CarteFacture(p){
             {Number(f.escompte_pct)>0&&<div>Escompte: <span style={{color:T.accent,fontWeight:700}}>{Number(f.escompte_pct)}% {f.escompte_jours||10} j</span></div>}
             {f.categorie_depense&&<div>Cat.: <span style={{color:T.navy}}>{f.categorie_depense}</span></div>}
             {f.source==="email"&&f.email_source&&<div>De: <span style={{color:T.purple}}>{f.email_source}</span></div>}
+            {f.statut==="payee"&&f.date_paiement&&<div>Payee le: <span style={{color:T.accent,fontWeight:700}}>{f.date_paiement}</span></div>}
           </div>
+          {(p.appros||[]).length>0&&(
+            <div style={{marginTop:6,background:T.accentL,borderRadius:7,padding:"5px 10px",fontSize:11}}>
+              <span style={{fontWeight:800,color:T.accent}}>Approbations: {p.appros.length} de {f.nb_approbations_requises||1}</span>
+              <span style={{color:T.navy}}> - {p.appros.map(function(a){return (a.membre_nom||"?")+(a.date_decision?" ("+String(a.date_decision).substring(0,10)+")":"");}).join(", ")}</span>
+            </div>
+          )}
+          {(p.appros||[]).length===0&&f.statut==="en_attente_approbation"&&(
+            <div style={{marginTop:6,fontSize:10,color:T.amber,fontWeight:700}}>0 de {f.nb_approbations_requises||1} approbation(s) recue(s)</div>
+          )}
         </div>
         <div style={{textAlign:"right",flexShrink:0,marginLeft:16}}>
           <div style={{fontSize:20,fontWeight:800,color:T.navy}}>{Number(f.total||0).toFixed(2)} $</div>
@@ -123,7 +133,7 @@ function CarteFacture(p){
             {f.fichier&&<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){p.onVoirFichier(f);}}>Voir la facture</Btn>}
             {f.statut!=="payee"&&f.statut!=="annulee"&&<Btn sm bg={T.alt} tc={T.navy} bdr={"1px solid "+T.border} onClick={function(){p.onEdit(f);}}>Modifier</Btn>}
             {(f.statut==="recue"||f.statut==="en_attente_approbation")&&<Btn sm bg={T.amberL} tc={T.amber} bdr={"1px solid "+T.amber+"44"} onClick={function(){p.onApprouver(f);}}>Approuver</Btn>}
-            {f.statut==="approuvee"&&<Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){p.onPayer(f.id);}}>Marquer payee</Btn>}
+            {f.statut==="approuvee"&&<Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){p.onPayer(f);}}>Enregistrer le paiement</Btn>}
           </div>
         </div>
       </div>
@@ -425,6 +435,10 @@ export default function GestionFactures(){
   var s14=useState(null);var editId=s14[0];var setEditId=s14[1];
   var s15=useState([]);var unitesSyn=s15[0];var setUnitesSyn=s15[1];
   var s16=useState([]);var coprosSyn=s16[0];var setCoprosSyn=s16[1];
+  var s17=useState([]);var approsToutes=s17[0];var setApprosToutes=s17[1];
+  var s18=useState(null);var payerF=s18[0];var setPayerF=s18[1];
+  var s19=useState(new Date().toISOString().substring(0,10));var datePaie=s19[0];var setDatePaie=s19[1];
+  var s20=useState(false);var payeEnCours=s20[0];var setPayeEnCours=s20[1];
 
   function ouvrirViewer(f){
     if(!f.fichier)return;
@@ -445,6 +459,10 @@ export default function GestionFactures(){
     if(!sel)return;
     sb.select("factures",{eq:{syndicat_id:sel.id},order:"date_reception.desc",limit:100}).then(function(res){
       if(res&&res.data)setFactures(res.data);
+    }).catch(function(){});
+    // Approbations du CA (pour afficher qui a approuve et le compte "X de N")
+    sb.select("approbations_ca",{limit:2000}).then(function(res){
+      if(res&&res.data)setApprosToutes(res.data);
     }).catch(function(){});
     // Unites et coproprietaires (pour la refacturation aux coproprietaires)
     sb.select("unites",{eq:{syndicat_id:sel.id},order:"no_unite.asc",limit:1000}).then(function(res){
@@ -571,10 +589,26 @@ export default function GestionFactures(){
     window.scrollTo(0,0);
   }
 
-  function marquerPayee(id){
-    sb.update("factures",id,{statut:"payee",date_paiement:new Date().toISOString().substring(0,10)}).then(function(){
-      setFactures(function(prev){return prev.map(function(f){return f.id===id?Object.assign({},f,{statut:"payee"}):f;});});
-    }).catch(function(){});
+  // Enregistrement du PAIEMENT: date choisie + ecriture au journal (grand livre) du syndicat
+  function confirmerPaiement(){
+    if(!payerF||payeEnCours)return;
+    setPayeEnCours(true);setErrSauve("");
+    var f=payerF;
+    sb.update("factures",f.id,{statut:"payee",date_paiement:datePaie}).then(function(r){
+      if(r&&r.error){setErrSauve("ECHEC de l enregistrement du paiement: "+(r.error.message||""));setPayeEnCours(false);return;}
+      return sb.insert("journal",{
+        syndicat_id:sel.id,date_transaction:datePaie,
+        description:"Paiement fournisseur - "+(f.fournisseur_nom||"")+(f.no_facture?" #"+f.no_facture:"")+(f.no_compte_gl?" (GL "+f.no_compte_gl+")":""),
+        categorie:"Paiement fournisseur",
+        montant_debit:Number(f.total)||Number(f.montant)||0,montant_credit:0,
+        reference:"PAIE-"+(f.no_facture||String(f.id).substring(0,8))
+      }).then(function(rj){
+        setFactures(function(prev){return prev.map(function(x){return x.id===f.id?Object.assign({},x,{statut:"payee",date_paiement:datePaie}):x;});});
+        sb.log("factures","paiement","Paiement enregistre: "+(f.fournisseur_nom||"")+" - "+(Number(f.total)||0).toFixed(2)+" $ le "+datePaie,(rj&&rj.data)?"Ecriture au journal creee":"ATTENTION: ecriture au journal NON creee",sel.code||"");
+        if(!(rj&&rj.data))setErrSauve("Paiement enregistre, mais l ecriture au journal a ECHOUE"+((rj&&rj.error&&rj.error.message)?" ("+rj.error.message+")":"")+" - ajoutez-la manuellement dans Journal des transactions.");
+        setPayerF(null);setPayeEnCours(false);
+      });
+    }).catch(function(e){setErrSauve("ECHEC: "+(e&&e.message?e.message:"erreur"));setPayeEnCours(false);});
   }
 
   function updateStatut(id, statut){
@@ -676,13 +710,39 @@ export default function GestionFactures(){
 
         {filtrees.map(function(f){return(
           <CarteFacture key={f.id} facture={f}
+            appros={approsToutes.filter(function(a){return a.facture_id===f.id&&a.decision==="approuvee";})}
             onVoirFichier={ouvrirViewer}
             onApprouver={function(fac){setFactureAppro(fac);}}
-            onPayer={marquerPayee}
+            onPayer={function(){setPayerF(f);setDatePaie(new Date().toISOString().substring(0,10));}}
             onEdit={editerFacture}
           />
         );})}
         {filtrees.length===0&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucune facture dans cette categorie</div>}
+
+        {payerF&&(
+          <div onClick={function(e){if(e.target===e.currentTarget&&!payeEnCours)setPayerF(null);}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}}>
+            <div style={{background:"#fff",borderRadius:14,padding:24,width:440,maxWidth:"94vw"}}>
+              <div style={{fontSize:14,fontWeight:800,color:T.navy,marginBottom:4}}>Enregistrer le paiement</div>
+              <div style={{fontSize:12,color:T.muted,marginBottom:14}}>{payerF.fournisseur_nom}{payerF.no_facture?" #"+payerF.no_facture:""} - {(Number(payerF.total)||0).toFixed(2)} $</div>
+              <div style={{marginBottom:12}}>
+                <Lbl l="Date du paiement"/>
+                <input type="date" value={datePaie} onChange={function(e){setDatePaie(e.target.value);}} style={INP}/>
+              </div>
+              {Number(payerF.escompte_pct)>0&&(
+                <div style={{background:T.accentL,borderRadius:8,padding:"8px 12px",fontSize:11,color:T.accent,fontWeight:700,marginBottom:12}}>
+                  Escompte {payerF.escompte_pct}% {payerF.escompte_jours||10} jours au dossier - verifiez si le paiement y donne droit ({(Number(payerF.total)*(1-Number(payerF.escompte_pct)/100)).toFixed(2)} $ au lieu de {(Number(payerF.total)||0).toFixed(2)} $).
+                </div>
+              )}
+              <div style={{background:T.blueL,borderRadius:8,padding:"8px 12px",fontSize:11,color:T.blue,marginBottom:14}}>
+                Une ecriture sera ajoutee automatiquement au Journal des transactions du syndicat (Paiement fournisseur, reference PAIE-{payerF.no_facture||"..."}).
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <Btn onClick={confirmerPaiement} dis={payeEnCours||!datePaie}>{payeEnCours?"Enregistrement...":"Confirmer le paiement"}</Btn>
+                <Btn onClick={function(){setPayerF(null);}} bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} dis={payeEnCours}>Annuler</Btn>
+              </div>
+            </div>
+          </div>
+        )}
         {viewer&&(
           <div onClick={function(e){if(e.target===e.currentTarget)setViewer(null);}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999,padding:16}}>
             <div style={{background:"#fff",borderRadius:14,width:"min(1200px,96vw)",height:"92vh",display:"flex",flexDirection:"column",overflow:"hidden"}}>

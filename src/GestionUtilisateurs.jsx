@@ -36,7 +36,10 @@ function CarteUtilisateur(p){
             {!u.actif&&<span style={{background:T.redL,color:T.red,borderRadius:20,padding:"2px 10px",fontSize:10,fontWeight:700}}>INACTIF</span>}
           </div>
           {u.syndicat_nom&&<div style={{fontSize:11,color:T.muted}}>Syndicat: <span style={{color:T.navy,fontWeight:600}}>{u.syndicat_nom}</span></div>}
-          <div style={{fontSize:10,color:T.muted,marginTop:4}}>Cree le: {u.created_at?new Date(u.created_at).toLocaleDateString("fr-CA"):"-"}</div>
+          <div style={{fontSize:10,color:T.muted,marginTop:4}}>
+            Cree le: {u.created_at?new Date(u.created_at).toLocaleDateString("fr-CA"):"-"}
+            {(u.invite_le||u.created_at)&&<span style={{marginLeft:10,background:"#EFF6FF",color:"#1A56DB",borderRadius:12,padding:"1px 8px",fontWeight:700}}>Invitation envoyee le {new Date(u.invite_le||u.created_at).toLocaleString("fr-CA",{hour12:false}).replace(",","").substring(0,17)}</span>}
+          </div>
         </div>
         <div style={{display:"flex",gap:6,flexShrink:0,marginLeft:12}}>
           <Btn sm onClick={function(){p.onEdit(u);}}>Modifier</Btn>
@@ -100,7 +103,7 @@ export default function GestionUtilisateurs(p){
           return;
         }
         var synd=syndicats.find(function(x){return x.id===c.syndicat_id;});
-        var row={nom:c.nom,prenom:c.prenom,courriel:c.courriel,role:role,syndicat_id:c.syndicat_id||null,syndicat_nom:synd?synd.nom:"",actif:true,auth_id:resp.data.auth_id||null};
+        var row={nom:c.nom,prenom:c.prenom,courriel:c.courriel,role:role,syndicat_id:c.syndicat_id||null,syndicat_nom:synd?synd.nom:"",actif:true,auth_id:resp.data.auth_id||null,invite_le:new Date().toISOString()};
         sb.insert("usagers",row).then(function(res){
           if(res&&res.data)setUsers(function(prev){return [res.data].concat(prev);});
           sb.log("usagers","creation","Invitation envoyee a "+c.courriel+" ("+role+") depuis la liste "+c.source,"","");
@@ -139,6 +142,7 @@ export default function GestionUtilisateurs(p){
           return;
         }
         row.auth_id=resp.data.auth_id||null;
+        row.invite_le=new Date().toISOString();
         sb.insert("usagers",row).then(function(res){
           if(res&&res.data){setUsers(function(prev){return [res.data].concat(prev);});}
           sb.log("usagers","creation","Creation usager: "+nf.prenom+" "+nf.nom+" ("+nf.role+") - invitation envoyee","",nf.syndicat_id||"");
@@ -268,7 +272,7 @@ export default function GestionUtilisateurs(p){
                     </span>
                   ):deja?(
                     <span style={{background:deja.actif?T.accentL:T.redL,color:deja.actif?T.accent:T.red,borderRadius:20,padding:"3px 12px",fontSize:10,fontWeight:700}}>
-                      {deja.actif?"INVITE le "+(deja.created_at?new Date(deja.created_at).toLocaleString("fr-CA",{hour12:false}).replace(",","").substring(0,17):"-")+" ("+(deja.role||"")+")":"Compte desactive"}
+                      {deja.actif?"INVITE le "+((deja.invite_le||deja.created_at)?new Date(deja.invite_le||deja.created_at).toLocaleString("fr-CA",{hour12:false}).replace(",","").substring(0,17):"-")+" ("+(deja.role||"")+")":"Compte desactive"}
                     </span>
                   ):(
                     <span style={{display:"flex",gap:6,alignItems:"center"}}>

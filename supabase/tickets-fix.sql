@@ -33,3 +33,7 @@ alter table public.fournisseurs add column if not exists rbq text default '';
 alter table public.fournisseurs add column if not exists no_tps text default '';
 alter table public.fournisseurs add column if not exists no_tvq text default '';
 notify pgrst, 'reload schema';
+
+-- Suivi des invitations: date et heure d envoi de l invitation
+alter table public.usagers add column if not exists invite_le timestamptz;
+notify pgrst, 'reload schema';
