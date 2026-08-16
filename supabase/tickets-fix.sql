@@ -54,3 +54,19 @@ create policy "apc_mod" on public.approbations_ca for all to authenticated
   using (public.est_gestion() or public.mon_role() = 'ca')
   with check (public.est_gestion() or public.mon_role() = 'ca');
 notify pgrst, 'reload schema';
+
+-- Budget: statut brouillon / approuve par le CA (avant de confirmer les cotisations)
+create table if not exists public.budgets (
+  id uuid primary key default gen_random_uuid(),
+  syndicat_id uuid, annee_debut text, created_at timestamptz default now()
+);
+alter table public.budgets add column if not exists statut text default 'brouillon';
+alter table public.budgets add column if not exists approuve_par text default '';
+alter table public.budgets add column if not exists date_approbation timestamptz;
+alter table public.budgets add column if not exists annee_debut text;
+alter table public.budgets enable row level security;
+drop policy if exists "bud_sel" on public.budgets;
+drop policy if exists "bud_mod" on public.budgets;
+create policy "bud_sel" on public.budgets for select to authenticated using (true);
+create policy "bud_mod" on public.budgets for all to authenticated using (public.est_gestion()) with check (public.est_gestion());
+notify pgrst, 'reload schema';

@@ -304,6 +304,35 @@ function TabBudget(p){
   var s4=useState(false);var enCours=s4[0];var setEnCours=s4[1];
   var s5=useState([]);var unites=s5[0];var setUnites=s5[1];
   var s6=useState(false);var applEnCours=s6[0];var setApplEnCours=s6[1];
+  var s7=useState(null);var budRow=s7[0];var setBudRow=s7[1];
+  var s8=useState([]);var membresCA=s8[0];var setMembresCA=s8[1];
+  var s9=useState("");var approuvant=s9[0];var setApprouvant=s9[1];
+  var s10=useState(null);var ajoutGrp=s10[0];var setAjoutGrp=s10[1];
+  var s11=useState({no:"",nom:"",type:"depense"});var nCompte=s11[0];var setNCompte=s11[1];
+  var s12=useState({});var budPrec=s12[0];var setBudPrec=s12[1];
+  var s13=useState({});var reelPrec=s13[0];var setReelPrec=s13[1];
+
+  // Gestion des comptes GL directement du budget: ajouter, ou rendre inactif
+  function ajouterCompteGL(){
+    if(!nCompte.no||!nCompte.nom||!syndicat)return;
+    sb.insert("comptes_syndicat",{syndicat_id:syndicat.id,no_compte:nCompte.no,nom_compte:nCompte.nom,type_compte:nCompte.type,groupe:ajoutGrp||"Autres",actif:true,fonds:"operation"}).then(function(r){
+      if(r&&r.error){setErr("ECHEC de l ajout du compte: "+(r.error.message||""));return;}
+      setAjoutGrp(null);setNCompte({no:"",nom:"",type:"depense"});
+      setMsg("Compte "+r.data.no_compte+" - "+r.data.nom_compte+" ajoute au plan comptable.");
+      if(p.recharger)p.recharger();
+      setTimeout(function(){setMsg("");},4000);
+    }).catch(function(e){setErr("Erreur: "+(e&&e.message?e.message:""));});
+  }
+  function desactiverCompteGL(no){
+    var c=comptes.find(function(x){return x.no_compte===no;});
+    if(!c)return;
+    sb.update("comptes_syndicat",c.id,{actif:false}).then(function(r){
+      if(r&&r.error){setErr("ECHEC: "+(r.error.message||""));return;}
+      setMsg("Compte "+no+" rendu INACTIF (reactivable dans Plan comptable). Son montant budgete est ignore.");
+      if(p.recharger)p.recharger();
+      setTimeout(function(){setMsg("");},4000);
+    }).catch(function(){});
+  }
 
   var opts=optionsExercices(syndicat?syndicat.exercice:"");
   useEffect(function(){
@@ -321,10 +350,55 @@ function TabBudget(p){
     sb.select("unites",{eq:{syndicat_id:syndicat.id},order:"no_unite.asc",limit:1000}).then(function(r){
       if(r&&r.data)setUnites(r.data);
     }).catch(function(){});
+    // Statut du budget (brouillon / approuve par le CA)
+    sb.select("budgets",{eq:{syndicat_id:syndicat.id,annee_debut:exo.debut},limit:1}).then(function(r){
+      setBudRow(r&&r.data&&r.data[0]?r.data[0]:null);
+    }).catch(function(){setBudRow(null);});
+    sb.select("membres_ca",{eq:{syndicat_id:syndicat.id,actif:true},limit:20}).then(function(r){
+      if(r&&r.data)setMembresCA(r.data);
+    }).catch(function(){});
+    // ANNEE PRECEDENTE: budget et reel, pour comparer en preparant le nouveau budget
+    var prevDebut=(parseInt(exo.debut.substring(0,4),10)-1)+exo.debut.substring(4);
+    sb.select("budgets_gl",{eq:{syndicat_id:syndicat.id,exercice_debut:prevDebut},limit:200}).then(function(r){
+      var m={};if(r&&r.data)r.data.forEach(function(x){m[x.no_compte]=Number(x.montant)||0;});
+      setBudPrec(m);
+    }).catch(function(){setBudPrec({});});
+    Promise.all([
+      sb.select("factures",{eq:{syndicat_id:syndicat.id},limit:1000}),
+      sb.select("paiements",{eq:{syndicat_id:syndicat.id},limit:5000})
+    ]).then(function(rs){
+      var dansPrec=function(d){return d&&d>=prevDebut&&d<exo.debut;};
+      var m={};
+      ((rs[0]&&rs[0].data)||[]).forEach(function(f){
+        if(f.statut==="annulee"||f.statut==="rejetee")return;
+        if(!dansPrec(f.date_facture))return;
+        var no=f.no_compte_gl||"5190";
+        m[no]=(m[no]||0)+(Number(f.total)||Number(f.montant)||0);
+      });
+      var MAP_P={cotisation:"4110",speciale:"4130",frais:"4600",infraction:"4620"};
+      ((rs[1]&&rs[1].data)||[]).forEach(function(pm){
+        if((pm.statut||"")!=="paye")return;
+        if(!dansPrec(pm.date_paiement))return;
+        var no=MAP_P[pm.type_paiement||pm.type||"cotisation"]||"4110";
+        m[no]=(m[no]||0)+(Number(pm.montant)||0);
+      });
+      setReelPrec(m);
+    }).catch(function(){setReelPrec({});});
   },[syndicat&&syndicat.id,exo&&exo.debut]);
 
+  var aPrecedent=Object.keys(budPrec).length>0||Object.keys(reelPrec).length>0;
+  function reporterBudgetPrecedent(){
+    setMontants(function(pr){
+      var n=Object.assign({},pr);
+      Object.keys(budPrec).forEach(function(no){if(n[no]===undefined||n[no]==="")n[no]=String(budPrec[no]);});
+      return n;
+    });
+    setMsg("Budget de l annee precedente reporte dans les champs vides - ajustez puis sauvegardez.");
+    setTimeout(function(){setMsg("");},5000);
+  }
+
   var lignesBudget=comptes.filter(function(c){return c.actif&&["revenu","depense","fonds"].indexOf(c.type_compte)>=0;})
-    .map(function(c){return {no:c.no_compte,nom:c.nom_compte,type:c.type_compte,groupe:c.groupe||"Autres"};})
+    .map(function(c){return {no:c.no_compte,nom:c.nom_compte,type:c.type_compte,groupe:c.groupe||"Autres",fonds:c.fonds||"operation"};})
     .sort(function(a,b){return String(a.no).localeCompare(String(b.no));});
 
   function setM(no,v){setMontants(function(pr){var n=Object.assign({},pr);n[no]=v;return n;});}
@@ -344,12 +418,33 @@ function TabBudget(p){
     });
     if(rows.length===0){setErr("Entrez au moins un montant.");setEnCours(false);return;}
     sb.upsert("budgets_gl",rows,"syndicat_id,exercice_debut,no_compte").then(function(r){
-      setEnCours(false);
-      if(r&&r.error){setErr("ECHEC de la sauvegarde du budget: "+(r.error.message||r.error.hint||"erreur"));return;}
-      setMsg("Budget sauvegarde ("+rows.length+" ligne(s)) pour "+exo.label+".");
-      sb.log("budget","modification","Budget "+exo.debut+" sauvegarde: "+cotisationsAnnuelles.toFixed(2)+" $ de cotisations annuelles","",syndicat.code||"");
-      setTimeout(function(){setMsg("");},5000);
+      if(r&&r.error){setEnCours(false);setErr("ECHEC de la sauvegarde du budget: "+(r.error.message||r.error.hint||"erreur"));return;}
+      // Statut: toute sauvegarde (re)passe le budget en BROUILLON - il devra etre (re)approuve par le CA
+      var majB={syndicat_id:syndicat.id,annee_debut:exo.debut,statut:"brouillon",approuve_par:"",date_approbation:null};
+      var opB=budRow&&budRow.id?sb.update("budgets",budRow.id,majB):sb.insert("budgets",majB);
+      opB.then(function(rb){
+        setEnCours(false);
+        if(rb&&rb.data)setBudRow(rb.data);
+        setMsg("Budget sauvegarde en BROUILLON ("+rows.length+" ligne(s)) pour "+exo.label+" - faites-le approuver par le CA pour confirmer les cotisations.");
+        sb.log("budget","modification","Budget "+exo.debut+" sauvegarde en brouillon: "+cotisationsAnnuelles.toFixed(2)+" $ de cotisations annuelles","",syndicat.code||"");
+        setTimeout(function(){setMsg("");},6000);
+      }).catch(function(){setEnCours(false);setMsg("Budget sauvegarde, mais le statut brouillon n a pas pu etre enregistre.");});
     }).catch(function(e){setEnCours(false);setErr("Erreur: "+(e&&e.message?e.message:""));});
+  }
+
+  function approuverBudget(){
+    if(!syndicat||!exo)return;
+    if(!approuvant){setErr("Choisissez qui approuve le budget (membre du CA).");return;}
+    setErr("");
+    var majB={syndicat_id:syndicat.id,annee_debut:exo.debut,statut:"approuve",approuve_par:approuvant,date_approbation:new Date().toISOString()};
+    var opB=budRow&&budRow.id?sb.update("budgets",budRow.id,majB):sb.insert("budgets",majB);
+    opB.then(function(rb){
+      if(rb&&rb.error){setErr("ECHEC de l approbation: "+(rb.error.message||""));return;}
+      if(rb&&rb.data)setBudRow(rb.data);
+      setMsg("Budget "+exo.label+" APPROUVE par "+approuvant+" - vous pouvez maintenant appliquer les cotisations aux unites.");
+      sb.log("budget","approbation","Budget "+exo.debut+" approuve par "+approuvant,"",syndicat.code||"");
+      setTimeout(function(){setMsg("");},6000);
+    }).catch(function(e){setErr("Erreur: "+(e&&e.message?e.message:""));});
   }
 
   // Applique les cotisations calculees a chaque unite (et aux coproprietaires actifs au prorata)
@@ -393,7 +488,24 @@ function TabBudget(p){
             {opts.map(function(o){return <option key={o.debut} value={o.debut}>{o.label}</option>;})}
           </select>
         </div>
-        <Btn onClick={sauvegarderBudget} dis={enCours}>{enCours?"Sauvegarde...":"Sauvegarder le budget"}</Btn>
+        <Btn onClick={sauvegarderBudget} dis={enCours}>{enCours?"Sauvegarde...":"Sauvegarder en BROUILLON"}</Btn>
+      </div>
+
+      <div style={{background:budRow&&budRow.statut==="approuve"?T.accentL:T.amberL,border:"2px solid "+(budRow&&budRow.statut==="approuve"?T.accent:T.amber),borderRadius:10,padding:"10px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+        {budRow&&budRow.statut==="approuve"?(
+          <span style={{fontSize:12,fontWeight:800,color:T.accent}}>BUDGET APPROUVE par {budRow.approuve_par||"le CA"}{budRow.date_approbation?" le "+String(budRow.date_approbation).substring(0,10):""} - les cotisations peuvent etre appliquees. Toute modification le repassera en brouillon.</span>
+        ):(
+          <span style={{fontSize:12,fontWeight:800,color:T.amber}}>{budRow?"BUDGET EN BROUILLON":"Aucun budget sauvegarde pour cet exercice"} - il doit etre APPROUVE par les administrateurs avant de confirmer les cotisations.</span>
+        )}
+        {(!budRow||budRow.statut!=="approuve")&&(
+          <span style={{display:"flex",gap:8,alignItems:"center",marginLeft:"auto"}}>
+            <select value={approuvant} onChange={function(e){setApprouvant(e.target.value);}} style={Object.assign({},INP,{width:230})}>
+              <option value="">Approuve par (membre du CA)...</option>
+              {membresCA.map(function(m){var n=((m.prenom||"")+" "+(m.nom||"")).trim();return <option key={m.id} value={n}>{n}{m.role_ca?" ("+m.role_ca+")":""}</option>;})}
+            </select>
+            <Btn sm onClick={approuverBudget} dis={!budRow}>Approuver le budget</Btn>
+          </span>
+        )}
       </div>
       {msg&&<div style={{background:T.accentL,border:"2px solid "+T.accent,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.accent,fontWeight:700,marginBottom:12}}>{msg}</div>}
       {err&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,fontWeight:700,marginBottom:12}}>{err}</div>}
@@ -405,24 +517,96 @@ function TabBudget(p){
         <div style={{background:T.accentL,border:"2px solid "+T.accent,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.accent,fontWeight:700}}>COTISATIONS ANNUELLES</div><div style={{fontSize:18,fontWeight:800,color:T.accent}}>{money(cotisationsAnnuelles)}</div><div style={{fontSize:10,color:T.muted}}>{money(cotisationsAnnuelles/12)} /mois</div></div>
       </div>
 
+      {(function(){
+        // BUDGET PAR FONDS: revenus, depenses et SOLDE de chaque fonds (balance ou non)
+        var fondsIds=["operation","prevoyance","assurance"];
+        lignesBudget.forEach(function(c){if(fondsIds.indexOf(c.fonds)<0)fondsIds.push(c.fonds);});
+        var LBL_F={operation:"Fonds d operation",prevoyance:"Fonds de prevoyance",assurance:"Fonds d auto-assurance"};
+        var m=function(no){return parseFloat(montants[no])||0;};
+        return(
+          <div style={{background:T.surface,border:"2px solid "+T.navy+"33",borderRadius:12,padding:16,marginBottom:16}}>
+            <div style={{fontSize:13,fontWeight:800,color:T.navy,marginBottom:2}}>Budget par fonds</div>
+            <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Revenus, depenses et solde de chaque fonds. Un solde a 0 = le fonds balance; positif = surplus; negatif = deficit a corriger.</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:12}}>
+              {fondsIds.map(function(fid){
+                var lF=lignesBudget.filter(function(c){return c.fonds===fid;});
+                var rev,dep;
+                if(fid==="operation"){
+                  rev=cotisationsAnnuelles+lF.filter(function(c){return c.type==="revenu"&&c.no!=="4100"&&c.no!=="4150";}).reduce(function(a,c){return a+m(c.no);},0);
+                  dep=lF.filter(function(c){return c.type==="depense";}).reduce(function(a,c){return a+m(c.no);},0)
+                    +lignesBudget.filter(function(c){return c.type==="fonds";}).reduce(function(a,c){return a+m(c.no);},0); // transferts VERS les autres fonds
+                }else{
+                  rev=lF.filter(function(c){return c.type==="fonds"||c.type==="revenu";}).reduce(function(a,c){return a+m(c.no);},0); // transferts recus + revenus propres
+                  dep=lF.filter(function(c){return c.type==="depense";}).reduce(function(a,c){return a+m(c.no);},0);
+                }
+                var solde=Math.round((rev-dep)*100)/100;
+                var balance=Math.abs(solde)<0.005;
+                if(fid!=="operation"&&rev===0&&dep===0)return null;
+                return(
+                  <div key={fid} style={{border:"2px solid "+(balance?T.accent:solde>0?T.blue:T.red)+"66",borderRadius:10,padding:12,background:balance?T.accentL:solde>0?T.blueL:T.redL}}>
+                    <div style={{fontSize:11,fontWeight:800,color:T.navy,textTransform:"uppercase",marginBottom:8}}>{LBL_F[fid]||("Fonds "+fid)}</div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"2px 0"}}><span style={{color:T.muted}}>Revenus budgetes{fid==="operation"?" (incl. cotisations)":fid!=="operation"?" (incl. transferts)":""}</span><span style={{fontWeight:700,color:T.accent}}>{money(rev)}</span></div>
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:12,padding:"2px 0"}}><span style={{color:T.muted}}>Depenses prevues{fid==="operation"?" (incl. transferts)":""}</span><span style={{fontWeight:700,color:T.red}}>{money(dep)}</span></div>
+                    <div style={{borderTop:"2px solid "+T.border,marginTop:6,paddingTop:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <span style={{fontSize:11,fontWeight:800,color:T.navy}}>SOLDE</span>
+                      <span style={{fontSize:15,fontWeight:800,color:balance?T.accent:solde>0?T.blue:T.red}}>{money(solde)}</span>
+                    </div>
+                    <div style={{fontSize:10,fontWeight:800,marginTop:4,color:balance?T.accent:solde>0?T.blue:T.red}}>{balance?"BALANCE":solde>0?"SURPLUS":"DEFICIT"}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
       {lignesBudget.length===0&&<div style={{background:T.amberL,borderRadius:10,padding:14,fontSize:12,color:T.amber,fontWeight:600,marginBottom:12}}>Aucun compte actif - activez des comptes dans l onglet Plan comptable.</div>}
 
+      {aPrecedent&&(
+        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
+          <Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={reporterBudgetPrecedent}>Reporter le budget de l annee precedente (champs vides)</Btn>
+        </div>
+      )}
       {groupes.map(function(g){
         var lignes=lignesBudget.filter(function(c){return c.groupe===g;});
         var sousTotal=lignes.reduce(function(a,c){return a+(parseFloat(montants[c.no])||0);},0);
         return(
           <div key={g} style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:14,marginBottom:10}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:8,alignItems:"center",gap:8}}>
               <div style={{fontSize:11,fontWeight:800,color:T.navy,textTransform:"uppercase",letterSpacing:"0.05em"}}>{g}</div>
-              <div style={{fontSize:11,fontWeight:800,color:T.navy}}>{money(sousTotal)}</div>
+              <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                <button onClick={function(){setAjoutGrp(ajoutGrp===g?null:g);setNCompte({no:"",nom:"",type:"depense"});}} style={{background:"none",border:"1px dashed "+T.accent,borderRadius:6,padding:"2px 10px",fontSize:10,fontWeight:700,color:T.accent,cursor:"pointer",fontFamily:"inherit"}}>+ Compte GL</button>
+                <div style={{fontSize:11,fontWeight:800,color:T.navy}}>{money(sousTotal)}</div>
+              </div>
             </div>
+            {aPrecedent&&(
+              <div style={{display:"flex",gap:10,padding:"2px 0",fontSize:9,fontWeight:800,color:T.muted,textTransform:"uppercase"}}>
+                <span style={{width:44,flexShrink:0}}></span><span style={{flex:1}}></span>
+                <span style={{width:86,textAlign:"right"}}>Budget prec.</span>
+                <span style={{width:86,textAlign:"right"}}>Reel prec.</span>
+                <span style={{width:130,textAlign:"right"}}>Budget {exo?exo.debut.substring(0,4):""}</span>
+                <span style={{width:20}}></span>
+              </div>
+            )}
             {lignes.map(function(c){return(
               <div key={c.no} style={{display:"flex",alignItems:"center",gap:10,padding:"4px 0"}}>
                 <span style={{fontSize:11,fontWeight:700,color:T.muted,width:44,flexShrink:0}}>{c.no}</span>
                 <span style={{fontSize:12,color:T.text,flex:1}}>{c.nom}{c.no==="4100"||c.no==="4150"?<span style={{fontSize:9,color:T.muted}}> (calcule - n entre pas dans le total)</span>:null}</span>
+                {aPrecedent&&<span style={{width:86,textAlign:"right",fontSize:11,color:T.muted}}>{budPrec[c.no]!==undefined?money(budPrec[c.no]):"-"}</span>}
+                {aPrecedent&&<span style={{width:86,textAlign:"right",fontSize:11,fontWeight:700,color:reelPrec[c.no]?T.navy:T.muted}}>{reelPrec[c.no]?money(reelPrec[c.no]):"-"}</span>}
                 <input type="number" step="0.01" value={montants[c.no]||""} onChange={function(e){setM(c.no,e.target.value);}} style={Object.assign({},INP,{width:130,textAlign:"right"})} placeholder="0.00" disabled={c.no==="4100"||c.no==="4150"}/>
+                <button title="Rendre ce compte inactif" onClick={function(){desactiverCompteGL(c.no);}} style={{background:"none",border:"none",color:T.red,fontSize:13,fontWeight:800,cursor:"pointer",width:20,padding:0,fontFamily:"inherit"}}>x</button>
               </div>
             );})}
+            {ajoutGrp===g&&(
+              <div style={{display:"flex",gap:8,alignItems:"flex-end",flexWrap:"wrap",background:T.accentL,borderRadius:8,padding:10,marginTop:8}}>
+                <div style={{width:90}}><Lbl l="No"/><input value={nCompte.no} onChange={function(e){setNCompte(Object.assign({},nCompte,{no:e.target.value.replace(/\D/g,"").slice(0,4)}));}} style={INP} placeholder="5250"/></div>
+                <div style={{flex:1,minWidth:180}}><Lbl l="Nom du compte"/><input value={nCompte.nom} onChange={function(e){setNCompte(Object.assign({},nCompte,{nom:e.target.value}));}} style={INP} placeholder="Ex: Lavage de vitres"/></div>
+                <div style={{width:150}}><Lbl l="Type"/><select value={nCompte.type} onChange={function(e){setNCompte(Object.assign({},nCompte,{type:e.target.value}));}} style={INP}><option value="depense">Depense</option><option value="revenu">Revenu</option><option value="fonds">Transfert interfonds</option></select></div>
+                <Btn sm onClick={ajouterCompteGL} dis={!nCompte.no||!nCompte.nom}>Ajouter</Btn>
+                <Btn sm bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setAjoutGrp(null);}}>Annuler</Btn>
+              </div>
+            )}
           </div>
         );
       })}
@@ -433,7 +617,7 @@ function TabBudget(p){
             <div style={{fontSize:13,fontWeight:700,color:T.navy}}>Cotisations par unite (budget x quote-part / 12)</div>
             <div style={{fontSize:11,color:T.muted}}>{unites.length} unite(s) - fractions totales: {totalFraction.toFixed(3)} %</div>
           </div>
-          <Btn onClick={appliquerCotisations} dis={applEnCours||unites.length===0||cotisationsAnnuelles<=0}>{applEnCours?"Application en cours...":"Appliquer aux unites"}</Btn>
+          <Btn onClick={appliquerCotisations} dis={applEnCours||unites.length===0||cotisationsAnnuelles<=0||!(budRow&&budRow.statut==="approuve")}>{applEnCours?"Application en cours...":(budRow&&budRow.statut==="approuve"?"Appliquer aux unites":"Approbation du CA requise avant d appliquer")}</Btn>
         </div>
         {unites.length===0?(
           <div style={{fontSize:12,color:T.muted,padding:10}}>Aucune unite pour ce syndicat.</div>
@@ -1050,7 +1234,7 @@ export default function BudgetCompta(props){
       </div>
       <div style={{padding:20}}>
         {errInit&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,fontWeight:700,marginBottom:12}}>{errInit}</div>}
-        {ong==="budget"&&<TabBudget syndicat={sel} comptes={comptes}/>}
+        {ong==="budget"&&<TabBudget syndicat={sel} comptes={comptes} recharger={chargerComptes}/>}
         {ong==="etats"&&<TabEtats syndicat={sel} comptes={comptes}/>}
         {ong==="fonds"&&<TabFonds syndicat={sel} comptes={comptes} recharger={chargerComptes}/>}
         {ong==="charte"&&<TabCharte syndicat={sel} comptes={comptes} recharger={chargerComptes}/>}

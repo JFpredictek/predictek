@@ -129,7 +129,8 @@ var NAV={
     {titre:"Fournisseurs",items:[{id:"fournisseurs"},{id:"bons"}]},
     {titre:"Immeuble",items:[{id:"unites"},{id:"carnet"},{id:"docs"},{id:"sinistres"},{id:"agenda"}]},
     {titre:"Instances",items:[{id:"assemblees"},{id:"pv"},{id:"ca"},{id:"registre"}]},
-    {titre:"Communications",items:[{id:"comm"},{id:"requetes"},{id:"conformite"},{id:"notif"}]},
+    {titre:"Requetes",items:[{id:"requetes"}]},
+    {titre:"Communications",items:[{id:"comm"},{id:"conformite"},{id:"notif"}]},
     {titre:"Configuration",items:[{id:"configsynd"},{id:"plancomptable"},{id:"usagersca"},{id:"reconn"}]}
   ],
   portail:[
@@ -162,6 +163,22 @@ export default function App(){
   var s2=useState("dashboard");var active=s2[0];var setActive=s2[1];
   var s3=useState("predictek");var activeSec=s3[0];var setActiveSec=s3[1];
   var s4=useState(null);var menuOuvert=s4[0];var setMenuOuvert=s4[1];
+  var s5=useState(0);var nbRequetes=s5[0];var setNbRequetes=s5[1];
+
+  // Compteur de requetes a traiter (badge sur le menu Requetes) - rafraichi periodiquement
+  useEffect(function(){
+    if(!user)return;
+    var charger=function(){
+      sb.select("tickets",{cols:"id,statut",limit:1000}).then(function(r){
+        if(r&&r.data)setNbRequetes(r.data.filter(function(t){var st=t.statut||"nouveau";return st==="nouveau"||st==="en_cours";}).length);
+      }).catch(function(){});
+    };
+    charger();
+    var iv=setInterval(charger,120000);
+    var onFocus=function(){charger();};
+    window.addEventListener("focus",onFocus);
+    return function(){clearInterval(iv);window.removeEventListener("focus",onFocus);};
+  },[user]);
 
   useEffect(function(){
     sb.checkSession().then(function(u){
@@ -266,8 +283,9 @@ export default function App(){
                 <button onClick={function(){
                   if(unique){setActive(modItems[0].id);setMenuOuvert(null);}
                   else setMenuOuvert(ouvert?null:cle);
-                }} style={{display:"flex",alignItems:"center",gap:7,height:46,padding:"0 18px",background:contientActif||ouvert?"#ffffff18":"transparent",border:"none",borderBottom:contientActif?"3px solid "+activeSectionDef.color:"3px solid transparent",cursor:"pointer",fontFamily:"Georgia,serif",color:contientActif||ouvert?"#fff":"#9fb0c6",fontSize:13,fontWeight:contientActif?700:500,whiteSpace:"nowrap"}}>
+                }} style={{display:"flex",alignItems:"center",gap:7,height:46,padding:"0 18px",background:contientActif||ouvert?"#ffffff18":"transparent",border:"none",borderBottom:contientActif?"3px solid "+activeSectionDef.color:"3px solid transparent",cursor:"pointer",fontFamily:"Georgia,serif",color:contientActif||ouvert?"#fff":"#9fb0c6",fontSize:13,fontWeight:contientActif?700:500,whiteSpace:"nowrap",position:"relative"}}>
                   {gr.titre}
+                  {gr.titre==="Requetes"&&nbRequetes>0&&<span style={{background:"#B83232",color:"#fff",borderRadius:10,minWidth:18,height:18,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:800,padding:"0 5px"}}>{nbRequetes}</span>}
                   {!unique&&<span style={{fontSize:9}}>{ouvert?"\u25B4":"\u25BE"}</span>}
                 </button>
                 {ouvert&&!unique&&(
