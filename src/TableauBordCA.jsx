@@ -95,11 +95,32 @@ function SectionTickets(p){
 
 function SectionAlertes(p){
   var copros=p.copros||[];
+  var unites=p.unites||[];
+  var syn=p.syndicat||{};
   var aujourd_hui=new Date();
   var alertes=[];
+  // Source de verite: les UNITES (assurance_exp, chauffe-eau = installation + duree de vie du syndicat)
+  unites.forEach(function(u){
+    var props=copros.filter(function(c){return c.statut!=="ancien"&&(c.unite_id===u.id||(!c.unite_id&&c.unite===u.no_unite));});
+    var nom=props.map(function(c){return ((c.prenom||"")+" "+(c.nom||"")).trim();}).join(" et ");
+    if(u.assurance_exp){
+      var jA=Math.round((new Date(String(u.assurance_exp).substring(0,10)+"T12:00:00")-aujourd_hui)/(1000*60*60*24));
+      if(jA<90)alertes.push({id:"assu"+u.id,unite:u.no_unite,nom:nom,type:"Assurance de l unite",jours:jA,couleur:jA<30?"red":"amber"});
+    }
+    if(u.ce_date_install){
+      var duree=parseInt(syn.ce_duree_vie_ans)||12;
+      var dF=new Date(String(u.ce_date_install).substring(0,10)+"T12:00:00");
+      if(!isNaN(dF.getTime())){
+        dF.setFullYear(dF.getFullYear()+duree);
+        var jC=Math.round((dF-aujourd_hui)/(1000*60*60*24));
+        if(jC<90)alertes.push({id:"ceu"+u.id,unite:u.no_unite,nom:nom,type:"Chauffe-eau (fin de vie)",jours:jC,couleur:jC<30?"red":"amber"});
+      }
+    }
+  });
+  // Anciennes donnees au niveau du coproprietaire (si encore utilisees)
   copros.forEach(function(c){
     if(c.ce_expiry){var d=new Date(c.ce_expiry);var j=Math.round((d-aujourd_hui)/(1000*60*60*24));if(j<90)alertes.push({id:"ce"+c.id,unite:c.unite,nom:c.nom,type:"Certificat eau",jours:j,couleur:j<30?"red":"amber"});}
-    if(c.ass_expiry){var dA=new Date(c.ass_expiry);var jA=Math.round((dA-aujourd_hui)/(1000*60*60*24));if(jA<90)alertes.push({id:"ass"+c.id,unite:c.unite,nom:c.nom,type:"Assurance",jours:jA,couleur:jA<30?"red":"amber"});}
+    if(c.ass_expiry){var dA=new Date(c.ass_expiry);var jA2=Math.round((dA-aujourd_hui)/(1000*60*60*24));if(jA2<90)alertes.push({id:"ass"+c.id,unite:c.unite,nom:c.nom,type:"Assurance",jours:jA2,couleur:jA2<30?"red":"amber"});}
     if(c.pap&&c.pap_date_exp){var dP=new Date(c.pap_date_exp);var jP=Math.round((dP-aujourd_hui)/(1000*60*60*24));if(jP<60)alertes.push({id:"pap"+c.id,unite:c.unite,nom:c.nom,type:"PAP",jours:jP,couleur:jP<30?"red":"amber"});}
   });
   alertes.sort(function(a,b){return a.jours-b.jours;});
@@ -108,7 +129,7 @@ function SectionAlertes(p){
       <div style={{fontSize:12,fontWeight:700,color:alertes.length>0?T.red:T.navy,marginBottom:12}}>
         Alertes expirations {alertes.length>0?"("+alertes.length+")":""}
       </div>
-      {alertes.slice(0,4).map(function(a){return(
+      {alertes.slice(0,8).map(function(a){return(
         <div key={a.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid #0001"}}>
           <div>
             <div style={{fontSize:11,fontWeight:600}}>{a.type} - Unite {a.unite}</div>
@@ -287,7 +308,7 @@ export default function TableauBordCA(props){
               onTout={function(){if(props&&props.onNavigate)props.onNavigate("requetes");}}/>
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
               <SectionReunions reunions={reunions}/>
-              <SectionAlertes copros={copros}/>
+              <SectionAlertes copros={copros} unites={unites} syndicat={sel}/>
             </div>
           </div>
         </div>

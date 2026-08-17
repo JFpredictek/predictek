@@ -10,6 +10,35 @@ var INP={width:"100%",border:"1px solid #DDD9CF",borderRadius:7,padding:"7px 10p
 function Lbl(p){return <div style={{fontSize:10,color:T.muted,textTransform:"uppercase",letterSpacing:"0.07em",fontWeight:600,marginBottom:5}}>{p.l}</div>;}
 function Btn(p){return <button onClick={p.onClick} disabled={p.dis} style={{background:p.dis?"#ccc":p.bg||T.accent,border:p.bdr||"none",borderRadius:7,padding:p.sm?"5px 12px":"8px 18px",color:p.tc||"#fff",fontSize:p.sm?11:12,fontWeight:600,cursor:p.dis?"not-allowed":"pointer",fontFamily:"inherit"}}>{p.children}</button>;}
 
+// ----- Extraction automatique d une police d assurance televersee -----
+function lireReponseC(r){return r.text().then(function(t){try{return JSON.parse(t);}catch(e){return {error:"Reponse inattendue du serveur (code "+r.status+")"};}});}
+function fichierPourExtractionC(file){
+  return new Promise(function(resolve,reject){
+    var isPdf=/pdf$/i.test(file.type)||/\.pdf$/i.test(file.name);
+    var fr=new FileReader();
+    fr.onerror=function(){reject(new Error("Lecture du fichier impossible"));};
+    fr.onload=function(ev){
+      var b64=String(ev.target.result).split(",")[1];
+      if(isPdf){
+        if(b64.length>4200000){reject(new Error("PDF trop volumineux pour l extraction (max ~3 Mo)"));return;}
+        resolve({pdf:b64});
+      }else{
+        var img=new Image();
+        img.onload=function(){
+          var cv=document.createElement("canvas");
+          var sc=Math.min(1,1600/Math.max(img.width,img.height));
+          cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
+          cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+          resolve({images:[cv.toDataURL("image/jpeg",0.8).split(",")[1]]});
+        };
+        img.onerror=function(){reject(new Error("Image illisible"));};
+        img.src=ev.target.result;
+      }
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
 function Carte(p){
   return(
     <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:18,marginBottom:14}}>
@@ -129,12 +158,38 @@ export default function ConfigSyndicat(p){
       var echecs=rs.filter(function(r){return r.error;});
       if(echecs.length>0)setErr("ECHEC du televersement pour "+echecs.map(function(x){return x.nom+" ("+x.error+")";}).join(", "));
       if(oks>0){
-        setMsg(oks+" police(s) televersee(s) - visible(s) ici, dans Documents et dans le portail des copros.");
+        setMsg(oks+" police(s) televersee(s) - extraction automatique en cours (compagnie, no de police, expiration)...");
         sb.log("configuration","ajout",oks+" police(s) d assurance du syndicat televersee(s)","",sel.code||"");
-        setTimeout(function(){setMsg("");},7000);
+        extrairePolice(files[0]);
       }
       chargerPolices(sel.id);
     }).catch(function(e){setUploadPolice(false);setErr("ECHEC: "+(e&&e.message?e.message:""));});
+  }
+
+  // Extraction automatique de la police televersee: compagnie, no de police, expiration
+  // -> preremplit la carte Assurance du syndicat (verifier puis Sauvegarder la configuration)
+  function extrairePolice(file){
+    fichierPourExtractionC(file).then(function(src){
+      var corps=Object.assign({mode:"assurance"},src);
+      return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify(corps)}).then(lireReponseC);
+    }).then(function(resp){
+      if(!resp||resp.error){setMsg("");setErr("Police televersee, mais extraction impossible ("+((resp&&resp.error)||"erreur")+") - remplissez compagnie / no de police / expiration manuellement ci-dessus.");return;}
+      var d=resp.data||{};var pris=[];
+      setF(function(pr){
+        var n=Object.assign({},pr);
+        if(d.compagnie){n.ass_syn_compagnie=d.compagnie;pris.push(d.compagnie);}
+        if(d.police){n.ass_syn_police=d.police;pris.push("police "+d.police);}
+        if(d.dateExp&&/^\d{4}-\d{2}-\d{2}$/.test(d.dateExp)){n.assurance_syndicat_exp=d.dateExp;pris.push("expiration "+d.dateExp);}
+        if(d.montantResponsabilite&&!n.ass_syn_montant)n.ass_syn_montant=String(d.montantResponsabilite);
+        return n;
+      });
+      if(pris.length>0){
+        setMsg("Police televersee et EXTRAITE automatiquement: "+pris.join(", ")+". VERIFIEZ les champs de la carte Assurance du syndicat puis cliquez Sauvegarder la configuration.");
+      }else{
+        setMsg("");setErr("Police televersee, mais aucune information lisible extraite - remplissez compagnie / no de police / expiration manuellement.");
+      }
+      setTimeout(function(){setMsg("");},15000);
+    }).catch(function(e){setMsg("");setErr("Police televersee, mais extraction impossible ("+(e&&e.message?e.message:"erreur")+") - remplissez les champs manuellement.");});
   }
   function voirPolice(d){
     if(d.url&&d.url.indexOf("storage:")===0){
@@ -314,10 +369,9 @@ export default function ConfigSyndicat(p){
         </Carte>
 
         <Carte titre="Assurance du syndicat (police maitresse)" desc="Ces informations proviennent de la police televersee a la creation du syndicat et figurent sur l attestation du notaire - completez ce qui manque.">
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:14}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:14}}>
             <div><Lbl l="Compagnie d assurance"/><input value={f.ass_syn_compagnie||""} onChange={function(e){sf("ass_syn_compagnie",e.target.value);}} style={INP}/></div>
             <div><Lbl l="No de police"/><input value={f.ass_syn_police||""} onChange={function(e){sf("ass_syn_police",e.target.value);}} style={INP}/></div>
-            <div><Lbl l="Montant de couverture"/><input value={f.ass_syn_montant||""} onChange={function(e){sf("ass_syn_montant",e.target.value);}} style={INP}/></div>
             <div><Lbl l="Expiration de la police"/><input type="date" value={f.assurance_syndicat_exp||""} onChange={function(e){sf("assurance_syndicat_exp",e.target.value);}} style={INP}/></div>
           </div>
           <div style={{background:T.alt,borderRadius:10,padding:12}}>

@@ -86,7 +86,7 @@ export default function Communications(){
   var s3=useState(null);var tmpl=s3[0];var setTmpl=s3[1];
   var s4=useState("compose");var vue=s4[0];var setVue=s4[1];
   var s5=useState([]);var envois=s5[0];var setEnvois=s5[1];
-  var s6=useState({sujet:"",corps:"",destinataires:"tous"});var msg=s6[0];var setMsg=s6[1];
+  var s6=useState({sujet:"",corps:"",destinataires:"tous",dest_custom:""});var msg=s6[0];var setMsg=s6[1];
   var s7=useState(false);var sending=s7[0];var setSending=s7[1];
   var s8=useState("");var sendResult=s8[0];var setSendResult=s8[1];
   var s9=useState("");var sgKey=s9[0];var setSgKey=s9[1];
@@ -96,6 +96,18 @@ export default function Communications(){
       if(res&&res.data&&res.data.length>0){setSyndicats(res.data);setSel(res.data[0]);}
     }).catch(function(){});
     try{var k=localStorage.getItem("predictek_sg_key");if(k)setSgKey(k);}catch(e){}
+    // Prefill depuis une fiche (ex: courriel clique dans le repertoire des fournisseurs)
+    try{
+      var pre=localStorage.getItem("predictek_comm_prefill");
+      if(pre){
+        localStorage.removeItem("predictek_comm_prefill");
+        var d=JSON.parse(pre);
+        if(d&&d.courriel){
+          setVue("compose");
+          setMsg(function(pr){return Object.assign({},pr,{destinataires:"courriel",dest_custom:d.courriel,sujet:d.nom?"Message a "+d.nom:pr.sujet,corps:d.nom?"Bonjour "+d.nom+",\n\n":pr.corps});});
+        }
+      }
+    }catch(e){}
   },[]);
 
   useEffect(function(){
@@ -159,7 +171,25 @@ export default function Communications(){
     }).catch(function(e){setSendResult("Erreur reseau: "+e.message);setSending(false);});
   }
 
-  var destCount=msg.destinataires==="tous"?copros.length:copros.filter(function(c){return c.pap;}).length;
+  // Envoi DIRECT a un courriel precis via le serveur Predictek (api/envoi - redirection [TEST] hors production)
+  function envoyerDirect(){
+    if(!msg.sujet||!msg.corps){setSendResult("Sujet et corps requis.");return;}
+    var dest=(msg.dest_custom||"").trim();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(dest)){setSendResult("Entrez une adresse courriel valide.");return;}
+    setSending(true);setSendResult("");
+    fetch("/api/envoi",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({destinataire:dest,sujet:msg.sujet,corps:msg.corps})})
+      .then(function(r){return r.json().catch(function(){return {error:"Reponse inattendue du serveur"};});})
+      .then(function(d){
+        setSending(false);
+        if(!d||d.error){setSendResult("ECHEC de l envoi: "+((d&&d.error)||"erreur"));return;}
+        setSendResult("Envoye avec succes a "+dest+(d.redirection?" - "+d.redirection:"")+".");
+        sb.log("communication","envoi",msg.sujet,"1 destinataire: "+dest,sel?sel.code:"");
+        setEnvois(function(prev){return [{id:Date.now(),sujet:msg.sujet,destinataires:"1 destinataire: "+dest,statut:"envoye",created_at:new Date().toISOString()}].concat(prev);});
+      })
+      .catch(function(e){setSending(false);setSendResult("ECHEC de l envoi: "+(e&&e.message?e.message:"erreur reseau"));});
+  }
+
+  var destCount=msg.destinataires==="courriel"?1:msg.destinataires==="tous"?copros.length:copros.filter(function(c){return c.pap;}).length;
 
   var TABS=[{id:"compose",l:"Composer"},{id:"historique",l:"Historique"}];
 
@@ -203,15 +233,25 @@ export default function Communications(){
                     <option value="tous">Tous les coproprietaires ({copros.length})</option>
                     <option value="pap">Inscrits PAP seulement ({copros.filter(function(c){return c.pap;}).length})</option>
                     <option value="retard">En retard de paiement</option>
+                    <option value="courriel">Un courriel precis (fournisseur, notaire, autre)</option>
                   </select>
+                  {msg.destinataires==="courriel"&&(
+                    <input value={msg.dest_custom} onChange={function(e){setM("dest_custom",e.target.value);}} style={Object.assign({},INP,{width:280,marginTop:8})} placeholder="adresse@..."/>
+                  )}
                   <div style={{fontSize:11,color:T.muted,marginTop:4}}>{destCount} destinataire(s) selectionne(s)</div>
                 </div>
 
                 {sendResult&&<div style={{background:sendResult.includes("succes")||sendResult.includes("Simulation")?T.accentL:T.redL,border:"1px solid "+(sendResult.includes("succes")||sendResult.includes("Simulation")?T.accent:T.red)+"44",borderRadius:8,padding:"10px 14px",fontSize:12,color:sendResult.includes("succes")||sendResult.includes("Simulation")?T.accent:T.red,marginBottom:12}}>{sendResult}</div>}
 
                 <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  <Btn onClick={envoyerSimule} dis={sending||!msg.sujet}>{sending?"Envoi...":"Tester (simulation)"}</Btn>
-                  <Btn onClick={envoyerSendGrid} dis={sending||!msg.sujet} bg={T.blue}>{sending?"Envoi...":"Envoyer via SendGrid"}</Btn>
+                  {msg.destinataires==="courriel"?(
+                    <Btn onClick={envoyerDirect} dis={sending||!msg.sujet}>{sending?"Envoi...":"Envoyer le courriel"}</Btn>
+                  ):(
+                    <span style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                      <Btn onClick={envoyerSimule} dis={sending||!msg.sujet}>{sending?"Envoi...":"Tester (simulation)"}</Btn>
+                      <Btn onClick={envoyerSendGrid} dis={sending||!msg.sujet} bg={T.blue}>{sending?"Envoi...":"Envoyer via SendGrid"}</Btn>
+                    </span>
+                  )}
                 </div>
               </div>
 

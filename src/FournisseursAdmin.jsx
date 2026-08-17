@@ -28,12 +28,12 @@ function CarteFournisseur(p){
             </div>
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,fontSize:11,color:T.muted,paddingLeft:46}}>
-            {f.contact&&<div>Contact: <span style={{color:T.navy,fontWeight:600}}>{f.contact}</span></div>}
+            <div>Contact: <span style={{color:T.navy,fontWeight:700}}>{f.contact||"-"}</span></div>
+            <div>Tel: <span style={{color:T.navy,fontWeight:700}}>{f.telephone||"-"}</span></div>
+            <div style={{gridColumn:"1/-1"}}>Courriel: {f.courriel
+              ?<span onClick={function(){p.onCourriel(f);}} title="Composer un courriel a ce fournisseur (module Communications)" style={{color:T.blue,fontWeight:700,textDecoration:"underline",cursor:"pointer"}}>{f.courriel}</span>
+              :<span style={{color:T.muted}}>-</span>}</div>
             {f.rbq&&<div>RBQ: <span style={{color:T.accent,fontWeight:700}}>{f.rbq}</span></div>}
-            {f.telephone&&<div>Tel: <span style={{color:T.navy}}>{f.telephone}</span></div>}
-            {f.courriel&&<div>Courriel: <span style={{color:T.navy}}>{f.courriel}</span></div>}
-            {f.no_tps&&<div>TPS: <span style={{color:T.navy}}>{f.no_tps}</span></div>}
-            {f.no_tvq&&<div>TVQ: <span style={{color:T.navy}}>{f.no_tvq}</span></div>}
             {f.banque_compte&&<div>EFT: <span style={{color:T.blue,fontWeight:700}}>{f.banque_institution||"?"}-{f.banque_transit||"?"}-***{String(f.banque_compte).slice(-3)}</span></div>}
             {f.adresse&&<div style={{gridColumn:"1/-1"}}>Adresse: <span style={{color:T.navy}}>{f.adresse}</span></div>}
             {f.site_web&&<div style={{gridColumn:"1/-1"}}>Web: <a href={f.site_web} target="_blank" rel="noreferrer" style={{color:T.blue}}>{f.site_web}</a></div>}
@@ -106,6 +106,12 @@ export default function FournisseursAdmin(props){
     setEditId(f.id);setShowForm(true);
   }
 
+  // Composer un courriel a ce fournisseur (module Communications, envoi direct)
+  function courrielPour(f){
+    try{localStorage.setItem("predictek_comm_prefill",JSON.stringify({courriel:f.courriel||"",nom:f.nom||""}));}catch(e){}
+    if(props&&props.onNavigate)props.onNavigate("comm");
+  }
+
   // Creer un bon de travaux directement depuis la fiche du fournisseur
   function creerBonPour(f){
     try{localStorage.setItem("predictek_bon_prefill",JSON.stringify({fournisseur:f.nom}));}catch(e){}
@@ -176,7 +182,7 @@ export default function FournisseursAdmin(props){
         )}
 
         <div style={{fontSize:12,color:T.muted,marginBottom:12}}>{filtres.length} fournisseur(s) actif(s){catFiltre!=="tout"?" - "+catFiltre:""}</div>
-        {filtres.map(function(f){return <CarteFournisseur key={f.id} fournisseur={f} onEdit={editer} onToggle={toggleActif} onBon={creerBonPour}/>;})}
+        {filtres.map(function(f){return <CarteFournisseur key={f.id} fournisseur={f} onEdit={editer} onToggle={toggleActif} onBon={creerBonPour} onCourriel={courrielPour}/>;})}
         {filtres.length===0&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucun fournisseur{recherche?" pour cette recherche":""}</div>}
 
         {archives.length>0&&(
@@ -184,7 +190,7 @@ export default function FournisseursAdmin(props){
             <button onClick={function(){setShowArchives(!showArchives);}} style={{background:"none",border:"none",color:T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
               {showArchives?"Masquer":"Afficher"} les archives ({archives.length})
             </button>
-            {showArchives&&archives.map(function(f){return <CarteFournisseur key={f.id} fournisseur={f} onEdit={editer} onToggle={toggleActif} onBon={creerBonPour}/>;})}
+            {showArchives&&archives.map(function(f){return <CarteFournisseur key={f.id} fournisseur={f} onEdit={editer} onToggle={toggleActif} onBon={creerBonPour} onCourriel={courrielPour}/>;})}
           </div>
         )}
       </div>

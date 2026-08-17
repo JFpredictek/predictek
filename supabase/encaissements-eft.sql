@@ -123,3 +123,18 @@ notify pgrst, 'reload schema';
 -- Photos / pieces jointes des bons de travaux
 alter table public.bons_travail add column if not exists photos jsonb default '[]'::jsonb;
 notify pgrst, 'reload schema';
+
+-- Reparation table bons_travail (colonnes manquantes du formulaire - cause de
+-- "Could not find the 'cout_estime' column") - EXECUTE le 2026-08-17
+alter table public.bons_travail add column if not exists cout_estime numeric;
+alter table public.bons_travail add column if not exists cout_final numeric;
+alter table public.bons_travail add column if not exists date_debut date;
+alter table public.bons_travail add column if not exists date_fin date;
+alter table public.bons_travail add column if not exists no_bon text default '';
+alter table public.bons_travail add column if not exists notes text default '';
+alter table public.bons_travail add column if not exists priorite text default 'normale';
+alter table public.bons_travail add column if not exists statut text default 'nouveau';
+alter table public.bons_travail add column if not exists fournisseur_nom text default '';
+alter table public.bons_travail add column if not exists unite text default '';
+alter table public.bons_travail add column if not exists description text default '';
+notify pgrst, 'reload schema';
