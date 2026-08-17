@@ -168,7 +168,7 @@ export default function BonsTravail(){
       var w=window.open("","_blank","width=900,height=700");
       if(!w)return;
       var esc=function(v){return String(v||"").replace(/</g,"&lt;");};
-      var h="<html><head><title>Bon de travaux "+esc(b.no_bon)+"</title><style>"
+      var h="<html><head><title>Bon de travail "+esc(b.no_bon)+"</title><style>"
         +"body{font-family:Georgia,serif;color:#1C1A17;margin:36px;font-size:12px}"
         +"h1{font-size:18px;margin:8px 0 2px}"
         +"table{width:100%;border-collapse:collapse;margin-top:10px}"
@@ -178,7 +178,7 @@ export default function BonsTravail(){
         +"img.ph{max-width:280px;max-height:220px;margin:6px 8px 0 0;border:1px solid #999;border-radius:4px}"
         +"</style></head><body>"
         +(logo?"<div style='border-bottom:3px solid #1B5E3B;padding-bottom:10px;margin-bottom:8px'><img src='"+logo+"' style='height:52px'/></div>":"")
-        +"<h1>BON DE TRAVAUX "+esc(b.no_bon)+"</h1>"
+        +"<h1>BON DE TRAVAIL "+esc(b.no_bon)+"</h1>"
         +"<div class='muted'>"+esc(sel?sel.nom:"")+(sel&&sel.adr?" - "+esc(sel.adr):"")+(sel&&sel.ville?", "+esc(sel.ville):"")+"</div>"
         +"<table>"
         +"<tr><td class='l'>Fournisseur</td><td>"+esc(b.fournisseur_nom||"-")+(fo&&fo.courriel?" ("+esc(fo.courriel)+")":"")+(fo&&fo.telephone?" - "+esc(fo.telephone):"")+"</td></tr>"
@@ -196,7 +196,12 @@ export default function BonsTravail(){
         h+="<div style='margin-top:12px;font-weight:bold'>Photos jointes ("+imgs.length+")</div>";
         imgs.forEach(function(u){h+="<img class='ph' src='"+u+"'/>";});
       }
-      h+="<br/><br/><table><tr><td class='l'>Signature du gestionnaire</td><td style='height:40px'></td></tr><tr><td class='l'>Signature du fournisseur</td><td style='height:40px'></td></tr></table>";
+      var USER={};try{USER=JSON.parse(localStorage.getItem("predictek_user")||"{}")||{};}catch(e){}
+      var creeLe=b.created_at?new Date(b.created_at).toLocaleString("fr-CA",{hour12:false}).replace(",","").substring(0,17):"";
+      h+="<br/><table>"
+        +"<tr><td class='l'>Demandeur</td><td>"+esc(USER.nom||"")+(creeLe?" - bon cree le "+creeLe:"")+"</td></tr>"
+        +"<tr><td class='l'>Signature du fournisseur</td><td style='height:40px'></td></tr>"
+        +"</table>";
       h+="<div class='muted' style='margin-top:14px'>Genere par Predictek le "+new Date().toLocaleDateString("fr-CA")+". Utilisez Imprimer - Enregistrer en PDF.</div>";
       h+="<script>window.print();</script></body></html>";
       w.document.write(h);
@@ -212,7 +217,7 @@ export default function BonsTravail(){
     var courriel=fo&&fo.courriel?fo.courriel:"";
     if(!courriel){setErrB("Ce fournisseur n a pas de courriel dans sa fiche (module Fournisseurs). Ajoutez-le d abord.");return;}
     setErrB("");setMsgB("Envoi du bon "+(b.no_bon||"")+" en cours...");
-    var sujet="Bon de travaux "+(b.no_bon||"")+" - "+(sel?sel.nom:"");
+    var sujet="Bon de travail "+(b.no_bon||"")+" - "+(sel?sel.nom:"");
     var corps="Bonjour,\n\nVeuillez trouver ci-dessous le bon de travaux.\n\n"
       +"No de PO: "+(b.no_bon||"")+"\n"
       +"Syndicat: "+(sel?sel.nom:"")+"\n"

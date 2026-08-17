@@ -15,8 +15,8 @@ var VIDE={nom:"",categorie:"Entretien",telephone:"",courriel:"",adresse:"",site_
 function CarteFournisseur(p){
   var f=p.fournisseur;
   return(
-    <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:16,marginBottom:10}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+    <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:12}}>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
         <div style={{flex:1}}>
           <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:6}}>
             <div style={{width:36,height:36,borderRadius:8,background:T.accentL,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -40,8 +40,8 @@ function CarteFournisseur(p){
             {f.notes&&<div style={{gridColumn:"1/-1",color:T.muted,fontStyle:"italic"}}>{f.notes}</div>}
           </div>
         </div>
-        <div style={{display:"flex",gap:6,flexShrink:0,marginLeft:12,flexWrap:"wrap"}}>
-          <Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){p.onBon(f);}}>+ Bon de travaux</Btn>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          <Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){p.onBon(f);}}>+ Bon de travail</Btn>
           <Btn sm onClick={function(){p.onEdit(f);}}>Modifier</Btn>
           <Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red+"44"} onClick={function(){p.onToggle(f.id,!f.actif);}}>
             {f.actif?"Archiver":"Reactiver"}
@@ -182,7 +182,9 @@ export default function FournisseursAdmin(props){
         )}
 
         <div style={{fontSize:12,color:T.muted,marginBottom:12}}>{filtres.length} fournisseur(s) actif(s){catFiltre!=="tout"?" - "+catFiltre:""}</div>
-        {filtres.map(function(f){return <CarteFournisseur key={f.id} fournisseur={f} onEdit={editer} onToggle={toggleActif} onBon={creerBonPour} onCourriel={courrielPour}/>;})}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,alignItems:"start"}}>
+          {filtres.map(function(f){return <CarteFournisseur key={f.id} fournisseur={f} onEdit={editer} onToggle={toggleActif} onBon={creerBonPour} onCourriel={courrielPour}/>;})}
+        </div>
         {filtres.length===0&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucun fournisseur{recherche?" pour cette recherche":""}</div>}
 
         {archives.length>0&&(
@@ -190,7 +192,11 @@ export default function FournisseursAdmin(props){
             <button onClick={function(){setShowArchives(!showArchives);}} style={{background:"none",border:"none",color:T.muted,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
               {showArchives?"Masquer":"Afficher"} les archives ({archives.length})
             </button>
-            {showArchives&&archives.map(function(f){return <CarteFournisseur key={f.id} fournisseur={f} onEdit={editer} onToggle={toggleActif} onBon={creerBonPour} onCourriel={courrielPour}/>;})}
+            {showArchives&&(
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,alignItems:"start",marginTop:8}}>
+                {archives.map(function(f){return <CarteFournisseur key={f.id} fournisseur={f} onEdit={editer} onToggle={toggleActif} onBon={creerBonPour} onCourriel={courrielPour}/>;})}
+              </div>
+            )}
           </div>
         )}
       </div>
