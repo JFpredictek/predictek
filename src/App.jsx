@@ -26,6 +26,7 @@ import RapportsFinanciers from "./RapportsFinanciers";
 import BonsTravail from "./BonsTravail";
 import CotisationsSpeciales from "./CotisationsSpeciales";
 import SoldesOuverture from "./SoldesOuverture";
+import Conciliation from "./Conciliation";
 import PVReunion from "./PVReunion";
 import RelevesCompte from "./RelevesCompte";
 import GestionUtilisateurs from "./GestionUtilisateurs";
@@ -82,6 +83,7 @@ var SECTIONS=[
       {id:"banques",label:"Comptes bancaires",icon:"CB"},
       {id:"journalgl",label:"Journal des transactions",icon:"JL"},
       {id:"soldesouv",label:"Soldes d ouverture",icon:"SO"},
+      {id:"concil",label:"Conciliation bancaire",icon:"CB2"},
       {id:"encaissements",label:"Encaissements",icon:"EN"},
       {id:"speciales",label:"Cotisations speciales",icon:"CSP"},
       {id:"bons",label:"Bons travaux",icon:"BT"},
@@ -130,7 +132,7 @@ var NAV={
   ca:[
     {titre:"Tableau de bord",items:[{id:"tableau"}]},
     {titre:"Immeuble",items:[{id:"unites"},{id:"carnet"},{id:"sinistres"},{id:"agenda"}]},
-    {titre:"Finances",items:[{sub:"Payables"},{id:"factures"},{sub:"Recevables"},{id:"encaissements"},{id:"speciales"},{sub:"Comptabilite"},{id:"budget"},{id:"fondsview"},{id:"journalgl"},{sub:"Rapports"},{id:"etatsfin"},{id:"rapports"}]},
+    {titre:"Finances",items:[{sub:"Payables"},{id:"factures"},{sub:"Recevables"},{id:"encaissements"},{id:"speciales"},{sub:"Comptabilite"},{id:"budget"},{id:"fondsview"},{id:"journalgl"},{id:"concil"},{sub:"Rapports"},{id:"etatsfin"},{id:"rapports"}]},
     {titre:"Fournisseurs",items:[{id:"fournisseurs"},{id:"bons"}]},
     {titre:"Instances",items:[{id:"assemblees"},{id:"pv"},{id:"ca"},{id:"registre"}]},
     {titre:"Communications",items:[{id:"comm"},{id:"conformite"},{id:"notif"}]},
@@ -332,6 +334,7 @@ export default function App(){
         {active==="encaissements"&&<Encaissements/>}
         {active==="speciales"&&<CotisationsSpeciales/>}
         {active==="soldesouv"&&<SoldesOuverture/>}
+        {active==="concil"&&<Conciliation/>}
         {active==="assemblees"&&<Assemblees/>}
         {active==="paie"&&<ModuleT4/>}
         {active==="carnet"&&<CarnetEntretien/>}

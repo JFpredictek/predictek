@@ -150,6 +150,24 @@ export default async function handler(req, res) {
       } else {
         return res.status(400).json({error:"Aucun document fourni"});
       }
+    } else if(mode==="releve"){
+      var promptRel = "Voici un RELEVE DE COMPTE BANCAIRE (institution canadienne, souvent Desjardins ou une banque quebecoise). "
+        + "Extrais TOUTES les transactions du releve, sans en omettre aucune, ainsi que les soldes. "
+        + "IMPORTANT: recopie les montants exactement (2 decimales). Un retrait/debit est une SORTIE d argent; un depot/credit est une ENTREE. "
+        + "Reponds UNIQUEMENT avec un objet JSON valide: "
+        + "{\"institution\":\"nom de l institution si visible\",\"compte\":\"numero de compte/folio si visible\","
+        + "\"periodeDebut\":\"AAAA-MM-JJ\",\"periodeFin\":\"AAAA-MM-JJ\","
+        + "\"soldeDebut\":nombre,\"soldeFin\":nombre,"
+        + "\"transactions\":[{\"date\":\"AAAA-MM-JJ\",\"description\":\"libelle exact\",\"retrait\":nombre ou 0,\"depot\":nombre ou 0}]} "
+        + "Si l annee n apparait pas sur chaque ligne, deduis-la de la periode du releve.";
+      if(pdfB64){
+        contenu = [{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:promptRel}];
+      } else if(imagesIn.length>0){
+        contenu = imagesIn.slice(0,8).map(function(im){return {type:"image",source:{type:"base64",media_type:"image/jpeg",data:im}};});
+        contenu.push({type:"text",text:promptRel});
+      } else {
+        return res.status(400).json({error:"Aucun document fourni"});
+      }
     } else if(mode==="date_document"){
       var promptDD = "Voici un document officiel d un syndicat de copropriete quebecois (etude d evaluation aux fins d assurance, etude du fonds de prevoyance, ou autre rapport professionnel). "
         + "Extrais les informations suivantes. Reponds UNIQUEMENT avec un objet JSON valide (chaine vide si absent): "

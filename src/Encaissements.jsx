@@ -71,8 +71,8 @@ export default function Encaissements(){
   var s14=useState([]);var factCopros=s14[0];var setFactCopros=s14[1];
   var s15=useState(false);var showFC=s15[0];var setShowFC=s15[1];
   var s16=useState({unite:"",type_frais:"frais",description:"",montant:"",date_facture:new Date().toISOString().substring(0,10),date_echeance:""});var nfFC=s16[0];var setNfFC=s16[1];
-  var s19=useState(null);var encU=s19[0];var setEncU=s19[1];
-  var s20=useState({type:"interets",montant:"",date:new Date().toISOString().substring(0,10),moyen:"prelevement",note:"",compte:""});var encF=s20[0];var setEncF=s20[1];
+  var s19=useState(false);var showEnc=s19[0];var setShowEnc=s19[1];
+  var s20=useState({unite:"",type:"interets",montant:"",date:new Date().toISOString().substring(0,10),moyen:"prelevement",note:"",compte:""});var encF=s20[0];var setEncF=s20[1];
   var s21=useState([]);var banques=s21[0];var setBanques=s21[1];
   var s22=useState([]);var avances=s22[0];var setAvances=s22[1];
   var s23=useState([]);var fichiersEft=s23[0];var setFichiersEft=s23[1];
@@ -194,7 +194,9 @@ export default function Encaissements(){
 
   // ===== ENCAISSEMENT LIBRE, UNITE PAR UNITE =====
   function encaisserLibre(){
-    if(!encU||!sel)return;
+    if(!sel)return;
+    var encU=unites.find(function(x){return x.no_unite===encF.unite;});
+    if(!encU){setErr("Choisissez l unite.");return;}
     var mnt=parseFloat(encF.montant)||0;
     if(mnt<=0){setErr("Entrez un montant positif.");return;}
     if(!encF.compte&&banques.length>0){setErr("Choisissez le compte de banque qui recoit les fonds.");return;}
@@ -211,7 +213,7 @@ export default function Encaissements(){
       if(!(r&&r.data&&r.data.id)){setErr("ECHEC de l encaissement - rien n a ete enregistre.");return;}
       setMsg("Encaissement de "+money(mnt)+" ("+(TYPES_LBL[encF.type]||encF.type)+", "+encF.moyen+") enregistre pour l unite "+encU.no_unite+".");
       sb.log("encaissements","paiement","Unite "+encU.no_unite+": "+(TYPES_LBL[encF.type]||encF.type)+" "+mnt.toFixed(2)+" $ ("+encF.moyen+")","",sel.code||"");
-      setEncU(null);
+      setShowEnc(false);
       chargerTout();
       setTimeout(function(){setMsg("");},5000);
     }).catch(function(e){setErr("ECHEC: "+(e&&e.message?e.message:"erreur"));});
@@ -718,6 +720,7 @@ export default function Encaissements(){
         <div style={{marginLeft:"auto",display:"flex",gap:8,flexWrap:"wrap"}}>
           <Btn sm onClick={function(){setShowFC(true);setEditFCId(null);setNfFC({unite:"",type_frais:"frais",description:"",montant:"",date_facture:new Date().toISOString().substring(0,10),date_echeance:""});setErr("");window.scrollTo(0,0);}}>+ Emettre une facture</Btn>
           <Btn sm bg={T.purple} onClick={function(){setShowAv(true);setErr("");window.scrollTo(0,0);}}>+ Encaisser une avance</Btn>
+          <Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){setShowEnc(true);setEncF({unite:"",type:"interets",montant:"",date:new Date().toISOString().substring(0,10),moyen:"prelevement",note:"",compte:banques.length===1?banques[0].id:(sel.pap_compte_id||"")});setErr("");window.scrollTo(0,0);}}>+ Autre encaissement</Btn>
           <Btn sm bg="#ffffff22" tc="#fff" bdr="1px solid #ffffff44" onClick={genererMois} dis={enCours}>Generer les cotisations</Btn>
         </div>
       </div>
@@ -795,11 +798,17 @@ export default function Encaissements(){
           </div>
         )}
 
-        {encU&&(
+        {showEnc&&(
           <div style={{background:T.surface,border:"2px solid "+T.accent,borderRadius:12,padding:16,marginBottom:14}}>
-            <div style={{fontSize:13,fontWeight:800,color:T.navy,marginBottom:2}}>Encaissement libre - unite {encU.no_unite}</div>
-            <div style={{fontSize:11,color:T.muted,marginBottom:12}}>{propsDe(encU).map(function(c){return ((c.prenom||"")+" "+(c.nom||"")).trim();}).join(" et ")||""} - tout type d encaissement, chaque type est comptabilise a son compte GL.</div>
+            <div style={{fontSize:13,fontWeight:800,color:T.navy,marginBottom:2}}>Autre encaissement (interets, frais, rattrapage...)</div>
+            <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Tout type d encaissement, pour n importe quelle unite - chaque type est comptabilise a son compte GL.</div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:12}}>
+              <div><Lbl l="Unite"/>
+                <select value={encF.unite} onChange={function(e){setEncF(Object.assign({},encF,{unite:e.target.value}));}} style={INP}>
+                  <option value="">Choisir...</option>
+                  {unites.map(function(u){return <option key={u.id} value={u.no_unite}>{u.no_unite}</option>;})}
+                </select>
+              </div>
               <div><Lbl l="Type d encaissement"/>
                 <select value={encF.type} onChange={function(e){setEncF(Object.assign({},encF,{type:e.target.value}));}} style={INP}>
                   <option value="cotisation">Cotisation (rattrapage)</option>
@@ -830,10 +839,10 @@ export default function Encaissements(){
               </div>
               <div style={{gridColumn:"span 2"}}><Lbl l="Note / reference (optionnel)"/><input value={encF.note} onChange={function(e){setEncF(Object.assign({},encF,{note:e.target.value}));}} style={INP} placeholder="No de cheque, periode visee..."/></div>
             </div>
-            {(function(){var c2=calculArrerages(encU);return c2.interets>0?<div style={{fontSize:11,fontWeight:700,color:T.amber,marginBottom:10}}>Interets de retard calcules pour cette unite: {money(c2.interets)} (arrerages {money(c2.arrerages)} x {tauxInteret}%/an / 12)</div>:null;})()}
+            {(function(){var uE=unites.find(function(x){return x.no_unite===encF.unite;});if(!uE)return null;var c2=calculArrerages(uE);return c2.interets>0?<div style={{fontSize:11,fontWeight:700,color:T.amber,marginBottom:10}}>Interets de retard calcules pour l unite {uE.no_unite}: {money(c2.interets)} (arrerages {money(c2.arrerages)} x {tauxInteret}%/an / 12)</div>:null;})()}
             <div style={{display:"flex",gap:8}}>
               <Btn onClick={encaisserLibre} dis={!(parseFloat(encF.montant)>0)}>Enregistrer l encaissement</Btn>
-              <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setEncU(null);}}>Annuler</Btn>
+              <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setShowEnc(false);}}>Annuler</Btn>
             </div>
           </div>
         )}
@@ -957,17 +966,11 @@ export default function Encaissements(){
                     <td style={{padding:"6px 10px"}}>
                       <div style={{display:"flex",gap:4,flexWrap:"wrap",justifyContent:"flex-end"}}>
                         {r.k!=="fc"&&encaissable(r)&&r.u&&r.u.pap_actif&&<Btn sm bg={T.navy} onClick={function(){encaisser(r.u,"pap");}}>PAP</Btn>}
-                        {encaissable(r)&&<Btn sm onClick={function(){setEncModal({items:[r]});setEncOpt({date:new Date().toISOString().substring(0,10),compte:banques.length===1?banques[0].id:(sel.pap_compte_id||""),credit:true});setErr("");window.scrollTo(0,0);}}>Encaisser</Btn>}
                         {r.k==="fc"&&r.f.statut==="emise"&&<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){envoyerFC(r.f);}}>Envoyer au copro</Btn>}
                         {r.k==="fc"&&encaissable(r)&&<Btn sm bg={T.alt} tc={T.navy} bdr={"1px solid "+T.border} onClick={function(){editerFC(r.f);}}>Modifier</Btn>}
                         {r.k==="fc"&&<Btn sm bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){imprimerFactureCopro(r.f);}}>Imprimer</Btn>}
                         {r.k==="fc"&&encaissable(r)&&<Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red+"44"} onClick={function(){annulerFactureCopro(r.f);}}>Annuler</Btn>}
-                        {r.k==="cot"&&r.u&&<Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){
-                          setEncU(r.u);
-                          var c3=calculArrerages(r.u);
-                          setEncF({type:c3.interets>0?"interets":"autre",montant:c3.interets>0?String(c3.interets):"",date:new Date().toISOString().substring(0,10),moyen:r.u.pap_actif?"prelevement":"cheque",note:"",compte:banques.length===1?banques[0].id:(sel.pap_compte_id||"")});
-                          window.scrollTo(0,0);
-                        }}>+ Autre</Btn>}
+                        
                         {r.k==="cot"&&r.u&&<Btn sm bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){etatDeCompte(r.u);}}>Etat de compte</Btn>}
                         {r.k!=="fc"&&r.p&&r.p.statut==="paye"&&(r.p.moyen==="pap"||r.p.moyen==="prelevement")&&<Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red+"44"} onClick={function(){rebondNSF(r.u,r.p);}}>Rebond NSF</Btn>}
                         {r.k!=="fc"&&r.p&&r.p.statut==="paye"&&<Btn sm bg={T.amberL} tc={T.amber} bdr={"1px solid "+T.amber+"44"} onClick={function(){annulerPaiement(r.p);}}>Annuler</Btn>}

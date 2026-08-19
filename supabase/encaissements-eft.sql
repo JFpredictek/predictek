@@ -138,3 +138,29 @@ alter table public.bons_travail add column if not exists fournisseur_nom text de
 alter table public.bons_travail add column if not exists unite text default '';
 alter table public.bons_travail add column if not exists description text default '';
 notify pgrst, 'reload schema';
+
+-- ============================================================
+-- CONCILIATION BANCAIRE (releve televerse + rapprochement automatique
+-- par compte de banque, par mois)
+-- ============================================================
+create table if not exists public.conciliations (
+  id uuid primary key default gen_random_uuid(),
+  syndicat_id uuid,
+  compte_bancaire_id uuid,
+  mois text default '',
+  fichier text default '',
+  solde_debut numeric default 0,
+  solde_fin numeric default 0,
+  nb_transactions int default 0,
+  nb_apparies int default 0,
+  nb_ecarts int default 0,
+  transactions jsonb default '[]'::jsonb,
+  resultat jsonb default '{}'::jsonb,
+  statut text default 'ecarts',
+  date_conciliation timestamptz,
+  created_at timestamptz default now()
+);
+alter table public.conciliations enable row level security;
+drop policy if exists conc_all on public.conciliations;
+create policy conc_all on public.conciliations for all to authenticated using (true) with check (true);
+notify pgrst, 'reload schema';
