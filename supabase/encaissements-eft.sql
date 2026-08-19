@@ -164,3 +164,17 @@ alter table public.conciliations enable row level security;
 drop policy if exists conc_all on public.conciliations;
 create policy conc_all on public.conciliations for all to authenticated using (true) with check (true);
 notify pgrst, 'reload schema';
+
+-- ============================================================
+-- COMPTES DE BANQUE MULTIPLES (ex: comptes a interet eleve)
+-- + soldes d ouverture geres dans le module Soldes d ouverture
+-- ============================================================
+alter table public.comptes_bancaires add column if not exists nom text default '';
+alter table public.comptes_bancaires add column if not exists actif boolean default true;
+-- Retire la contrainte "un seul compte par fonds"
+do $$ declare r record; begin
+  for r in select conname from pg_constraint where conrelid='public.comptes_bancaires'::regclass and contype='u' loop
+    execute 'alter table public.comptes_bancaires drop constraint '||quote_ident(r.conname);
+  end loop;
+end $$;
+notify pgrst, 'reload schema';

@@ -290,7 +290,7 @@ export default function Encaissements(){
   function libBanque(b){
     if(!b)return "?";
     var nomF=FONDS_NOMS[b.fonds]||("Fonds "+(b.fonds||""));
-    return nomF+(b.banque?" - "+b.banque:"")+(b.no_compte?" (***"+String(b.no_compte).slice(-4)+")":"");
+    return (b.nom?b.nom+" - ":"")+nomF+(b.banque?" - "+b.banque:"")+(b.no_compte?" (***"+String(b.no_compte).slice(-4)+")":"");
   }
 
   // ===== TABLEAU UNIFIE: toutes les creances =====

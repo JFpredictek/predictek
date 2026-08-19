@@ -99,7 +99,7 @@ export default function Conciliation(){
   var compte=banques.find(function(b){return b.id===compteId;});
   function libBanque(b){
     if(!b)return "?";
-    return (FONDS_NOMS[b.fonds]||("Fonds "+(b.fonds||"")))+(b.banque?" - "+b.banque:"")+(b.no_compte?" (***"+String(b.no_compte).slice(-4)+")":"");
+    return (b.nom?b.nom+" - ":"")+(FONDS_NOMS[b.fonds]||("Fonds "+(b.fonds||"")))+(b.banque?" - "+b.banque:"")+(b.no_compte?" (***"+String(b.no_compte).slice(-4)+")":"");
   }
 
   // ===== 1. TELEVERSEMENT + EXTRACTION DU RELEVE =====

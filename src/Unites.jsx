@@ -440,11 +440,18 @@ export default function Unites(){
         +"<tr><th>Statut du budget</th><td>"+(budStatut==="approuve"?"APPROUVE par tous les membres du CA":budStatut==="brouillon"?"Brouillon (non approuve)":"Non renseigne")+"</td></tr>"
         +"<tr><th>Charges encaissees depuis le debut de l exercice (tous coproprietaires)</th><td class='right'>"+moneyA(encaisseExo)+"</td></tr>"
         +"<tr><th>Comptes fournisseurs a payer (factures non payees)</th><td class='right'>"+moneyA(payables)+"</td></tr>"
-        +banques.map(function(b){
-          var ouv=parseFloat(b.solde_ouverture)||0;
-          var courant=soldeFonds(b.fonds,ouv);
-          return "<tr><th>"+lg(LBLF[b.fonds]||("Fonds "+(b.fonds||"")))+" - SOLDE COURANT (ouverture "+moneyA(ouv)+(b.date_solde?" au "+b.date_solde:"")+" + mouvements)"+(b.banque?" - "+lg(b.banque):"")+"</th><td class='right'><b>"+moneyA(courant)+"</b></td></tr>";
-        }).join("")
+        +(function(){
+          // Plusieurs comptes possibles par fonds: les mouvements du fonds sont appliques
+          // UNE seule fois (au compte principal); les autres comptes affichent leur ouverture.
+          var vus={};
+          return banques.filter(function(b){return b.actif!==false;}).map(function(b){
+            var ouv=parseFloat(b.solde_ouverture)||0;
+            var principal=!vus[b.fonds];vus[b.fonds]=true;
+            var courant=principal?soldeFonds(b.fonds,ouv):ouv;
+            var nomC=b.nom?lg(b.nom)+" - ":"";
+            return "<tr><th>"+nomC+lg(LBLF[b.fonds]||("Fonds "+(b.fonds||"")))+" - "+(principal?"SOLDE COURANT (ouverture "+moneyA(ouv)+(b.date_solde?" au "+b.date_solde:"")+" + mouvements)":"solde d ouverture"+(b.date_solde?" au "+b.date_solde:""))+(b.banque?" - "+lg(b.banque):"")+"</th><td class='right'><b>"+moneyA(courant)+"</b></td></tr>";
+          }).join("");
+        })()
         +"<tr><th>Assurance du syndicat - compagnie</th><td>"+lg(sel.ass_syn_compagnie||"non renseignee")+"</td></tr>"
         +"<tr><th>Assurance du syndicat - no de police</th><td>"+lg(sel.ass_syn_police||"non renseigne")+"</td></tr>"
         +(sel.ass_syn_montant?"<tr><th>Assurance du syndicat - montant de couverture</th><td>"+lg(sel.ass_syn_montant)+"</td></tr>":"")

@@ -205,7 +205,7 @@ export default function ConfigSyndicat(p){
   function libBanque(b){
     var nomF=FONDS_NOMS[b.fonds]||("Fonds "+(b.fonds||""));
     var cpt=b.no_compte?" (***"+String(b.no_compte).slice(-4)+")":"";
-    return nomF+(b.banque?" - "+b.banque:"")+cpt;
+    return (b.nom?b.nom+" - ":"")+nomF+(b.banque?" - "+b.banque:"")+cpt;
   }
 
   // Logo du syndicat: lecture du fichier image, reduction a 420px max, stockage en data URL

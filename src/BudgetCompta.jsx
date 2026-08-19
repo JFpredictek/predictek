@@ -788,79 +788,112 @@ var FONDS=[
 ];
 function TabBanques(p){
   var syndicat=p.syndicat;
-  var s0=useState({});var formes=s0[0];var setFormes=s0[1];
+  var s0=useState([]);var comptesB=s0[0];var setComptesB=s0[1];
   var s1=useState("");var msg=s1[0];var setMsg=s1[1];
   var s2=useState("");var err=s2[0];var setErr=s2[1];
-  var s3=useState("");var enCours=s3[0];var setEnCours=s3[1];
+  var s3=useState(false);var enCours=s3[0];var setEnCours=s3[1];
+  var s4=useState(false);var showForm=s4[0];var setShowForm=s4[1];
+  var s5=useState(null);var editId=s5[0];var setEditId=s5[1];
+  var VIDE_CB={nom:"",fonds:"operation",banque:"",institution:"",transit:"",no_compte:""};
+  var s6=useState(VIDE_CB);var nf=s6[0];var setNf=s6[1];
 
-  useEffect(function(){
+  function charger(){
     if(!syndicat)return;
-    sb.select("comptes_bancaires",{eq:{syndicat_id:syndicat.id},limit:10}).then(function(r){
-      var f={};
-      if(r&&r.data)r.data.forEach(function(x){f[x.fonds]=x;});
-      setFormes(f);
+    sb.select("comptes_bancaires",{eq:{syndicat_id:syndicat.id},limit:50}).then(function(r){
+      if(r&&r.data)setComptesB(r.data.filter(function(x){return x.actif!==false;}));
     }).catch(function(){});
-  },[syndicat&&syndicat.id]);
+  }
+  useEffect(function(){charger();},[syndicat&&syndicat.id]);
 
-  function ch(fonds,k,v){
-    setFormes(function(pr){
-      var n=Object.assign({},pr);
-      n[fonds]=Object.assign({},n[fonds]||{fonds:fonds},{});
-      n[fonds]=Object.assign({},pr[fonds]||{fonds:fonds});
-      n[fonds][k]=v;
-      return n;
+  function ch(k,v){setNf(function(pr){var n=Object.assign({},pr);n[k]=v;return n;});}
+
+  function sauver(){
+    if(!syndicat||enCours)return;
+    if(!nf.fonds){setErr("Choisissez le fonds auquel ce compte est relie.");return;}
+    setEnCours(true);setMsg("");setErr("");
+    var row={syndicat_id:syndicat.id,nom:nf.nom||"",fonds:nf.fonds,banque:nf.banque||"",
+      institution:(nf.institution||"").replace(/\D/g,"").slice(0,3),
+      transit:(nf.transit||"").replace(/\D/g,"").slice(0,5),
+      no_compte:(nf.no_compte||"").replace(/\D/g,"").slice(0,12),actif:true};
+    var op=editId?sb.update("comptes_bancaires",editId,row):sb.insert("comptes_bancaires",row);
+    op.then(function(r){
+      setEnCours(false);
+      if(r&&r.error){setErr("ECHEC de la sauvegarde: "+(r.error.message||r.error.hint||"les colonnes nom/actif existent-elles? (SQL fourni)"));return;}
+      if(!editId&&!(r&&r.data&&r.data.id)){setErr("ECHEC: le compte n a PAS ete cree"+((r&&r.error&&r.error.message)?" ("+r.error.message+")":"")+".");return;}
+      setMsg(editId?"Compte modifie.":"Compte de banque ajoute. Saisissez son solde d ouverture dans Configuration - Soldes d ouverture.");
+      sb.log("budget",editId?"modification":"creation","Compte bancaire "+(nf.nom||nf.fonds)+(editId?" modifie":" ajoute"),"",syndicat.code||"");
+      setShowForm(false);setEditId(null);setNf(VIDE_CB);
+      charger();setTimeout(function(){setMsg("");},7000);
+    }).catch(function(e){setEnCours(false);setErr("Erreur: "+(e&&e.message?e.message:""));});
+  }
+  function editer(b){
+    setNf({nom:b.nom||"",fonds:b.fonds||"operation",banque:b.banque||"",institution:b.institution||"",transit:b.transit||"",no_compte:b.no_compte||""});
+    setEditId(b.id);setShowForm(true);setErr("");
+  }
+  function retirer(b){
+    sb.update("comptes_bancaires",b.id,{actif:false}).then(function(r){
+      if(r&&r.error){setErr("ECHEC: "+(r.error.message||""));return;}
+      sb.log("budget","modification","Compte bancaire retire: "+(b.nom||b.fonds),"",syndicat.code||"");
+      charger();
     });
   }
 
-  function sauver(fonds){
-    if(!syndicat)return;
-    var f=formes[fonds]||{};
-    setEnCours(fonds);setMsg("");setErr("");
-    var row={syndicat_id:syndicat.id,fonds:fonds,banque:f.banque||"",institution:(f.institution||"").replace(/\D/g,"").slice(0,3),transit:(f.transit||"").replace(/\D/g,"").slice(0,5),no_compte:(f.no_compte||"").replace(/\D/g,"").slice(0,12),solde_ouverture:parseFloat(f.solde_ouverture)||0,date_solde:f.date_solde||null};
-    sb.upsert("comptes_bancaires",[row],"syndicat_id,fonds").then(function(r){
-      setEnCours("");
-      if(r&&r.error){setErr("ECHEC: "+(r.error.message||r.error.hint||"erreur"));return;}
-      setMsg("Compte bancaire du "+fonds+" sauvegarde.");
-      sb.log("budget","modification","Compte bancaire "+fonds+" configure","",syndicat.code||"");
-      setTimeout(function(){setMsg("");},4000);
-    }).catch(function(e){setEnCours("");setErr("Erreur: "+(e&&e.message?e.message:""));});
-  }
-
-  var listeF=FONDS.slice();
-  Object.keys(formes).forEach(function(k){
-    if(!listeF.some(function(f){return f.id===k;}))listeF.push({id:k,l:"Fonds "+k.toUpperCase(),desc:"Fonds personnalise",c:"#1B5E3B",bg:"#E8F2EC"});
-  });
+  var listeFondsB=FONDS.slice();
+  comptesB.forEach(function(b){if(!listeFondsB.some(function(f){return f.id===b.fonds;}))listeFondsB.push({id:b.fonds,l:"Fonds "+String(b.fonds||"").toUpperCase(),c:"#1B5E3B",bg:"#E8F2EC"});});
+  var fondsInfo=function(fid){return listeFondsB.find(function(f){return f.id===fid;})||{l:"Fonds "+fid,c:"#1B5E3B",bg:"#E8F2EC"};};
 
   return(
     <div>
-      <div style={{fontSize:13,fontWeight:700,color:T.navy,marginBottom:4}}>Comptes bancaires relies aux fonds</div>
-      <div style={{fontSize:11,color:T.muted,marginBottom:14}}>La loi exige des comptes distincts pour le fonds de prevoyance et le fonds d auto-assurance. Chaque fonds est relie a son compte.</div>
+      <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:4}}>
+        <div style={{fontSize:13,fontWeight:700,color:T.navy}}>Comptes de banque de la copropriete</div>
+        <Btn sm onClick={function(){setNf(VIDE_CB);setEditId(null);setShowForm(true);setErr("");}}>+ Ajouter un compte</Btn>
+      </div>
+      <div style={{fontSize:11,color:T.muted,marginBottom:14}}>Ajoutez autant de comptes que necessaire (operation, prevoyance, auto-assurance, comptes a interet eleve...). Chaque compte est relie a un fonds. Les SOLDES D OUVERTURE se saisissent dans Configuration - Soldes d ouverture, APRES la creation des comptes.</div>
       {msg&&<div style={{background:T.accentL,border:"2px solid "+T.accent,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.accent,fontWeight:700,marginBottom:12}}>{msg}</div>}
       {err&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,fontWeight:700,marginBottom:12}}>{err}</div>}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(320px,1fr))",gap:14}}>
-        {listeF.map(function(fd){
-          var f=formes[fd.id]||{};
+
+      {showForm&&(
+        <div style={{background:T.surface,border:"2px solid "+T.navy+"33",borderRadius:12,padding:16,marginBottom:14}}>
+          <div style={{fontSize:12,fontWeight:800,color:T.navy,marginBottom:10}}>{editId?"Modifier le compte":"Nouveau compte de banque"}</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:10}}>
+            <div><Lbl l="Nom du compte (ex: compte a interet eleve)"/><input value={nf.nom} onChange={function(e){ch("nom",e.target.value);}} style={INP}/></div>
+            <div><Lbl l="Fonds relie"/>
+              <select value={nf.fonds} onChange={function(e){ch("fonds",e.target.value);}} style={INP}>
+                {listeFondsB.map(function(f){return <option key={f.id} value={f.id}>{f.l}</option>;})}
+              </select>
+            </div>
+            <div><Lbl l="Banque / caisse"/><input value={nf.banque} onChange={function(e){ch("banque",e.target.value);}} style={INP}/></div>
+            <div><Lbl l="Institution (3)"/><input value={nf.institution} onChange={function(e){ch("institution",e.target.value.replace(/\D/g,"").slice(0,3));}} style={INP}/></div>
+            <div><Lbl l="Transit (5)"/><input value={nf.transit} onChange={function(e){ch("transit",e.target.value.replace(/\D/g,"").slice(0,5));}} style={INP}/></div>
+            <div><Lbl l="No de compte"/><input value={nf.no_compte} onChange={function(e){ch("no_compte",e.target.value.replace(/\D/g,"").slice(0,12));}} style={INP}/></div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <Btn onClick={sauver} dis={enCours}>{enCours?"Sauvegarde...":(editId?"Sauvegarder les modifications":"Creer le compte")}</Btn>
+            <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setShowForm(false);setEditId(null);}}>Annuler</Btn>
+          </div>
+        </div>
+      )}
+
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:12}}>
+        {comptesB.map(function(b){
+          var fi=fondsInfo(b.fonds);
           return(
-            <div key={fd.id} style={{background:fd.bg,border:"2px solid "+fd.c+"44",borderRadius:12,padding:16}}>
-              <div style={{fontSize:12,fontWeight:800,color:fd.c,marginBottom:2}}>{fd.l}</div>
-              <div style={{fontSize:10,color:T.muted,marginBottom:12}}>{fd.desc}</div>
-              <div style={{display:"grid",gap:8}}>
-                <div><Lbl l="Banque / caisse"/><input value={f.banque||""} onChange={function(e){ch(fd.id,"banque",e.target.value);}} style={INP} placeholder="Desjardins, BNC..."/></div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                  <div><Lbl l="Institution (3)"/><input value={f.institution||""} onChange={function(e){ch(fd.id,"institution",e.target.value.replace(/\D/g,"").slice(0,3));}} style={INP}/></div>
-                  <div><Lbl l="Transit (5)"/><input value={f.transit||""} onChange={function(e){ch(fd.id,"transit",e.target.value.replace(/\D/g,"").slice(0,5));}} style={INP}/></div>
-                </div>
-                <div><Lbl l="No de compte"/><input value={f.no_compte||""} onChange={function(e){ch(fd.id,"no_compte",e.target.value.replace(/\D/g,"").slice(0,12));}} style={INP}/></div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                  <div><Lbl l="Solde d ouverture ($)"/><input type="number" step="0.01" value={f.solde_ouverture||""} onChange={function(e){ch(fd.id,"solde_ouverture",e.target.value);}} style={INP} placeholder="0.00"/></div>
-                  <div><Lbl l="En date du"/><input type="date" value={f.date_solde||""} onChange={function(e){ch(fd.id,"date_solde",e.target.value);}} style={INP}/></div>
-                </div>
-                <Btn bg={fd.c} dis={enCours===fd.id} onClick={function(){sauver(fd.id);}}>{enCours===fd.id?"Sauvegarde...":"Sauvegarder ce compte"}</Btn>
+            <div key={b.id} style={{background:fi.bg,border:"2px solid "+fi.c+"44",borderRadius:12,padding:14}}>
+              <div style={{fontSize:12,fontWeight:800,color:fi.c}}>{b.nom||fi.l}</div>
+              <div style={{fontSize:10,color:T.muted,marginBottom:8}}>{fi.l}{b.banque?" - "+b.banque:""}</div>
+              <div style={{fontSize:11,color:T.navy,marginBottom:10}}>
+                {b.institution||b.transit||b.no_compte?(b.institution||"?")+" - "+(b.transit||"?")+" - "+(b.no_compte?"***"+String(b.no_compte).slice(-4):"?"):"Coordonnees bancaires a completer"}
+              </div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                <Btn sm bg={fi.c} onClick={function(){editer(b);}}>Modifier</Btn>
+                <Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red+"44"} onClick={function(){retirer(b);}}>Retirer</Btn>
               </div>
             </div>
           );
         })}
+        {comptesB.length===0&&<div style={{padding:24,textAlign:"center",color:T.muted,fontSize:12,gridColumn:"1/-1"}}>Aucun compte de banque - cliquez + Ajouter un compte.</div>}
       </div>
+      <div style={{fontSize:10,color:T.muted,marginTop:10}}>La loi exige des comptes distincts pour le fonds de prevoyance et le fonds d auto-assurance.</div>
     </div>
   );
 }
@@ -1253,16 +1286,17 @@ function TabFonds(p){
     // Apports BUDGETES vers ce fonds (comptes type fonds rattaches au fonds cible)
     var apportsBud=0;
     comptes.filter(function(c){return c.type_compte==="fonds"&&(c.fonds||"operation")===fid;}).forEach(function(c){apportsBud+=budgets[c.no_compte]||0;});
-    var banque=banques.find(function(b){return b.fonds===fid;});
-    var ouverture=banque?(parseFloat(banque.solde_ouverture)||0):0;
-    return {rev:rev+jRev,dep:dep+jDep,apportsBud:apportsBud,ouverture:ouverture,banque:banque,solde:ouverture+rev+jRev-dep-jDep};
+    var banquesF=banques.filter(function(b){return b.fonds===fid&&b.actif!==false;});
+    var ouverture=banquesF.reduce(function(a,b){return a+(parseFloat(b.solde_ouverture)||0);},0);
+    var banque=banquesF[0]||null;
+    return {rev:rev+jRev,dep:dep+jDep,apportsBud:apportsBud,ouverture:ouverture,banque:banque,banquesF:banquesF,solde:ouverture+rev+jRev-dep-jDep};
   }
 
   function ajouterFonds(){
     var slug=(nomFonds||"").toLowerCase().normalize("NFD").replace(/[^a-z0-9]/g,"").substring(0,20);
     if(!slug){setErr("Entrez un nom de fonds valide (lettres/chiffres).");return;}
     if(listeFonds.some(function(f){return f.id===slug;})){setErr("Ce fonds existe deja.");return;}
-    sb.upsert("comptes_bancaires",[{syndicat_id:syndicat.id,fonds:slug,banque:"",institution:"",transit:"",no_compte:"",solde_ouverture:0,date_solde:null}],"syndicat_id,fonds").then(function(r){
+    sb.insert("comptes_bancaires",{syndicat_id:syndicat.id,nom:"",fonds:slug,banque:"",institution:"",transit:"",no_compte:"",solde_ouverture:0,date_solde:null,actif:true}).then(function(r){
       if(r&&r.error){setErr("ECHEC de la creation du fonds: "+(r.error.message||""));return;}
       // Cree automatiquement les comptes GL de base du nouveau fonds (contributions,
       // transfert interfonds et depenses) - modifiables ensuite au Plan comptable.
