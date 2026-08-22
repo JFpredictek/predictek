@@ -59,7 +59,7 @@ function TabDocuments(p){
     var opts={eq:{niveau:niveau},order:"created_at.desc"};
     if(syndicatId)opts.eq.syndicat_id=syndicatId;
     sb.select("documents",opts).then(function(res){
-      if(res&&res.data)setDocs(res.data);
+      if(res&&res.data)setDocs(res.data.filter(function(d){return d.statut!=="supprime";}));
     }).catch(function(){});
   },[niveau,syndicatId]);
 

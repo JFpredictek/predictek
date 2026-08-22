@@ -119,7 +119,7 @@ function Tableau(p){
       if(res&&res.data)setTickets(res.data);
     }).catch(function(){});
     sb.select("documents",{eq:{niveau:"coproprietaire",coproprietaire_id:copro.id},order:"created_at.desc"}).then(function(res){
-      if(res&&res.data)setDocs(res.data);
+      if(res&&res.data)setDocs(res.data.filter(function(d){return d.statut!=="supprime";}));
     }).catch(function(){});
     if(copro.syndicat_id){
       sb.selectOne("syndicats",{eq:{id:copro.syndicat_id}}).then(function(res){
@@ -144,7 +144,7 @@ function Tableau(p){
       // Documents du SYNDICAT accessibles a tous les coproprietaires (certificat d assurance
       // de la copropriete, PV, assemblees, budgets...) - les confidentiels sont exclus
       sb.select("documents",{eq:{niveau:"syndicat",syndicat_id:copro.syndicat_id},order:"created_at.desc",limit:100}).then(function(r){
-        if(r&&r.data)setDocsSyn(r.data.filter(function(d){return !d.confidentiel;}));
+        if(r&&r.data)setDocsSyn(r.data.filter(function(d){return !d.confidentiel&&d.statut!=="supprime";}));
       }).catch(function(){});
     }
   },[copro]);

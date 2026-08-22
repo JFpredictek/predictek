@@ -80,7 +80,7 @@ export default function AgendaCalendrier(){
     }).catch(function(){});
     sb.select("documents",{eq:{syndicat_id:selSyndicat.id,type_doc:"assurance"}}).then(function(res){
       if(res&&res.data){
-        var evs=res.data.filter(function(d){return d.date_doc&&d.date_doc>=debut&&d.date_doc<=fin;}).map(function(d){return {id:"ass"+d.id,titre:"Assurance expire: "+d.nom,type:"assurance",date:d.date_doc,heure:"",description:"",source:"assurances"};});
+        var evs=res.data.filter(function(d){return d.statut!=="supprime"&&d.date_doc&&d.date_doc>=debut&&d.date_doc<=fin;}).map(function(d){return {id:"ass"+d.id,titre:"Assurance expire: "+d.nom,type:"assurance",date:d.date_doc,heure:"",description:"",source:"assurances"};});
         setEvenements(function(prev){return prev.concat(evs);});
       }
     }).catch(function(){});

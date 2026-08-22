@@ -89,7 +89,7 @@ module.exports = async function(req, res){
   var mois = iso.substring(0,7);
   var jourDuMois = parseInt(iso.substring(8,10), 10);
 
-  var syndicats = await sbGet(svc, "syndicats?select=id,nom,code,assurance_syndicat_exp,etude_assurance_date,etude_prevoyance_date,etude_assurance_ans,etude_prevoyance_ans,ass_avis_avant1,ass_avis_avant2,ass_avis_apres,ass_nc_auto,ass_nc_delai,ce_duree_vie_ans,relances_actives");
+  var syndicats = await sbGet(svc, "syndicats?select=id,nom,code,assurance_syndicat_exp,etude_assurance_date,etude_prevoyance_date,etude_assurance_ans,etude_prevoyance_ans,ass_avis_avant1,ass_avis_avant2,ass_avis_apres,ass_nc_auto,ass_nc_delai,ce_duree_vie_ans,releve_jour,exercice,relances_actives");
   var synMap = {}; syndicats.forEach(function(s){synMap[s.id]=s;});
   // Relances gerees PAR SYNDICAT (Centre de notifications): un syndicat desactive est ignore
   function relancesActives(sid){ var s = synMap[sid]; return !s || s.relances_actives !== false; }
@@ -98,6 +98,7 @@ module.exports = async function(req, res){
   copros = copros.filter(function(c){ return relancesActives(c.syndicat_id); });
   unites = unites.filter(function(u){ return relancesActives(u.syndicat_id); });
   var paiements = await sbGet(svc, "paiements?select=coproprietaire_id,statut&date_paiement=gte." + mois + "-01&limit=5000");
+  var paiementsExo = await sbGet(svc, "paiements?select=unite_id,coproprietaire_id,montant,statut,mois,date_paiement&limit=10000");
   var employes = await sbGet(svc, "employes?select=id,prenom,nom,poste,statut,permis_requis,permis_expiration&statut=eq.actif&limit=500");
   var assemblees = await sbGet(svc, "assemblees?select=id,syndicat_id,type,date_assemblee,statut,convocation_envoyee_le&statut=eq.planifiee&limit=200");
   var factAttente = await sbGet(svc, "factures?select=id,syndicat_id,fournisseur_nom,fournisseur,no_facture,total,montant,date_facture,statut&statut=eq.en_attente_approbation&limit=500");
@@ -236,6 +237,59 @@ module.exports = async function(req, res){
     });
   });
 
+  // REGLE 9 - RELEVE DE COMPTE MENSUEL des coproprietaires: envoye automatiquement
+  // le jour du mois configure PAR SYNDICAT (Configuration du syndicat, 1 a 28; 0 = desactive).
+  function debutExerciceRel(exerciceTxt){
+    var MOIS_FR9 = {"jan":0,"fev":1,"mar":2,"avr":3,"mai":4,"jun":5,"juin":5,"jul":6,"juil":6,"aou":7,"sep":8,"oct":9,"nov":10,"dec":11};
+    var m9 = String(exerciceTxt||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").match(/(\d{1,2})\s*([a-z]{3,5})/);
+    var mo = 0, jr = 1;
+    if(m9){ var cle9 = m9[2].substring(0,4); var mm9 = MOIS_FR9[cle9] !== undefined ? MOIS_FR9[cle9] : MOIS_FR9[m9[2].substring(0,3)]; if(mm9 !== undefined){ mo = mm9; jr = parseInt(m9[1]) || 1; } }
+    var d9 = new Date(maintenant.getFullYear(), mo, jr);
+    if(d9 > maintenant) d9 = new Date(maintenant.getFullYear() - 1, mo, jr);
+    return d9;
+  }
+  copros.forEach(function(c){
+    if(!c.courriel) return;
+    var syn = synMap[c.syndicat_id] || {};
+    var jourR = parseInt(syn.releve_jour, 10) || 0;
+    if(jourR < 1 || jourR > 28 || jourDuMois !== jourR) return;
+    var u = unites.find(function(x){ return (x.id === c.unite_id) || (x.no_unite === c.unite && x.syndicat_id === c.syndicat_id); });
+    var cotis = Number((u && u.cotisation_mensuelle) || c.cotisation_mensuelle) || 0;
+    if(cotis <= 0 && !u) return;
+    var cleR = "releve_" + mois + "_" + c.id;
+    if(deja[cleR]) return;
+    // Cotisations regulieres depuis le debut de l exercice (les speciales et frais s ajoutent au portail)
+    var dDeb = debutExerciceRel(syn.exercice);
+    var nbMois = (maintenant.getFullYear() - dDeb.getFullYear()) * 12 + (maintenant.getMonth() - dDeb.getMonth()) + 1;
+    if(nbMois < 1) nbMois = 1;
+    var attendu = Math.round(nbMois * cotis * 100) / 100;
+    var debTxt = dDeb.toISOString().substring(0,10);
+    var paye = paiementsExo.filter(function(pm){
+      if(pm.statut !== "paye") return false;
+      if(u && pm.unite_id ? pm.unite_id !== u.id : pm.coproprietaire_id !== c.id) return false;
+      var m2 = pm.mois || String(pm.date_paiement||"").substring(0,7);
+      return m2 >= debTxt.substring(0,7) && m2 <= mois;
+    }).reduce(function(a,pm){ return a + (Number(pm.montant)||0); }, 0);
+    paye = Math.round(paye * 100) / 100;
+    var solde = Math.round((attendu - paye) * 100) / 100;
+    var pMois = paiements.some(function(pm){ return pm.coproprietaire_id === c.id && (pm.statut||"") === "paye"; });
+    var corpsR = "Madame, Monsieur " + (c.nom||"") + ",\n\n"
+      + "Voici votre releve de compte mensuel pour l unite " + (c.unite||"") + " - " + (syn.nom||"") + " (" + mois + "):\n\n"
+      + "- Cotisation mensuelle: " + cotis.toFixed(2) + " $\n"
+      + "- Cotisation du mois courant: " + (pMois ? "RECUE, merci" : "EN ATTENTE") + "\n"
+      + "- Cotisations regulieres attendues depuis le debut de l exercice (" + debTxt + ", " + nbMois + " mois): " + attendu.toFixed(2) + " $\n"
+      + "- Paiements recus (tous types): " + paye.toFixed(2) + " $\n"
+      + "- SOLDE des cotisations regulieres: " + (solde > 0 ? solde.toFixed(2) + " $ A PAYER" : "0,00 $ - a jour") + "\n\n"
+      + "Les cotisations speciales, frais et factures, le cas echeant, s ajoutent a ce releve - le detail complet est disponible dans votre portail coproprietaire.\n\n"
+      + "Le Conseil d administration, " + (syn.nom||"") + "\n(Releve mensuel automatise par Predictek)";
+    aEnvoyer.push({
+      type: "releve_mensuel", cle: cleR, copro: c, syn: syn,
+      sujet: "[" + (syn.nom||"") + "] Releve de compte mensuel - unite " + (c.unite||"") + " (" + mois + ")",
+      contexte: "releve de compte mensuel de l unite " + (c.unite||""),
+      corps: corpsR
+    });
+  });
+
   // ============ ALERTES ADMINISTRATIVES (envoyees a l administrateur, jamais aux coproprietaires) ============
   var alertesAdmin = [];
   function ajouterMois(dateStr, nb){ var d = new Date(dateStr + "T12:00:00"); d.setMonth(d.getMonth() + nb); return d; }
@@ -355,8 +409,8 @@ module.exports = async function(req, res){
 
   for(var i = 0; i < aEnvoyer.length && i < MAX_PAR_JOUR; i++){
     var rl = aEnvoyer[i];
-    var corps = null;
-    if(apiKey){
+    var corps = rl.corps || null;
+    if(!corps && apiKey){
       corps = await redigerIA(apiKey,
         "Redige un court courriel professionnel et courtois en francais quebecois (5 a 8 phrases, texte brut sans mise en forme), adresse a "
         + ((rl.copro.prenom||"") + " " + (rl.copro.nom||"")).trim()

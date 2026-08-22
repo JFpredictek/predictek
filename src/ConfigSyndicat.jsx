@@ -112,6 +112,7 @@ export default function ConfigSyndicat(p){
       pap_f_no_fichier:sel.pap_f_no_fichier||"1",
       pap_f_compte_id:sel.pap_f_compte_id||"",
       frais_nsf:sel.frais_nsf!==null&&sel.frais_nsf!==undefined?String(sel.frais_nsf):"0",
+      releve_jour:sel.releve_jour?String(sel.releve_jour):"0",
       logo_data:sel.logo_data||""
     });
     sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},limit:20}).then(function(r){
@@ -133,7 +134,7 @@ export default function ConfigSyndicat(p){
   // ----- Documents de la police d assurance du syndicat (upload + visualisation) -----
   function chargerPolices(sid){
     sb.select("documents",{eq:{syndicat_id:sid,niveau:"syndicat",type_doc:"assurance"},order:"created_at.desc",limit:50}).then(function(r){
-      if(r&&r.data)setPoliceDocs(r.data);else setPoliceDocs([]);
+      if(r&&r.data)setPoliceDocs(r.data.filter(function(d){return d.statut!=="supprime";}));else setPoliceDocs([]);
     }).catch(function(){setPoliceDocs([]);});
   }
   function televerserPolices(ev){
@@ -166,6 +167,15 @@ export default function ConfigSyndicat(p){
     }).catch(function(e){setUploadPolice(false);setErr("ECHEC: "+(e&&e.message?e.message:""));});
   }
 
+  function supprimerPolice(d){
+    sb.update("documents",d.id,{statut:"supprime"}).then(function(r){
+      if(r&&r.error){setErr("ECHEC de la suppression: "+(r.error.message||"la colonne statut existe-t-elle sur documents? (SQL fourni)"));return;}
+      setMsg("Document retire: "+(d.nom||"")+".");
+      sb.log("configuration","modification","Police d assurance retiree: "+(d.nom||""),"",sel.code||"");
+      chargerPolices(sel.id);setTimeout(function(){setMsg("");},5000);
+    });
+  }
+
   // Extraction automatique de la police televersee: compagnie, no de police, expiration
   // -> preremplit la carte Assurance du syndicat (verifier puis Sauvegarder la configuration)
   function extrairePolice(file){
@@ -174,19 +184,22 @@ export default function ConfigSyndicat(p){
       return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify(corps)}).then(lireReponseC);
     }).then(function(resp){
       if(!resp||resp.error){setMsg("");setErr("Police televersee, mais extraction impossible ("+((resp&&resp.error)||"erreur")+") - remplissez compagnie / no de police / expiration manuellement ci-dessus.");return;}
-      var d=resp.data||{};var pris=[];
-      setF(function(pr){
-        var n=Object.assign({},pr);
-        if(d.compagnie){n.ass_syn_compagnie=d.compagnie;pris.push(d.compagnie);}
-        if(d.police){n.ass_syn_police=d.police;pris.push("police "+d.police);}
-        if(d.dateExp&&/^\d{4}-\d{2}-\d{2}$/.test(d.dateExp)){n.assurance_syndicat_exp=d.dateExp;pris.push("expiration "+d.dateExp);}
-        if(d.montantResponsabilite&&!n.ass_syn_montant)n.ass_syn_montant=String(d.montantResponsabilite);
-        return n;
-      });
+      var d=resp.data||{};var pris=[];var majS={};
+      if(d.compagnie){majS.ass_syn_compagnie=d.compagnie;pris.push(d.compagnie);}
+      if(d.police){majS.ass_syn_police=d.police;pris.push("police "+d.police);}
+      if(d.dateExp&&/^\d{4}-\d{2}-\d{2}$/.test(d.dateExp)){majS.assurance_syndicat_exp=d.dateExp;pris.push("expiration "+d.dateExp);}
+      if(d.montantResponsabilite)majS.ass_syn_montant=String(d.montantResponsabilite);
+      setF(function(pr){return Object.assign({},pr,majS);});
       if(pris.length>0){
-        setMsg("Police televersee et EXTRAITE automatiquement: "+pris.join(", ")+". VERIFIEZ les champs de la carte Assurance du syndicat puis cliquez Sauvegarder la configuration.");
+        // Sauvegarde IMMEDIATE dans la base (pas besoin de cliquer Sauvegarder)
+        sb.update("syndicats",sel.id,majS).then(function(r3){
+          if(r3&&r3.error){setErr("Extrait ("+pris.join(", ")+") mais ECHEC de la sauvegarde automatique: "+(r3.error.message||"")+" - cliquez Sauvegarder la configuration.");return;}
+          setSel(function(pr){return Object.assign({},pr,majS);});
+          setMsg("Police televersee, EXTRAITE et SAUVEGARDEE: "+pris.join(", ")+". Verifiez les champs de la carte Assurance du syndicat.");
+          sb.log("configuration","modification","Police du syndicat extraite: "+pris.join(", "),"",sel.code||"");
+        });
       }else{
-        setMsg("");setErr("Police televersee, mais aucune information lisible extraite - remplissez compagnie / no de police / expiration manuellement.");
+        setMsg("");setErr("Police televersee, mais aucune information lisible extraite"+(resp.raw?" (reponse IA: "+String(resp.raw).substring(0,120)+")":"")+" - remplissez compagnie / no de police / expiration manuellement.");
       }
       setTimeout(function(){setMsg("");},15000);
     }).catch(function(e){setMsg("");setErr("Police televersee, mais extraction impossible ("+(e&&e.message?e.message:"erreur")+") - remplissez les champs manuellement.");});
@@ -274,6 +287,7 @@ export default function ConfigSyndicat(p){
       pap_f_no_fichier:String(parseInt(f.pap_f_no_fichier)||1),
       pap_f_compte_id:f.pap_f_compte_id||null,
       frais_nsf:parseFloat(f.frais_nsf)||0,
+      releve_jour:Math.min(28,Math.max(0,parseInt(f.releve_jour)||0)),
       logo_data:f.logo_data||""
     };
     sb.update("syndicats",sel.id,maj).then(function(r){
@@ -391,6 +405,7 @@ export default function ConfigSyndicat(p){
                     <div style={{fontSize:10,color:T.muted}}>{d.date_doc?"Date: "+String(d.date_doc).substring(0,10):""}{d.taille_kb?" - "+d.taille_kb+" ko":""}{!d.url?" - INVENTAIRE SEULEMENT (fichier non joint a l onboarding)":""}</div>
                   </div>
                   {d.url?<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){voirPolice(d);}}>Visualiser</Btn>:null}
+                  <Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red+"44"} onClick={function(){supprimerPolice(d);}}>Supprimer</Btn>
                 </div>
               );
             })}
@@ -434,13 +449,18 @@ export default function ConfigSyndicat(p){
         <Carte titre="Prelevements automatises des coproprietaires (PAP / fichier EFT)" desc="Parametres du service de debits preautorises de votre institution. Le fichier EFT genere dans Encaissements - Prelevements utilise ces informations.">
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:10}}>
             <div><Lbl l="Methode utilisee"/>
-              <select value={f.pap_methode||"desjardins"} onChange={function(e){sf("pap_methode",e.target.value);}} style={INP}>
+              <select value={f.pap_methode||"desjardins"} onChange={function(e){
+                var v=e.target.value;
+                setF(function(pr){var n=Object.assign({},pr);n.pap_methode=v;n.pap_centre=v==="desjardins"?"81510":"";return n;});
+              }} style={INP}>
                 <option value="desjardins">Debit pre-autorise Desjardins</option>
+                <option value="bnc">Debit pre-autorise BNC</option>
+                <option value="bmo">Debit pre-autorise BMO</option>
                 <option value="cpa005">Autre institution (CPA-005)</option>
               </select>
             </div>
             <div><Lbl l="Nom d utilisateur / no d emetteur (10 car.)"/><input value={f.pap_orig_id||""} onChange={function(e){sf("pap_orig_id",e.target.value.toUpperCase().slice(0,10));}} style={INP}/></div>
-            <div><Lbl l="Centre de donnees (Desjardins: 81510)"/><input value={f.pap_centre||""} onChange={function(e){sf("pap_centre",e.target.value.replace(/\D/g,"").slice(0,5));}} style={INP}/></div>
+            <div><Lbl l={"Centre de donnees"+(f.pap_methode==="desjardins"?" (Desjardins: 81510)":" (fourni par votre institution)")}/><input value={f.pap_centre||""} onChange={function(e){sf("pap_centre",e.target.value.replace(/\D/g,"").slice(0,5));}} style={INP}/></div>
             <div><Lbl l="Nom LONG de la copropriete (releve bancaire)"/><input value={f.pap_nom_long||""} onChange={function(e){sf("pap_nom_long",e.target.value.slice(0,30));}} style={INP}/></div>
             <div><Lbl l="Nom COURT du syndicat (transaction)"/><input value={f.pap_nom_court||""} onChange={function(e){sf("pap_nom_court",e.target.value.slice(0,15));}} style={INP}/></div>
             <div><Lbl l="No du prochain fichier a la banque"/><input value={f.pap_no_fichier||""} onChange={function(e){sf("pap_no_fichier",e.target.value.replace(/\D/g,"").slice(0,4));}} style={INP}/></div>
@@ -459,6 +479,8 @@ export default function ConfigSyndicat(p){
             <div><Lbl l="Methode utilisee"/>
               <select value={f.pap_f_methode||"desjardins"} onChange={function(e){sf("pap_f_methode",e.target.value);}} style={INP}>
                 <option value="desjardins">Debit pre-autorise Desjardins</option>
+                <option value="bnc">Debit pre-autorise BNC</option>
+                <option value="bmo">Debit pre-autorise BMO</option>
                 <option value="cpa005">Autre institution (CPA-005)</option>
               </select>
             </div>
@@ -474,6 +496,17 @@ export default function ConfigSyndicat(p){
             </div>
           </div>
           <div style={{fontSize:10,color:T.muted}}>Chaque fournisseur paye par EFT doit avoir ses coordonnees bancaires dans sa fiche (module Fournisseurs).</div>
+        </Carte>
+
+        <Carte titre="Releve de compte mensuel des coproprietaires" desc="Chaque mois, le releve de compte (cotisation, paiements recus, solde) est envoye automatiquement par courriel a chaque coproprietaire, le jour choisi. Tant que le mode production n est pas actif, ces courriels sont rediriges vers l administrateur avec le prefixe [TEST].">
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+            <div><Lbl l="Jour du mois de l envoi (1 a 28)"/>
+              <select value={f.releve_jour||"0"} onChange={function(e){sf("releve_jour",e.target.value);}} style={INP}>
+                <option value="0">Ne pas envoyer automatiquement</option>
+                {Array.apply(null,{length:28}).map(function(_,i){return <option key={i+1} value={String(i+1)}>Le {i+1} de chaque mois</option>;})}
+              </select>
+            </div>
+          </div>
         </Carte>
 
         <Carte titre="Frais pour fonds insuffisants (NSF)" desc="Lorsqu un prelevement rebondit (provision insuffisante), ce montant est refacture automatiquement au coproprietaire en plus de la cotisation (bouton Rebond NSF dans Encaissements).">

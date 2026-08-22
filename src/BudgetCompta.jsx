@@ -794,7 +794,7 @@ function TabBanques(p){
   var s3=useState(false);var enCours=s3[0];var setEnCours=s3[1];
   var s4=useState(false);var showForm=s4[0];var setShowForm=s4[1];
   var s5=useState(null);var editId=s5[0];var setEditId=s5[1];
-  var VIDE_CB={nom:"",fonds:"operation",banque:"",institution:"",transit:"",no_compte:""};
+  var VIDE_CB={nom:"",fonds:"operation",banque:"",institution:"",transit:"",no_compte:"",par_defaut:false};
   var s6=useState(VIDE_CB);var nf=s6[0];var setNf=s6[1];
 
   function charger(){
@@ -814,12 +814,17 @@ function TabBanques(p){
     var row={syndicat_id:syndicat.id,nom:nf.nom||"",fonds:nf.fonds,banque:nf.banque||"",
       institution:(nf.institution||"").replace(/\D/g,"").slice(0,3),
       transit:(nf.transit||"").replace(/\D/g,"").slice(0,5),
-      no_compte:(nf.no_compte||"").replace(/\D/g,"").slice(0,12),actif:true};
+      no_compte:(nf.no_compte||"").replace(/\D/g,"").slice(0,12),actif:true,par_defaut:!!nf.par_defaut};
     var op=editId?sb.update("comptes_bancaires",editId,row):sb.insert("comptes_bancaires",row);
     op.then(function(r){
       setEnCours(false);
       if(r&&r.error){setErr("ECHEC de la sauvegarde: "+(r.error.message||r.error.hint||"les colonnes nom/actif existent-elles? (SQL fourni)"));return;}
       if(!editId&&!(r&&r.data&&r.data.id)){setErr("ECHEC: le compte n a PAS ete cree"+((r&&r.error&&r.error.message)?" ("+r.error.message+")":"")+".");return;}
+      // Un seul compte par defaut (Encaisse): retirer l etoile des autres comptes
+      if(nf.par_defaut){
+        var idCe=editId||(r&&r.data&&r.data.id);
+        comptesB.forEach(function(b){if(b.id!==idCe&&b.par_defaut)sb.update("comptes_bancaires",b.id,{par_defaut:false}).catch(function(){});});
+      }
       setMsg(editId?"Compte modifie.":"Compte de banque ajoute. Saisissez son solde d ouverture dans Configuration - Soldes d ouverture.");
       sb.log("budget",editId?"modification":"creation","Compte bancaire "+(nf.nom||nf.fonds)+(editId?" modifie":" ajoute"),"",syndicat.code||"");
       setShowForm(false);setEditId(null);setNf(VIDE_CB);
@@ -827,7 +832,7 @@ function TabBanques(p){
     }).catch(function(e){setEnCours(false);setErr("Erreur: "+(e&&e.message?e.message:""));});
   }
   function editer(b){
-    setNf({nom:b.nom||"",fonds:b.fonds||"operation",banque:b.banque||"",institution:b.institution||"",transit:b.transit||"",no_compte:b.no_compte||""});
+    setNf({nom:b.nom||"",fonds:b.fonds||"operation",banque:b.banque||"",institution:b.institution||"",transit:b.transit||"",no_compte:b.no_compte||"",par_defaut:!!b.par_defaut});
     setEditId(b.id);setShowForm(true);setErr("");
   }
   function retirer(b){
@@ -865,7 +870,13 @@ function TabBanques(p){
             <div><Lbl l="Banque / caisse"/><input value={nf.banque} onChange={function(e){ch("banque",e.target.value);}} style={INP}/></div>
             <div><Lbl l="Institution (3)"/><input value={nf.institution} onChange={function(e){ch("institution",e.target.value.replace(/\D/g,"").slice(0,3));}} style={INP}/></div>
             <div><Lbl l="Transit (5)"/><input value={nf.transit} onChange={function(e){ch("transit",e.target.value.replace(/\D/g,"").slice(0,5));}} style={INP}/></div>
-            <div><Lbl l="No de compte"/><input value={nf.no_compte} onChange={function(e){ch("no_compte",e.target.value.replace(/\D/g,"").slice(0,12));}} style={INP}/></div>
+            <div><Lbl l="No de compte (le 0 en tete est conserve)"/><input value={nf.no_compte} onChange={function(e){ch("no_compte",e.target.value.replace(/\D/g,"").slice(0,12));}} style={INP}/></div>
+            <div style={{alignSelf:"end"}}>
+              <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12,fontWeight:700,color:T.navy,cursor:"pointer",background:"#FEF9E7",border:"1px solid #D4AC0D66",borderRadius:8,padding:"8px 12px"}}>
+                <input type="checkbox" checked={!!nf.par_defaut} onChange={function(e){ch("par_defaut",e.target.checked);}}/>
+                Compte PAR DEFAUT (Encaisse)
+              </label>
+            </div>
           </div>
           <div style={{display:"flex",gap:8}}>
             <Btn onClick={sauver} dis={enCours}>{enCours?"Sauvegarde...":(editId?"Sauvegarder les modifications":"Creer le compte")}</Btn>
@@ -879,7 +890,7 @@ function TabBanques(p){
           var fi=fondsInfo(b.fonds);
           return(
             <div key={b.id} style={{background:fi.bg,border:"2px solid "+fi.c+"44",borderRadius:12,padding:14}}>
-              <div style={{fontSize:12,fontWeight:800,color:fi.c}}>{b.nom||fi.l}</div>
+              <div style={{fontSize:12,fontWeight:800,color:fi.c}}>{b.par_defaut?"\u2605 ":""}{b.nom||fi.l}{b.par_defaut?<span style={{fontSize:9,color:"#B7950B",marginLeft:6}}>PAR DEFAUT (Encaisse)</span>:null}</div>
               <div style={{fontSize:10,color:T.muted,marginBottom:8}}>{fi.l}{b.banque?" - "+b.banque:""}</div>
               <div style={{fontSize:11,color:T.navy,marginBottom:10}}>
                 {b.institution||b.transit||b.no_compte?(b.institution||"?")+" - "+(b.transit||"?")+" - "+(b.no_compte?"***"+String(b.no_compte).slice(-4):"?"):"Coordonnees bancaires a completer"}

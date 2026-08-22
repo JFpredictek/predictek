@@ -80,7 +80,14 @@ export default function Conciliation(){
   function chargerTout(){
     if(!sel)return;
     sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},limit:20}).then(function(r){
-      if(r&&r.data){setBanques(r.data);if(r.data.length>0&&!r.data.some(function(b){return b.id===compteId;}))setCompteId(r.data[0].id);}
+      if(r&&r.data){
+        var actifs=r.data.filter(function(b){return b.actif!==false;});
+        setBanques(actifs);
+        if(actifs.length>0&&!actifs.some(function(b){return b.id===compteId;})){
+          var dft=actifs.find(function(b){return b.par_defaut;});
+          setCompteId((dft||actifs[0]).id);
+        }
+      }
       else setBanques([]);
     }).catch(function(){setBanques([]);});
     sb.select("paiements",{eq:{syndicat_id:sel.id},order:"date_paiement.desc",limit:5000}).then(function(r){if(r&&r.data)setPaiements(r.data);}).catch(function(){});

@@ -56,6 +56,13 @@ function imprimerHTML(titre, corpsHTML, logoSyn){
   w.document.close();
 }
 
+function compteDefautDe(banques,sel){
+  var d=banques.find(function(b){return b.par_defaut&&b.actif!==false;});
+  if(d)return d.id;
+  if(banques.length===1)return banques[0].id;
+  return (sel&&sel.pap_compte_id)||"";
+}
+
 export default function Encaissements(){
   var s0=useState([]);var syndicats=s0[0];var setSyndicats=s0[1];
   var s1=useState(null);var sel=s1[0];var setSel=s1[1];
@@ -720,7 +727,7 @@ export default function Encaissements(){
         <div style={{marginLeft:"auto",display:"flex",gap:8,flexWrap:"wrap"}}>
           <Btn sm onClick={function(){setShowFC(true);setEditFCId(null);setNfFC({unite:"",type_frais:"frais",description:"",montant:"",date_facture:new Date().toISOString().substring(0,10),date_echeance:""});setErr("");window.scrollTo(0,0);}}>+ Emettre une facture</Btn>
           <Btn sm bg={T.purple} onClick={function(){setShowAv(true);setErr("");window.scrollTo(0,0);}}>+ Encaisser une avance</Btn>
-          <Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){setShowEnc(true);setEncF({unite:"",type:"interets",montant:"",date:new Date().toISOString().substring(0,10),moyen:"prelevement",note:"",compte:banques.length===1?banques[0].id:(sel.pap_compte_id||"")});setErr("");window.scrollTo(0,0);}}>+ Autre encaissement</Btn>
+          <Btn sm bg={T.accentL} tc={T.accent} bdr={"1px solid "+T.accent+"44"} onClick={function(){setShowEnc(true);setEncF({unite:"",type:"interets",montant:"",date:new Date().toISOString().substring(0,10),moyen:"prelevement",note:"",compte:compteDefautDe(banques,sel)});setErr("");window.scrollTo(0,0);}}>+ Autre encaissement</Btn>
           <Btn sm bg="#ffffff22" tc="#fff" bdr="1px solid #ffffff44" onClick={genererMois} dis={enCours}>Generer les cotisations</Btn>
         </div>
       </div>
@@ -852,7 +859,7 @@ export default function Encaissements(){
             <div style={{fontSize:12,fontWeight:800,color:"#fff"}}>{itemsSel.length} ligne(s) selectionnee(s) - total {money(estSel.total)}</div>
             {estSel.credit>0&&<div style={{fontSize:11,color:"#c9b8e8"}}>credits d avance applicables: {money(estSel.credit)}</div>}
             <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-              <Btn sm onClick={function(){setEncModal({items:itemsSel});setEncOpt({date:new Date().toISOString().substring(0,10),compte:banques.length===1?banques[0].id:(sel.pap_compte_id||""),credit:true});setErr("");window.scrollTo(0,0);}}>Encaisser la selection</Btn>
+              <Btn sm onClick={function(){setEncModal({items:itemsSel});setEncOpt({date:new Date().toISOString().substring(0,10),compte:compteDefautDe(banques,sel),credit:true});setErr("");window.scrollTo(0,0);}}>Encaisser la selection</Btn>
               <input type="date" value={datePrel} onChange={function(e){setDatePrel(e.target.value);}} style={{border:"none",borderRadius:6,padding:"5px 8px",fontSize:11,fontFamily:"inherit"}}/>
               <Btn sm bg={T.blue} onClick={genererEFT}>Creer le fichier EFT (selection)</Btn>
               <Btn sm bg="#ffffff22" tc="#fff" bdr="1px solid #ffffff44" onClick={function(){setSelRows({});}}>Tout decocher</Btn>

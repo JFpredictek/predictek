@@ -99,7 +99,7 @@ export default function ModuleAssurances(){
     if(!sel)return;
     setAssurances([]);
     sb.select("documents",{eq:{syndicat_id:sel.id,type_doc:"assurance"},order:"created_at.desc"}).then(function(res){
-      if(res&&res.data)setAssurances(res.data.map(function(d){
+      if(res&&res.data)setAssurances(res.data.filter(function(d){return d.statut!=="supprime";}).map(function(d){
         try{return Object.assign(JSON.parse(d.url||"{}"),{id:d.id});}catch(e){return {id:d.id,type_ass:"autre",cie:d.nom};}
       }));
     }).catch(function(){});

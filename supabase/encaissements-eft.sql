@@ -178,3 +178,14 @@ do $$ declare r record; begin
   end loop;
 end $$;
 notify pgrst, 'reload schema';
+
+-- ============================================================
+-- Vague: suppression de documents, releve mensuel, compte par defaut
+-- ============================================================
+-- Suppression logique des documents (polices d assurance retirees, etc.)
+alter table public.documents add column if not exists statut text default 'actif';
+-- Jour d envoi automatique du releve de compte mensuel des copros (0 = desactive, 1-28)
+alter table public.syndicats add column if not exists releve_jour int default 0;
+-- Compte de banque PAR DEFAUT (Encaisse)
+alter table public.comptes_bancaires add column if not exists par_defaut boolean default false;
+notify pgrst, 'reload schema';

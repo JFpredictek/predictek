@@ -98,7 +98,7 @@ export default function Registre1070(){
     ]).then(function(rs){
       setD({
         copros:(rs[0]&&rs[0].data)||[],unites:(rs[1]&&rs[1].data)||[],ca:(rs[2]&&rs[2].data)||[],
-        docs:(rs[3]&&rs[3].data)||[],assemblees:(rs[4]&&rs[4].data)||[],votes:(rs[5]&&rs[5].data)||[],
+        docs:((rs[3]&&rs[3].data)||[]).filter(function(x){return x.statut!=="supprime";}),assemblees:(rs[4]&&rs[4].data)||[],votes:(rs[5]&&rs[5].data)||[],
         budgets:(rs[6]&&rs[6].data)||[],carnet:(rs[7]&&rs[7].data)||[],bons:(rs[8]&&rs[8].data)||[],
         speciales:(rs[9]&&rs[9].data)||[]
       });

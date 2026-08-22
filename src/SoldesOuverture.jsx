@@ -22,6 +22,7 @@ function detailPour(compte){
   var no=String(compte.no_compte||"");
   if(/recevoir|arrerage/.test(t)||no.indexOf("12")===0)return "unite";
   if(/fournisseur/.test(t)||no==="2210")return "fournisseur";
+  if(/payes d avance|paye d avance|prepaye/.test(t)||no.indexOf("13")===0)return "fournisseur";
   return "";
 }
 function sensDefaut(compte){
@@ -124,6 +125,7 @@ export default function SoldesOuverture(){
   // ===== SAUVEGARDE: banques + remplacement des lignes soldes_ouverture =====
   async function sauverTout(){
     if(!sel||saving)return;
+    if(!dateSoldes){setErr("ECHEC: inscrivez d abord la DATE des soldes d ouverture (case Soldes en date du, dans le bandeau du haut) - aucun enregistrement sans date.");window.scrollTo(0,0);return;}
     // Validation des details
     var invalides=[];
     comptesBilan.forEach(function(c){
