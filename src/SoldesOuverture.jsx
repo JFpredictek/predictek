@@ -68,13 +68,13 @@ export default function SoldesOuverture(){
       var sb2={};var dMax="";
       bq.forEach(function(b){sb2[b.id]=b.solde_ouverture!==null&&b.solde_ouverture!==undefined&&Number(b.solde_ouverture)!==0?String(b.solde_ouverture):"";if(b.date_solde&&String(b.date_solde)>dMax)dMax=String(b.date_solde).substring(0,10);});
       setSoldesBq(sb2);
-      if(dMax)setDateSoldes(dMax);
+      if(dMax)setDateSoldes(function(p){return p||dMax;});
     }).catch(function(){setBanques([]);});
     sb.select("soldes_ouverture",{eq:{syndicat_id:sel.id},limit:1000}).then(function(r){
       var rows=(r&&r.data)?r.data.filter(function(x){return x.statut!=="retire";}):[];
       setLignes(rows);
       // Prefill de la feuille de travail depuis l existant
-      var v={};var d={};
+      var v={};var d={};var dSo="";
       rows.forEach(function(l){
         if(l.unite||l.fournisseur){
           if(!d[l.no_compte])d[l.no_compte]=[];
@@ -82,8 +82,10 @@ export default function SoldesOuverture(){
         }else{
           v[l.no_compte]=String((parseFloat(v[l.no_compte])||0)+(Number(l.montant)||0));
         }
-        if(l.date_solde&&!dateSoldes)setDateSoldes(String(l.date_solde).substring(0,10));
+        if(l.date_solde&&String(l.date_solde).substring(0,10)>dSo)dSo=String(l.date_solde).substring(0,10);
       });
+      // Ramene TOUJOURS la date sauvegardee des soldes d ouverture au retour dans le module
+      if(dSo)setDateSoldes(dSo);
       setValeurs(v);setDetails(d);
       if(r&&r.error)setErr("Chargement impossible: "+(r.error.message||"la table soldes_ouverture existe-t-elle? (SQL fourni)"));
     }).catch(function(){setLignes([]);});
