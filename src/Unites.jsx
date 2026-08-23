@@ -79,7 +79,7 @@ function imprimerAtt(titre,corps,logoSyn){
   var logo=logoSyn||"";
   if(!logo){try{logo=localStorage.getItem("predictek_logo")||"";}catch(e){}}
   w.document.write("<html><head><title>"+titre+"</title><style>"
-    +"body{font-family:Georgia,serif;color:#1C1A17;margin:36px;font-size:12px}"
+    +"body{font-family:ChiffresPredictek,Georgia,serif;color:#1C1A17;margin:36px;font-size:12px}"
     +".ent{display:flex;align-items:center;gap:14px;border-bottom:3px solid #1B5E3B;padding-bottom:10px;margin-bottom:10px}"
     +".ent img{height:48px}"
     +"h1{font-size:17px;margin:8px 0 2px}"
@@ -498,7 +498,7 @@ export default function Unites(){
                 <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
                   <div style={{width:52,height:38,borderRadius:8,background:T.navy,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:14,color:"#fff"}}>{u.no_unite}</div>
                   <Bdg bg={T.blueL} c={T.blue}>{(parseFloat(u.fraction)||0).toFixed(3)} %</Bdg>
-                  {Number(u.cotisation_mensuelle)>0&&<Bdg>{Number(u.cotisation_mensuelle).toFixed(2)} $/mois</Bdg>}
+                  {Number(u.cotisation_mensuelle)>0&&<Bdg>{Number(u.cotisation_mensuelle).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $/mois</Bdg>}
                   {(u.occupation==="locataire"||(!u.occupation&&u.locataire))&&<Bdg bg={T.amberL} c={T.amber}>LOUEE{u.nom_locataire?": "+u.nom_locataire:""}</Bdg>}
                   {u.occupation==="resident"&&<Bdg bg={T.blueL} c={T.blue}>RESIDENT{u.nom_locataire?": "+u.nom_locataire:""}</Bdg>}
                   {u.occupation==="court_terme"&&<Bdg bg={T.purpleL} c={T.purple}>LOCATION COURT TERME</Bdg>}

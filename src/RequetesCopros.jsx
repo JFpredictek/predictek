@@ -43,7 +43,7 @@ function imprimerDemandeTravaux(t,syndic){
   var w=window.open("","_blank");
   if(!w)return;
   w.document.write("<html><head><title>Demande d autorisation de travaux</title><style>"
-    +"body{font-family:Georgia,serif;color:#1C1A17;margin:36px;font-size:12px}"
+    +"body{font-family:ChiffresPredictek,Georgia,serif;color:#1C1A17;margin:36px;font-size:12px}"
     +".ent{display:flex;align-items:center;gap:14px;border-bottom:3px solid #1B5E3B;padding-bottom:12px;margin-bottom:6px}"
     +".ent img{height:52px}"
     +".ent .t1{font-size:19px;font-weight:bold;color:#13233A}"

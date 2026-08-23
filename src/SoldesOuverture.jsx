@@ -74,7 +74,7 @@ export default function SoldesOuverture(){
       var rows=(r&&r.data)?r.data.filter(function(x){return x.statut!=="retire";}):[];
       setLignes(rows);
       // Prefill de la feuille de travail depuis l existant
-      var v={};var d={};var dSo="";
+      var v={};var d={};var dSo="";var dCr="";
       rows.forEach(function(l){
         if(l.unite||l.fournisseur){
           if(!d[l.no_compte])d[l.no_compte]=[];
@@ -83,9 +83,12 @@ export default function SoldesOuverture(){
           v[l.no_compte]=String((parseFloat(v[l.no_compte])||0)+(Number(l.montant)||0));
         }
         if(l.date_solde&&String(l.date_solde).substring(0,10)>dSo)dSo=String(l.date_solde).substring(0,10);
+        if(!l.date_solde&&l.created_at&&String(l.created_at).substring(0,10)>dCr)dCr=String(l.created_at).substring(0,10);
       });
-      // Ramene TOUJOURS la date sauvegardee des soldes d ouverture au retour dans le module
+      // Ramene TOUJOURS la date sauvegardee des soldes d ouverture au retour dans le module;
+      // a defaut (anciens soldes sans date), la date de creation des lignes
       if(dSo)setDateSoldes(dSo);
+      else if(dCr)setDateSoldes(function(p){return p||dCr;});
       setValeurs(v);setDetails(d);
       if(r&&r.error)setErr("Chargement impossible: "+(r.error.message||"la table soldes_ouverture existe-t-elle? (SQL fourni)"));
     }).catch(function(){setLignes([]);});
@@ -180,7 +183,7 @@ export default function SoldesOuverture(){
     setSaving(false);
     if(echecs.length>0){setErr("ECHEC sur "+echecs.length+" element(s): "+echecs.slice(0,5).join(" | ")+(echecs.length>5?" ...":""));}
     setMsg("Soldes d ouverture sauvegardes: "+banques.length+" compte(s) de banque + "+inseres+" ligne(s) GL"+(Math.abs(ecart)>0.01?" - ATTENTION: la balance ne balance pas (ecart "+money(ecart)+")":" - balance OK")+".");
-    sb.log("comptabilite","modification","Soldes d ouverture sauvegardes ("+inseres+" lignes GL, ecart "+ecart.toFixed(2)+" $)","",sel.code||"");
+    sb.log("comptabilite","modification","Soldes d ouverture sauvegardes ("+inseres+" lignes GL, ecart "+ecart.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $)","",sel.code||"");
     charger();setTimeout(function(){setMsg("");},10000);
   }
 

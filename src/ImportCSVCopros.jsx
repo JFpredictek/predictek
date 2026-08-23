@@ -175,7 +175,7 @@ export default function ImportCSVCopros(p){
                         <td style={{padding:"6px 8px"}}>{r.nom}</td>
                         <td style={{padding:"6px 8px"}}>{r.prenom}</td>
                         <td style={{padding:"6px 8px",color:T.muted}}>{r.courriel}</td>
-                        <td style={{padding:"6px 8px",color:T.accent,fontWeight:600}}>{r.cotisation_mensuelle?r.cotisation_mensuelle.toFixed(2)+" $":"-"}</td>
+                        <td style={{padding:"6px 8px",color:T.accent,fontWeight:600}}>{r.cotisation_mensuelle?r.cotisation_mensuelle.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $":"-"}</td>
                       </tr>
                     );})}
                   </tbody>

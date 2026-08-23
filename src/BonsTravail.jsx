@@ -31,8 +31,8 @@ function CardBon(p){
             {b.unite&&<span>Unite: <b style={{color:T.navy}}>{b.unite}</b></span>}
             {b.date_debut&&<span>Debut: {b.date_debut}</span>}
             {b.date_fin&&<span>Fin prevue: {b.date_fin}</span>}
-            {b.cout_estime&&<span>Cout: <b style={{color:T.accent}}>{Number(b.cout_estime).toFixed(2)} $</b></span>}
-            {b.cout_final&&<span>Final: <b style={{color:T.navy}}>{Number(b.cout_final).toFixed(2)} $</b></span>}
+            {b.cout_estime&&<span>Cout: <b style={{color:T.accent}}>{Number(b.cout_estime).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</b></span>}
+            {b.cout_final&&<span>Final: <b style={{color:T.navy}}>{Number(b.cout_final).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</b></span>}
           </div>
           {b.envoye_le&&<div style={{fontSize:10,color:T.accent,fontWeight:700,marginTop:4}}>ENVOYE au fournisseur le {String(b.envoye_le).substring(0,16).replace("T"," ")}{b.envoye_a?" ("+b.envoye_a+")":""}</div>}
           {(function(){var ph=[];try{ph=Array.isArray(b.photos)?b.photos:JSON.parse(b.photos||"[]");}catch(e){ph=[];}
@@ -169,7 +169,7 @@ export default function BonsTravail(){
       if(!w)return;
       var esc=function(v){return String(v||"").replace(/</g,"&lt;");};
       var h="<html><head><title>Bon de travail "+esc(b.no_bon)+"</title><style>"
-        +"body{font-family:Georgia,serif;color:#1C1A17;margin:36px;font-size:12px}"
+        +"body{font-family:ChiffresPredictek,Georgia,serif;color:#1C1A17;margin:36px;font-size:12px}"
         +"h1{font-size:18px;margin:8px 0 2px}"
         +"table{width:100%;border-collapse:collapse;margin-top:10px}"
         +"td{border:1px solid #bbb;padding:7px 10px;vertical-align:top}"
@@ -187,7 +187,7 @@ export default function BonsTravail(){
         +"<tr><td class='l'>Fin prevue</td><td>"+esc(b.date_fin||"-")+"</td></tr>"
         +"<tr><td class='l'>Travaux</td><td><b>"+esc(b.titre||"")+"</b></td></tr>"
         +"<tr><td class='l'>Description</td><td>"+esc(b.description||"")+"</td></tr>"
-        +(b.cout_estime?"<tr><td class='l'>Cout estime</td><td>"+Number(b.cout_estime).toFixed(2)+" $</td></tr>":"")
+        +(b.cout_estime?"<tr><td class='l'>Cout estime</td><td>"+Number(b.cout_estime).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $</td></tr>":"")
         +(b.notes?"<tr><td class='l'>Notes</td><td>"+esc(b.notes)+"</td></tr>":"")
         +"<tr><td class='l'>Priorite</td><td>"+esc((PRIORITES[b.priorite]||{}).l||b.priorite)+"</td></tr>"
         +"</table>";
@@ -226,7 +226,7 @@ export default function BonsTravail(){
       +(b.date_fin?"Fin prevue: "+b.date_fin+"\n":"")
       +"Travaux: "+(b.titre||"")+"\n"
       +(b.description?"Description: "+b.description+"\n":"")
-      +(b.cout_estime?"Cout estime: "+Number(b.cout_estime).toFixed(2)+" $\n":"")
+      +(b.cout_estime?"Cout estime: "+Number(b.cout_estime).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $\n":"")
       +"\nMerci de confirmer la reception et la date d execution.\n\n"+(sel?sel.nom:"");
     fetch("/api/envoi",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify({destinataire:courriel,sujet:sujet,corps:corps})})
       .then(function(r){return r.json().catch(function(){return {error:"Reponse inattendue du serveur"};});})

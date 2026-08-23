@@ -18,7 +18,7 @@ function imprimerHTML(titre, corpsHTML, logoSyn){
   var logo=logoSyn||"";
   if(!logo){try{logo=localStorage.getItem("predictek_logo")||"";}catch(e){}}
   var entete=logo?"<div style='border-bottom:3px solid #1B5E3B;padding-bottom:10px;margin-bottom:12px'><img src='"+logo+"' style='height:52px'/></div>":"";
-  w.document.write("<html><head><title>"+titre+"</title><style>body{font-family:Georgia,serif;color:#1C1A17;margin:42px;font-size:13px;line-height:1.55}h1{font-size:18px;margin:0 0 2px}h2{font-size:14px;border-bottom:2px solid #13233A;padding-bottom:4px;margin-top:22px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #999;padding:6px 9px;font-size:12px;text-align:left}th{background:#EDEBE4;width:200px}.muted{color:#666;font-size:11px}.enc{border:2px solid #B83232;border-radius:8px;padding:12px;margin:14px 0;font-weight:bold}</style></head><body>"+entete+corpsHTML+"<script>window.print();</script></body></html>");
+  w.document.write("<html><head><title>"+titre+"</title><style>@font-face{font-family:ChiffresPredictek;src:local('Segoe UI'),local('Arial');unicode-range:U+0030-0039;}body{font-family:ChiffresPredictek,Georgia,serif;color:#1C1A17;margin:42px;font-size:13px;line-height:1.55}h1{font-size:18px;margin:0 0 2px}h2{font-size:14px;border-bottom:2px solid #13233A;padding-bottom:4px;margin-top:22px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #999;padding:6px 9px;font-size:12px;text-align:left}th{background:#EDEBE4;width:200px}.muted{color:#666;font-size:11px}.enc{border:2px solid #B83232;border-radius:8px;padding:12px;margin:14px 0;font-weight:bold}</style></head><body>"+entete+corpsHTML+"<script>window.print();</script></body></html>");
   w.document.close();
 }
 

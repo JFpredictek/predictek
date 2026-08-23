@@ -16,21 +16,21 @@ function genererRelevePDF(copro,syndicat,paiements,annee){
   var totalDu=paiesAnnee.filter(function(p){return p.statut!=="paye";}).reduce(function(a,p){return a+Number(p.montant||0);},0);
   var lignes=paiesAnnee.map(function(p){
     var statutColor=p.statut==="paye"?"#155724":p.statut==="retard"?"#B83232":"#B86020";
-    return "<tr><td>"+p.date_paiement+"</td><td>"+(p.description||"Cotisation")+"</td><td style='text-align:right'>"+Number(p.montant||0).toFixed(2)+" $</td><td style='color:"+statutColor+";font-weight:bold'>"+p.statut+"</td></tr>";
+    return "<tr><td>"+p.date_paiement+"</td><td>"+(p.description||"Cotisation")+"</td><td style='text-align:right'>"+Number(p.montant||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $</td><td style='color:"+statutColor+";font-weight:bold'>"+p.statut+"</td></tr>";
   }).join("");
 
   var solde=totalPaye-((copro.cotisation_mensuelle||0)*12);
   var win=window.open("","_blank");
-  win.document.write("<!DOCTYPE html><html><head><title>Releve de compte "+annee+"</title><style>body{font-family:Arial,sans-serif;margin:30px;color:#1C1A17;font-size:12px}h2{color:#13233A;margin-bottom:4px}.entete{display:flex;justify-content:space-between;margin-bottom:24px}.bloc{background:#f5f5f5;padding:14px;border-radius:6px;margin-bottom:16px}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #ddd;padding:8px 10px}th{background:#e8f2ec;color:#1B5E3B;font-size:11px}.total{background:#e8f2ec;font-weight:bold;font-size:13px}.retard{background:#fdecea}.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold}.ok{background:#D4EDDA;color:#155724}.due{background:#FEF3E2;color:#B86020}hr{border:1px solid #ddd}</style></head><body>");
+  win.document.write("<!DOCTYPE html><html><head><title>Releve de compte "+annee+"</title><style>@font-face{font-family:ChiffresPredictek;src:local('Segoe UI'),local('Arial');unicode-range:U+0030-0039;}body{font-family:Arial,sans-serif;margin:30px;color:#1C1A17;font-size:12px}h2{color:#13233A;margin-bottom:4px}.entete{display:flex;justify-content:space-between;margin-bottom:24px}.bloc{background:#f5f5f5;padding:14px;border-radius:6px;margin-bottom:16px}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #ddd;padding:8px 10px}th{background:#e8f2ec;color:#1B5E3B;font-size:11px}.total{background:#e8f2ec;font-weight:bold;font-size:13px}.retard{background:#fdecea}.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold}.ok{background:#D4EDDA;color:#155724}.due{background:#FEF3E2;color:#B86020}hr{border:1px solid #ddd}</style></head><body>");
   win.document.write("<div class='entete'><div><h2>Releve de compte "+annee+"</h2><div style='font-size:11px;color:#555'>Syndicat: "+syndicat.nom+"<br>Adresse: "+(syndicat.adr||"-")+"</div></div><div style='text-align:right;font-size:11px;color:#555'>Date d emission: "+new Date().toLocaleDateString("fr-CA")+"<br>Predictek - Gestion de copropriete</div></div><hr/>");
-  win.document.write("<div class='bloc'><b>Coproprietaire</b><br>Unite: "+copro.unite+"<br>Nom: "+copro.nom+(copro.prenom?" "+copro.prenom:"")+"<br>Courriel: "+(copro.courriel||"-")+"<br>Cotisation mensuelle: "+Number(copro.cotisation_mensuelle||0).toFixed(2)+" $"+(copro.pap?" (PAP actif)":"")+"</div>");
+  win.document.write("<div class='bloc'><b>Coproprietaire</b><br>Unite: "+copro.unite+"<br>Nom: "+copro.nom+(copro.prenom?" "+copro.prenom:"")+"<br>Courriel: "+(copro.courriel||"-")+"<br>Cotisation mensuelle: "+Number(copro.cotisation_mensuelle||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $"+(copro.pap?" (PAP actif)":"")+"</div>");
   win.document.write("<b>Historique des transactions - "+annee+"</b>");
   win.document.write("<table><thead><tr><th>Date</th><th>Description</th><th>Montant</th><th>Statut</th></tr></thead><tbody>");
   win.document.write(lignes||"<tr><td colspan='4' style='text-align:center;color:#888'>Aucune transaction pour cette annee</td></tr>");
   win.document.write("</tbody></table>");
-  win.document.write("<table><tr class='total'><td>Total paye "+annee+"</td><td style='text-align:right;color:#1B5E3B'>"+totalPaye.toFixed(2)+" $</td></tr>");
-  if(totalDu>0)win.document.write("<tr style='background:#FEF3E2'><td>Montants en attente</td><td style='text-align:right;color:#B86020'>"+totalDu.toFixed(2)+" $</td></tr>");
-  win.document.write("<tr class='total'><td>Solde au 31 decembre "+annee+"</td><td style='text-align:right;color:"+(solde>=0?"#1B5E3B":"#B83232")+"'>"+(solde>=0?"Credit":"Debit")+" : "+Math.abs(solde).toFixed(2)+" $</td></tr></table>");
+  win.document.write("<table><tr class='total'><td>Total paye "+annee+"</td><td style='text-align:right;color:#1B5E3B'>"+totalPaye.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $</td></tr>");
+  if(totalDu>0)win.document.write("<tr style='background:#FEF3E2'><td>Montants en attente</td><td style='text-align:right;color:#B86020'>"+totalDu.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $</td></tr>");
+  win.document.write("<tr class='total'><td>Solde au 31 decembre "+annee+"</td><td style='text-align:right;color:"+(solde>=0?"#1B5E3B":"#B83232")+"'>"+(solde>=0?"Credit":"Debit")+" : "+Math.abs(solde).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $</td></tr></table>");
   win.document.write("<p style='font-size:10px;color:#888;margin-top:24px'>Ce releve est genere automatiquement par Predictek. Pour toute question, contactez votre gestionnaire.</p>");
   win.document.write("</body></html>");
   win.document.close();win.print();
@@ -107,7 +107,7 @@ export default function RelevesCompte(){
             {filtresCopros.map(function(c){var sel2=coproSel&&coproSel.id===c.id;return(
               <div key={c.id} onClick={function(){setCoproSel(c);}} style={{padding:"10px 14px",cursor:"pointer",background:sel2?T.accentL:"transparent",borderBottom:"1px solid "+T.border,borderLeft:sel2?"3px solid "+T.accent:"3px solid transparent"}}>
                 <div style={{fontSize:12,fontWeight:sel2?700:600,color:sel2?T.accent:T.navy}}>Unite {c.unite} - {c.nom}</div>
-                <div style={{fontSize:10,color:T.muted}}>{Number(c.cotisation_mensuelle||0).toFixed(2)} $/mois{c.pap?" | PAP":""}</div>
+                <div style={{fontSize:10,color:T.muted}}>{Number(c.cotisation_mensuelle||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $/mois{c.pap?" | PAP":""}</div>
               </div>
             );})}
             {filtresCopros.length===0&&<div style={{padding:20,textAlign:"center",color:T.muted,fontSize:11}}>Aucun coproprietaire</div>}
@@ -122,13 +122,13 @@ export default function RelevesCompte(){
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
                   <div>
                     <div style={{fontSize:16,fontWeight:800,color:T.navy}}>Unite {coproSel.unite} - {coproSel.nom}{coproSel.prenom?" "+coproSel.prenom:""}</div>
-                    <div style={{fontSize:11,color:T.muted}}>{coproSel.courriel||""} - Cotisation: {Number(coproSel.cotisation_mensuelle||0).toFixed(2)} $/mois</div>
+                    <div style={{fontSize:11,color:T.muted}}>{coproSel.courriel||""} - Cotisation: {Number(coproSel.cotisation_mensuelle||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $/mois</div>
                   </div>
                   <Btn onClick={function(){genererRelevePDF(coproSel,sel,paiements,annee);}}>Generer PDF {annee}</Btn>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:16}}>
-                  <div style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:10,padding:12}}><div style={{fontSize:11,color:T.muted}}>Total paye {annee}</div><div style={{fontSize:20,fontWeight:800,color:T.accent}}>{totalPaye.toFixed(2)} $</div></div>
-                  <div style={{background:totalDu>0?T.amberL:T.alt,border:"1px solid "+(totalDu>0?T.amber+"44":T.border),borderRadius:10,padding:12}}><div style={{fontSize:11,color:T.muted}}>En attente</div><div style={{fontSize:20,fontWeight:800,color:totalDu>0?T.amber:T.muted}}>{totalDu.toFixed(2)} $</div></div>
+                  <div style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:10,padding:12}}><div style={{fontSize:11,color:T.muted}}>Total paye {annee}</div><div style={{fontSize:20,fontWeight:800,color:T.accent}}>{totalPaye.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div></div>
+                  <div style={{background:totalDu>0?T.amberL:T.alt,border:"1px solid "+(totalDu>0?T.amber+"44":T.border),borderRadius:10,padding:12}}><div style={{fontSize:11,color:T.muted}}>En attente</div><div style={{fontSize:20,fontWeight:800,color:totalDu>0?T.amber:T.muted}}>{totalDu.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div></div>
                   <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:10,padding:12}}><div style={{fontSize:11,color:T.muted}}>Transactions {annee}</div><div style={{fontSize:20,fontWeight:800,color:T.navy}}>{paiementsAnnee.length}</div></div>
                 </div>
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
@@ -137,7 +137,7 @@ export default function RelevesCompte(){
                     {paiementsAnnee.map(function(p){return(<tr key={p.id} style={{borderBottom:"1px solid "+T.border,background:p.statut==="retard"?T.redL:"transparent"}}>
                       <td style={{padding:"8px 10px",color:T.muted}}>{p.date_paiement}</td>
                       <td style={{padding:"8px 10px"}}>{p.description||"Cotisation"}</td>
-                      <td style={{padding:"8px 10px",textAlign:"right",fontWeight:600}}>{Number(p.montant||0).toFixed(2)} $</td>
+                      <td style={{padding:"8px 10px",textAlign:"right",fontWeight:600}}>{Number(p.montant||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</td>
                       <td style={{padding:"8px 10px"}}><span style={{background:p.statut==="paye"?T.accentL:p.statut==="retard"?T.redL:T.amberL,color:p.statut==="paye"?T.accent:p.statut==="retard"?T.red:T.amber,borderRadius:20,padding:"2px 8px",fontSize:10,fontWeight:700}}>{p.statut}</span></td>
                     </tr>);})}
                     {paiementsAnnee.length===0&&<tr><td colSpan={4} style={{padding:20,textAlign:"center",color:T.muted}}>{loading?"Chargement...":"Aucune transaction en "+annee}</td></tr>}

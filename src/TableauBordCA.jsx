@@ -240,16 +240,16 @@ export default function TableauBordCA(props){
             <div onClick={function(){if(props&&props.onNavigate)props.onNavigate("factures");}} style={{background:T.amberL,border:"2px solid "+(factAttente.length>0?T.amber:T.border),borderRadius:14,padding:14,cursor:"pointer"}}>
               <div style={{fontSize:10,color:T.muted,fontWeight:700,textTransform:"uppercase"}}>Factures en attente d approbation</div>
               <div style={{fontSize:22,fontWeight:800,color:T.amber}}>{factAttente.length}</div>
-              <div style={{fontSize:11,color:T.muted}}>{totalAttenteApprob.toFixed(2)} $ - cliquez pour approuver</div>
+              <div style={{fontSize:11,color:T.muted}}>{totalAttenteApprob.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $ - cliquez pour approuver</div>
             </div>
             <div onClick={function(){if(props&&props.onNavigate)props.onNavigate("factures");}} style={{background:T.redL,border:"1px solid "+T.red+"44",borderRadius:14,padding:14,cursor:"pointer"}}>
               <div style={{fontSize:10,color:T.muted,fontWeight:700,textTransform:"uppercase"}}>Comptes a payer (approuvees)</div>
-              <div style={{fontSize:22,fontWeight:800,color:T.red}}>{aPayer.toFixed(2)} $</div>
+              <div style={{fontSize:22,fontWeight:800,color:T.red}}>{aPayer.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div>
               <div style={{fontSize:11,color:T.muted}}>{nbAPayer} facture(s) - cliquez pour voir</div>
             </div>
             <div onClick={function(){if(props&&props.onNavigate)props.onNavigate("encaissements");}} style={{background:T.blueL,border:"1px solid #1A56DB44",borderRadius:14,padding:14,cursor:"pointer"}}>
               <div style={{fontSize:10,color:T.muted,fontWeight:700,textTransform:"uppercase"}}>Comptes a recevoir</div>
-              <div style={{fontSize:22,fontWeight:800,color:"#1A56DB"}}>{aRecevoir.toFixed(2)} $</div>
+              <div style={{fontSize:22,fontWeight:800,color:"#1A56DB"}}>{aRecevoir.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div>
               <div style={{fontSize:11,color:T.muted}}>{nbARecevoir} cotisation(s) en attente - cliquez</div>
             </div>
             <div onClick={function(){if(props&&props.onNavigate)props.onNavigate("conformite");}} style={{background:avisEchus.length>0?T.redL:T.surface,border:"2px solid "+(avisEchus.length>0?T.red:avisActifs.length>0?T.amber:T.border),borderRadius:14,padding:14,cursor:"pointer"}}>
@@ -262,14 +262,14 @@ export default function TableauBordCA(props){
           {factAttente.length>0&&(
             <div onClick={function(){if(props&&props.onNavigate)props.onNavigate("factures");}} style={{background:T.amberL,border:"2px solid "+T.amber,borderRadius:14,padding:16,marginBottom:20,cursor:"pointer"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,flexWrap:"wrap",gap:8}}>
-                <div style={{fontSize:13,fontWeight:800,color:T.amber}}>{factAttente.length} facture(s) EN ATTENTE D APPROBATION - {totalAttenteApprob.toFixed(2)} $</div>
+                <div style={{fontSize:13,fontWeight:800,color:T.amber}}>{factAttente.length} facture(s) EN ATTENTE D APPROBATION - {totalAttenteApprob.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div>
                 <div style={{fontSize:11,color:T.muted}}>Cliquez pour ouvrir Factures et approuver</div>
               </div>
               {factAttente.slice(0,5).map(function(f){return(
                 <div key={f.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"#fff",borderRadius:8,padding:"8px 12px",marginBottom:6,gap:10,flexWrap:"wrap"}}>
                   <div style={{fontSize:12,fontWeight:700,color:T.navy}}>{f.fournisseur_nom||f.fournisseur}{f.no_facture?" - "+f.no_facture:""}</div>
                   <div style={{fontSize:11,color:T.muted}}>{f.date_facture||""}</div>
-                  <div style={{fontSize:13,fontWeight:800,color:T.amber}}>{(Number(f.total)||Number(f.montant)||0).toFixed(2)} $</div>
+                  <div style={{fontSize:13,fontWeight:800,color:T.amber}}>{(Number(f.total)||Number(f.montant)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div>
                 </div>
               );})}
               {factAttente.length>5&&<div style={{fontSize:11,color:T.muted}}>+ {factAttente.length-5} autre(s)...</div>}

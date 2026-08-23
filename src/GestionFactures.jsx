@@ -126,8 +126,8 @@ function CarteFacture(p){
           )}
         </div>
         <div style={{textAlign:"right",flexShrink:0,marginLeft:16}}>
-          <div style={{fontSize:20,fontWeight:800,color:T.navy}}>{Number(f.total||0).toFixed(2)} $</div>
-          {f.tps>0&&<div style={{fontSize:10,color:T.muted}}>TPS: {Number(f.tps).toFixed(2)} $ | TVQ: {Number(f.tvq).toFixed(2)} $</div>}
+          <div style={{fontSize:20,fontWeight:800,color:T.navy}}>{Number(f.total||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div>
+          {f.tps>0&&<div style={{fontSize:10,color:T.muted}}>TPS: {Number(f.tps).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $ | TVQ: {Number(f.tvq).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div>}
           <div style={{display:"flex",gap:6,marginTop:8,justifyContent:"flex-end",flexWrap:"wrap"}}>
             {f.fichier&&<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){p.onVoirFichier(f);}}>Voir la facture</Btn>}
             {f.statut!=="payee"&&f.statut!=="annulee"&&<Btn sm bg={T.alt} tc={T.navy} bdr={"1px solid "+T.border} onClick={function(){p.onEdit(f);}}>Modifier</Btn>}
@@ -185,7 +185,7 @@ function FormFacture(p){
       if(d.sousTotal)sf("sous_total",Number(d.sousTotal));
       if(d.tps)sf("tps",Number(d.tps));
       if(d.tvq)sf("tvq",Number(d.tvq));
-      if(d.total){sf("total",Number(d.total));pris.push(Number(d.total).toFixed(2)+" $");}
+      if(d.total){sf("total",Number(d.total));pris.push(Number(d.total).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $");}
       if(d.description)sf("description",d.description);
       if(d.noCompteGL&&comptesGL.some(function(c){return c.no===String(d.noCompteGL);})){sf("no_compte_gl",String(d.noCompteGL));var cGL=comptesGL.find(function(c){return c.no===String(d.noCompteGL);});pris.push("GL "+d.noCompteGL+" ("+(cGL?cGL.nom:"")+")");}
       // Terme de paiement + escompte fournisseur (ex: 2% 10 jours net 30)
@@ -250,7 +250,7 @@ function FormFacture(p){
       </div>
       {parseFloat(nf.escompte_pct)>0&&parseFloat(nf.total)>0&&(
         <div style={{gridColumn:"1/-1",background:"#E8F2EC",borderRadius:8,padding:"7px 11px",fontSize:11,color:"#1B5E3B",fontWeight:700}}>
-          Escompte fournisseur {nf.escompte_pct}% {nf.escompte_jours||10} jours: payez avant le {(function(){if(!nf.date_facture)return "-";var dd=new Date(nf.date_facture+"T12:00:00");dd.setDate(dd.getDate()+(parseInt(nf.escompte_jours)||10));return dd.toISOString().substring(0,10);})()} et economisez {(Number(nf.total)*parseFloat(nf.escompte_pct)/100).toFixed(2)} $ (a payer: {(Number(nf.total)*(1-parseFloat(nf.escompte_pct)/100)).toFixed(2)} $)
+          Escompte fournisseur {nf.escompte_pct}% {nf.escompte_jours||10} jours: payez avant le {(function(){if(!nf.date_facture)return "-";var dd=new Date(nf.date_facture+"T12:00:00");dd.setDate(dd.getDate()+(parseInt(nf.escompte_jours)||10));return dd.toISOString().substring(0,10);})()} et economisez {(Number(nf.total)*parseFloat(nf.escompte_pct)/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $ (a payer: {(Number(nf.total)*(1-parseFloat(nf.escompte_pct)/100)).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $)
         </div>
       )}
       <div><Lbl l="Sous-total ($)"/><input type="number" step="0.01" value={nf.sous_total||""} onChange={function(e){var st=parseFloat(e.target.value)||0;var tps=Math.round(st*0.05*100)/100;var tvq=Math.round(st*0.09975*100)/100;sf("sous_total",st);sf("tps",tps);sf("tvq",tvq);sf("total",Math.round((st+tps+tvq)*100)/100);}} style={INP} placeholder="0.00"/></div>
@@ -292,7 +292,7 @@ function FormFacture(p){
             </div>
             {choisies.length>0&&totalF>0&&(
               <div style={{fontSize:11,fontWeight:700,color:"#1B5E3B"}}>
-                {choisies.length} unite(s) - repartition egale: {part.toFixed(2)} $ chacune (total {totalF.toFixed(2)} $).
+                {choisies.length} unite(s) - repartition egale: {part.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $ chacune (total {totalF.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $).
                 Les factures aux coproprietaires seront creees AUTOMATIQUEMENT a la sauvegarde (visibles dans Encaissements et dans leur portail).
               </div>
             )}
@@ -375,7 +375,7 @@ function ModalApprobation(p){
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20}}>
       <div style={{background:T.surface,borderRadius:16,padding:24,width:"100%",maxWidth:560,maxHeight:"80vh",overflow:"auto"}}>
         <div style={{fontSize:15,fontWeight:800,color:T.navy,marginBottom:4}}>Approbation de facture</div>
-        <div style={{fontSize:12,color:T.muted,marginBottom:16}}>{f.fournisseur_nom} - {Number(f.total||0).toFixed(2)} $</div>
+        <div style={{fontSize:12,color:T.muted,marginBottom:16}}>{f.fournisseur_nom} - {Number(f.total||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div>
 
         <div style={{background:T.alt,borderRadius:10,padding:14,marginBottom:16}}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,fontSize:12}}>
@@ -577,7 +577,7 @@ export default function GestionFactures(){
         // DEMANDE D APPROBATION: la facture en attente cree une REQUETE assignee au CA
         if(row.statut==="en_attente_approbation"){
           sb.insert("tickets",{syndicat_id:sel.id,unite:"",
-            sujet:"APPROBATION REQUISE - Facture "+(nf.fournisseur_nom||"")+" "+(parseFloat(nf.total)||0).toFixed(2)+" $",
+            sujet:"APPROBATION REQUISE - Facture "+(nf.fournisseur_nom||"")+" "+(parseFloat(nf.total)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $",
             description:"Une facture attend l approbation du CA ("+(row.nb_approbations_requises||1)+" approbation(s) requise(s)). Fournisseur: "+(nf.fournisseur_nom||"")+(nf.no_facture?" #"+nf.no_facture:"")+". Approuvez dans Finances - Payables - Factures. ref:"+res.data.id,
             statut:"nouveau",priorite:"haute",categorie:"approbation",
             assigne_nom:"Tous les membres du CA",assigne_type:"ca_tous",assigne_courriel:""}).catch(function(){});
@@ -608,7 +608,7 @@ export default function GestionFactures(){
             Promise.all(creations).then(function(rs){
               var ok=rs.filter(function(x){return x&&x.data&&x.data.id;}).length;
               if(ok<uIds.length)setErrSauve("ATTENTION: facture fournisseur sauvegardee, mais seulement "+ok+"/"+uIds.length+" facture(s) aux coproprietaires creee(s).");
-              sb.log("factures","refacturation",ok+" facture(s) aux coproprietaires creee(s) ("+part.toFixed(2)+" $ chacune) - "+nf.fournisseur_nom,"",sel.code||"");
+              sb.log("factures","refacturation",ok+" facture(s) aux coproprietaires creee(s) ("+part.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $ chacune) - "+nf.fournisseur_nom,"",sel.code||"");
             });
           }).catch(function(){setErrSauve("ATTENTION: facture sauvegardee mais la refacturation aux coproprietaires a echoue - creez-les dans Encaissements.");});
         }
@@ -641,7 +641,7 @@ export default function GestionFactures(){
         reference:"PAIE-"+(f.no_facture||String(f.id).substring(0,8))
       }).then(function(rj){
         setFactures(function(prev){return prev.map(function(x){return x.id===f.id?Object.assign({},x,{statut:"payee",date_paiement:datePaie}):x;});});
-        sb.log("factures","paiement","Paiement enregistre: "+(f.fournisseur_nom||"")+" - "+(Number(f.total)||0).toFixed(2)+" $ le "+datePaie,(rj&&rj.data)?"Ecriture au journal creee":"ATTENTION: ecriture au journal NON creee",sel.code||"");
+        sb.log("factures","paiement","Paiement enregistre: "+(f.fournisseur_nom||"")+" - "+(Number(f.total)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $ le "+datePaie,(rj&&rj.data)?"Ecriture au journal creee":"ATTENTION: ecriture au journal NON creee",sel.code||"");
         if(!(rj&&rj.data))setErrSauve("Paiement enregistre, mais l ecriture au journal a ECHOUE"+((rj&&rj.error&&rj.error.message)?" ("+rj.error.message+")":"")+" - ajoutez-la manuellement dans Journal des transactions.");
         setPayerF(null);setPayeEnCours(false);
       });
@@ -733,7 +733,7 @@ export default function GestionFactures(){
     setFactures(function(prev){return prev.map(function(x){return ids.indexOf(String(x.id))>=0&&x.statut==="approuvee"?Object.assign({},x,{statut:"payee",date_paiement:dateEft}):x;});});
     setSelEFT({});setEftEnCours(false);
     if(echecs.length>0)setErrSauve("Fichier genere, mais ECHEC sur: "+echecs.join(" | "));
-    sb.log("factures","paiement","Fichier EFT fournisseurs "+nomFichier+": "+cibles.length+" paiement(s), "+(totalCents/100).toFixed(2)+" $","",sel.code||"");
+    sb.log("factures","paiement","Fichier EFT fournisseurs "+nomFichier+": "+cibles.length+" paiement(s), "+(totalCents/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $","",sel.code||"");
   }
 
   function updateStatut(id, statut){
@@ -847,7 +847,7 @@ export default function GestionFactures(){
           if(idsE.length===0)return null;
           return(
             <div style={{background:T.navy,borderRadius:10,padding:"10px 16px",marginBottom:12,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-              <div style={{fontSize:12,fontWeight:800,color:"#fff"}}>{idsE.length} facture(s) a payer par EFT - total {totE.toFixed(2)} $</div>
+              <div style={{fontSize:12,fontWeight:800,color:"#fff"}}>{idsE.length} facture(s) a payer par EFT - total {totE.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <span style={{fontSize:10,color:"#9fb0c6",textTransform:"uppercase",fontWeight:700}}>Date du paiement</span>
                 <input type="date" value={dateEft} onChange={function(e){setDateEft(e.target.value);}} style={{border:"none",borderRadius:6,padding:"5px 8px",fontSize:12,fontFamily:"inherit"}}/>
@@ -877,14 +877,14 @@ export default function GestionFactures(){
           <div onClick={function(e){if(e.target===e.currentTarget&&!payeEnCours)setPayerF(null);}} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:999}}>
             <div style={{background:"#fff",borderRadius:14,padding:24,width:440,maxWidth:"94vw"}}>
               <div style={{fontSize:14,fontWeight:800,color:T.navy,marginBottom:4}}>Enregistrer le paiement</div>
-              <div style={{fontSize:12,color:T.muted,marginBottom:14}}>{payerF.fournisseur_nom}{payerF.no_facture?" #"+payerF.no_facture:""} - {(Number(payerF.total)||0).toFixed(2)} $</div>
+              <div style={{fontSize:12,color:T.muted,marginBottom:14}}>{payerF.fournisseur_nom}{payerF.no_facture?" #"+payerF.no_facture:""} - {(Number(payerF.total)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div>
               <div style={{marginBottom:12}}>
                 <Lbl l="Date du paiement"/>
                 <input type="date" value={datePaie} onChange={function(e){setDatePaie(e.target.value);}} style={INP}/>
               </div>
               {Number(payerF.escompte_pct)>0&&(
                 <div style={{background:T.accentL,borderRadius:8,padding:"8px 12px",fontSize:11,color:T.accent,fontWeight:700,marginBottom:12}}>
-                  Escompte {payerF.escompte_pct}% {payerF.escompte_jours||10} jours au dossier - verifiez si le paiement y donne droit ({(Number(payerF.total)*(1-Number(payerF.escompte_pct)/100)).toFixed(2)} $ au lieu de {(Number(payerF.total)||0).toFixed(2)} $).
+                  Escompte {payerF.escompte_pct}% {payerF.escompte_jours||10} jours au dossier - verifiez si le paiement y donne droit ({(Number(payerF.total)*(1-Number(payerF.escompte_pct)/100)).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $ au lieu de {(Number(payerF.total)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $).
                 </div>
               )}
               <div style={{background:T.blueL,borderRadius:8,padding:"8px 12px",fontSize:11,color:T.blue,marginBottom:14}}>
@@ -927,10 +927,10 @@ export default function GestionFactures(){
                     {l:"No facture",v:viewer.facture.no_facture||"-"},
                     {l:"Date",v:viewer.facture.date_facture||"-"},
                     {l:"Echeance",v:viewer.facture.date_echeance||"-"},
-                    {l:"Sous-total",v:(Number(viewer.facture.sous_total)||0).toFixed(2)+" $"},
-                    {l:"TPS",v:(Number(viewer.facture.tps)||0).toFixed(2)+" $"},
-                    {l:"TVQ",v:(Number(viewer.facture.tvq)||0).toFixed(2)+" $"},
-                    {l:"Total",v:(Number(viewer.facture.total)||0).toFixed(2)+" $"},
+                    {l:"Sous-total",v:(Number(viewer.facture.sous_total)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $"},
+                    {l:"TPS",v:(Number(viewer.facture.tps)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $"},
+                    {l:"TVQ",v:(Number(viewer.facture.tvq)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $"},
+                    {l:"Total",v:(Number(viewer.facture.total)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $"},
                     {l:"Compte GL",v:(viewer.facture.no_compte_gl||"-")+" "+(viewer.facture.categorie_depense||"")},
                     {l:"Statut",v:viewer.facture.statut||"-"},
                   ].map(function(it,i){return(

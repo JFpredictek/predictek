@@ -48,10 +48,10 @@ function TabCotisations(p){
     var win=window.open("","_blank");
     var lignes=filtre.map(function(c){
       var cp=copros.find(function(x){return x.id===c.coproprietaire_id;})||{};
-      return "<tr><td>"+(cp.unite||"")+"</td><td>"+(cp.nom||"")+"</td><td>"+Number(c.montant).toFixed(2)+" $</td><td>"+c.statut+"</td></tr>";
+      return "<tr><td>"+(cp.unite||"")+"</td><td>"+(cp.nom||"")+"</td><td>"+Number(c.montant).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $</td><td>"+c.statut+"</td></tr>";
     }).join("");
     var total=filtre.reduce(function(a,c){return a+Number(c.montant);},0);
-    win.document.write("<html><head><title>Cotisations</title><style>body{font-family:Arial,sans-serif;margin:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:8px}th{background:#f0f0f0}.t{font-weight:bold}</style></head><body><h2>Cotisations "+MNOMS[parseInt(mois)]+" "+annee+"</h2><p><b>Syndicat:</b> "+(syndicat?syndicat.nom:"")+"</p><table><thead><tr><th>Unite</th><th>Nom</th><th>Montant</th><th>Statut</th></tr></thead><tbody>"+lignes+"<tr class='t'><td colspan='2'>TOTAL</td><td>"+total.toFixed(2)+" $</td><td></td></tr></tbody></table></body></html>");
+    win.document.write("<html><head><title>Cotisations</title><style>@font-face{font-family:ChiffresPredictek;src:local('Segoe UI'),local('Arial');unicode-range:U+0030-0039;}body{font-family:Arial,sans-serif;margin:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:8px}th{background:#f0f0f0}.t{font-weight:bold}</style></head><body><h2>Cotisations "+MNOMS[parseInt(mois)]+" "+annee+"</h2><p><b>Syndicat:</b> "+(syndicat?syndicat.nom:"")+"</p><table><thead><tr><th>Unite</th><th>Nom</th><th>Montant</th><th>Statut</th></tr></thead><tbody>"+lignes+"<tr class='t'><td colspan='2'>TOTAL</td><td>"+total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $</td><td></td></tr></tbody></table></body></html>");
     win.document.close();win.print();
   }
   var enAttente=cotisations.filter(function(c){return c.statut==="en_attente";});
@@ -81,7 +81,7 @@ function TabCotisations(p){
                 return(<tr key={c.id} style={{borderBottom:"1px solid "+T.border}}>
                   <td style={{padding:"8px 10px"}}>{cp.unite||"-"}</td>
                   <td style={{padding:"8px 10px"}}>{cp.nom||"-"}</td>
-                  <td style={{padding:"8px 10px",fontWeight:600}}>{Number(c.montant).toFixed(2)} $</td>
+                  <td style={{padding:"8px 10px",fontWeight:600}}>{Number(c.montant).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</td>
                   <td style={{padding:"8px 10px",color:T.muted}}>{c.date_paiement?c.date_paiement.substring(0,7):"-"}</td>
                   <td style={{padding:"8px 10px"}}><Badge l={c.statut} c={c.statut==="paye"?"vert":"amber"}/></td>
                   <td style={{padding:"8px 10px"}}>{c.statut==="en_attente"&&<Btn sm onClick={function(){marquerPaye(c.id);}}>Paye</Btn>}</td>
@@ -166,7 +166,7 @@ function TabReunions(p){
     var ds=d.getDate()+" "+MOIS[d.getMonth()]+" "+d.getFullYear();
     var pts=(r.ordre_du_jour||"Ouverture - Divers - Fermeture").split(",").filter(function(x){return x.trim();});
     var li=pts.map(function(pt){return "<li>"+pt.trim()+"</li>";}).join("");
-    win.document.write("<html><head><title>Convocation</title><style>body{font-family:Arial,sans-serif;max-width:700px;margin:40px auto;padding:20px}h2{text-align:center}.c{text-align:center;font-size:16px;font-weight:bold;margin:20px 0}p{line-height:1.6}.sig{margin-top:60px}</style></head><body><p><b>Syndicat: </b>"+(syndicat?syndicat.nom:"")+"</p><hr/><h2>CONVOCATION - "+(r.type||"CA")+"</h2><p>Les membres sont convoques a la reunion du:</p><div class='c'>"+ds+" a "+r.heure+"</div><p style='text-align:center'>"+(r.lieu||"Lieu a confirmer")+"</p><p><b>Ordre du jour:</b></p><ol>"+li+"</ol><div class='sig'><p>Le secretaire,</p><p>&nbsp;</p><p>___________________</p><p>Date: "+new Date().toLocaleDateString("fr-CA")+"</p></div></body></html>");
+    win.document.write("<html><head><title>Convocation</title><style>@font-face{font-family:ChiffresPredictek;src:local('Segoe UI'),local('Arial');unicode-range:U+0030-0039;}body{font-family:Arial,sans-serif;max-width:700px;margin:40px auto;padding:20px}h2{text-align:center}.c{text-align:center;font-size:16px;font-weight:bold;margin:20px 0}p{line-height:1.6}.sig{margin-top:60px}</style></head><body><p><b>Syndicat: </b>"+(syndicat?syndicat.nom:"")+"</p><hr/><h2>CONVOCATION - "+(r.type||"CA")+"</h2><p>Les membres sont convoques a la reunion du:</p><div class='c'>"+ds+" a "+r.heure+"</div><p style='text-align:center'>"+(r.lieu||"Lieu a confirmer")+"</p><p><b>Ordre du jour:</b></p><ol>"+li+"</ol><div class='sig'><p>Le secretaire,</p><p>&nbsp;</p><p>___________________</p><p>Date: "+new Date().toLocaleDateString("fr-CA")+"</p></div></body></html>");
     win.document.close();win.print();
   }
   var prochaines=reunions.filter(function(r){return new Date(r.date_reunion)>=new Date();});
@@ -266,7 +266,7 @@ function TabPAP(p){
             {papCopros.map(function(c){var exp=c.pap_date_exp?new Date(c.pap_date_exp):null;var j=exp?Math.round((exp-new Date())/(1000*60*60*24)):999;return(<tr key={c.id} style={{borderBottom:"1px solid "+T.border}}>
               <td style={{padding:"7px 10px",fontWeight:600}}>{c.unite}</td>
               <td style={{padding:"7px 10px"}}>{c.nom}</td>
-              <td style={{padding:"7px 10px",color:T.accent,fontWeight:600}}>{Number(c.cotisation_mensuelle||0).toFixed(2)} $</td>
+              <td style={{padding:"7px 10px",color:T.accent,fontWeight:600}}>{Number(c.cotisation_mensuelle||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</td>
               <td style={{padding:"7px 10px",color:T.muted}}>{c.pap_date_exp||"-"}</td>
               <td style={{padding:"7px 10px"}}><Badge l={j<0?"Expire":j<30?"Bientot":j<60?"Attention":"Actif"} c={j<30?"rouge":j<60?"amber":"vert"}/></td>
             </tr>);})}

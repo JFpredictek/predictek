@@ -460,7 +460,7 @@ function TabBudget(p){
         setEnCours(false);
         if(rb&&rb.data)setBudRow(rb.data);
         setMsg("Budget sauvegarde en BROUILLON ("+rows.length+" ligne(s)) pour "+exo.label+" - faites-le approuver par le CA pour confirmer les cotisations.");
-        sb.log("budget","modification","Budget "+exo.debut+" sauvegarde en brouillon: "+cotisationsAnnuelles.toFixed(2)+" $ de cotisations annuelles","",syndicat.code||"");
+        sb.log("budget","modification","Budget "+exo.debut+" sauvegarde en brouillon: "+cotisationsAnnuelles.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $ de cotisations annuelles","",syndicat.code||"");
         setTimeout(function(){setMsg("");},6000);
       }).catch(function(){setEnCours(false);setMsg("Budget sauvegarde, mais le statut brouillon n a pas pu etre enregistre.");});
     }).catch(function(e){setEnCours(false);setErr("Erreur: "+(e&&e.message?e.message:""));});
@@ -475,7 +475,7 @@ function TabBudget(p){
       var ouvert=((r&&r.data)||[]).find(function(t){return t.sujet===sujet&&(t.statut==="nouveau"||t.statut==="en_cours");});
       if(ouvert){setMsg("La requete d approbation de ce budget est deja envoyee (ticket ouvert).");setTimeout(function(){setMsg("");},5000);return;}
       sb.insert("tickets",{syndicat_id:syndicat.id,unite:"",sujet:sujet,
-        description:"Le budget "+exo.label+" est en brouillon et attend l approbation de TOUS les membres du CA. Cotisations annuelles calculees: "+cotisationsAnnuelles.toFixed(2)+" $ ("+money(cotisationsAnnuelles/12)+" par mois). Chaque membre doit approuver dans Finances - Comptabilite - Budget et cotisations.",
+        description:"Le budget "+exo.label+" est en brouillon et attend l approbation de TOUS les membres du CA. Cotisations annuelles calculees: "+cotisationsAnnuelles.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $ ("+money(cotisationsAnnuelles/12)+" par mois). Chaque membre doit approuver dans Finances - Comptabilite - Budget et cotisations.",
         statut:"nouveau",priorite:"haute",categorie:"approbation",
         assigne_nom:"Tous les membres du CA",assigne_type:"ca_tous",
         assigne_courriel:membresCA.map(function(m){return m.courriel;}).filter(Boolean).join(", ").substring(0,300)
@@ -953,8 +953,8 @@ function TabJournal(p){
       </div>
       {err&&<div style={{background:T.redL,borderRadius:8,padding:"8px 12px",fontSize:12,color:T.red,fontWeight:700,marginBottom:10}}>{err}</div>}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
-        <div style={{background:T.redL,border:"1px solid "+T.red+"44",borderRadius:10,padding:14}}><div style={{fontSize:11,color:T.muted}}>Total debits</div><div style={{fontSize:20,fontWeight:800,color:T.red}}>{totalDebit.toFixed(2)} $</div></div>
-        <div style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:10,padding:14}}><div style={{fontSize:11,color:T.muted}}>Total credits</div><div style={{fontSize:20,fontWeight:800,color:T.accent}}>{totalCredit.toFixed(2)} $</div></div>
+        <div style={{background:T.redL,border:"1px solid "+T.red+"44",borderRadius:10,padding:14}}><div style={{fontSize:11,color:T.muted}}>Total debits</div><div style={{fontSize:20,fontWeight:800,color:T.red}}>{totalDebit.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div></div>
+        <div style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:10,padding:14}}><div style={{fontSize:11,color:T.muted}}>Total credits</div><div style={{fontSize:20,fontWeight:800,color:T.accent}}>{totalCredit.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div></div>
       </div>
       {showN&&(
         <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:20,marginBottom:16}}>
@@ -985,8 +985,8 @@ function TabJournal(p){
               <td style={{padding:"8px 10px",color:T.muted,whiteSpace:"nowrap"}}>{j.date_transaction}</td>
               <td style={{padding:"8px 10px"}}>{j.description}</td>
               <td style={{padding:"8px 10px",color:T.muted}}>{j.categorie}</td>
-              <td style={{padding:"8px 10px",color:T.red,fontWeight:600,textAlign:"right"}}>{Number(j.montant_debit)>0?Number(j.montant_debit).toFixed(2)+" $":""}</td>
-              <td style={{padding:"8px 10px",color:T.accent,fontWeight:600,textAlign:"right"}}>{Number(j.montant_credit)>0?Number(j.montant_credit).toFixed(2)+" $":""}</td>
+              <td style={{padding:"8px 10px",color:T.red,fontWeight:600,textAlign:"right"}}>{Number(j.montant_debit)>0?Number(j.montant_debit).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $":""}</td>
+              <td style={{padding:"8px 10px",color:T.accent,fontWeight:600,textAlign:"right"}}>{Number(j.montant_credit)>0?Number(j.montant_credit).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $":""}</td>
               <td style={{padding:"8px 10px",color:T.muted}}>{j.reference}</td>
             </tr>);})}
             {journal.length===0&&<tr><td colSpan={6} style={{padding:20,textAlign:"center",color:T.muted}}>Aucune transaction</td></tr>}
@@ -1001,7 +1001,7 @@ function TabJournal(p){
 function imprimerHTML(titre, corpsHTML){
   var w=window.open("","_blank","width=900,height=700");
   if(!w)return;
-  w.document.write("<html><head><title>"+titre+"</title><style>body{font-family:Georgia,serif;color:#1C1A17;margin:36px;font-size:13px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;border-bottom:2px solid #13233A;padding-bottom:4px;margin-top:22px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #999;padding:5px 8px;font-size:12px;text-align:left}th{background:#EDEBE4}.tot{font-weight:bold;background:#E8F2EC}.muted{color:#666;font-size:11px}.right{text-align:right}</style></head><body>"+corpsHTML+"<script>window.print();</script></body></html>");
+  w.document.write("<html><head><title>"+titre+"</title><style>@font-face{font-family:ChiffresPredictek;src:local('Segoe UI'),local('Arial');unicode-range:U+0030-0039;}body{font-family:ChiffresPredictek,Georgia,serif;color:#1C1A17;margin:36px;font-size:13px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;border-bottom:2px solid #13233A;padding-bottom:4px;margin-top:22px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #999;padding:5px 8px;font-size:12px;text-align:left}th{background:#EDEBE4}.tot{font-weight:bold;background:#E8F2EC}.muted{color:#666;font-size:11px}.right{text-align:right}</style></head><body>"+corpsHTML+"<script>window.print();</script></body></html>");
   w.document.close();
 }
 function dansExercice(dateStr,exo){

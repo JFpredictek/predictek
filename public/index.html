@@ -4,6 +4,15 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <title>Predictek</title>
+    <style>
+      /* Chiffres lisibles: la police Georgia affiche des chiffres de hauteurs inegales
+         (chiffres "elzeviriens"). On remplace UNIQUEMENT les chiffres par une police
+         a chiffres alignes et uniformes; le texte reste en Georgia. */
+      @font-face{font-family:"ChiffresPredictek";src:local("Segoe UI"),local("Arial"),local("Helvetica Neue"),local("Roboto");unicode-range:U+0030-0039;}
+      body *{font-family:"ChiffresPredictek",Georgia,serif !important;}
+      /* Exception: les zones en police a largeur fixe (apercu de fichiers EFT, etc.) */
+      body [style*="monospace"],body [style*="monospace"] *{font-family:ui-monospace,Consolas,Menlo,monospace !important;}
+    </style>
   </head>
   <body><div id="root"></div></body>
 </html>

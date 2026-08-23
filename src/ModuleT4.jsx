@@ -66,7 +66,7 @@ function calculerRetenues(salaireAnnuel, statut){
 function GenererT4(p){
   var emp=p.employe;var calc=p.calcul;var annee=p.annee;
   var win=window.open("","_blank");
-  win.document.write("<!DOCTYPE html><html><head><title>T4 "+annee+"</title><style>body{font-family:Arial,sans-serif;margin:20px;font-size:11px}h2{color:#13233A;margin-bottom:4px}.box{border:1px solid #000;padding:8px;display:inline-block;margin:4px;vertical-align:top;min-width:140px}.box label{font-size:9px;display:block;color:#555}.box b{font-size:13px;display:block}.header{display:flex;gap:20px;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}.title{background:#13233A;color:#fff;padding:6px 12px;font-size:14px;font-weight:bold;margin-bottom:12px}hr{border:1px solid #000}</style></head><body>");
+  win.document.write("<!DOCTYPE html><html><head><title>T4 "+annee+"</title><style>@font-face{font-family:ChiffresPredictek;src:local('Segoe UI'),local('Arial');unicode-range:U+0030-0039;}body{font-family:Arial,sans-serif;margin:20px;font-size:11px}h2{color:#13233A;margin-bottom:4px}.box{border:1px solid #000;padding:8px;display:inline-block;margin:4px;vertical-align:top;min-width:140px}.box label{font-size:9px;display:block;color:#555}.box b{font-size:13px;display:block}.header{display:flex;gap:20px;margin-bottom:16px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}.title{background:#13233A;color:#fff;padding:6px 12px;font-size:14px;font-weight:bold;margin-bottom:12px}hr{border:1px solid #000}</style></head><body>");
   win.document.write("<div class='title'>FEUILLET T4 - Etat de la remuneration payee "+annee+"</div>");
   win.document.write("<div class='header'><div><b>Employeur:</b> Predictek / Syndicat des coproprietaires<br><b>Annee d imposition:</b> "+annee+"</div><div><b>Employe:</b> "+emp.prenom+" "+emp.nom+"<br><b>NAS:</b> "+("***-***-XXX")+"<br><b>Adresse:</b> "+(emp.adresse||"-")+"</div></div><hr/>");
   win.document.write("<div class='grid'>");
@@ -78,7 +78,7 @@ function GenererT4(p){
     {no:"52",l:"Cotisations RQAP",v:calc.rqap},
     {no:"20",l:"Cotisation REER",v:0},
   ];
-  boxes.forEach(function(b){win.document.write("<div class='box'><label>Case "+b.no+"</label><b>"+Number(b.v).toFixed(2)+" $</b><label>"+b.l+"</label></div>");});
+  boxes.forEach(function(b){win.document.write("<div class='box'><label>Case "+b.no+"</label><b>"+Number(b.v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $</b><label>"+b.l+"</label></div>");});
   win.document.write("</div><hr/><p style='font-size:9px;color:#888'>Ce feuillet est fourni a titre informatif. Veuillez verifier les montants avec votre comptable avant de produire les T4 officiels aupres de l ARC.</p>");
   win.document.write("</body></html>");
   win.document.close();win.print();
@@ -87,7 +87,7 @@ function GenererT4(p){
 function GenererReleve1(p){
   var emp=p.employe;var calc=p.calcul;var annee=p.annee;
   var win=window.open("","_blank");
-  win.document.write("<!DOCTYPE html><html><head><title>Releve 1 "+annee+"</title><style>body{font-family:Arial,sans-serif;margin:20px;font-size:11px}h2{color:#003da5}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}.box{border:1px solid #000;padding:8px}.box label{font-size:9px;display:block;color:#555}.box b{font-size:13px;display:block}.title{background:#003da5;color:#fff;padding:6px 12px;font-size:14px;font-weight:bold;margin-bottom:12px}hr{border:1px solid #003da5}</style></head><body>");
+  win.document.write("<!DOCTYPE html><html><head><title>Releve 1 "+annee+"</title><style>@font-face{font-family:ChiffresPredictek;src:local('Segoe UI'),local('Arial');unicode-range:U+0030-0039;}body{font-family:Arial,sans-serif;margin:20px;font-size:11px}h2{color:#003da5}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}.box{border:1px solid #000;padding:8px}.box label{font-size:9px;display:block;color:#555}.box b{font-size:13px;display:block}.title{background:#003da5;color:#fff;padding:6px 12px;font-size:14px;font-weight:bold;margin-bottom:12px}hr{border:1px solid #003da5}</style></head><body>");
   win.document.write("<div class='title'>RELEVE 1 - Revenus d emploi et revenus divers "+annee+"</div>");
   win.document.write("<p><b>Employeur:</b> Syndicat des coproprietaires | <b>Annee:</b> "+annee+"<br><b>Employe:</b> "+emp.prenom+" "+emp.nom+"</p><hr/>");
   win.document.write("<div class='grid'>");
@@ -100,7 +100,7 @@ function GenererReleve1(p){
     {c:"G",l:"Salaire admissible au RRQ",v:calc.brut},
     {c:"I",l:"Impot du Quebec retenu",v:calc.impotQc},
   ];
-  cases.forEach(function(b){win.document.write("<div class='box'><label>Case "+b.c+"</label><b>"+Number(b.v).toFixed(2)+" $</b><label>"+b.l+"</label></div>");});
+  cases.forEach(function(b){win.document.write("<div class='box'><label>Case "+b.c+"</label><b>"+Number(b.v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $</b><label>"+b.l+"</label></div>");});
   win.document.write("</div><hr/><p style='font-size:9px;color:#888'>Ce releve est fourni a titre informatif. Veuillez verifier avec Revenu Quebec avant soumission.</p>");
   win.document.write("</body></html>");
   win.document.close();win.print();
@@ -150,16 +150,16 @@ export default function ModuleT4(){
               <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:16}}>
                 <div style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:10,padding:14}}>
                   <div style={{fontSize:11,color:T.muted}}>Salaire brut</div>
-                  <div style={{fontSize:22,fontWeight:800,color:T.accent}}>{calcul.brut.toFixed(2)} $</div>
+                  <div style={{fontSize:22,fontWeight:800,color:T.accent}}>{calcul.brut.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div>
                 </div>
                 <div style={{background:T.redL,border:"1px solid "+T.red+"44",borderRadius:10,padding:14}}>
                   <div style={{fontSize:11,color:T.muted}}>Total retenues</div>
-                  <div style={{fontSize:22,fontWeight:800,color:T.red}}>{calcul.total.toFixed(2)} $</div>
+                  <div style={{fontSize:22,fontWeight:800,color:T.red}}>{calcul.total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div>
                   <div style={{fontSize:10,color:T.muted}}>{Math.round(calcul.total/calcul.brut*100)}% du brut</div>
                 </div>
                 <div style={{background:T.navy,borderRadius:10,padding:14}}>
                   <div style={{fontSize:11,color:"#8da0bb"}}>Salaire net</div>
-                  <div style={{fontSize:22,fontWeight:800,color:"#fff"}}>{calcul.net.toFixed(2)} $</div>
+                  <div style={{fontSize:22,fontWeight:800,color:"#fff"}}>{calcul.net.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div>
                 </div>
               </div>
 
@@ -180,14 +180,14 @@ export default function ModuleT4(){
                         <td style={{padding:"8px 10px",fontWeight:600}}>{r.l}</td>
                         <td style={{padding:"8px 10px",color:T.blue}}>{r.t4}</td>
                         <td style={{padding:"8px 10px",color:T.accent}}>{r.r1}</td>
-                        <td style={{padding:"8px 10px",fontWeight:700}}>{r.v.toFixed(2)} $</td>
-                        <td style={{padding:"8px 10px",color:T.muted}}>{(r.v/26).toFixed(2)} $</td>
+                        <td style={{padding:"8px 10px",fontWeight:700}}>{r.v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</td>
+                        <td style={{padding:"8px 10px",color:T.muted}}>{(r.v/26).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</td>
                       </tr>
                     );})}
                     <tr style={{background:T.alt,fontWeight:700}}>
                       <td style={{padding:"8px 10px"}} colSpan={3}>TOTAL RETENUES</td>
-                      <td style={{padding:"8px 10px",color:T.red}}>{calcul.total.toFixed(2)} $</td>
-                      <td style={{padding:"8px 10px",color:T.red}}>{(calcul.total/26).toFixed(2)} $</td>
+                      <td style={{padding:"8px 10px",color:T.red}}>{calcul.total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</td>
+                      <td style={{padding:"8px 10px",color:T.red}}>{(calcul.total/26).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</td>
                     </tr>
                   </tbody>
                 </table>
@@ -202,9 +202,9 @@ export default function ModuleT4(){
             <div style={{background:T.amberL,border:"1px solid "+T.amber+"44",borderRadius:12,padding:16}}>
               <div style={{fontSize:12,fontWeight:700,color:T.amber,marginBottom:8}}>Remises DAS mensuelles</div>
               <div style={{fontSize:12,color:T.navy,marginBottom:4}}>Total a remettre mensuellement a l ARC:</div>
-              <div style={{fontSize:20,fontWeight:800,color:T.amber}}>{((calcul.impotFed+calcul.rq+calcul.ae+calcul.rqap)/12).toFixed(2)} $ / mois</div>
-              <div style={{fontSize:11,color:T.muted,marginTop:8}}>Comprend: impot federal ({(calcul.impotFed/12).toFixed(2)} $) + RRQ ({(calcul.rq/12).toFixed(2)} $) + AE ({(calcul.ae/12).toFixed(2)} $) + RQAP ({(calcul.rqap/12).toFixed(2)} $)</div>
-              <div style={{fontSize:11,color:T.muted,marginTop:4}}>Remises Revenu Quebec (impot QC): {(calcul.impotQc/12).toFixed(2)} $ / mois</div>
+              <div style={{fontSize:20,fontWeight:800,color:T.amber}}>{((calcul.impotFed+calcul.rq+calcul.ae+calcul.rqap)/12).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $ / mois</div>
+              <div style={{fontSize:11,color:T.muted,marginTop:8}}>Comprend: impot federal ({(calcul.impotFed/12).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $) + RRQ ({(calcul.rq/12).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $) + AE ({(calcul.ae/12).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $) + RQAP ({(calcul.rqap/12).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $)</div>
+              <div style={{fontSize:11,color:T.muted,marginTop:4}}>Remises Revenu Quebec (impot QC): {(calcul.impotQc/12).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $ / mois</div>
             </div>
           </div>
         )}

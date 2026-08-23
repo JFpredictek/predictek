@@ -120,8 +120,8 @@ function ResultatFacture(p){
                 <tr key={i} style={{borderBottom:"1px solid "+T.border}}>
                   <td style={{padding:"6px 8px"}}>{l.description}</td>
                   <td style={{padding:"6px 8px",textAlign:"right"}}>{l.quantite}</td>
-                  <td style={{padding:"6px 8px",textAlign:"right"}}>{l.prix_unitaire?Number(l.prix_unitaire).toFixed(2)+" $":"-"}</td>
-                  <td style={{padding:"6px 8px",textAlign:"right",fontWeight:600}}>{l.montant?Number(l.montant).toFixed(2)+" $":"-"}</td>
+                  <td style={{padding:"6px 8px",textAlign:"right"}}>{l.prix_unitaire?Number(l.prix_unitaire).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $":"-"}</td>
+                  <td style={{padding:"6px 8px",textAlign:"right",fontWeight:600}}>{l.montant?Number(l.montant).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $":"-"}</td>
                 </tr>
               );})}
             </tbody>
@@ -130,10 +130,10 @@ function ResultatFacture(p){
       )}
       <div style={{background:T.accentL,border:"1px solid "+T.accent+"44",borderRadius:10,padding:14}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,textAlign:"right"}}>
-          {d.sous_total&&<div><div style={{fontSize:10,color:T.muted}}>Sous-total</div><div style={{fontSize:14,fontWeight:600,color:T.navy}}>{Number(d.sous_total).toFixed(2)} $</div></div>}
-          {d.tps&&<div><div style={{fontSize:10,color:T.muted}}>TPS (5%)</div><div style={{fontSize:14,fontWeight:600,color:T.navy}}>{Number(d.tps).toFixed(2)} $</div></div>}
-          {d.tvq&&<div><div style={{fontSize:10,color:T.muted}}>TVQ (9.975%)</div><div style={{fontSize:14,fontWeight:600,color:T.navy}}>{Number(d.tvq).toFixed(2)} $</div></div>}
-          {d.total&&<div><div style={{fontSize:10,color:T.muted}}>TOTAL</div><div style={{fontSize:18,fontWeight:800,color:T.accent}}>{Number(d.total).toFixed(2)} $</div></div>}
+          {d.sous_total&&<div><div style={{fontSize:10,color:T.muted}}>Sous-total</div><div style={{fontSize:14,fontWeight:600,color:T.navy}}>{Number(d.sous_total).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div></div>}
+          {d.tps&&<div><div style={{fontSize:10,color:T.muted}}>TPS (5%)</div><div style={{fontSize:14,fontWeight:600,color:T.navy}}>{Number(d.tps).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div></div>}
+          {d.tvq&&<div><div style={{fontSize:10,color:T.muted}}>TVQ (9.975%)</div><div style={{fontSize:14,fontWeight:600,color:T.navy}}>{Number(d.tvq).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div></div>}
+          {d.total&&<div><div style={{fontSize:10,color:T.muted}}>TOTAL</div><div style={{fontSize:18,fontWeight:800,color:T.accent}}>{Number(d.total).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div></div>}
         </div>
       </div>
     </div>

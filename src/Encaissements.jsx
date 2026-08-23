@@ -52,7 +52,7 @@ function imprimerHTML(titre, corpsHTML, logoSyn){
   var logo=logoSyn||"";
   if(!logo){try{logo=localStorage.getItem("predictek_logo")||"";}catch(e){}}
   var entete=logo?"<div style='border-bottom:3px solid #1B5E3B;padding-bottom:10px;margin-bottom:12px'><img src='"+logo+"' style='height:52px'/></div>":"";
-  w.document.write("<html><head><title>"+titre+"</title><style>body{font-family:Georgia,serif;color:#1C1A17;margin:36px;font-size:13px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;border-bottom:2px solid #13233A;padding-bottom:4px;margin-top:22px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #999;padding:5px 8px;font-size:12px;text-align:left}th{background:#EDEBE4}.tot{font-weight:bold;background:#E8F2EC}.muted{color:#666;font-size:11px}.right{text-align:right}</style></head><body>"+entete+corpsHTML+"<script>window.print();</script></body></html>");
+  w.document.write("<html><head><title>"+titre+"</title><style>@font-face{font-family:ChiffresPredictek;src:local('Segoe UI'),local('Arial');unicode-range:U+0030-0039;}body{font-family:ChiffresPredictek,Georgia,serif;color:#1C1A17;margin:36px;font-size:13px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;border-bottom:2px solid #13233A;padding-bottom:4px;margin-top:22px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #999;padding:5px 8px;font-size:12px;text-align:left}th{background:#EDEBE4}.tot{font-weight:bold;background:#E8F2EC}.muted{color:#666;font-size:11px}.right{text-align:right}</style></head><body>"+entete+corpsHTML+"<script>window.print();</script></body></html>");
   w.document.close();
 }
 
@@ -219,7 +219,7 @@ export default function Encaissements(){
       if(r&&r.error){setErr("ECHEC de l encaissement: "+(r.error.message||"")+". Rien n a ete enregistre.");return;}
       if(!(r&&r.data&&r.data.id)){setErr("ECHEC de l encaissement - rien n a ete enregistre.");return;}
       setMsg("Encaissement de "+money(mnt)+" ("+(TYPES_LBL[encF.type]||encF.type)+", "+encF.moyen+") enregistre pour l unite "+encU.no_unite+".");
-      sb.log("encaissements","paiement","Unite "+encU.no_unite+": "+(TYPES_LBL[encF.type]||encF.type)+" "+mnt.toFixed(2)+" $ ("+encF.moyen+")","",sel.code||"");
+      sb.log("encaissements","paiement","Unite "+encU.no_unite+": "+(TYPES_LBL[encF.type]||encF.type)+" "+mnt.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $ ("+encF.moyen+")","",sel.code||"");
       setShowEnc(false);
       chargerTout();
       setTimeout(function(){setMsg("");},5000);
@@ -418,7 +418,7 @@ export default function Encaissements(){
       creditUse=Math.round(creditUse*100)/100;
       var banquePart=Math.round((mnt-creditUse)*100)/100;
       var moyen=creditUse>=mnt&&mnt>0?"credit_avance":(creditUse>0?"banque_et_credit":"encaissement");
-      var creditNote=creditUse>0?" (credit d avance applique: "+creditUse.toFixed(2)+" $)":"";
+      var creditNote=creditUse>0?" (credit d avance applique: "+creditUse.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $)":"";
       var okLigne=true;
       if(r.k==="fc"){
         var r1=await sb.update("factures_copros",r.f.id,{statut:"payee",date_paiement:encOpt.date,compte_bancaire_id:encOpt.compte||null});
@@ -450,7 +450,7 @@ export default function Encaissements(){
     if(oks>0){
       var cpt=banques.find(function(b){return b.id===encOpt.compte;});
       setMsg(oks+" ligne(s) encaissee(s) le "+encOpt.date+" - compte: "+libBanque(cpt)+" - depot bancaire "+money(totBanque)+(totCredit>0?" + credits d avance appliques "+money(totCredit):"")+".");
-      sb.log("encaissements","paiement",oks+" lignes encaissees ("+lot+"): banque "+totBanque.toFixed(2)+" $, credits "+totCredit.toFixed(2)+" $","",sel.code||"");
+      sb.log("encaissements","paiement",oks+" lignes encaissees ("+lot+"): banque "+totBanque.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $, credits "+totCredit.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $","",sel.code||"");
     }
     setEncModal(null);setSelRows({});
     chargerTout();setTimeout(function(){setMsg("");},10000);
@@ -472,7 +472,7 @@ export default function Encaissements(){
     }).then(function(r2){
       if(r2===null)return;
       setMsg("Avance de "+money(mnt)+" encaissee pour l unite "+u.no_unite+" (Sommes dues aux coproprietaires - Contributions percues d avance). Elle sera appliquee sur les prochaines lignes encaissees de cette unite.");
-      sb.log("encaissements","paiement","Avance unite "+u.no_unite+": "+mnt.toFixed(2)+" $","",sel.code||"");
+      sb.log("encaissements","paiement","Avance unite "+u.no_unite+": "+mnt.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $","",sel.code||"");
       setShowAv(false);setAvF({unite:"",montant:"",date:new Date().toISOString().substring(0,10),compte:"",note:""});
       chargerTout();setTimeout(function(){setMsg("");},10000);
     }).catch(function(e){setErr("ECHEC: "+(e&&e.message?e.message:""));});
@@ -495,7 +495,7 @@ export default function Encaissements(){
       if(r2===null)return;
       if(r2&&r2.error){setErr("Paiement marque rejete, mais ECHEC de la facture NSF: "+(r2.error.message||""));return;}
       setMsg("Prelevement de l unite "+u.no_unite+" marque REJETE (NSF)."+(frais>0?" Facture de frais NSF de "+money(frais)+" emise au coproprietaire.":" Aucun frais NSF configure (Configuration du syndicat)."));
-      sb.log("encaissements","modification","Rebond NSF unite "+u.no_unite+(frais>0?" - frais "+frais.toFixed(2)+" $ refactures":""),"",sel.code||"");
+      sb.log("encaissements","modification","Rebond NSF unite "+u.no_unite+(frais>0?" - frais "+frais.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $ refactures":""),"",sel.code||"");
       chargerTout();setTimeout(function(){setMsg("");},9000);
     });
   }
@@ -626,7 +626,7 @@ export default function Encaissements(){
       }
     });
     setMsg("Fichier EFT "+nomFichier+" genere ("+(items.length>0?"a partir de la SELECTION":"lot PAP du mois")+"): "+lignes.length+" prelevement(s), total "+money(totalCents/100)+". Transmettez-le a votre institution puis confirmez les etapes au registre.");
-    sb.log("encaissements","creation","Fichier EFT "+nomFichier+": "+lignes.length+" prelevements, "+(totalCents/100).toFixed(2)+" $","",sel.code||"");
+    sb.log("encaissements","creation","Fichier EFT "+nomFichier+": "+lignes.length+" prelevements, "+(totalCents/100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $","",sel.code||"");
     setTimeout(function(){setMsg("");},10000);
   }
 

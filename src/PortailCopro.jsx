@@ -287,12 +287,12 @@ function Tableau(p){
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:20}}>
               <div style={{background:totalDu>0?T.amberL:T.accentL,border:"1px solid "+(totalDu>0?T.amber:T.accent)+"44",borderRadius:12,padding:16}}>
                 <div style={{fontSize:11,color:T.muted,marginBottom:4}}>Solde en attente</div>
-                <div style={{fontSize:26,fontWeight:800,color:totalDu>0?T.amber:T.accent}}>{totalDu.toFixed(2)} $</div>
+                <div style={{fontSize:26,fontWeight:800,color:totalDu>0?T.amber:T.accent}}>{totalDu.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div>
                 <div style={{fontSize:11,color:T.muted,marginTop:4}}>{enAttente.length} paiement(s) en attente</div>
               </div>
               <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:16}}>
                 <div style={{fontSize:11,color:T.muted,marginBottom:4}}>Cotisation mensuelle</div>
-                <div style={{fontSize:26,fontWeight:800,color:T.navy}}>{Number(copro.cotisation_mensuelle||0).toFixed(2)} $</div>
+                <div style={{fontSize:26,fontWeight:800,color:T.navy}}>{Number(copro.cotisation_mensuelle||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</div>
                 <div style={{fontSize:11,color:T.muted,marginTop:4}}>{copro.pap?"Prelevement automatique actif":"Paiement manuel"}</div>
               </div>
             </div>
@@ -386,7 +386,7 @@ function Tableau(p){
                         <div style={{fontSize:12,fontWeight:600,color:T.navy}}>{fc.no_facture||""} - {fc.type_frais==="infraction"?"Penalite d infraction":fc.type_frais==="refacturation"?"Refacturation":"Frais"}</div>
                         <div style={{fontSize:10,color:T.muted}}>{fc.description||""}{fc.date_echeance?" - echeance "+fc.date_echeance:""}</div>
                       </div>
-                      <span style={{fontSize:13,fontWeight:700,color:T.navy}}>{Number(fc.montant||0).toFixed(2)} $</span>
+                      <span style={{fontSize:13,fontWeight:700,color:T.navy}}>{Number(fc.montant||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</span>
                       <Badge s={payee?"paye":"en_attente"} l={payee?"Payee"+(fc.date_paiement?" le "+fc.date_paiement:""):fc.statut==="annulee"?"Annulee":"A payer"}/>
                     </div>
                   );
@@ -417,7 +417,7 @@ function Tableau(p){
                   <div style={{fontSize:11,color:T.muted}}>{p.date_paiement}</div>
                 </div>
                 <div style={{display:"flex",gap:12,alignItems:"center"}}>
-                  <span style={{fontSize:14,fontWeight:700,color:T.navy}}>{Number(p.montant).toFixed(2)} $</span>
+                  <span style={{fontSize:14,fontWeight:700,color:T.navy}}>{Number(p.montant).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</span>
                   <Badge s={p.statut} l={p.statut==="paye"?"Paye":p.statut==="en_attente"?"En attente":"Retard"}/>
                 </div>
               </div>
@@ -516,7 +516,7 @@ function imprimerDemandeTravaux(t,syndic){
   var w=window.open("","_blank");
   if(!w)return;
   w.document.write("<html><head><title>Demande d autorisation de travaux</title><style>"
-    +"body{font-family:Georgia,serif;color:#1C1A17;margin:36px;font-size:12px}"
+    +"body{font-family:ChiffresPredictek,Georgia,serif;color:#1C1A17;margin:36px;font-size:12px}"
     +".ent{display:flex;align-items:center;gap:14px;border-bottom:3px solid #1B5E3B;padding-bottom:12px;margin-bottom:6px}"
     +".ent img{height:52px}"
     +".ent .t1{font-size:19px;font-weight:bold;color:#13233A}"

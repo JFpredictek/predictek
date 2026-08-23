@@ -64,7 +64,7 @@ export default function AgendaCalendrier(){
     }).catch(function(){});
     sb.select("factures",{eq:{syndicat_id:selSyndicat.id},order:"date_echeance.asc"}).then(function(res){
       if(res&&res.data){
-        var evs=res.data.filter(function(f){return f.date_echeance&&f.date_echeance>=debut&&f.date_echeance<=fin&&f.statut!=="payee";}).map(function(f){return {id:"f"+f.id,titre:"Facture: "+f.fournisseur_nom,type:"echeance",date:f.date_echeance,heure:"",description:Number(f.total||0).toFixed(2)+" $",source:"factures"};});
+        var evs=res.data.filter(function(f){return f.date_echeance&&f.date_echeance>=debut&&f.date_echeance<=fin&&f.statut!=="payee";}).map(function(f){return {id:"f"+f.id,titre:"Facture: "+f.fournisseur_nom,type:"echeance",date:f.date_echeance,heure:"",description:Number(f.total||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $",source:"factures"};});
         setEvenements(function(prev){return prev.concat(evs);});
       }
     }).catch(function(){});

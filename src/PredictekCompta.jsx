@@ -59,7 +59,7 @@ var TYPES_LBL={actif:"Actif",passif:"Passif",capitaux:"Capitaux",revenu:"Revenu"
 function imprimerHTML(titre, corpsHTML){
   var w=window.open("","_blank","width=900,height=700");
   if(!w)return;
-  w.document.write("<html><head><title>"+titre+"</title><style>body{font-family:Georgia,serif;color:#1C1A17;margin:36px;font-size:13px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;border-bottom:2px solid #13233A;padding-bottom:4px;margin-top:22px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #999;padding:5px 8px;font-size:12px;text-align:left}th{background:#EDEBE4}.tot{font-weight:bold;background:#E8F2EC}.muted{color:#666;font-size:11px}.right{text-align:right}</style></head><body>"+corpsHTML+"<script>window.print();</script></body></html>");
+  w.document.write("<html><head><title>"+titre+"</title><style>@font-face{font-family:ChiffresPredictek;src:local('Segoe UI'),local('Arial');unicode-range:U+0030-0039;}body{font-family:ChiffresPredictek,Georgia,serif;color:#1C1A17;margin:36px;font-size:13px}h1{font-size:19px;margin:0 0 2px}h2{font-size:14px;border-bottom:2px solid #13233A;padding-bottom:4px;margin-top:22px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #999;padding:5px 8px;font-size:12px;text-align:left}th{background:#EDEBE4}.tot{font-weight:bold;background:#E8F2EC}.muted{color:#666;font-size:11px}.right{text-align:right}</style></head><body>"+corpsHTML+"<script>window.print();</script></body></html>");
   w.document.close();
 }
 
@@ -243,7 +243,7 @@ export default function PredictekCompta(){
       if(d.sousTotal)setD("sous_total",Number(d.sousTotal));
       if(d.tps)setD("tps",Number(d.tps));
       if(d.tvq)setD("tvq",Number(d.tvq));
-      if(d.total){setD("total",Number(d.total));pris.push(Number(d.total).toFixed(2)+" $");}
+      if(d.total){setD("total",Number(d.total));pris.push(Number(d.total).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $");}
       if(d.description)setD("notes",d.description);
       if(d.noCompteGL&&comptesDepListe.some(function(c){return c.no===String(d.noCompteGL);})){setD("no_compte",String(d.noCompteGL));var cg=comptesDepListe.find(function(c){return c.no===String(d.noCompteGL);});pris.push("Compte "+d.noCompteGL+" ("+(cg?cg.nom:"")+")");}
       setExtraitMsg(pris.length>0?"Extrait automatiquement: "+pris.join(", ")+" - verifiez avant de sauvegarder.":"Aucune information lisible - saisissez manuellement.");

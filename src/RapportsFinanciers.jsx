@@ -11,7 +11,7 @@ function LigneRapport(p){
   return(
     <tr style={{borderBottom:"1px solid "+T.border,background:p.bold?"#f8f8f6":"transparent"}}>
       <td style={{padding:"8px 12px",paddingLeft:(12+(p.indent||0)*16)+"px",fontSize:p.bold?13:12,fontWeight:p.bold?700:400,color:p.bold?T.navy:T.text}}>{p.l}</td>
-      <td style={{padding:"8px 12px",textAlign:"right",fontWeight:p.bold?700:400,color:p.v<0?T.red:T.navy,fontSize:p.bold?13:12}}>{p.v!==undefined&&p.v!==null?Number(p.v).toFixed(2)+" $":""}</td>
+      <td style={{padding:"8px 12px",textAlign:"right",fontWeight:p.bold?700:400,color:p.v<0?T.red:T.navy,fontSize:p.bold?13:12}}>{p.v!==undefined&&p.v!==null?Number(p.v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $":""}</td>
       <td style={{padding:"8px 12px",textAlign:"right",fontSize:11,color:T.muted}}>{pct>0?pct+"%":""}</td>
     </tr>
   );
@@ -36,16 +36,16 @@ function RapportEtatResultats(p){
 
   function imprimer(){
     var win=window.open("","_blank");
-    var depHTML=Object.entries(depenses).map(function(e){return "<tr><td style='padding:6px 12px 6px 24px'>"+e[0]+"</td><td style='text-align:right;padding:6px 12px'>"+e[1].toFixed(2)+" $</td></tr>";}).join("");
-    win.document.write("<!DOCTYPE html><html><head><title>Etat des resultats</title><style>body{font-family:Arial,sans-serif;margin:30px;font-size:12px}h2{color:#13233A}table{width:100%;border-collapse:collapse}tr{border-bottom:1px solid #eee}td{padding:6px 12px}.section{background:#f5f5f5;font-weight:bold;font-size:13px}.total{background:#e8f2ec;font-weight:bold;font-size:14px}.deficit{background:#fdecea;font-weight:bold;color:#B83232}</style></head><body>");
+    var depHTML=Object.entries(depenses).map(function(e){return "<tr><td style='padding:6px 12px 6px 24px'>"+e[0]+"</td><td style='text-align:right;padding:6px 12px'>"+e[1].toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $</td></tr>";}).join("");
+    win.document.write("<!DOCTYPE html><html><head><title>Etat des resultats</title><style>@font-face{font-family:ChiffresPredictek;src:local('Segoe UI'),local('Arial');unicode-range:U+0030-0039;}body{font-family:Arial,sans-serif;margin:30px;font-size:12px}h2{color:#13233A}table{width:100%;border-collapse:collapse}tr{border-bottom:1px solid #eee}td{padding:6px 12px}.section{background:#f5f5f5;font-weight:bold;font-size:13px}.total{background:#e8f2ec;font-weight:bold;font-size:14px}.deficit{background:#fdecea;font-weight:bold;color:#B83232}</style></head><body>");
     win.document.write("<h2>Etat des resultats</h2>");
     win.document.write("<p><b>Syndicat:</b> "+(p.nomSyndicat||"")+" | <b>Periode:</b> "+new Date().getFullYear()+" | <b>Genere:</b> "+new Date().toLocaleDateString("fr-CA")+"</p>");
     win.document.write("<table><tr class='section'><td>REVENUS</td><td></td></tr>");
-    win.document.write("<tr><td style='padding:6px 12px 6px 24px'>Cotisations percues</td><td style='text-align:right;padding:6px 12px'>"+revenus.cotisations.toFixed(2)+" $</td></tr>");
-    win.document.write("<tr class='total'><td>Total revenus</td><td style='text-align:right'>"+totalRevenus.toFixed(2)+" $</td></tr>");
+    win.document.write("<tr><td style='padding:6px 12px 6px 24px'>Cotisations percues</td><td style='text-align:right;padding:6px 12px'>"+revenus.cotisations.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $</td></tr>");
+    win.document.write("<tr class='total'><td>Total revenus</td><td style='text-align:right'>"+totalRevenus.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $</td></tr>");
     win.document.write("<tr class='section'><td>DEPENSES</td><td></td></tr>"+depHTML);
-    win.document.write("<tr class='total'><td>Total depenses</td><td style='text-align:right'>"+totalDepenses.toFixed(2)+" $</td></tr>");
-    win.document.write("<tr class='"+(solde>=0?"total":"deficit")+"'><td>"+(solde>=0?"SURPLUS":"DEFICIT")+"</td><td style='text-align:right'>"+solde.toFixed(2)+" $</td></tr>");
+    win.document.write("<tr class='total'><td>Total depenses</td><td style='text-align:right'>"+totalDepenses.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $</td></tr>");
+    win.document.write("<tr class='"+(solde>=0?"total":"deficit")+"'><td>"+(solde>=0?"SURPLUS":"DEFICIT")+"</td><td style='text-align:right'>"+solde.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $</td></tr>");
     win.document.write("</table></body></html>");
     win.document.close();win.print();
   }
@@ -74,7 +74,7 @@ function RapportEtatResultats(p){
           <tr><td colSpan={3} style={{padding:4}}></td></tr>
           <tr style={{background:solde>=0?T.accentL:T.redL}}>
             <td style={{padding:"10px 12px",fontWeight:800,fontSize:14,color:solde>=0?T.accent:T.red}}>{solde>=0?"SURPLUS":"DEFICIT"}</td>
-            <td style={{padding:"10px 12px",textAlign:"right",fontWeight:800,fontSize:16,color:solde>=0?T.accent:T.red}}>{solde.toFixed(2)} $</td>
+            <td style={{padding:"10px 12px",textAlign:"right",fontWeight:800,fontSize:16,color:solde>=0?T.accent:T.red}}>{solde.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</td>
             <td></td>
           </tr>
         </tbody>
@@ -95,7 +95,7 @@ function RapportBudgetVsReel(p){
       var pct=l.montant_prevu>0?Math.round(Number(l.montant_reel)/Number(l.montant_prevu)*100):0;
       return "<tr><td>"+l.categorie+"</td><td>"+l.type_ligne+"</td><td style='text-align:right'>"+Number(l.montant_prevu).toFixed(2)+"</td><td style='text-align:right'>"+Number(l.montant_reel).toFixed(2)+"</td><td style='text-align:right;color:"+(ecart>0?"#B83232":"#1B5E3B")+"'>"+ecart.toFixed(2)+"</td><td style='text-align:right'>"+pct+"%</td></tr>";
     }).join("");
-    win.document.write("<!DOCTYPE html><html><head><title>Budget vs Reel</title><style>body{font-family:Arial,sans-serif;margin:30px;font-size:12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 8px}th{background:#f0f0f0}</style></head><body><h2>Budget vs Reel - "+(p.nomSyndicat||"")+"</h2><table><thead><tr><th>Categorie</th><th>Type</th><th>Prevu</th><th>Reel</th><th>Ecart</th><th>%</th></tr></thead><tbody>"+rows+"</tbody></table></body></html>");
+    win.document.write("<!DOCTYPE html><html><head><title>Budget vs Reel</title><style>@font-face{font-family:ChiffresPredictek;src:local('Segoe UI'),local('Arial');unicode-range:U+0030-0039;}body{font-family:Arial,sans-serif;margin:30px;font-size:12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 8px}th{background:#f0f0f0}</style></head><body><h2>Budget vs Reel - "+(p.nomSyndicat||"")+"</h2><table><thead><tr><th>Categorie</th><th>Type</th><th>Prevu</th><th>Reel</th><th>Ecart</th><th>%</th></tr></thead><tbody>"+rows+"</tbody></table></body></html>");
     win.document.close();win.print();
   }
 
@@ -122,18 +122,18 @@ function RapportBudgetVsReel(p){
                   return(
                     <tr key={l.id} style={{borderBottom:"1px solid "+T.border}}>
                       <td style={{padding:"7px 10px"}}>{l.categorie}</td>
-                      <td style={{padding:"7px 10px",textAlign:"right"}}>{Number(l.montant_prevu).toFixed(2)} $</td>
-                      <td style={{padding:"7px 10px",textAlign:"right",fontWeight:600}}>{Number(l.montant_reel).toFixed(2)} $</td>
-                      <td style={{padding:"7px 10px",textAlign:"right",fontWeight:600,color:ecart>0?T.red:ecart<0?T.accent:T.muted}}>{ecart.toFixed(2)} $</td>
+                      <td style={{padding:"7px 10px",textAlign:"right"}}>{Number(l.montant_prevu).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</td>
+                      <td style={{padding:"7px 10px",textAlign:"right",fontWeight:600}}>{Number(l.montant_reel).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</td>
+                      <td style={{padding:"7px 10px",textAlign:"right",fontWeight:600,color:ecart>0?T.red:ecart<0?T.accent:T.muted}}>{ecart.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</td>
                       <td style={{padding:"7px 10px",textAlign:"right",color:T.muted}}>{pct}%</td>
                     </tr>
                   );
                 })}
                 <tr style={{background:T.alt,fontWeight:700}}>
                   <td style={{padding:"7px 10px"}}>TOTAL</td>
-                  <td style={{padding:"7px 10px",textAlign:"right"}}>{totPrevu.toFixed(2)} $</td>
-                  <td style={{padding:"7px 10px",textAlign:"right"}}>{totReel.toFixed(2)} $</td>
-                  <td style={{padding:"7px 10px",textAlign:"right",color:(totReel-totPrevu)>0?T.red:T.accent}}>{(totReel-totPrevu).toFixed(2)} $</td>
+                  <td style={{padding:"7px 10px",textAlign:"right"}}>{totPrevu.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</td>
+                  <td style={{padding:"7px 10px",textAlign:"right"}}>{totReel.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</td>
+                  <td style={{padding:"7px 10px",textAlign:"right",color:(totReel-totPrevu)>0?T.red:T.accent}}>{(totReel-totPrevu).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</td>
                   <td style={{padding:"7px 10px",textAlign:"right"}}>{totPrevu>0?Math.round(totReel/totPrevu*100):0}%</td>
                 </tr>
               </tbody>
@@ -200,7 +200,7 @@ export default function RapportsFinanciers(){
                   <tr key={g.gl} style={{borderBottom:"1px solid "+T.border}}>
                     <td style={{padding:"8px 10px",fontWeight:700,color:T.accent}}>{g.gl}</td>
                     <td style={{padding:"8px 10px"}}>{g.desc}</td>
-                    <td style={{padding:"8px 10px",textAlign:"right",fontWeight:600}}>{g.total.toFixed(2)} $</td>
+                    <td style={{padding:"8px 10px",textAlign:"right",fontWeight:600}}>{g.total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</td>
                     <td style={{padding:"8px 10px",textAlign:"right",color:T.muted}}>{g.nb}</td>
                   </tr>
                 );})}

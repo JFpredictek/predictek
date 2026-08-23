@@ -38,7 +38,7 @@ function imprimerFacture(infos, f){
   h+="<tr><td colspan='3' class='right'>TVQ (9,975 %)"+(infos.no_tvq?" - "+infos.no_tvq:"")+"</td><td class='right'>"+money(f.tvq)+"</td></tr>";
   h+="<tr class='tot'><td colspan='3' class='right'>TOTAL</td><td class='right'>"+money(f.total)+"</td></tr></table>";
   h+="<div class='muted' style='margin-top:24px'>Paiement du au plus tard le "+(f.date_echeance||"")+". Merci de votre confiance.</div>";
-  w.document.write("<html><head><title>Facture "+(f.no_facture||"")+"</title><style>body{font-family:Georgia,serif;color:#1C1A17;margin:40px;font-size:13px}h1{font-size:20px;margin:0 0 4px;color:#1B5E3B}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #999;padding:7px 10px;font-size:12px;text-align:left}th{background:#EDEBE4}.tot{font-weight:bold;background:#E8F2EC;font-size:14px}.muted{color:#666;font-size:11px}.right{text-align:right}</style></head><body>"+h+"<script>window.print();</script></body></html>");
+  w.document.write("<html><head><title>Facture "+(f.no_facture||"")+"</title><style>@font-face{font-family:ChiffresPredictek;src:local('Segoe UI'),local('Arial');unicode-range:U+0030-0039;}body{font-family:ChiffresPredictek,Georgia,serif;color:#1C1A17;margin:40px;font-size:13px}h1{font-size:20px;margin:0 0 4px;color:#1B5E3B}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #999;padding:7px 10px;font-size:12px;text-align:left}th{background:#EDEBE4}.tot{font-weight:bold;background:#E8F2EC;font-size:14px}.muted{color:#666;font-size:11px}.right{text-align:right}</style></head><body>"+h+"<script>window.print();</script></body></html>");
   w.document.close();
 }
 

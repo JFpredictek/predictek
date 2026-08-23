@@ -189,7 +189,7 @@ export default function GestionCopros(){
                       {c.locataire&&<div style={{fontSize:10}}><Badge t="locataire" l="Locataire"/></div>}
                     </td>
                     <td style={{padding:"8px 10px",color:T.muted}}>{c.telephone||"-"}</td>
-                    <td style={{padding:"8px 10px",fontWeight:600,color:T.accent}}>{Number(c.cotisation_mensuelle||0).toFixed(2)} $</td>
+                    <td style={{padding:"8px 10px",fontWeight:600,color:T.accent}}>{Number(c.cotisation_mensuelle||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")} $</td>
                     <td style={{padding:"8px 10px"}}>{c.pap?<Badge t="pap" l="PAP"/>:<span style={{color:T.muted,fontSize:11}}>Non</span>}</td>
                     <td style={{padding:"8px 10px",fontSize:11,color:ceExp!==null&&ceExp<90?ceExp<30?T.red:T.amber:T.muted}}>{c.ce_expiry?c.ce_expiry+(ceExp!==null&&ceExp<90?"  !":""):"-"}</td>
                     <td style={{padding:"8px 10px",fontSize:11,color:assExp!==null&&assExp<90?assExp<30?T.red:T.amber:T.muted}}>{c.ass_expiry?c.ass_expiry+(assExp!==null&&assExp<90?"  !":""):"-"}</td>

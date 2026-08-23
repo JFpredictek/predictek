@@ -31,7 +31,7 @@ export default function RechercheGlobale(p){
       }),
       sb.select("factures",{order:"created_at.desc",limit:3}).then(function(res){
         if(!res||!res.data)return [];
-        return res.data.filter(function(r){return (r.fournisseur_nom||"").toLowerCase().includes(terme)||(r.no_facture||"").toLowerCase().includes(terme);}).map(function(r){return {table:"factures",id:r.id,titre:r.fournisseur_nom,sous:"No: "+(r.no_facture||"-")+" - "+Number(r.total||0).toFixed(2)+" $",nav:"factures"};});
+        return res.data.filter(function(r){return (r.fournisseur_nom||"").toLowerCase().includes(terme)||(r.no_facture||"").toLowerCase().includes(terme);}).map(function(r){return {table:"factures",id:r.id,titre:r.fournisseur_nom,sous:"No: "+(r.no_facture||"-")+" - "+Number(r.total||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $",nav:"factures"};});
       }),
       sb.select("tickets",{order:"created_at.desc",limit:3}).then(function(res){
         if(!res||!res.data)return [];

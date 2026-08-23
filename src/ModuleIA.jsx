@@ -154,7 +154,7 @@ function TabRedactionPV(){
   function imprimer(){
     var win=window.open("","_blank");
     if(!win)return;
-    win.document.write("<!DOCTYPE html><html><head><meta charset='utf-8'><title>PV Reunion CA</title><style>body{font-family:Arial,sans-serif;margin:40px;line-height:1.6;color:#1C1A17}pre{white-space:pre-wrap;font-family:Arial,sans-serif}@media print{button{display:none}}</style></head><body>");
+    win.document.write("<!DOCTYPE html><html><head><meta charset='utf-8'><title>PV Reunion CA</title><style>@font-face{font-family:ChiffresPredictek;src:local('Segoe UI'),local('Arial');unicode-range:U+0030-0039;}body{font-family:Arial,sans-serif;margin:40px;line-height:1.6;color:#1C1A17}pre{white-space:pre-wrap;font-family:Arial,sans-serif}@media print{button{display:none}}</style></head><body>");
     win.document.write("<button onclick='window.print()' style='background:#1B5E3B;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;margin-bottom:20px'>Imprimer</button>");
     win.document.write("<pre>"+pv+"</pre></body></html>");
     win.document.close();
