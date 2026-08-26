@@ -79,7 +79,7 @@ export default function Conciliation(){
 
   function chargerTout(){
     if(!sel)return;
-    sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},limit:20}).then(function(r){
+    sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},order:"ordre.asc,created_at.asc",limit:20}).then(function(r){
       if(r&&r.data){
         var actifs=r.data.filter(function(b){return b.actif!==false;});
         setBanques(actifs);

@@ -339,7 +339,7 @@ export default function Unites(){
       sb.select("factures_copros",{eq:{syndicat_id:sel.id},limit:500}),
       sb.select("avis_conformite",{eq:{syndicat_id:sel.id},limit:500}),
       sb.select("config_publique",{limit:100}),
-      sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},limit:20}),
+      sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},order:"ordre.asc,created_at.asc",limit:20}),
       sb.select("budgets_gl",{eq:{syndicat_id:sel.id},limit:400}),
       sb.select("factures",{eq:{syndicat_id:sel.id},limit:500}),
       sb.select("budgets",{eq:{syndicat_id:sel.id},limit:10}),

@@ -61,6 +61,8 @@ export default function ConfigSyndicat(p){
   var s8=useState([]);var banques=s8[0];var setBanques=s8[1];
   var s9=useState([]);var policeDocs=s9[0];var setPoliceDocs=s9[1];
   var s10=useState(false);var uploadPolice=s10[0];var setUploadPolice=s10[1];
+  var s11=useState([]);var typesDocs=s11[0];var setTypesDocs=s11[1];
+  var s12=useState("");var nvType=s12[0];var setNvType=s12[1];
 
   useEffect(function(){
     sb.select("syndicats",{order:"nom.asc"}).then(function(r){
@@ -115,10 +117,11 @@ export default function ConfigSyndicat(p){
       releve_jour:sel.releve_jour?String(sel.releve_jour):"0",
       logo_data:sel.logo_data||""
     });
-    sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},limit:20}).then(function(r){
+    sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},order:"ordre.asc,created_at.asc",limit:20}).then(function(r){
       if(r&&r.data)setBanques(r.data);else setBanques([]);
     }).catch(function(){setBanques([]);});
     chargerPolices(sel.id);
+    chargerTypesDocs(sel.id);
     try{
       var pl=JSON.parse(sel.approb_paliers||"");
       if(Array.isArray(pl)&&pl.length>0)setPaliers(pl.slice(0,3).map(function(x){return {max:String(x.max),nb:String(x.nb)};}));
@@ -130,6 +133,38 @@ export default function ConfigSyndicat(p){
   }
 
   function sf(k,v){setF(function(pr){var n=Object.assign({},pr);n[k]=v;return n;});}
+
+  // ----- Types de documents (etiquettes utilisees dans le module Documents) -----
+  var TYPES_BASE=["Proces-verbal","Resolution","Budget","Etat financier","Contrat","Facture","Soumission","Assurance","Reglement","Declaration de copropriete","Certificat de localisation","Plan","Avis / Correspondance","Formulaire","Expertise","Photo","Autre"];
+  function chargerTypesDocs(sid){
+    sb.select("types_documents",{eq:{syndicat_id:sid},order:"nom.asc",limit:200}).then(function(r){
+      if(r&&r.error){setTypesDocs([]);return;}
+      setTypesDocs((r&&r.data?r.data:[]).filter(function(t){return t.statut!=="retire";}));
+    }).catch(function(){setTypesDocs([]);});
+  }
+  function ajouterType(nom){
+    var n=(nom||"").trim();
+    if(!n||!sel)return;
+    if(typesDocs.some(function(t){return t.nom.toLowerCase()===n.toLowerCase();})){setErr("ECHEC: le type \""+n+"\" existe deja.");return;}
+    sb.insert("types_documents",{syndicat_id:sel.id,nom:n,statut:"actif"}).then(function(res){
+      if(res&&res.error){setErr("ECHEC de l ajout du type: "+(res.error.message||"executez le bloc SQL fourni (types_documents)."));return;}
+      setNvType("");chargerTypesDocs(sel.id);
+    }).catch(function(e){setErr("ECHEC: "+((e&&e.message)||""));});
+  }
+  function retirerType(t){
+    sb.update("types_documents",t.id,{statut:"retire"}).then(function(res){
+      if(res&&res.error){setErr("ECHEC du retrait: "+(res.error.message||""));return;}
+      chargerTypesDocs(sel.id);
+    }).catch(function(e){setErr("ECHEC: "+((e&&e.message)||""));});
+  }
+  function creerTypesBase(){
+    if(!sel)return;
+    var manquants=TYPES_BASE.filter(function(n){return !typesDocs.some(function(t){return t.nom.toLowerCase()===n.toLowerCase();});});
+    var chaine=Promise.resolve();
+    manquants.forEach(function(n){chaine=chaine.then(function(){return sb.insert("types_documents",{syndicat_id:sel.id,nom:n,statut:"actif"});});});
+    chaine.then(function(){setMsg("Types de base crees ("+manquants.length+").");chargerTypesDocs(sel.id);})
+      .catch(function(e){setErr("ECHEC de la creation des types: "+((e&&e.message)||"")+" - executez le bloc SQL fourni (types_documents).");});
+  }
 
   // ----- Documents de la police d assurance du syndicat (upload + visualisation) -----
   function chargerPolices(sid){
@@ -506,6 +541,23 @@ export default function ConfigSyndicat(p){
                 {Array.apply(null,{length:28}).map(function(_,i){return <option key={i+1} value={String(i+1)}>Le {i+1} de chaque mois</option>;})}
               </select>
             </div>
+          </div>
+        </Carte>
+
+        <Carte titre="Types de documents" desc="Etiquettes utilisees pour classer les fichiers dans le module Documents. Le NIVEAU D ACCES (CA / coproprietaires / sur demande) se regle sur chaque DOSSIER, directement dans le module Documents.">
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}>
+            {typesDocs.map(function(t){return(
+              <span key={t.id} style={{display:"inline-flex",alignItems:"center",gap:6,background:T.blueL,color:T.blue,borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:700}}>
+                {t.nom}
+                <span onClick={function(){retirerType(t);}} title="Retirer ce type" style={{cursor:"pointer",color:T.red,fontWeight:800}}>x</span>
+              </span>
+            );})}
+            {typesDocs.length===0&&<span style={{fontSize:11,color:T.muted}}>Aucun type defini pour ce syndicat.</span>}
+          </div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+            <input value={nvType} onChange={function(e){setNvType(e.target.value);}} onKeyDown={function(e){if(e.key==="Enter")ajouterType(nvType);}} placeholder="Nom du nouveau type..." style={Object.assign({},INP,{width:240})}/>
+            <Btn sm onClick={function(){ajouterType(nvType);}}>+ Ajouter le type</Btn>
+            <Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={creerTypesBase}>Creer les types de base</Btn>
           </div>
         </Carte>
 

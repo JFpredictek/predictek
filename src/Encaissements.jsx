@@ -111,7 +111,7 @@ export default function Encaissements(){
     sb.select("paiements",{eq:{syndicat_id:sel.id},order:"date_paiement.desc",limit:5000}).then(function(r){if(r&&r.data)setPaiements(r.data);}).catch(function(){});
     sb.select("cotisations_speciales",{eq:{syndicat_id:sel.id},order:"date_vote.desc",limit:100}).then(function(r){if(r&&r.data)setSpeciales(r.data);}).catch(function(){});
     sb.select("factures_copros",{eq:{syndicat_id:sel.id},order:"created_at.desc",limit:1000}).then(function(r){if(r&&r.data)setFactCopros(r.data);}).catch(function(){});
-    sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},limit:20}).then(function(r){if(r&&r.data)setBanques(r.data);else setBanques([]);}).catch(function(){setBanques([]);});
+    sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},order:"ordre.asc,created_at.asc",limit:20}).then(function(r){if(r&&r.data)setBanques(r.data);else setBanques([]);}).catch(function(){setBanques([]);});
     sb.select("avances_copros",{eq:{syndicat_id:sel.id},order:"created_at.desc",limit:500}).then(function(r){if(r&&r.data)setAvances(r.data);else setAvances([]);}).catch(function(){setAvances([]);});
     sb.select("fichiers_eft",{eq:{syndicat_id:sel.id},order:"created_at.desc",limit:200}).then(function(r){if(r&&r.data)setFichiersEft(r.data);else setFichiersEft([]);}).catch(function(){setFichiersEft([]);});
   }

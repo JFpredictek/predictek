@@ -189,3 +189,43 @@ alter table public.syndicats add column if not exists releve_jour int default 0;
 -- Compte de banque PAR DEFAUT (Encaisse)
 alter table public.comptes_bancaires add column if not exists par_defaut boolean default false;
 notify pgrst, 'reload schema';
+
+-- ============================================================
+-- GESTION DOCUMENTAIRE PAR ACCES: arborescence de dossiers (comme
+-- l explorateur Windows) + niveau d acces PAR DOSSIER + types de
+-- documents geres dans la Configuration
+-- ============================================================
+create table if not exists public.dossiers_documents (
+  id uuid primary key default gen_random_uuid(),
+  syndicat_id uuid,
+  parent_id uuid,
+  nom text default '',
+  acces_ca boolean default true,
+  acces_copro text default 'non',
+  ordre int default 0,
+  statut text default 'actif',
+  created_at timestamptz default now()
+);
+alter table public.dossiers_documents enable row level security;
+drop policy if exists dd_all on public.dossiers_documents;
+create policy dd_all on public.dossiers_documents for all to authenticated using (true) with check (true);
+
+create table if not exists public.types_documents (
+  id uuid primary key default gen_random_uuid(),
+  syndicat_id uuid,
+  nom text default '',
+  statut text default 'actif',
+  created_at timestamptz default now()
+);
+alter table public.types_documents enable row level security;
+drop policy if exists td_all on public.types_documents;
+create policy td_all on public.types_documents for all to authenticated using (true) with check (true);
+
+-- Chaque document peut etre classe dans un dossier et rattache a un type
+alter table public.documents add column if not exists dossier_id uuid;
+alter table public.documents add column if not exists type_id uuid;
+notify pgrst, 'reload schema';
+
+-- Ordre d affichage des comptes de banque (reordonnancement par glisser-deposer)
+alter table public.comptes_bancaires add column if not exists ordre int default 0;
+notify pgrst, 'reload schema';

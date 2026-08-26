@@ -109,6 +109,8 @@ function Tableau(p){
   var sAX=useState({});var assExtr=sAX[0];var setAssExtr=sAX[1];
   var sFC=useState([]);var facturesCop=sFC[0];var setFacturesCop=sFC[1];
   var sDS=useState([]);var docsSyn=sDS[0];var setDocsSyn=sDS[1];
+  var sDD=useState([]);var dossiersDocs=sDD[0];var setDossiersDocs=sDD[1];
+  var sDM=useState("");var msgDemande=sDM[0];var setMsgDemande=sDM[1];
 
   useEffect(function(){
     if(!copro)return;
@@ -141,13 +143,38 @@ function Tableau(p){
       sb.select("factures_copros",{eq:{syndicat_id:copro.syndicat_id},order:"date_facture.desc",limit:50}).then(function(r){
         if(r&&r.data)setFacturesCop(r.data.filter(function(f){return f.coproprietaire_id===copro.id||(f.unite&&f.unite===copro.unite);}));
       }).catch(function(){});
-      // Documents du SYNDICAT accessibles a tous les coproprietaires (certificat d assurance
-      // de la copropriete, PV, assemblees, budgets...) - les confidentiels sont exclus
-      sb.select("documents",{eq:{niveau:"syndicat",syndicat_id:copro.syndicat_id},order:"created_at.desc",limit:100}).then(function(r){
-        if(r&&r.data)setDocsSyn(r.data.filter(function(d){return !d.confidentiel&&d.statut!=="supprime";}));
-      }).catch(function(){});
+      // Documents du SYNDICAT accessibles aux coproprietaires: l acces se regle PAR DOSSIER
+      // (module Documents). Dossiers "portail" = visibles ici; "sur demande" = requete;
+      // les confidentiels sont toujours exclus. Les documents sans dossier (anciens) restent
+      // visibles comme avant s ils ne sont pas confidentiels.
+      sb.select("dossiers_documents",{eq:{syndicat_id:copro.syndicat_id},order:"nom.asc",limit:500}).then(function(rd){
+        var doss=(rd&&rd.data?rd.data:[]).filter(function(d){return d.statut!=="retire";});
+        setDossiersDocs(doss);
+        var portailOk={};doss.forEach(function(d){if(d.acces_copro==="portail")portailOk[d.id]=true;});
+        sb.select("documents",{eq:{niveau:"syndicat",syndicat_id:copro.syndicat_id},order:"created_at.desc",limit:200}).then(function(r){
+          if(r&&r.data)setDocsSyn(r.data.filter(function(d){
+            if(d.confidentiel||d.statut==="supprime")return false;
+            if(d.dossier_id)return !!portailOk[d.dossier_id];
+            return true; // anciens documents non classes: comportement d avant
+          }));
+        }).catch(function(){});
+      }).catch(function(){
+        // Table des dossiers absente: comportement d avant
+        sb.select("documents",{eq:{niveau:"syndicat",syndicat_id:copro.syndicat_id},order:"created_at.desc",limit:100}).then(function(r){
+          if(r&&r.data)setDocsSyn(r.data.filter(function(d){return !d.confidentiel&&d.statut!=="supprime";}));
+        }).catch(function(){});
+      });
     }
   },[copro]);
+
+  // Demande de consultation d un dossier "sur demande" (cree une requete suivie)
+  function demanderConsultation(d){
+    setMsgDemande("");
+    sb.insert("tickets",{coproprietaire_id:copro.id,syndicat_id:copro.syndicat_id,unite:copro.unite||"",sujet:"Consultation de documents: "+d.nom,description:"Le coproprietaire demande a consulter les documents du dossier \""+d.nom+"\" (acces sur demande).",statut:"nouveau",priorite:"normale",categorie:"documents"}).then(function(res){
+      if(res&&res.error){setMsgDemande("ECHEC de la demande: "+(res.error.message||""));return;}
+      setMsgDemande("Demande envoyee pour \""+d.nom+"\" - le gestionnaire vous repondra via vos requetes.");
+    }).catch(function(e){setMsgDemande("ECHEC de la demande: "+((e&&e.message)||""));});
+  }
 
   // Extraction automatique de la preuve d assurance (compagnie, police, dates)
   function extraireAssurancePortail(file){
@@ -470,7 +497,21 @@ function Tableau(p){
                   })}
                 </div>
               )}
-              {docsSyn.length===0&&<div style={{fontSize:10,color:T.muted,marginTop:8}}>Le certificat d assurance de la copropriete et les autres documents partages (PV, assemblees...) apparaitront ici des que le gestionnaire les depose dans Documents (niveau syndicat, non confidentiel).</div>}
+              {docsSyn.length===0&&<div style={{fontSize:10,color:T.muted,marginTop:8}}>Le certificat d assurance de la copropriete et les autres documents partages (PV, assemblees...) apparaitront ici des que le gestionnaire les depose dans un dossier accessible aux coproprietaires (module Documents).</div>}
+
+              {dossiersDocs.filter(function(x){return x.acces_copro==="demande";}).length>0&&(
+                <div style={{marginTop:14,background:T.amberL,borderRadius:10,padding:12}}>
+                  <div style={{fontSize:12,fontWeight:800,color:T.amber,marginBottom:4}}>Documents consultables SUR DEMANDE</div>
+                  <div style={{fontSize:10,color:T.muted,marginBottom:8}}>Ces dossiers (ex.: factures, contrats et soumissions) sont consultables sur demande aupres du gestionnaire. Votre demande cree une requete suivie.</div>
+                  {dossiersDocs.filter(function(x){return x.acces_copro==="demande";}).map(function(d){return(
+                    <div key={d.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,padding:"6px 0",borderTop:"1px solid "+T.amber+"33",flexWrap:"wrap"}}>
+                      <div style={{fontSize:12,fontWeight:600,color:T.navy}}>{d.nom}</div>
+                      <Btn sm bg={T.amber} onClick={function(){demanderConsultation(d);}}>Demander la consultation</Btn>
+                    </div>
+                  );})}
+                  {msgDemande&&<div style={{marginTop:8,fontSize:11,fontWeight:700,color:msgDemande.indexOf("ECHEC")===0?T.red:T.accent}}>{msgDemande}</div>}
+                </div>
+              )}
             </div>
 
             {docs.length===0&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucun autre document personnel pour l instant</div>}

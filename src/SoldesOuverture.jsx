@@ -50,6 +50,24 @@ export default function SoldesOuverture(){
   var s11=useState({});var soldesBq=s11[0];var setSoldesBq=s11[1];  // compte bancaire id -> montant
   var s12=useState("");var dateSoldes=s12[0];var setDateSoldes=s12[1];
   var s13=useState(false);var saving=s13[0];var setSaving=s13[1];
+  var s14=useState(null);var dragId=s14[0];var setDragId=s14[1];
+
+  // Reordonner les comptes de banque par glisser-deposer (l ordre est memorise)
+  function deposerBanque(cibleId){
+    if(!dragId||dragId===cibleId){setDragId(null);return;}
+    var arr=banques.slice();
+    var de=arr.findIndex(function(x){return x.id===dragId;});
+    var a=arr.findIndex(function(x){return x.id===cibleId;});
+    if(de<0||a<0){setDragId(null);return;}
+    var it=arr.splice(de,1)[0];
+    arr.splice(a,0,it);
+    setBanques(arr);setDragId(null);
+    arr.forEach(function(b,i){
+      sb.update("comptes_bancaires",b.id,{ordre:i}).then(function(res){
+        if(res&&res.error)setErr("ECHEC de l enregistrement de l ordre des comptes: "+(res.error.message||"executez le bloc SQL fourni (colonne ordre)."));
+      }).catch(function(e){setErr("ECHEC de l enregistrement de l ordre des comptes: "+((e&&e.message)||"executez le bloc SQL fourni (colonne ordre)."));});
+    });
+  }
 
   useEffect(function(){
     sb.select("syndicats",{order:"nom.asc"}).then(function(res){
@@ -62,8 +80,9 @@ export default function SoldesOuverture(){
     if(!sel)return;
     sb.select("comptes_syndicat",{eq:{syndicat_id:sel.id},order:"no_compte.asc",limit:500}).then(function(r){if(r&&r.data)setComptes(r.data.filter(function(c){return c.actif!==false;}));}).catch(function(){});
     sb.select("unites",{eq:{syndicat_id:sel.id},order:"no_unite.asc",limit:1000}).then(function(r){if(r&&r.data)setUnites(r.data);}).catch(function(){});
-    sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},limit:50}).then(function(r){
+    sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},order:"ordre.asc,created_at.asc",limit:50}).then(function(r){
       var bq=(r&&r.data)?r.data.filter(function(b){return b.actif!==false;}):[];
+      bq.sort(function(a,b){return (a.ordre||0)-(b.ordre||0)||String(a.created_at||"").localeCompare(String(b.created_at||""));});
       setBanques(bq);
       var sb2={};var dMax="";
       bq.forEach(function(b){sb2[b.id]=b.solde_ouverture!==null&&b.solde_ouverture!==undefined&&Number(b.solde_ouverture)!==0?String(b.solde_ouverture):"";if(b.date_solde&&String(b.date_solde)>dMax)dMax=String(b.date_solde).substring(0,10);});
@@ -221,12 +240,12 @@ export default function SoldesOuverture(){
 
         <div style={{background:T.surface,border:"2px solid "+T.blue+"44",borderRadius:12,padding:16,marginBottom:14}}>
           <div style={{fontSize:13,fontWeight:800,color:T.blue,marginBottom:2}}>Comptes de banque (Encaisse)</div>
-          <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Les comptes se CREENT dans Configuration - Comptes bancaires; leurs soldes d ouverture se saisissent ICI.</div>
+          <div style={{fontSize:11,color:T.muted,marginBottom:12}}>Les comptes se CREENT dans Configuration - Comptes bancaires; leurs soldes d ouverture se saisissent ICI. Glissez-deposez une carte sur une autre pour changer l ordre d affichage (memorise).</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:10}}>
             {banques.map(function(b){
               return(
-                <div key={b.id} style={{background:T.blueL,borderRadius:10,padding:12}}>
-                  <div style={{fontSize:11,fontWeight:800,color:T.navy}}>{b.nom||FONDS_NOMS[b.fonds]||("Fonds "+(b.fonds||""))}</div>
+                <div key={b.id} draggable onDragStart={function(){setDragId(b.id);}} onDragOver={function(e){e.preventDefault();}} onDrop={function(e){e.preventDefault();deposerBanque(b.id);}} style={{background:T.blueL,borderRadius:10,padding:12,cursor:"grab",border:dragId===b.id?"2px dashed "+T.blue:"2px solid transparent",opacity:dragId===b.id?0.6:1}}>
+                  <div style={{fontSize:11,fontWeight:800,color:T.navy}}><span title="Glisser pour reordonner" style={{color:T.muted,marginRight:6}}>=</span>{b.nom||FONDS_NOMS[b.fonds]||("Fonds "+(b.fonds||""))}{b.par_defaut?<span style={{color:"#B7950B"}}>{"\u0020\u2605"}</span>:null}</div>
                   <div style={{fontSize:9,color:T.muted,marginBottom:6}}>{FONDS_NOMS[b.fonds]||("Fonds "+(b.fonds||""))}{b.no_compte?" - ***"+String(b.no_compte).slice(-4):""}</div>
                   <input type="number" step="0.01" value={soldesBq[b.id]||""} onChange={function(e){var v=e.target.value;setSoldesBq(function(pr){var n=Object.assign({},pr);n[b.id]=v;return n;});}} style={INP}/>
                 </div>

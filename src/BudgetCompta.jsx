@@ -799,7 +799,7 @@ function TabBanques(p){
 
   function charger(){
     if(!syndicat)return;
-    sb.select("comptes_bancaires",{eq:{syndicat_id:syndicat.id},limit:50}).then(function(r){
+    sb.select("comptes_bancaires",{eq:{syndicat_id:syndicat.id},order:"ordre.asc,created_at.asc",limit:50}).then(function(r){
       if(r&&r.data)setComptesB(r.data.filter(function(x){return x.actif!==false;}));
     }).catch(function(){});
   }
@@ -1031,7 +1031,7 @@ function TabEtats(p){
       sb.select("factures",{eq:{syndicat_id:syndicat.id},limit:2000}),
       sb.select("paiements",{eq:{syndicat_id:syndicat.id},limit:5000}),
       sb.select("journal",{eq:{syndicat_id:syndicat.id},limit:2000}),
-      sb.select("comptes_bancaires",{eq:{syndicat_id:syndicat.id},limit:10})
+      sb.select("comptes_bancaires",{eq:{syndicat_id:syndicat.id},order:"ordre.asc,created_at.asc",limit:10})
     ]).then(function(rs){
       var m={};if(rs[0]&&rs[0].data)rs[0].data.forEach(function(x){m[x.no_compte]=parseFloat(x.montant)||0;});
       setBudgets(m);
@@ -1251,7 +1251,7 @@ function TabFonds(p){
       sb.select("factures",{eq:{syndicat_id:syndicat.id},limit:2000}),
       sb.select("paiements",{eq:{syndicat_id:syndicat.id},limit:5000}),
       sb.select("journal",{eq:{syndicat_id:syndicat.id},limit:2000}),
-      sb.select("comptes_bancaires",{eq:{syndicat_id:syndicat.id},limit:20}),
+      sb.select("comptes_bancaires",{eq:{syndicat_id:syndicat.id},order:"ordre.asc,created_at.asc",limit:20}),
       sb.select("budgets_gl",{eq:{syndicat_id:syndicat.id,exercice_debut:exo.debut},limit:300})
     ]).then(function(rs){
       setFactures((rs[0]&&rs[0].data)||[]);
@@ -1323,7 +1323,7 @@ function TabFonds(p){
       setMsg("Fonds \""+slug+"\" cree avec ses comptes GL de base (contributions, transfert interfonds, depenses) - il apparait maintenant dans le budget et la comptabilite par fonds.");
       sb.log("budget","creation","Fonds personnalise cree: "+slug,"",syndicat.code||"");
       setShowAjout(false);setNomFonds("");
-      sb.select("comptes_bancaires",{eq:{syndicat_id:syndicat.id},limit:20}).then(function(r2){if(r2&&r2.data)setBanques(r2.data);});
+      sb.select("comptes_bancaires",{eq:{syndicat_id:syndicat.id},order:"ordre.asc,created_at.asc",limit:20}).then(function(r2){if(r2&&r2.data)setBanques(r2.data);});
       setTimeout(function(){setMsg("");},7000);
     });
   }

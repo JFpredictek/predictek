@@ -487,7 +487,7 @@ export default function GestionFactures(){
       if(res&&res.data)setFactures(res.data);
     }).catch(function(){});
     sb.select("fournisseurs",{limit:1000}).then(function(res){if(res&&res.data)setFournTous(res.data);}).catch(function(){});
-    sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},limit:20}).then(function(res){if(res&&res.data)setBanquesF(res.data);else setBanquesF([]);}).catch(function(){setBanquesF([]);});
+    sb.select("comptes_bancaires",{eq:{syndicat_id:sel.id},order:"ordre.asc,created_at.asc",limit:20}).then(function(res){if(res&&res.data)setBanquesF(res.data);else setBanquesF([]);}).catch(function(){setBanquesF([]);});
     setSelEFT({});
     // Approbations du CA (pour afficher qui a approuve et le compte "X de N")
     sb.select("approbations_ca",{limit:2000}).then(function(res){
