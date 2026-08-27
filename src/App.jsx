@@ -62,6 +62,7 @@ var SECTIONS=[
       {id:"comptaentreprise",label:"Comptabilite Predictek",icon:"CE"},
       {id:"roles",label:"Roles",icon:"ROL"},
       {id:"crm",label:"CRM - Requetes et tickets",icon:"CRM"},
+      {id:"docsgest",label:"Documents",icon:"DO"},
       {id:"ia",label:"IA",icon:"IA"},
       {id:"loi25",label:"Loi 25",icon:"L25"},
     ]
@@ -127,7 +128,8 @@ var NAV={
     {titre:"Configuration",items:[{id:"onboarding"},{id:"gestion"}]},
     {titre:"Equipe",items:[{id:"employes"},{id:"paie"},{id:"usagers"},{id:"roles"}]},
     {titre:"Entreprise",items:[{id:"facturation"},{id:"comptaentreprise"},{id:"ia"},{id:"loi25"},{id:"historique"}]},
-    {titre:"CRM",items:[{id:"crm"}]}
+    {titre:"CRM",items:[{id:"crm"}]},
+    {titre:"Documents",items:[{id:"docsgest"}]}
   ],
   ca:[
     {titre:"Tableau de bord",items:[{id:"tableau"}]},
@@ -340,6 +342,7 @@ export default function App(){
         {active==="carnet"&&<CarnetEntretien/>}
         {active==="ca"&&<MembresCA/>}
         {active==="docs"&&<GestionDocuments/>}
+        {active==="docsgest"&&<GestionDocuments/>}
         {active==="reconn"&&<ReconnaissanceDoc/>}
         {active==="comm"&&<Communications/>}
         {active==="rapports"&&<RapportsFinanciers/>}

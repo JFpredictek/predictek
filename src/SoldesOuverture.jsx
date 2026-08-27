@@ -15,6 +15,38 @@ var money=function(n){return (Number(n)||0).toLocaleString("fr-CA",{minimumFract
 
 var FONDS_NOMS={operation:"Fonds d operation",prevoyance:"Fonds de prevoyance",assurance:"Fonds d auto-assurance",special:"Fonds de travaux speciaux"};
 
+// ===== Helpers d importation automatique (bilan / listes detaillees) =====
+function lireReponseS(r){return r.text().then(function(t){try{return JSON.parse(t);}catch(e){return {error:"Reponse inattendue du serveur (code "+r.status+")"};}});}
+function fichierPourExtractionS(file){
+  return new Promise(function(resolve,reject){
+    var isPdf=/pdf$/i.test(file.type)||/\.pdf$/i.test(file.name);
+    var fr=new FileReader();
+    fr.onerror=function(){reject(new Error("Lecture du fichier impossible"));};
+    fr.onload=function(ev){
+      var b64=String(ev.target.result).split(",")[1];
+      if(isPdf){
+        if(b64.length>4200000){reject(new Error("PDF trop volumineux pour l extraction (max ~3 Mo)"));return;}
+        resolve({pdf:b64});
+      }else{
+        var img=new Image();
+        img.onload=function(){
+          var cv=document.createElement("canvas");
+          var sc=Math.min(1,1600/Math.max(img.width,img.height));
+          cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
+          cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+          resolve({images:[cv.toDataURL("image/jpeg",0.8).split(",")[1]]});
+        };
+        img.onerror=function(){reject(new Error("Image illisible"));};
+        img.src=ev.target.result;
+      }
+    };
+    fr.readAsDataURL(file);
+  });
+}
+function normS(s){
+  return String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+}
+
 // Contributions PERCUES D AVANCE (montants anticipes payes par des copros): PASSIF
 // detaille PAR UNITE - chaque montant devient une AVANCE appliquee automatiquement
 // sur les prochaines cotisations/factures (module Encaissements, FIFO)
@@ -62,6 +94,155 @@ export default function SoldesOuverture(){
   var s12=useState("");var dateSoldes=s12[0];var setDateSoldes=s12[1];
   var s13=useState(false);var saving=s13[0];var setSaving=s13[1];
   var s14=useState(null);var dragId=s14[0];var setDragId=s14[1];
+  var s15=useState(false);var showAddC=s15[0];var setShowAddC=s15[1];
+  var s16=useState({no:"",nom:"",type:"passif",groupe:""});var addC=s16[0];var setAddC=s16[1];
+
+  // Ajouter un compte de BILAN manquant (ex.: Du interfonds, Frais courus) sans quitter la page
+  function ajouterCompteBilan(){
+    var no=(addC.no||"").trim();var nom=(addC.nom||"").trim();
+    if(!no||!nom){setErr("ECHEC: le numero ET le nom du compte sont obligatoires.");return;}
+    if(comptes.some(function(c){return String(c.no_compte)===no;})){setErr("ECHEC: le compte "+no+" existe deja dans la charte.");return;}
+    var grpDef=addC.type==="actif"?"Actifs - Autres":addC.type==="capitaux"?"Capitaux":"Passifs - Autres";
+    sb.insert("comptes_syndicat",{syndicat_id:sel.id,no_compte:no,nom_compte:nom,type_compte:addC.type,groupe:(addC.groupe||"").trim()||grpDef,actif:true}).then(function(res){
+      if(res&&res.error){setErr("ECHEC de l ajout du compte: "+(res.error.message||""));return;}
+      setShowAddC(false);setAddC({no:"",nom:"",type:"passif",groupe:""});
+      setMsg("Compte "+no+" - "+nom+" ajoute a la charte - inscrivez maintenant son solde ci-dessous.");
+      charger();
+    }).catch(function(e){setErr("ECHEC: "+((e&&e.message)||""));});
+  }
+
+  // ===== IMPORTATION AUTOMATIQUE: bilan + listes detaillees (recevoir/payer) =====
+  var s17=useState(false);var importBusy=s17[0];var setImportBusy=s17[1];
+  var s18=useState(null);var importResu=s18[0];var setImportResu=s18[1];
+  var s19=useState("");var cibleDetail=s19[0];var setCibleDetail=s19[1];
+
+  function comptesBilanCourants(){
+    return comptes.filter(function(c){return estBilan(c)&&!/encaisse/i.test(c.nom_compte||"");});
+  }
+  function trouverBanque(nomLigne){
+    var n=normS(nomLigne);
+    var chiffres=String(nomLigne||"").replace(/\D/g,"");
+    var hit=null;
+    banques.forEach(function(b){
+      if(hit)return;
+      var noB=String(b.no_compte||"").replace(/\D/g,"");
+      if(noB&&chiffres&&(chiffres.indexOf(noB)>=0||noB.indexOf(chiffres)>=0&&chiffres.length>=4))hit=b;
+    });
+    if(!hit)banques.forEach(function(b){
+      if(hit)return;
+      var nb=normS(b.nom||"");
+      if(nb&&n.indexOf(nb)>=0)hit=b;
+    });
+    if(!hit){
+      var mots={prevoyance:"prevoyance",assurance:"assurance",special:"special",operation:"operation",exploitation:"operation"};
+      Object.keys(mots).forEach(function(k){
+        if(hit)return;
+        if(n.indexOf(k)>=0){
+          var cands=banques.filter(function(b){return b.fonds===mots[k];});
+          if(cands.length===1)hit=cands[0];
+        }
+      });
+    }
+    return hit;
+  }
+  function trouverCompte(nomLigne,section){
+    var n=normS(nomLigne);
+    var pool=comptesBilanCourants().filter(function(c){
+      var ty=(c.type_compte||"").toLowerCase();
+      if(section==="actif")return ty==="actif";
+      if(section==="passif")return ty==="passif";
+      if(section==="capitaux")return ty==="capitaux";
+      return true;
+    });
+    var exact=pool.find(function(c){return normS(c.nom_compte)===n;});
+    if(exact)return exact;
+    var incl=pool.find(function(c){var cn=normS(c.nom_compte);return cn&&(n.indexOf(cn)>=0||cn.indexOf(n)>=0);});
+    if(incl)return incl;
+    // meilleur chevauchement de mots (au moins 2 mots significatifs communs)
+    var mots=n.split(" ").filter(function(w){return w.length>3;});
+    var best=null;var bestN=0;
+    pool.forEach(function(c){
+      var cm=normS(c.nom_compte).split(" ");
+      var nb=mots.filter(function(w){return cm.indexOf(w)>=0;}).length;
+      if(nb>bestN){bestN=nb;best=c;}
+    });
+    return bestN>=2?best:null;
+  }
+
+  function importerBilan(ev){
+    var file=ev.target.files[0];ev.target.value="";
+    if(!file||!sel)return;
+    setImportBusy(true);setErr("");setImportResu(null);
+    fichierPourExtractionS(file).then(function(src){
+      var corps=Object.assign({mode:"bilan"},src);
+      return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify(corps)}).then(lireReponseS);
+    }).then(function(resp){
+      setImportBusy(false);
+      if(!resp||resp.error||!resp.lignes){setErr("ECHEC de l extraction du bilan: "+((resp&&(resp.error||resp.raw))||"reponse vide"));return;}
+      if(resp.date)setDateSoldes(String(resp.date).substring(0,10));
+      var appliquees=[];var aDetailler=[];var nonApparies=[];
+      var nvSoldesBq={};var nvValeurs={};
+      (resp.lignes||[]).forEach(function(l){
+        var nom=l.nom||"";var mnt=Number(l.montant)||0;var section=(l.section||"").toLowerCase();
+        if(mnt===0)return;
+        if(/encaisse|banque|caisse/.test(normS(nom))){
+          var b=trouverBanque(nom);
+          if(b){nvSoldesBq[b.id]=String(mnt);appliquees.push({nom:nom,montant:mnt,vers:"Banque: "+(b.nom||FONDS_NOMS[b.fonds]||b.fonds)});return;}
+          nonApparies.push({nom:nom,montant:mnt,section:section,groupe:l.groupe||""});return;
+        }
+        var c=trouverCompte(nom,section);
+        if(!c){nonApparies.push({nom:nom,montant:mnt,section:section,groupe:l.groupe||""});return;}
+        if(detailPour(c)){aDetailler.push({nom:nom,montant:mnt,compte:c.no_compte+" - "+c.nom_compte,dp:detailPour(c)});return;}
+        nvValeurs[c.no_compte]=String((parseFloat(nvValeurs[c.no_compte])||0)+mnt);
+        appliquees.push({nom:nom,montant:mnt,vers:c.no_compte+" - "+c.nom_compte});
+      });
+      setSoldesBq(function(pr){return Object.assign({},pr,nvSoldesBq);});
+      setValeurs(function(pr){return Object.assign({},pr,nvValeurs);});
+      setImportResu({type:"bilan",date:resp.date||"",appliquees:appliquees,aDetailler:aDetailler,nonApparies:nonApparies});
+      window.scrollTo(0,0);
+    }).catch(function(e){setImportBusy(false);setErr("ECHEC de l extraction: "+((e&&e.message)||""));});
+  }
+
+  function importerDetail(ev){
+    var file=ev.target.files[0];ev.target.value="";
+    if(!file||!sel)return;
+    setImportBusy(true);setErr("");
+    fichierPourExtractionS(file).then(function(src){
+      var corps=Object.assign({mode:"soldes_detail"},src);
+      return fetch("/api/extract",{method:"POST",headers:sb.apiHeaders(),body:JSON.stringify(corps)}).then(lireReponseS);
+    }).then(function(resp){
+      setImportBusy(false);
+      if(!resp||resp.error||!resp.lignes){setErr("ECHEC de l extraction de la liste: "+((resp&&(resp.error||resp.raw))||"reponse vide"));return;}
+      var ty=(resp.type==="payer")?"fournisseur":"unite";
+      // Compte cible par defaut
+      var cands=comptesBilanCourants().filter(function(c){return detailPour(c)===ty&&!estPercuDavance(c);});
+      var def=ty==="unite"
+        ? (cands.find(function(c){return /contribution/.test(normS(c.nom_compte));})||cands[0])
+        : (cands.find(function(c){return /fournisseur/.test(normS(c.nom_compte));})||cands[0]);
+      if(!def){setErr("ECHEC: aucun compte a detail par "+ty+" dans la charte.");return;}
+      setCibleDetail(def.no_compte);
+      // Nettoyage des cles (unites: apparier aux vraies unites)
+      var lignesOk=[];var douteuses=[];
+      (resp.lignes||[]).forEach(function(l){
+        var mnt=Number(l.montant)||0;if(mnt===0)return;
+        var cle=String(l.cle||"").trim();
+        if(ty==="unite"){
+          var u=unites.find(function(x){return String(x.no_unite)===cle||String(x.no_unite).replace(/^0+/,"")===cle.replace(/^0+/,"");});
+          if(u)cle=u.no_unite;else douteuses.push(cle+" ("+(l.nom||"?")+")");
+        }
+        lignesOk.push({cle:cle,montant:String(mnt)});
+      });
+      setImportResu({type:"detail",dtype:ty,date:resp.date||"",lignes:lignesOk,douteuses:douteuses});
+      window.scrollTo(0,0);
+    }).catch(function(e){setImportBusy(false);setErr("ECHEC de l extraction: "+((e&&e.message)||""));});
+  }
+
+  function appliquerDetailImporte(){
+    if(!importResu||importResu.type!=="detail"||!cibleDetail)return;
+    setDetails(function(pr){var n=Object.assign({},pr);n[cibleDetail]=importResu.lignes.slice();return n;});
+    setMsg(importResu.lignes.length+" ligne(s) placee(s) au compte "+cibleDetail+" - verifiez puis Sauvegardez.");
+    setImportResu(null);
+  }
 
   // Reordonner les comptes de banque par glisser-deposer (l ordre est memorise)
   function deposerBanque(cibleId){
@@ -286,6 +467,78 @@ export default function SoldesOuverture(){
           </div>
         </div>
 
+        {/* ===== IMPORTATION AUTOMATIQUE ===== */}
+        <div style={{background:T.surface,border:"2px solid "+T.purple+"44",borderRadius:12,padding:16,marginBottom:14}}>
+          <div style={{fontSize:13,fontWeight:800,color:T.purple,marginBottom:2}}>Importation automatique (lecture IA)</div>
+          <div style={{fontSize:11,color:T.muted,marginBottom:10}}>Televersez votre BILAN (PDF ou photo): la date et les montants se placent automatiquement dans la feuille. Televersez aussi vos listes detaillees de comptes a RECEVOIR (par unite) ou a PAYER (par fournisseur): les lignes se placent au bon compte.</div>
+          <input type="file" id="soImpBilan" accept=".pdf,.jpg,.jpeg,.png" onChange={importerBilan} style={{display:"none"}}/>
+          <input type="file" id="soImpDetail" accept=".pdf,.jpg,.jpeg,.png" onChange={importerDetail} style={{display:"none"}}/>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            <Btn dis={importBusy} bg={T.purple} onClick={function(){document.getElementById("soImpBilan").click();}}>{importBusy?"Lecture en cours...":"Televerser le BILAN"}</Btn>
+            <Btn dis={importBusy} bg={T.purpleL} tc={T.purple} bdr={"1px solid "+T.purple+"44"} onClick={function(){document.getElementById("soImpDetail").click();}}>{importBusy?"Lecture en cours...":"Televerser une liste detaillee (recevoir / payer)"}</Btn>
+          </div>
+
+          {importResu&&importResu.type==="bilan"&&(
+            <div style={{marginTop:12,background:T.purpleL,borderRadius:10,padding:12}}>
+              <div style={{fontSize:12,fontWeight:800,color:T.purple,marginBottom:6}}>Bilan lu{importResu.date?" (en date du "+importResu.date+")":""}: {importResu.appliquees.length} montant(s) place(s) automatiquement</div>
+              {importResu.appliquees.map(function(l,i){return <div key={"a"+i} style={{fontSize:11,color:T.navy,padding:"1px 0"}}>{l.nom} {"->"} <b>{l.vers}</b>: {money(l.montant)}</div>;})}
+              {importResu.aDetailler.length>0&&(
+                <div style={{marginTop:8}}>
+                  <div style={{fontSize:11,fontWeight:800,color:T.amber}}>A DETAILLER manuellement (ou par liste detaillee) - le bilan ne donne que le total:</div>
+                  {importResu.aDetailler.map(function(l,i){return <div key={"d"+i} style={{fontSize:11,color:T.navy,padding:"1px 0"}}>{l.nom}: {money(l.montant)} {"->"} {l.compte} (par {l.dp==="unite"?"UNITE":"FOURNISSEUR"})</div>;})}
+                </div>
+              )}
+              {importResu.nonApparies.length>0&&(
+                <div style={{marginTop:8}}>
+                  <div style={{fontSize:11,fontWeight:800,color:T.red}}>NON APPARIES - aucun compte correspondant dans la charte (creez le compte puis re-televersez, ou inscrivez le montant a la main):</div>
+                  {importResu.nonApparies.map(function(l,i){return(
+                    <div key={"n"+i} style={{display:"flex",alignItems:"center",gap:8,fontSize:11,color:T.navy,padding:"1px 0",flexWrap:"wrap"}}>
+                      <span>{l.nom}: {money(l.montant)} ({l.section||"?"})</span>
+                      <Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){setAddC({no:"",nom:l.nom,type:l.section==="actif"?"actif":l.section==="capitaux"?"capitaux":"passif",groupe:l.groupe||""});setShowAddC(true);}}>Creer ce compte</Btn>
+                    </div>
+                  );})}
+                </div>
+              )}
+              <div style={{marginTop:8}}><Btn sm bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setImportResu(null);}}>Fermer ce resume</Btn></div>
+            </div>
+          )}
+
+          {importResu&&importResu.type==="detail"&&(
+            <div style={{marginTop:12,background:T.purpleL,borderRadius:10,padding:12}}>
+              <div style={{fontSize:12,fontWeight:800,color:T.purple,marginBottom:6}}>Liste lue: {importResu.lignes.length} ligne(s) ({importResu.dtype==="unite"?"comptes a RECEVOIR par unite":"comptes a PAYER par fournisseur"})</div>
+              {importResu.lignes.slice(0,40).map(function(l,i){return <div key={"l"+i} style={{fontSize:11,color:T.navy,padding:"1px 0"}}>{l.cle}: {money(parseFloat(l.montant)||0)}</div>;})}
+              {importResu.lignes.length>40&&<div style={{fontSize:10,color:T.muted}}>... et {importResu.lignes.length-40} autre(s)</div>}
+              {importResu.douteuses.length>0&&<div style={{fontSize:11,color:T.red,marginTop:6}}>ATTENTION - unites introuvables (verifiez apres application): {importResu.douteuses.join(", ")}</div>}
+              <div style={{display:"flex",gap:8,alignItems:"center",marginTop:10,flexWrap:"wrap"}}>
+                <span style={{fontSize:11,fontWeight:700,color:T.navy}}>Placer au compte:</span>
+                <select value={cibleDetail} onChange={function(e){setCibleDetail(e.target.value);}} style={Object.assign({},INP,{width:320})}>
+                  {comptesBilanCourants().filter(function(c){return detailPour(c)===importResu.dtype;}).map(function(c){return <option key={c.id} value={c.no_compte}>{c.no_compte} - {c.nom_compte}</option>;})}
+                </select>
+                <Btn onClick={appliquerDetailImporte}>Appliquer ces lignes</Btn>
+                <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setImportResu(null);}}>Annuler</Btn>
+              </div>
+              <div style={{fontSize:10,color:T.muted,marginTop:6}}>L application REMPLACE les lignes de detail de ce compte dans la feuille (rien n est enregistre avant Sauvegarder).</div>
+            </div>
+          )}
+        </div>
+
+        {/* ===== AJOUT D UN COMPTE DE BILAN MANQUANT ===== */}
+        <div style={{background:T.surface,border:"1px solid "+T.border,borderRadius:12,padding:12,marginBottom:14}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+            <div style={{flex:1,fontSize:11,color:T.muted}}>Un compte manque a la feuille (ex.: Du interfonds par fonds, Frais courus - Fonds de prevoyance)? Ajoutez-le a la charte sans quitter la page.</div>
+            <Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){setShowAddC(!showAddC);}}>{showAddC?"Fermer":"+ Ajouter un compte de bilan"}</Btn>
+          </div>
+          {showAddC&&(
+            <div style={{display:"grid",gridTemplateColumns:"120px 2fr 160px 1fr auto",gap:8,marginTop:10,alignItems:"end"}}>
+              <div><Lbl l="Numero"/><input value={addC.no} onChange={function(e){var v=e.target.value;setAddC(function(pr){return Object.assign({},pr,{no:v});});}} style={INP}/></div>
+              <div><Lbl l="Nom du compte"/><input value={addC.nom} onChange={function(e){var v=e.target.value;setAddC(function(pr){return Object.assign({},pr,{nom:v});});}} style={INP}/></div>
+              <div><Lbl l="Type"/><select value={addC.type} onChange={function(e){var v=e.target.value;setAddC(function(pr){return Object.assign({},pr,{type:v});});}} style={INP}><option value="actif">Actif</option><option value="passif">Passif</option><option value="capitaux">Capitaux</option></select></div>
+              <div><Lbl l="Groupe (optionnel)"/><input value={addC.groupe} onChange={function(e){var v=e.target.value;setAddC(function(pr){return Object.assign({},pr,{groupe:v});});}} style={INP}/></div>
+              <Btn onClick={ajouterCompteBilan}>Ajouter</Btn>
+            </div>
+          )}
+        </div>
+
         {groupes.map(function(g){
           var cs=comptesBilan.filter(function(c){return (c.groupe||"Autres")===g;});
           return(
@@ -344,6 +597,66 @@ export default function SoldesOuverture(){
           );
         })}
         {comptesBilan.length===0&&<div style={{textAlign:"center",padding:30,color:T.muted,fontSize:12}}>Aucun compte de bilan dans la charte de ce syndicat.</div>}
+
+        {/* ===== APERCU DU BILAN D OUVERTURE (calcule en direct) ===== */}
+        <div style={{background:T.surface,border:"2px solid "+T.navy+"33",borderRadius:12,padding:16,marginTop:14}}>
+          <div style={{fontSize:13,fontWeight:800,color:T.navy,marginBottom:2}}>Apercu du bilan d ouverture{dateSoldes?" au "+dateSoldes:""}</div>
+          <div style={{fontSize:10,color:T.muted,marginBottom:12}}>Se calcule a mesure que vous inscrivez les montants - totaux par categorie, comme au bilan.</div>
+          {[
+            {titre:"ACTIFS",types:["actif"],avecBanques:true,c:T.accent},
+            {titre:"PASSIF",types:["passif"],avecBanques:false,c:T.amber},
+            {titre:"CAPITAUX (fonds)",types:["capitaux","fonds"],avecBanques:false,c:T.purple}
+          ].map(function(sec){
+            var cs=comptesBilan.filter(function(c){return sec.types.indexOf((c.type_compte||"").toLowerCase())>=0&&Math.abs(montantCompte(c))>0.004;});
+            var gs=[];cs.forEach(function(c){var g=c.groupe||"Autres";if(gs.indexOf(g)<0)gs.push(g);});
+            var totSec=cs.reduce(function(a,c){return a+montantCompte(c);},0)+(sec.avecBanques?totBanques:0);
+            return(
+              <div key={sec.titre} style={{marginBottom:12}}>
+                <div style={{fontSize:11,fontWeight:800,color:sec.c,borderBottom:"2px solid "+sec.c+"55",paddingBottom:3,marginBottom:4}}>{sec.titre}</div>
+                {sec.avecBanques&&banques.length>0&&(
+                  <div style={{marginBottom:4}}>
+                    <div style={{fontSize:10,fontWeight:700,color:T.muted,textTransform:"uppercase",padding:"2px 0"}}>Encaisse</div>
+                    {banques.filter(function(b){return Math.abs(parseFloat(soldesBq[b.id])||0)>0.004;}).map(function(b){return(
+                      <div key={b.id} style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.navy,padding:"1px 0 1px 12px"}}>
+                        <span>Encaisse - {b.nom||FONDS_NOMS[b.fonds]||b.fonds}{b.no_compte?" ("+String(b.no_compte).slice(-4)+")":""}</span>
+                        <span style={{fontWeight:700}}>{money(parseFloat(soldesBq[b.id])||0)}</span>
+                      </div>
+                    );})}
+                    <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.muted,padding:"1px 0 1px 12px",borderTop:"1px solid "+T.border}}>
+                      <span>Sous-total encaisse</span><span style={{fontWeight:800}}>{money(totBanques)}</span>
+                    </div>
+                  </div>
+                )}
+                {gs.map(function(g){
+                  var cg=cs.filter(function(c){return (c.groupe||"Autres")===g;});
+                  var totG=cg.reduce(function(a,c){return a+montantCompte(c);},0);
+                  return(
+                    <div key={g} style={{marginBottom:4}}>
+                      <div style={{fontSize:10,fontWeight:700,color:T.muted,textTransform:"uppercase",padding:"2px 0"}}>{g}</div>
+                      {cg.map(function(c){return(
+                        <div key={c.id} style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.navy,padding:"1px 0 1px 12px"}}>
+                          <span>{c.no_compte} - {c.nom_compte}</span>
+                          <span style={{fontWeight:700}}>{money(montantCompte(c))}</span>
+                        </div>
+                      );})}
+                      {cg.length>1&&<div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.muted,padding:"1px 0 1px 12px",borderTop:"1px solid "+T.border}}><span>Sous-total {g.toLowerCase()}</span><span style={{fontWeight:800}}>{money(totG)}</span></div>}
+                    </div>
+                  );
+                })}
+                {cs.length===0&&!(sec.avecBanques&&banques.length>0)&&<div style={{fontSize:10,color:T.muted,paddingLeft:12}}>Aucun montant inscrit.</div>}
+                <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontWeight:800,color:sec.c,borderTop:"2px solid "+sec.c+"55",marginTop:3,paddingTop:3}}>
+                  <span>Total {sec.titre.toLowerCase()}</span><span>{money(totSec)}</span>
+                </div>
+              </div>
+            );
+          })}
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontWeight:800,color:T.navy,borderTop:"3px double "+T.navy,paddingTop:6,marginTop:4}}>
+            <span>Passif + capitaux</span><span>{money(totCredit)}</span>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontWeight:800,color:Math.abs(ecart)<0.01?T.accent:T.red,marginTop:2}}>
+            <span>{Math.abs(ecart)<0.01?"BALANCE - actifs = passif + capitaux":"ECART avec les actifs (doit etre 0)"}</span><span>{money(Math.abs(ecart)<0.01?0:ecart)}</span>
+          </div>
+        </div>
 
         <div style={{display:"flex",gap:8,marginTop:8}}>
           <Btn onClick={sauverTout} dis={saving}>{saving?"Sauvegarde...":"Sauvegarder les soldes d ouverture"}</Btn>

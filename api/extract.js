@@ -168,6 +168,40 @@ export default async function handler(req, res) {
       } else {
         return res.status(400).json({error:"Aucun document fourni"});
       }
+    } else if(mode==="bilan"){
+      var promptBil = "Voici un BILAN (etat de la situation financiere) d un syndicat de copropriete quebecois. "
+        + "Extrais TOUTES les lignes de detail avec leur montant EXACT (2 decimales). "
+        + "Un montant entre parentheses est NEGATIF. "
+        + "Reponds UNIQUEMENT avec un objet JSON valide: "
+        + "{\"date\":\"AAAA-MM-JJ (date du bilan)\","
+        + "\"lignes\":[{\"section\":\"actif ou passif ou capitaux\",\"groupe\":\"sous-titre si present (ex: A court terme, A long terme)\",\"nom\":\"libelle EXACT de la ligne\",\"montant\":nombre}]} "
+        + "N inclus PAS les sous-totaux ni les totaux (Total Actifs, Total Passifs, Total Capitaux, sous-totaux) - seulement les lignes de detail. "
+        + "Les lignes de la section CAPITAUX (surplus, avoirs) vont dans section capitaux.";
+      if(pdfB64){
+        contenu = [{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:promptBil}];
+      } else if(imagesIn.length>0){
+        contenu = imagesIn.slice(0,8).map(function(im){return {type:"image",source:{type:"base64",media_type:"image/jpeg",data:im}};});
+        contenu.push({type:"text",text:promptBil});
+      } else {
+        return res.status(400).json({error:"Aucun document fourni"});
+      }
+    } else if(mode==="soldes_detail"){
+      var promptSD = "Voici une liste detaillee d un syndicat de copropriete quebecois: soit des COMPTES A RECEVOIR "
+        + "detailles par unite/coproprietaire (liste agee des comptes clients, arrerages), soit des COMPTES A PAYER "
+        + "detailles par fournisseur. Determine lequel des deux. "
+        + "Extrais CHAQUE ligne avec son solde total du (montant EXACT, parentheses = negatif). "
+        + "Reponds UNIQUEMENT avec un objet JSON valide: "
+        + "{\"type\":\"recevoir ou payer\",\"date\":\"AAAA-MM-JJ si visible sinon chaine vide\","
+        + "\"lignes\":[{\"cle\":\"numero d unite (recevoir) OU nom du fournisseur (payer)\",\"nom\":\"nom du coproprietaire ou detail si visible\",\"montant\":nombre (solde total du)}]} "
+        + "Ignore les totaux et sous-totaux; une ligne par unite ou par fournisseur (additionne ses factures si detaillees).";
+      if(pdfB64){
+        contenu = [{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:promptSD}];
+      } else if(imagesIn.length>0){
+        contenu = imagesIn.slice(0,8).map(function(im){return {type:"image",source:{type:"base64",media_type:"image/jpeg",data:im}};});
+        contenu.push({type:"text",text:promptSD});
+      } else {
+        return res.status(400).json({error:"Aucun document fourni"});
+      }
     } else if(mode==="date_document"){
       var promptDD = "Voici un document officiel d un syndicat de copropriete quebecois (etude d evaluation aux fins d assurance, etude du fonds de prevoyance, ou autre rapport professionnel). "
         + "Extrais les informations suivantes. Reponds UNIQUEMENT avec un objet JSON valide (chaine vide si absent): "
