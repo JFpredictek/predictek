@@ -161,16 +161,20 @@ export default function SoldesOuverture(){
   async function sauverTout(){
     if(!sel||saving)return;
     if(!dateSoldes){setErr("ECHEC: inscrivez d abord la DATE des soldes d ouverture (case Soldes en date du, dans le bandeau du haut) - aucun enregistrement sans date.");window.scrollTo(0,0);return;}
-    // Validation des details
+    // Validation des details: AUCUNE sauvegarde si un montant est inscrit sans son
+    // unite/fournisseur, ou si une unite/un fournisseur est choisi sans montant
     var invalides=[];
     comptesBilan.forEach(function(c){
       var dp=detailPour(c);
       if(!dp)return;
-      (details[c.no_compte]||[]).forEach(function(l){
-        if((parseFloat(l.montant)||0)>0&&!l.cle)invalides.push(c.no_compte+" ("+(dp==="unite"?"unite":"fournisseur")+" manquant)");
+      (details[c.no_compte]||[]).forEach(function(l,ix){
+        var aMontant=String(l.montant||"").trim()!==""&&(parseFloat(l.montant)||0)!==0;
+        var aCle=!!(l.cle&&String(l.cle).trim());
+        if(aMontant&&!aCle)invalides.push(c.no_compte+" ligne "+(ix+1)+": montant inscrit sans "+(dp==="unite"?"UNITE":"FOURNISSEUR"));
+        if(!aMontant&&aCle)invalides.push(c.no_compte+" ligne "+(ix+1)+": "+(dp==="unite"?"unite":"fournisseur")+" \""+l.cle+"\" sans MONTANT");
       });
     });
-    if(invalides.length>0){setErr("Lignes incompletes: "+invalides.join(", ")+".");return;}
+    if(invalides.length>0){setErr("ECHEC: aucune sauvegarde - corrigez d abord ces lignes: "+invalides.join(" | ")+". (Retirez la ligne avec X si elle est inutile.)");window.scrollTo(0,0);return;}
     setSaving(true);setErr("");setMsg("");
     var echecs=[];
     // 1. Soldes d ouverture des comptes de banque
@@ -200,7 +204,7 @@ export default function SoldesOuverture(){
       var c=comptesBilan[m];
       var dp=detailPour(c);
       if(dp){
-        var liste=(details[c.no_compte]||[]).filter(function(l){return (parseFloat(l.montant)||0)>0&&l.cle;});
+        var liste=(details[c.no_compte]||[]).filter(function(l){return (parseFloat(l.montant)||0)!==0&&l.cle&&String(l.cle).trim();});
         for(var n2=0;n2<liste.length;n2++){
           var l2=liste[n2];
           var u=dp==="unite"?unites.find(function(x){return x.no_unite===l2.cle;}):null;
