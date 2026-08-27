@@ -229,3 +229,7 @@ notify pgrst, 'reload schema';
 -- Ordre d affichage des comptes de banque (reordonnancement par glisser-deposer)
 alter table public.comptes_bancaires add column if not exists ordre int default 0;
 notify pgrst, 'reload schema';
+
+-- Bibliotheque documentaire INTERNE Predictek, separee des bibliotheques des syndicats
+alter table public.dossiers_documents add column if not exists espace text default 'syndicat';
+notify pgrst, 'reload schema';

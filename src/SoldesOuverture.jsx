@@ -443,11 +443,22 @@ export default function SoldesOuverture(){
         {msg&&<div style={{background:T.accentL,border:"2px solid "+T.accent,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.accent,fontWeight:700,marginBottom:12}}>{msg}</div>}
         {err&&<div style={{background:T.redL,border:"2px solid "+T.red,borderRadius:8,padding:"10px 14px",fontSize:12,color:T.red,fontWeight:700,marginBottom:12}}>{err}</div>}
 
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
-          <div style={{background:T.blueL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Banques</div><div style={{fontSize:16,fontWeight:800,color:T.blue}}>{money(totBanques)}</div></div>
-          <div style={{background:T.accentL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Autres DEBITS (actifs, a recevoir...)</div><div style={{fontSize:16,fontWeight:800,color:T.accent}}>{money(totDebit)}</div></div>
-          <div style={{background:T.amberL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>CREDITS (passifs, a payer, fonds...)</div><div style={{fontSize:16,fontWeight:800,color:T.amber}}>{money(totCredit)}</div></div>
-          <div style={{background:Math.abs(ecart)<0.01?T.accentL:T.redL,borderRadius:10,padding:12}}><div style={{fontSize:10,color:T.muted}}>Ecart (doit etre 0 pour balancer)</div><div style={{fontSize:16,fontWeight:800,color:Math.abs(ecart)<0.01?T.accent:T.red}}>{money(ecart)}</div></div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
+          <div style={{background:T.accentL,borderRadius:10,padding:12}}>
+            <div style={{fontSize:10,color:T.muted}}>DEBITS - banques + autres actifs (a recevoir...)</div>
+            <div style={{fontSize:16,fontWeight:800,color:T.accent}}>{money(totBanques+totDebit)}</div>
+            <div style={{fontSize:9,color:T.muted,marginTop:2}}>Banques {money(totBanques)} + autres {money(totDebit)}</div>
+          </div>
+          <div style={{background:T.amberL,borderRadius:10,padding:12}}>
+            <div style={{fontSize:10,color:T.muted}}>CREDITS (passifs, a payer, fonds...)</div>
+            <div style={{fontSize:16,fontWeight:800,color:T.amber}}>{money(totCredit)}</div>
+            <div style={{fontSize:9,color:T.muted,marginTop:2}}>Doit egaler les debits</div>
+          </div>
+          <div style={{background:Math.abs(ecart)<0.01?T.accentL:T.redL,borderRadius:10,padding:12}}>
+            <div style={{fontSize:10,color:T.muted}}>Ecart (doit etre 0 pour balancer)</div>
+            <div style={{fontSize:16,fontWeight:800,color:Math.abs(ecart)<0.01?T.accent:T.red}}>{money(ecart)}</div>
+            <div style={{fontSize:9,fontWeight:700,color:Math.abs(ecart)<0.01?T.accent:T.red,marginTop:2}}>{Math.abs(ecart)<0.01?"BALANCE":(ecart>0?"Les DEBITS depassent les credits de "+money(ecart):"Les CREDITS depassent les debits de "+money(-ecart))}</div>
+          </div>
         </div>
 
         <div style={{background:T.surface,border:"2px solid "+T.blue+"44",borderRadius:12,padding:16,marginBottom:14}}>

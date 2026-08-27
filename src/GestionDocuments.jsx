@@ -91,7 +91,7 @@ function DocCard(p){
   );
 }
 
-export default function GestionDocuments(){
+export default function GestionDocuments(p){
   var s0=useState([]);var syndicats=s0[0];var setSyndicats=s0[1];
   var s1=useState(null);var sel=s1[0];var setSel=s1[1];
   var s2=useState([]);var dossiers=s2[0];var setDossiers=s2[1];
@@ -109,27 +109,37 @@ export default function GestionDocuments(){
 
   var USER={};try{USER=JSON.parse(localStorage.getItem("predictek_user")||"{}")||{};}catch(e){}
   var roleCA=(USER.role||"")==="ca";
+  // Espace "predictek" = bibliotheque INTERNE de l entreprise, completement separee des
+  // bibliotheques des syndicats (chaque syndicat a la sienne via le selecteur)
+  var espaceP=!!(p&&p.espace==="predictek");
 
   useEffect(function(){
+    if(espaceP)return; // pas de syndicat dans la bibliotheque interne Predictek
     sb.select("syndicats",{order:"nom.asc"}).then(function(res){
       if(res&&res.data&&res.data.length>0){setSyndicats(res.data);setSel(res.data[0]);}
     }).catch(function(){});
   },[]);
 
   function charger(){
-    if(!sel)return;
-    sb.select("dossiers_documents",{eq:{syndicat_id:sel.id},order:"nom.asc",limit:500}).then(function(r){
-      if(r&&r.error){setErr("Chargement des dossiers impossible: "+(r.error.message||"executez le bloc SQL fourni (dossiers_documents)."));setDossiers([]);return;}
-      setDossiers((r&&r.data?r.data:[]).filter(function(d){return d.statut!=="retire";}));
+    if(!espaceP&&!sel)return;
+    var eqDoss=espaceP?{espace:"predictek"}:{syndicat_id:sel.id};
+    sb.select("dossiers_documents",{eq:eqDoss,order:"nom.asc",limit:500}).then(function(r){
+      if(r&&r.error){setErr("Chargement des dossiers impossible: "+(r.error.message||"executez le bloc SQL fourni (dossiers_documents / colonne espace)."));setDossiers([]);return;}
+      setDossiers((r&&r.data?r.data:[]).filter(function(d){return d.statut!=="retire"&&(espaceP?d.espace==="predictek":d.espace!=="predictek");}));
     }).catch(function(){setDossiers([]);});
-    sb.select("documents",{eq:{syndicat_id:sel.id},order:"created_at.desc",limit:2000}).then(function(r){
-      if(r&&r.data)setDocs(r.data.filter(function(d){return d.statut!=="supprime";}));
+    var eqDocs=espaceP?{niveau:"predictek"}:{syndicat_id:sel.id};
+    sb.select("documents",{eq:eqDocs,order:"created_at.desc",limit:2000}).then(function(r){
+      if(r&&r.data)setDocs(r.data.filter(function(d){return d.statut!=="supprime"&&(espaceP?true:d.niveau!=="predictek");}));
     }).catch(function(){});
-    sb.select("types_documents",{eq:{syndicat_id:sel.id},order:"nom.asc",limit:200}).then(function(r){
-      setTypes((r&&r.data?r.data:[]).filter(function(t){return t.statut!=="retire";}));
-    }).catch(function(){setTypes([]);});
+    if(espaceP){
+      setTypes(["Contrat","Politique interne","Procedure","Modele de document","Assurance de l entreprise","Ressources humaines","Facturation","Autre"].map(function(n){return {id:"P:"+n,nom:n,statut:"actif"};}));
+    }else{
+      sb.select("types_documents",{eq:{syndicat_id:sel.id},order:"nom.asc",limit:200}).then(function(r){
+        setTypes((r&&r.data?r.data:[]).filter(function(t){return t.statut!=="retire";}));
+      }).catch(function(){setTypes([]);});
+    }
   }
-  useEffect(function(){charger();setDossierSel(null);},[sel&&sel.id]);
+  useEffect(function(){charger();setDossierSel(null);},[sel&&sel.id,espaceP]);
 
   // Arborescence a plat (dossier + profondeur), enfants sous leur parent
   function aplatir(){
@@ -173,7 +183,9 @@ export default function GestionDocuments(){
   // ===== DOSSIERS =====
   function sauverDossier(){
     if(!editDossier||!editDossier.nom){setErr("ECHEC: le nom du dossier est obligatoire.");return;}
-    var row={syndicat_id:sel.id,parent_id:editDossier.parent_id||null,nom:editDossier.nom,acces_ca:editDossier.acces_ca!==false,acces_copro:editDossier.acces_copro||"non",statut:"actif"};
+    var row=espaceP
+      ?{espace:"predictek",syndicat_id:null,parent_id:editDossier.parent_id||null,nom:editDossier.nom,acces_ca:false,acces_copro:"non",statut:"actif"}
+      :{syndicat_id:sel.id,parent_id:editDossier.parent_id||null,nom:editDossier.nom,acces_ca:editDossier.acces_ca!==false,acces_copro:editDossier.acces_copro||"non",statut:"actif"};
     var op=editDossier.id?sb.update("dossiers_documents",editDossier.id,row):sb.insert("dossiers_documents",row);
     op.then(function(res){
       if(res&&res.error){setErr("ECHEC de la sauvegarde du dossier: "+(res.error.message||""));return;}
@@ -191,10 +203,17 @@ export default function GestionDocuments(){
   function creerModeles(){
     setBusy(true);setErr("");
     var chaine=Promise.resolve();
-    DOSSIERS_MODELES.forEach(function(m){
-      chaine=chaine.then(function(){return sb.insert("dossiers_documents",{syndicat_id:sel.id,parent_id:null,nom:m.nom,acces_ca:m.ca,acces_copro:m.copro,statut:"actif"});});
+    var modeles=espaceP
+      ?[{nom:"Contrats de gestion (clients)"},{nom:"Politiques internes"},{nom:"Procedures"},{nom:"Modeles de documents"},{nom:"Assurances de l entreprise"},{nom:"Ressources humaines"},{nom:"Facturation"},{nom:"Divers"}]
+      :DOSSIERS_MODELES;
+    modeles.forEach(function(m){
+      chaine=chaine.then(function(){
+        return sb.insert("dossiers_documents",espaceP
+          ?{espace:"predictek",syndicat_id:null,parent_id:null,nom:m.nom,acces_ca:false,acces_copro:"non",statut:"actif"}
+          :{syndicat_id:sel.id,parent_id:null,nom:m.nom,acces_ca:m.ca,acces_copro:m.copro,statut:"actif"});
+      });
     });
-    chaine.then(function(){setBusy(false);setMsg("Dossiers modeles crees - ajustez les noms et les acces selon VOTRE syndicat.");charger();})
+    chaine.then(function(){setBusy(false);setMsg(espaceP?"Dossiers modeles de la bibliotheque interne crees.":"Dossiers modeles crees - ajustez les noms et les acces selon VOTRE syndicat.");charger();})
       .catch(function(e){setBusy(false);setErr("ECHEC de la creation des dossiers modeles: "+((e&&e.message)||""));});
   }
 
@@ -208,11 +227,14 @@ export default function GestionDocuments(){
     if(!nf.nom){setErr("ECHEC: choisissez un fichier.");return;}
     setBusy(true);setErr("");
     var ty=types.find(function(t){return t.id===nf.type_id;});
-    var row={niveau:"syndicat",syndicat_id:sel.id,dossier_id:dossierSel||null,nom:nf.nom,type_id:nf.type_id||null,type_doc:ty?ty.nom:"autre",description:nf.description,date_doc:nf.date_doc||null,confidentiel:nf.confidentiel,url:"",taille_kb:nf.taille_kb||0,statut:"actif"};
+    var typeIdReel=(nf.type_id&&nf.type_id.indexOf("P:")===0)?null:(nf.type_id||null);
+    var row=espaceP
+      ?{niveau:"predictek",dossier_id:dossierSel||null,nom:nf.nom,type_id:null,type_doc:ty?ty.nom:"autre",description:nf.description,date_doc:nf.date_doc||null,confidentiel:nf.confidentiel,url:"",taille_kb:nf.taille_kb||0,statut:"actif"}
+      :{niveau:"syndicat",syndicat_id:sel.id,dossier_id:dossierSel||null,nom:nf.nom,type_id:typeIdReel,type_doc:ty?ty.nom:"autre",description:nf.description,date_doc:nf.date_doc||null,confidentiel:nf.confidentiel,url:"",taille_kb:nf.taille_kb||0,statut:"actif"};
     var envoi=Promise.resolve(row);
     if(nf._fichier){
       var ext=(nf._fichier.name.split(".").pop()||"pdf").toLowerCase().replace(/[^a-z0-9]/g,"");
-      var chemin=sel.id+"/documents/"+Date.now()+"."+ext;
+      var chemin=(espaceP?"predictek":sel.id)+"/documents/"+Date.now()+"."+ext;
       envoi=sb.uploadFichier("preuves",chemin,nf._fichier).then(function(up){
         if(up&&up.chemin){row.url="storage:"+up.chemin;return row;}
         throw new Error("Televersement echoue: "+((up&&up.error&&up.error.message)||""));
@@ -272,13 +294,13 @@ export default function GestionDocuments(){
   return(
     <div style={{fontFamily:"Georgia,serif",minHeight:"100vh",background:T.bg}}>
       <div style={{background:T.navy,padding:"14px 20px",display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
-        <div style={{fontSize:14,fontWeight:800,color:"#fff"}}>Documents</div>
-        {syndicats.length>0&&(
+        <div style={{fontSize:14,fontWeight:800,color:"#fff"}}>{espaceP?"Documents Predictek (bibliotheque interne)":"Documents"}</div>
+        {!espaceP&&syndicats.length>0&&(
           <select value={sel?sel.id:""} onChange={function(e){var s=syndicats.find(function(x){return x.id===e.target.value;});if(s)setSel(s);}} style={{background:"#ffffff18",border:"1px solid #ffffff40",borderRadius:6,padding:"5px 10px",color:"#fff",fontSize:12,fontFamily:"inherit"}}>
             {syndicats.map(function(s){return <option key={s.id} value={s.id} style={{color:"#000"}}>{s.nom}</option>;})}
           </select>
         )}
-        <div style={{fontSize:10,color:"#ffffffAA"}}>L acces se regle PAR DOSSIER - les types de documents se gerent dans Configuration du syndicat</div>
+        <div style={{fontSize:10,color:"#ffffffAA"}}>{espaceP?"Bibliotheque de l entreprise - completement separee des bibliotheques des syndicats":"Chaque syndicat a SA bibliotheque (selecteur ci-contre). L acces se regle PAR DOSSIER - les types de documents se gerent dans Configuration du syndicat"}</div>
       </div>
 
       {err&&<div style={{margin:"12px 20px 0",background:T.redL,border:"1px solid "+T.red+"55",color:T.red,borderRadius:10,padding:"10px 14px",fontSize:12,fontWeight:700}}>{err} <span onClick={function(){setErr("");}} style={{cursor:"pointer",textDecoration:"underline",marginLeft:8}}>fermer</span></div>}
@@ -294,7 +316,7 @@ export default function GestionDocuments(){
 
           {dossiers.length===0&&!roleCA&&(
             <div style={{background:T.blueL,borderRadius:10,padding:12,marginBottom:10}}>
-              <div style={{fontSize:11,color:T.navy,marginBottom:8}}>Aucun dossier pour ce syndicat. Creez votre propre structure avec "+ Dossier", ou partez des dossiers modeles (modifiables).</div>
+              <div style={{fontSize:11,color:T.navy,marginBottom:8}}>{espaceP?"Aucun dossier dans la bibliotheque interne.":"Aucun dossier pour ce syndicat."} Creez votre propre structure avec "+ Dossier", ou partez des dossiers modeles (modifiables).</div>
               <Btn sm dis={busy} onClick={creerModeles}>{busy?"Creation...":"Creer les dossiers modeles"}</Btn>
             </div>
           )}
@@ -332,11 +354,11 @@ export default function GestionDocuments(){
               </div>
               <div style={{fontSize:11,color:T.muted}}>
                 {docsVisibles.length} document(s)
-                {dossierOuvert&&<span> - Acces: {dossierOuvert.acces_ca!==false?"CA":"gestionnaire seulement"}{dossierOuvert.acces_copro==="portail"?" + coproprietaires (portail)":dossierOuvert.acces_copro==="demande"?" + coproprietaires SUR DEMANDE":""}</span>}
+                {!espaceP&&dossierOuvert&&<span> - Acces: {dossierOuvert.acces_ca!==false?"CA":"gestionnaire seulement"}{dossierOuvert.acces_copro==="portail"?" + coproprietaires (portail)":dossierOuvert.acces_copro==="demande"?" + coproprietaires SUR DEMANDE":""}</span>}
               </div>
             </div>
             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-              {dossierOuvert&&!roleCA&&<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){setEditDossier({id:dossierOuvert.id,parent_id:dossierOuvert.parent_id||null,nom:dossierOuvert.nom,acces_ca:dossierOuvert.acces_ca!==false,acces_copro:dossierOuvert.acces_copro||"non"});}}>Modifier / acces</Btn>}
+              {dossierOuvert&&!roleCA&&<Btn sm bg={T.blueL} tc={T.blue} bdr={"1px solid "+T.blue+"44"} onClick={function(){setEditDossier({id:dossierOuvert.id,parent_id:dossierOuvert.parent_id||null,nom:dossierOuvert.nom,acces_ca:dossierOuvert.acces_ca!==false,acces_copro:dossierOuvert.acces_copro||"non"});}}>{espaceP?"Modifier":"Modifier / acces"}</Btn>}
               {dossierOuvert&&!roleCA&&<Btn sm bg={T.redL} tc={T.red} bdr={"1px solid "+T.red+"44"} onClick={function(){retirerDossier(dossierOuvert);}}>Retirer le dossier</Btn>}
               <Btn onClick={function(){setShowDoc(true);}}>+ Ajouter un document</Btn>
             </div>
@@ -354,7 +376,7 @@ export default function GestionDocuments(){
                     <div style={{fontSize:12,fontWeight:700,color:T.navy,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.nom}</div>
                     <div style={{fontSize:9,color:T.muted}}>{nbDocs(d.id)} document(s){aEnfants(d.id)?" + sous-dossiers":""}</div>
                   </div>
-                  <BadgeAcces d={d}/>
+                  {!espaceP&&<BadgeAcces d={d}/>}
                 </div>
               );})}
             </div>
@@ -373,21 +395,24 @@ export default function GestionDocuments(){
                   </select>
                 </div>
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
-                <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:T.navy,cursor:"pointer"}}>
-                  <input type="checkbox" checked={editDossier.acces_ca!==false} onChange={function(e){var v=e.target.checked;setEditDossier(function(pr){return Object.assign({},pr,{acces_ca:v});});}}/>
-                  Accessible aux membres du CA
-                </label>
-                <div>
-                  <Lbl l="Acces des coproprietaires"/>
-                  <select value={editDossier.acces_copro||"non"} onChange={function(e){var v=e.target.value;setEditDossier(function(pr){return Object.assign({},pr,{acces_copro:v});});}} style={INP}>
-                    <option value="non">Aucun acces</option>
-                    <option value="portail">Visible au portail coproprietaire</option>
-                    <option value="demande">Consultation SUR DEMANDE (le copro fait une requete)</option>
-                  </select>
+              {!espaceP&&(
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                  <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:T.navy,cursor:"pointer"}}>
+                    <input type="checkbox" checked={editDossier.acces_ca!==false} onChange={function(e){var v=e.target.checked;setEditDossier(function(pr){return Object.assign({},pr,{acces_ca:v});});}}/>
+                    Accessible aux membres du CA
+                  </label>
+                  <div>
+                    <Lbl l="Acces des coproprietaires"/>
+                    <select value={editDossier.acces_copro||"non"} onChange={function(e){var v=e.target.value;setEditDossier(function(pr){return Object.assign({},pr,{acces_copro:v});});}} style={INP}>
+                      <option value="non">Aucun acces</option>
+                      <option value="portail">Visible au portail coproprietaire</option>
+                      <option value="demande">Consultation SUR DEMANDE (le copro fait une requete)</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
-              <div style={{fontSize:10,color:T.muted,marginBottom:10}}>Le gestionnaire voit toujours tous les dossiers. Un document peut etre accessible a la fois au CA et aux coproprietaires.</div>
+              )}
+              {!espaceP&&<div style={{fontSize:10,color:T.muted,marginBottom:10}}>Le gestionnaire voit toujours tous les dossiers. Un document peut etre accessible a la fois au CA et aux coproprietaires.</div>}
+              {espaceP&&<div style={{fontSize:10,color:T.muted,marginBottom:10}}>Bibliotheque interne de Predictek - jamais visible des syndicats ni des coproprietaires.</div>}
               <div style={{display:"flex",gap:8}}>
                 <Btn onClick={sauverDossier}>Sauvegarder</Btn>
                 <Btn bg={T.alt} tc={T.muted} bdr={"1px solid "+T.border} onClick={function(){setEditDossier(null);}}>Annuler</Btn>
