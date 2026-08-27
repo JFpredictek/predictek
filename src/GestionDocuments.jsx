@@ -139,11 +139,28 @@ export default function GestionDocuments(){
       (parId[pid]||[]).forEach(function(d){
         if(roleCA&&d.acces_ca===false)return; // un membre CA ne voit pas les dossiers reserves au gestionnaire
         out.push({d:d,prof:prof});
-        if(!replies[d.id])walk(d.id,prof+1);
+        if(replies[d.id])walk(d.id,prof+1); // REPLIE par defaut - on ouvre avec le +
       });
     }
     walk("",0);
     return out;
+  }
+  // Chaine des parents (fil d Ariane) du dossier ouvert
+  function chemin(id){
+    var byId={};dossiers.forEach(function(d){byId[d.id]=d;});
+    var out=[];var cur=byId[id];var garde=0;
+    while(cur&&garde<20){out.unshift(cur);cur=cur.parent_id?byId[cur.parent_id]:null;garde++;}
+    return out;
+  }
+  // Ouvrir un dossier: selection + deplier toute sa chaine de parents dans le menu
+  function ouvrirDossier(id){
+    setDossierSel(id);
+    if(!id)return;
+    setReplies(function(pr){
+      var n=Object.assign({},pr);
+      chemin(id).forEach(function(d){n[d.id]=true;});
+      return n;
+    });
   }
   function aplatirTous(){ // pour les selects Deplacer / parent (sans tenir compte du repli)
     var out=[];var parId={};dossiers.forEach(function(d){var p=d.parent_id||"";if(!parId[p])parId[p]=[];parId[p].push(d);});
@@ -244,6 +261,8 @@ export default function GestionDocuments(){
   var arbre=aplatir();
   var arbreTous=aplatirTous();
   var dossierOuvert=dossiers.find(function(d){return d.id===dossierSel;})||null;
+  // Sous-dossiers du dossier ouvert - affiches dans la page de DROITE (comme l explorateur)
+  var sousDossiers=dossiers.filter(function(x){return (x.parent_id||null)===(dossierSel||null)&&!(roleCA&&x.acces_ca===false);}).sort(function(a,b){return (a.nom||"").localeCompare(b.nom||"");});
   var docsVisibles=docs.filter(function(d){
     if((d.dossier_id||null)!==(dossierSel||null))return false;
     if(filtre&&!(d.nom||"").toLowerCase().includes(filtre.toLowerCase())&&!((d.description||"").toLowerCase().includes(filtre.toLowerCase())))return false;
@@ -288,12 +307,11 @@ export default function GestionDocuments(){
           {arbre.map(function(x){
             var d=x.d;var a=dossierSel===d.id;var enf=aEnfants(d.id);
             return(
-              <div key={d.id} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 8px",paddingLeft:8+x.prof*16,borderRadius:8,cursor:"pointer",background:a?T.accentL:"transparent",marginBottom:2}} onClick={function(){setDossierSel(d.id);}}>
-                <span onClick={function(e){e.stopPropagation();if(enf)setReplies(function(pr){var n=Object.assign({},pr);n[d.id]=!n[d.id];return n;});}} style={{width:12,fontSize:9,color:T.muted,flexShrink:0}}>{enf?(replies[d.id]?">":"v"):""}</span>
+              <div key={d.id} style={{display:"flex",alignItems:"center",gap:4,padding:"6px 8px",paddingLeft:8+x.prof*14,borderRadius:8,cursor:"pointer",background:a?T.accentL:"transparent",marginBottom:2}} onClick={function(){ouvrirDossier(d.id);}}>
+                <span onClick={function(e){e.stopPropagation();if(enf)setReplies(function(pr){var n=Object.assign({},pr);n[d.id]=!n[d.id];return n;});}} title={enf?(replies[d.id]?"Replier":"Deplier"):""} style={{width:16,height:16,flexShrink:0,display:"inline-flex",alignItems:"center",justifyContent:"center",borderRadius:4,border:enf?"1px solid "+T.border:"1px solid transparent",background:enf?"#FFF":"transparent",fontSize:11,fontWeight:800,color:T.muted,lineHeight:1}}>{enf?(replies[d.id]?"-":"+"):""}</span>
                 <span style={{fontSize:13,flexShrink:0,color:T.amber}}>[D]</span>
                 <span style={{flex:1,minWidth:0,fontSize:12,fontWeight:a?800:600,color:a?T.accent:T.navy,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.nom}</span>
                 <span style={{fontSize:10,color:T.muted,flexShrink:0}}>{nbDocs(d.id)}</span>
-                <BadgeAcces d={d}/>
               </div>
             );
           })}
@@ -303,7 +321,15 @@ export default function GestionDocuments(){
         <div style={{padding:20}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6,flexWrap:"wrap",gap:8}}>
             <div>
-              <div style={{fontSize:14,fontWeight:800,color:T.navy}}>{dossierOuvert?dossierOuvert.nom:"(Non classes)"}</div>
+              <div style={{fontSize:14,fontWeight:800,color:T.navy,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                <span onClick={function(){setDossierSel(null);}} style={{cursor:"pointer",color:dossierOuvert?T.blue:T.navy,textDecoration:dossierOuvert?"underline":"none"}}>Documents</span>
+                {dossierOuvert&&chemin(dossierOuvert.id).map(function(d,i,arr){return(
+                  <span key={d.id} style={{display:"inline-flex",alignItems:"center",gap:6}}>
+                    <span style={{color:T.muted,fontWeight:400}}>{">"}</span>
+                    <span onClick={function(){ouvrirDossier(d.id);}} style={{cursor:"pointer",color:i===arr.length-1?T.navy:T.blue,textDecoration:i===arr.length-1?"none":"underline"}}>{d.nom}</span>
+                  </span>
+                );})}
+              </div>
               <div style={{fontSize:11,color:T.muted}}>
                 {docsVisibles.length} document(s)
                 {dossierOuvert&&<span> - Acces: {dossierOuvert.acces_ca!==false?"CA":"gestionnaire seulement"}{dossierOuvert.acces_copro==="portail"?" + coproprietaires (portail)":dossierOuvert.acces_copro==="demande"?" + coproprietaires SUR DEMANDE":""}</span>}
@@ -317,6 +343,22 @@ export default function GestionDocuments(){
           </div>
 
           <input value={filtre} onChange={function(e){setFiltre(e.target.value);}} placeholder="Rechercher dans ce dossier..." style={Object.assign({},INP,{maxWidth:320,marginBottom:14})}/>
+
+          {/* ----- sous-dossiers (dans la page de droite, comme l explorateur Windows) ----- */}
+          {sousDossiers.length>0&&(
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(230px,1fr))",gap:8,marginBottom:14}}>
+              {sousDossiers.map(function(d){return(
+                <div key={d.id} onClick={function(){ouvrirDossier(d.id);}} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",background:T.surface,border:"1px solid "+T.border,borderRadius:10,cursor:"pointer"}}>
+                  <span style={{fontSize:15,color:T.amber,flexShrink:0}}>[D]</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12,fontWeight:700,color:T.navy,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.nom}</div>
+                    <div style={{fontSize:9,color:T.muted}}>{nbDocs(d.id)} document(s){aEnfants(d.id)?" + sous-dossiers":""}</div>
+                  </div>
+                  <BadgeAcces d={d}/>
+                </div>
+              );})}
+            </div>
+          )}
 
           {/* ----- formulaire dossier ----- */}
           {editDossier&&(
