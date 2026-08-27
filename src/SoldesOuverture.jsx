@@ -15,11 +15,22 @@ var money=function(n){return (Number(n)||0).toLocaleString("fr-CA",{minimumFract
 
 var FONDS_NOMS={operation:"Fonds d operation",prevoyance:"Fonds de prevoyance",assurance:"Fonds d auto-assurance",special:"Fonds de travaux speciaux"};
 
+// Contributions PERCUES D AVANCE (montants anticipes payes par des copros): PASSIF
+// detaille PAR UNITE - chaque montant devient une AVANCE appliquee automatiquement
+// sur les prochaines cotisations/factures (module Encaissements, FIFO)
+function estPercuDavance(compte){
+  if(!compte)return false;
+  var t=((compte.nom_compte||"")+" "+(compte.groupe||"")).toLowerCase();
+  var no=String(compte.no_compte||"");
+  return /percues d avance|percue d avance|percus d avance|percu d avance/.test(t)||(/dues aux coproprietaires/.test(t)&&/avance/.test(t))||no.indexOf("24")===0;
+}
+
 // Type de detail requis pour un compte
 function detailPour(compte){
   if(!compte)return "";
   var t=((compte.nom_compte||"")+" "+(compte.groupe||"")).toLowerCase();
   var no=String(compte.no_compte||"");
+  if(estPercuDavance(compte))return "unite";
   if(/recevoir|arrerage/.test(t)||no.indexOf("12")===0)return "unite";
   if(/fournisseur/.test(t)||no==="2210")return "fournisseur";
   if(/payes d avance|paye d avance|prepaye/.test(t)||no.indexOf("13")===0)return "fournisseur";
@@ -174,8 +185,17 @@ export default function SoldesOuverture(){
       var rR=await sb.update("soldes_ouverture",lignes[k].id,{statut:"retire"});
       if(rR&&rR.error)echecs.push("retrait ligne: "+(rR.error.message||""));
     }
+    // 2b. Remplacement des AVANCES issues des soldes d ouverture (contributions percues d avance)
+    var rAv=await sb.select("avances_copros",{eq:{syndicat_id:sel.id,note:"Solde d ouverture"},limit:500});
+    if(rAv&&rAv.data){
+      for(var k2=0;k2<rAv.data.length;k2++){
+        if(rAv.data[k2].statut==="annule")continue;
+        var rR2=await sb.update("avances_copros",rAv.data[k2].id,{statut:"annule"});
+        if(rR2&&rR2.error)echecs.push("retrait avance: "+(rR2.error.message||""));
+      }
+    }
     // 3. Insertion des nouvelles lignes
-    var inseres=0;
+    var inseres=0;var avancesCreees=0;
     for(var m=0;m<comptesBilan.length;m++){
       var c=comptesBilan[m];
       var dp=detailPour(c);
@@ -189,6 +209,13 @@ export default function SoldesOuverture(){
             unite_id:u?u.id:null,unite:dp==="unite"?l2.cle:"",fournisseur:dp==="fournisseur"?l2.cle:"",
             date_solde:dateSoldes||null,note:"",statut:"actif"});
           if(rI&&rI.error)echecs.push(c.no_compte+": "+(rI.error.message||""));else inseres++;
+          // Contributions percues d avance: creer l AVANCE correspondante (appliquee
+          // automatiquement sur les prochaines cotisations dans Encaissements)
+          if(estPercuDavance(c)&&u){
+            var mAv=parseFloat(l2.montant)||0;
+            var rA=await sb.insert("avances_copros",{syndicat_id:sel.id,unite_id:u.id,coproprietaire_id:null,montant:mAv,solde:mAv,date_encaissement:dateSoldes||null,compte_bancaire_id:null,note:"Solde d ouverture",statut:"actif"});
+            if(rA&&rA.error)echecs.push("avance unite "+l2.cle+": "+(rA.error.message||""));else avancesCreees++;
+          }
         }
       }else{
         var mnt=parseFloat(valeurs[c.no_compte])||0;
@@ -201,7 +228,7 @@ export default function SoldesOuverture(){
     }
     setSaving(false);
     if(echecs.length>0){setErr("ECHEC sur "+echecs.length+" element(s): "+echecs.slice(0,5).join(" | ")+(echecs.length>5?" ...":""));}
-    setMsg("Soldes d ouverture sauvegardes: "+banques.length+" compte(s) de banque + "+inseres+" ligne(s) GL"+(Math.abs(ecart)>0.01?" - ATTENTION: la balance ne balance pas (ecart "+money(ecart)+")":" - balance OK")+".");
+    setMsg("Soldes d ouverture sauvegardes: "+banques.length+" compte(s) de banque + "+inseres+" ligne(s) GL"+(avancesCreees>0?" + "+avancesCreees+" avance(s) creee(s) (appliquees automatiquement sur les prochaines cotisations)":"")+(Math.abs(ecart)>0.01?" - ATTENTION: la balance ne balance pas (ecart "+money(ecart)+")":" - balance OK")+".");
     sb.log("comptabilite","modification","Soldes d ouverture sauvegardes ("+inseres+" lignes GL, ecart "+ecart.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,"\u202F").replace(".",",")+" $)","",sel.code||"");
     charger();setTimeout(function(){setMsg("");},10000);
   }
@@ -271,6 +298,7 @@ export default function SoldesOuverture(){
                         <span style={{fontSize:9,color:sensDefaut(c)==="credit"?T.amber:T.accent,fontWeight:800,marginLeft:8}}>{sensDefaut(c)==="credit"?"CREDIT":"DEBIT"}</span>
                         {dp==="unite"&&<span style={{fontSize:9,color:T.blue,fontWeight:800,marginLeft:8}}>DETAIL PAR UNITE</span>}
                         {dp==="fournisseur"&&<span style={{fontSize:9,color:T.purple,fontWeight:800,marginLeft:8}}>DETAIL PAR FOURNISSEUR</span>}
+                        {estPercuDavance(c)&&<div style={{fontSize:9,color:T.accent,fontWeight:700,marginTop:2}}>Montants ANTICIPES payes par des copros: inscrivez chaque unite - une AVANCE est creee et s appliquera automatiquement sur ses prochaines cotisations (Encaissements).</div>}
                       </div>
                       {!dp&&<div style={{width:150}}><input type="number" step="0.01" value={valeurs[c.no_compte]||""} onChange={function(e){setVal(c.no_compte,e.target.value);}} style={Object.assign({},INP,{textAlign:"right",fontWeight:700})}/></div>}
                       {dp&&(
