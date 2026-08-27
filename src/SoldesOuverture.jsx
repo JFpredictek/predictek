@@ -97,6 +97,17 @@ export default function SoldesOuverture(){
   var s15=useState(false);var showAddC=s15[0];var setShowAddC=s15[1];
   var s16=useState({no:"",nom:"",type:"passif",groupe:""});var addC=s16[0];var setAddC=s16[1];
 
+  // Groupes existants de la charte pour un type donne (menu deroulant du formulaire d ajout)
+  function groupesPourType(ty){
+    var out=[];
+    comptes.forEach(function(c){
+      if((c.type_compte||"").toLowerCase()!==ty)return;
+      var g=c.groupe||"";
+      if(g&&out.indexOf(g)<0)out.push(g);
+    });
+    return out.sort();
+  }
+
   // Ajouter un compte de BILAN manquant (ex.: Du interfonds, Frais courus) sans quitter la page
   function ajouterCompteBilan(){
     var no=(addC.no||"").trim();var nom=(addC.nom||"").trim();
@@ -543,8 +554,15 @@ export default function SoldesOuverture(){
             <div style={{display:"grid",gridTemplateColumns:"120px 2fr 160px 1fr auto",gap:8,marginTop:10,alignItems:"end"}}>
               <div><Lbl l="Numero"/><input value={addC.no} onChange={function(e){var v=e.target.value;setAddC(function(pr){return Object.assign({},pr,{no:v});});}} style={INP}/></div>
               <div><Lbl l="Nom du compte"/><input value={addC.nom} onChange={function(e){var v=e.target.value;setAddC(function(pr){return Object.assign({},pr,{nom:v});});}} style={INP}/></div>
-              <div><Lbl l="Type"/><select value={addC.type} onChange={function(e){var v=e.target.value;setAddC(function(pr){return Object.assign({},pr,{type:v});});}} style={INP}><option value="actif">Actif</option><option value="passif">Passif</option><option value="capitaux">Capitaux</option></select></div>
-              <div><Lbl l="Groupe (optionnel)"/><input value={addC.groupe} onChange={function(e){var v=e.target.value;setAddC(function(pr){return Object.assign({},pr,{groupe:v});});}} style={INP}/></div>
+              <div><Lbl l="Type"/><select value={addC.type} onChange={function(e){var v=e.target.value;setAddC(function(pr){return Object.assign({},pr,{type:v,groupe:""});});}} style={INP}><option value="actif">Actif</option><option value="passif">Passif</option><option value="capitaux">Capitaux</option></select></div>
+              <div><Lbl l="Groupe (choisir ou tout nouveau)"/>
+                <select value={addC._autre?"__autre__":(addC.groupe||"")} onChange={function(e){var v=e.target.value;setAddC(function(pr){return v==="__autre__"?Object.assign({},pr,{_autre:true,groupe:""}):Object.assign({},pr,{_autre:false,groupe:v});});}} style={INP}>
+                  <option value="">(Groupe par defaut du type)</option>
+                  {groupesPourType(addC.type).map(function(g){return <option key={g} value={g}>{g}</option>;})}
+                  <option value="__autre__">Nouveau groupe...</option>
+                </select>
+                {addC._autre&&<input value={addC.groupe} onChange={function(e){var v=e.target.value;setAddC(function(pr){return Object.assign({},pr,{groupe:v});});}} placeholder="Nom du nouveau groupe" style={Object.assign({},INP,{marginTop:6})}/>}
+              </div>
               <Btn onClick={ajouterCompteBilan}>Ajouter</Btn>
             </div>
           )}
